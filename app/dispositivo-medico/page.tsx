@@ -36,16 +36,16 @@ const FAQ: { q: string; a: string }[] = [
 
 export default function DispositivoMedicoPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 14 }}>Enquadramento</div>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.02em', lineHeight: 1.15 }}>O Phlox não é um dispositivo médico</h1>
         <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 26 }}>Última atualização: {LEGAL_UPDATED}</p>
 
         {/* Statement canónico */}
-        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 14, padding: '18px 20px', marginBottom: 30 }}>
+        <div style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-xl)', padding: '18px 20px', marginBottom: 30 }}>
           {MEDICAL_DEVICE_STATEMENT.long.map((p, i) => (
-            <p key={i} style={{ fontSize: 14.5, color: '#14532d', lineHeight: 1.7, margin: i === 0 ? '0 0 10px' : '0 0 10px' }}>{p}</p>
+            <p key={i} style={{ fontSize: 14.5, color: 'var(--green-3)', lineHeight: 1.7, margin: i === 0 ? '0 0 10px' : '0 0 10px' }}>{p}</p>
           ))}
         </div>
 

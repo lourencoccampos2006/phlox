@@ -1,10 +1,10 @@
 import Link from 'next/link'
 
 const SUGGESTIONS = [
-  { href: '/interactions', label: 'Verificar Interações', icon: '⚡' },
-  { href: '/ai',           label: 'Phlox AI',             icon: '🤖' },
-  { href: '/calculos',     label: 'Calculadoras',          icon: '🧮' },
-  { href: '/scan',         label: 'Tradutor de Bula',      icon: '📋' },
+  { href: '/interactions', label: 'Verificar Interações', icon: 'bolt' },
+  { href: '/ai',           label: 'Phlox AI',             icon: 'spark' },
+  { href: '/calculos',     label: 'Calculadoras',          icon: 'calculator' },
+  { href: '/scan',         label: 'Tradutor de Bula',      icon: 'clipboard' },
 ]
 
 export default function NotFound() {
@@ -29,7 +29,7 @@ export default function NotFound() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, maxWidth: 400, margin: '0 auto 28px' }}>
           {SUGGESTIONS.map(({ href, label, icon }) => (
             <Link key={href} href={href}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 15px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 9, fontSize: 13, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600, letterSpacing: '-0.01em' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '13px 15px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 13, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600, letterSpacing: '-0.01em' }}>
               <span style={{ fontSize: 17, lineHeight: 1 }}>{icon}</span>
               {label}
             </Link>

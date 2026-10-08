@@ -173,7 +173,7 @@ export function Bolha({ id, nome, compacto }: { id: string; nome: string; compac
       title={nome}
       style={{
         width: 24, height: 24, flexShrink: 0, borderRadius: '50%',
-        background: corDe(id), color: '#fff',
+        background: corDe(id), color: 'var(--bg)',
         display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
         fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, letterSpacing: '.02em',
       }}>{iniciais(nome)}</span>

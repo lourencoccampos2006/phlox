@@ -19,6 +19,11 @@ import {
   lerPreferencias, lerSujeitos, lerIdentidades, resolverSujeito,
   atualizarDossier, contextoParaIA, explicarArrumacao,
 } from '@/lib/memoriaDocumentos'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 type VaultDoc = {
   id: string
@@ -118,36 +123,57 @@ export default function VaultPage() {
   }
 
   if (!canUse) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Cofre</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div className="page-container page-body" style={{ maxWidth: 520, textAlign: 'center' }}>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)' }}>Cofre de saúde</h1>
-        <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)' }}>Cofre de saúde</h1>
+        <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 24 }}>
           Guarda análises, receitas e relatórios num só sítio. Partilha com o médico através de um código temporário — sem dar login, sem perder controlo.
         </p>
-        <Link href="/pricing" style={{ display: 'inline-block', background: '#0d6e42', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontWeight: 700 }}>Ver planos →</Link>
+        <Link href="/pricing" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontWeight: 'var(--peso-forte)' as any }}>Ver planos →</Link>
       </div>
-    </div>
+    </Mesa>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Cofre</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div className="page-container page-body" style={{ maxWidth: 1000 }}>
 
         <div style={{ marginBottom: 18, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Pessoal · Premium</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', margin: 0, fontWeight: 400, letterSpacing: '-0.02em' }}>Cofre de saúde</h1>
-            <p style={{ fontSize: 14, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Análises, receitas e relatórios — pesquisáveis e partilháveis com código temporário.</p>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Pessoal · Premium</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: 'var(--ink)', margin: 0, fontWeight: 'var(--peso-normal)' as any, letterSpacing: '-0.02em' }}>Cofre de saúde</h1>
+            <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', margin: '6px 0 0', lineHeight: 1.55 }}>Análises, receitas e relatórios — pesquisáveis e partilháveis com código temporário.</p>
           </div>
           <button onClick={() => setAddingNew(true)}
-            style={{ padding: '11px 18px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 800, cursor: 'pointer' }}>+ Novo</button>
+            style={{ padding: '11px 18px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>+ Novo</button>
         </div>
 
         <input value={q} onChange={e => setQ(e.target.value)} placeholder={`Pesquisar em ${items.length} documento${items.length === 1 ? '' : 's'}…`}
-          style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '10px 14px', fontSize: 14, marginBottom: 12, outline: 'none', background: 'white' }} />
+          style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 14px', fontSize: 'var(--t-corpo)', marginBottom: 12, outline: 'none', background: 'white' }} />
 
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
-          <Chip active={catFilter === 'all'} onClick={() => setCatFilter('all')} color="#0b1120" label={`Tudo · ${items.length}`} />
+          <Chip active={catFilter === 'all'} onClick={() => setCatFilter('all')} color="var(--ink)" label={`Tudo · ${items.length}`} />
           {CATS.map(c => {
             const n = items.filter(it => it.category === c.id).length
             if (!n) return null
@@ -156,20 +182,20 @@ export default function VaultPage() {
         </div>
 
         {loading ? (
-          <div style={{ background: 'white', borderRadius: 14, padding: 36, textAlign: 'center', color: '#94a3b8' }}>A carregar…</div>
+          <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 36, textAlign: 'center', color: 'var(--ink-5)' }}>A carregar…</div>
         ) : erroCarregar ? (
           /* Um cofre que parece vazio por causa de um erro faz pensar que os
              documentos se perderam. Diz-se o que se passa, e oferece-se voltar
              a tentar — o que nao se faz e chamar-lhe "vazio". */
-          <div style={{ background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 12, padding: 28, textAlign: 'center' }}>
-            <div style={{ fontSize: 13.5, color: '#c53030', lineHeight: 1.6, marginBottom: 12 }}>{erroCarregar}</div>
+          <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)', padding: 28, textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--red)', lineHeight: 1.6, marginBottom: 12 }}>{erroCarregar}</div>
             <button onClick={() => { setLoading(true); refresh() }} style={{
-              padding: '9px 18px', background: 'white', border: '1px solid #fca5a5', borderRadius: 8,
-              fontSize: 13, fontWeight: 700, color: '#c53030', cursor: 'pointer', fontFamily: 'inherit',
+              padding: '9px 18px', background: 'white', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)',
+              fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)', cursor: 'pointer', fontFamily: 'inherit',
             }}>Tentar de novo</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ background: 'white', border: '1px dashed #cbd5e1', borderRadius: 12, padding: 36, textAlign: 'center', color: '#94a3b8' }}>
+          <div style={{ background: 'white', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-xl)', padding: 36, textAlign: 'center', color: 'var(--ink-5)' }}>
             {items.length === 0 ? 'Cofre vazio — adiciona o primeiro documento.' : 'Nenhum resultado.'}
           </div>
         ) : (
@@ -177,23 +203,23 @@ export default function VaultPage() {
             {filtered.map(it => {
               const cat = CATS.find(c => c.id === it.category) || CATS[CATS.length - 1]
               return (
-                <div key={it.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: '12px 14px', display: 'flex', gap: 12 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: 8, background: cat.color + '14', color: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 17, flexShrink: 0 }}>{cat.icon}</div>
+                <div key={it.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px', display: 'flex', gap: 12 }}>
+                  <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: cat.color + '14', color: cat.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)', flexShrink: 0 }}><Icon name={cat.icon} size={16} /></div>
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
-                      <span style={{ fontSize: 10.5, fontWeight: 700, color: cat.color, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>{cat.label}</span>
-                      {it.issued_at && <span style={{ fontSize: 11, color: '#94a3b8' }}>{new Date(it.issued_at).toLocaleDateString('pt-PT')}</span>}
-                      {it.pinned && <span style={{ fontSize: 11, color: '#b45309', fontWeight: 700 }}>★ Fixo</span>}
+                      <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: cat.color, textTransform: 'uppercase', letterSpacing: '0.05em', fontFamily: 'var(--font-mono)' }}>{cat.label}</span>
+                      {it.issued_at && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{new Date(it.issued_at).toLocaleDateString('pt-PT')}</span>}
+                      {it.pinned && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>★ Fixo</span>}
                     </div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120', marginTop: 2 }}>{it.title}</div>
-                    {it.notes && <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2, lineHeight: 1.5 }}>{it.notes}</div>}
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginTop: 2 }}>{it.title}</div>
+                    {it.notes && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.5 }}>{it.notes}</div>}
                   </div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <button onClick={() => setViewing(it)} title="Abrir" style={{ background: '#0b1120', color: 'white', border: 'none', borderRadius: 6, padding: '4px 10px', cursor: 'pointer', fontSize: 11, fontWeight: 800 }}>Abrir</button>
-                    <button onClick={() => setSharing(it)} title="Partilhar com código" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#1d4ed8', fontWeight: 700 }}>↗</button>
-                    <button onClick={() => setEditing(it)} title="Editar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#475569' }}>✎</button>
-                    <button onClick={() => togglePin(it)} title="Fixar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: it.pinned ? '#b45309' : '#94a3b8' }}>★</button>
-                    <button aria-label="Eliminar" onClick={() => removeItem(it.id)} title="Eliminar" style={{ background: 'none', border: '1px solid #e5e7eb', borderRadius: 6, padding: '4px 8px', cursor: 'pointer', fontSize: 11, color: '#94a3b8' }}>×</button>                  </div>
+                    <button onClick={() => setViewing(it)} title="Abrir" style={{ background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r)', padding: '4px 10px', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>Abrir</button>
+                    <button onClick={() => setSharing(it)} title="Partilhar com código" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-2)', fontWeight: 'var(--peso-forte)' as any }}>↗</button>
+                    <button onClick={() => setEditing(it)} title="Editar" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>✎</button>
+                    <button onClick={() => togglePin(it)} title="Fixar" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', fontSize: 'var(--t-meta)', color: it.pinned ? 'var(--amber)' : 'var(--ink-5)' }}>★</button>
+                    <button aria-label="Eliminar" onClick={() => removeItem(it.id)} title="Eliminar" style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 8px', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>×</button>                  </div>
                 </div>
               )
             })}
@@ -206,13 +232,13 @@ export default function VaultPage() {
         {viewing && <ViewModal doc={viewing} onClose={() => setViewing(null)} onEdit={() => { setEditing(viewing); setViewing(null) }} />}
         {sharing && <ShareModal doc={sharing} onClose={() => setSharing(null)} />}
       </div>
-    </div>
+    </Mesa>
   )
 }
 
 function Chip({ active, color, label, onClick }: { active: boolean; color: string; label: string; onClick: () => void }) {
   return (
-    <button onClick={onClick} style={{ padding: '6px 12px', borderRadius: 999, border: `1.5px solid ${active ? color : '#e5e7eb'}`, background: active ? color + '14' : 'white', color: active ? color : '#475569', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{label}</button>
+    <button onClick={onClick} style={{ padding: '6px 12px', borderRadius: 999, border: `1.5px solid ${active ? color : 'var(--border)'}`, background: active ? color + '14' : 'white', color: active ? color : 'var(--ink-3)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{label}</button>
   )
 }
 
@@ -306,9 +332,9 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
           ainda lhe passava por cima, porque este modal estava a z-index 60 e
           ela a 120.)
           Agora o corpo rola e as ações ficam sempre à vista. */}
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 560, maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', width: 560, maxWidth: '100%', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         <div style={{ flex: 1, overflowY: 'auto', padding: 20, minHeight: 0 }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 14 }}>{doc ? 'Editar documento' : 'Novo documento'}</div>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 14 }}>{doc ? 'Editar documento' : 'Novo documento'}</div>
 
         <Label>Título</Label>
         <input value={title} onChange={e => setTitle(e.target.value)} placeholder="Ex: Análises Set/2026"
@@ -318,8 +344,8 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
           {CATS.map(c => (
             <button key={c.id} onClick={() => setCategory(c.id)}
-              style={{ padding: '6px 11px', borderRadius: 8, border: `1.5px solid ${category === c.id ? c.color : '#e5e7eb'}`, background: category === c.id ? c.color + '14' : 'white', color: category === c.id ? c.color : '#475569', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-              {c.icon} {c.label}
+              style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', border: `1.5px solid ${category === c.id ? c.color : 'var(--border)'}`, background: category === c.id ? c.color + '14' : 'white', color: category === c.id ? c.color : 'var(--ink-3)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>
+              <Icon name={c.icon} size={15} />  {c.label}
             </button>
           ))}
         </div>
@@ -340,12 +366,12 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
 
         <Label>Ficheiro (PDF, imagem ou documento — opcional, até 25 MB)</Label>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center', marginBottom: 8 }}>
-          <label style={{ flex: 1, padding: '8px 12px', background: temFicheiro ? '#f0fdf4' : '#f8fafc', border: `1.5px dashed ${temFicheiro ? '#16a34a' : '#cbd5e1'}`, borderRadius: 8, fontSize: 12.5, color: '#475569', cursor: aEnviar ? 'wait' : 'pointer', display: 'block', textAlign: 'center' }}>
+          <label style={{ flex: 1, padding: '8px 12px', background: temFicheiro ? 'var(--badge-green-bg)' : 'var(--bg-2)', border: `1.5px dashed ${temFicheiro ? 'var(--green)' : 'var(--border-2)'}`, borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', cursor: aEnviar ? 'wait' : 'pointer', display: 'block', textAlign: 'center' }}>
             {aEnviar || (ficheiro ? `✓ ${ficheiro.nome}` : temFicheiro ? '✓ Ficheiro anexado' : '+ Anexar ficheiro')}
             <input type="file" accept="application/pdf,image/*,.docx,.pptx,.txt,.md" style={{ display: 'none' }} disabled={!!aEnviar}
               onChange={e => { const f = e.target.files?.[0]; if (f) pickFile(f) }} />
           </label>
-          {temFicheiro && !aEnviar && <button onClick={removerFicheiro} style={{ padding: '8px 10px', background: 'white', color: '#94a3b8', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 11, cursor: 'pointer' }}>Remover</button>}
+          {temFicheiro && !aEnviar && <button onClick={removerFicheiro} style={{ padding: '8px 10px', background: 'white', color: 'var(--ink-5)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Remover</button>}
         </div>
 
         <Label>Texto/conteúdo (para pesquisar e mostrar)</Label>
@@ -355,12 +381,12 @@ function EditModal({ doc, onClose, onSave }: { doc: VaultDoc | null; onClose: ()
 
         <div style={{
           flexShrink: 0, display: 'flex', gap: 8, justifyContent: 'flex-end',
-          padding: '12px 20px', borderTop: '1px solid #e5e7eb', background: 'white',
+          padding: '12px 20px', borderTop: '1px solid var(--border)', background: 'white',
           // No iPhone, o indicador de gestos come os últimos milímetros.
           paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
         }}>
-          <button onClick={onClose} style={{ padding: '11px 16px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13.5, fontWeight: 600, cursor: 'pointer', minHeight: 44 }}>Cancelar</button>
-          <button onClick={save} style={{ padding: '11px 20px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 800, cursor: 'pointer', minHeight: 44 }}>Guardar</button>
+          <button onClick={onClose} style={{ padding: '11px 16px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', minHeight: 'var(--alvo)' }}>Cancelar</button>
+          <button onClick={save} style={{ padding: '11px 20px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', minHeight: 'var(--alvo)' }}>Guardar</button>
         </div>
       </div>
     </div>
@@ -538,12 +564,12 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
 
   return (
     <div onClick={onClose} style={estiloFundoModal}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 800, maxWidth: '100%', height: 'min(88vh, 720px)', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #e5e7eb', display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 7, background: meta.color + '14', color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16 }}>{meta.icon}</div>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', width: 800, maxWidth: '100%', height: 'min(88vh, 720px)', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 'var(--r-md)', background: meta.color + '14', color: meta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)' }}><Icon name={meta.icon} size={16} /></div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</div>
-            <div style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{doc.title}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
               {meta.label}{doc.issued_at ? ` · ${new Date(doc.issued_at).toLocaleDateString('pt-PT')}` : ''}
             </div>
           </div>
@@ -552,30 +578,30 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
               Explicar sabe ler. Sem isto era preciso voltar a fotografar um
               papel que já está aqui dentro. */}
           {(doc.body_text || '').trim().length > 40 && (
-            <button onClick={() => decifrar(false)} disabled={aDecifrar} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+            <button onClick={() => decifrar(false)} disabled={aDecifrar} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
               {aDecifrar && !aFundo ? 'A ler…' : 'Explicar'}
             </button>
           )}
           {(doc.body_url || doc.storage_path || (doc.body_text || '').trim().length > 40) && (
-            <button onClick={() => decifrar(true)} disabled={aDecifrar} style={{ padding: '6px 12px', background: aDecifrar ? '#f1f5f9' : '#0d6e42', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, color: aDecifrar ? '#94a3b8' : 'white', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
+            <button onClick={() => decifrar(true)} disabled={aDecifrar} style={{ padding: '6px 12px', background: aDecifrar ? 'var(--bg-3)' : 'var(--green)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: aDecifrar ? 'var(--ink-5)' : 'white', cursor: aDecifrar ? 'wait' : 'pointer', whiteSpace: 'nowrap' }}>
               {aDecifrar && aFundo ? 'A ler tudo…' : 'Ler a fundo'}
             </button>
           )}
-          <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 12, fontWeight: 700, color: '#475569', cursor: 'pointer' }}>Editar</button>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, background: 'white', border: '1px solid #e5e7eb', borderRadius: 7, cursor: 'pointer', fontSize: 18, color: '#475569' }}>×</button>
+          <button onClick={onEdit} style={{ padding: '6px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', cursor: 'pointer' }}>Editar</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-3)' }}>×</button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto', padding: 0, display: 'flex', flexDirection: 'column' }}>
           {doc.notes && (
-            <div style={{ padding: '12px 18px', background: '#f8fafc', borderBottom: '1px solid #e5e7eb', fontSize: 13, color: '#475569', lineHeight: 1.55 }}>
-              <strong style={{ color: '#0b1120' }}>Notas:</strong> {doc.notes}
+            <div style={{ padding: '12px 18px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
+              <strong style={{ color: 'var(--ink)' }}>Notas:</strong> {doc.notes}
             </div>
           )}
 
           {/* Preview do ficheiro */}
           {(doc.body_url || doc.storage_path) && (
             <div style={{
-              flex: 1, background: '#0b1120', minHeight: isPdf ? 420 : 320,
+              flex: 1, background: 'var(--ink)', minHeight: isPdf ? 420 : 320,
               // Um PDF desenhado em canvas empilha as páginas e cresce para
               // baixo: não se centra nem se limita a altura, deixa-se rolar.
               ...(isPdf ? {} : { display: 'flex', alignItems: 'center', justifyContent: 'center' }),
@@ -586,28 +612,28 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={urlFicheiro || doc.body_url || undefined} alt={doc.title} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
               ) : urlFicheiro || doc.body_url ? (
-                <a href={urlFicheiro || doc.body_url || undefined} download={doc.file_name || doc.title} style={{ color: 'white', fontSize: 13 }}>📥 Descarregar anexo</a>
+                <a href={urlFicheiro || doc.body_url || undefined} download={doc.file_name || doc.title} style={{ color: 'white', fontSize: 'var(--t-dado)' }}>Descarregar anexo</a>
               ) : (
-                <span style={{ color: '#94a3b8', fontSize: 13 }}>A abrir o ficheiro…</span>
+                <span style={{ color: 'var(--ink-5)', fontSize: 'var(--t-dado)' }}>A abrir o ficheiro…</span>
               )}
             </div>
           )}
 
           {precisaPro && (
-            <div style={{ padding: '16px 18px', borderBottom: '1px solid #e5e7eb', background: '#fffbeb' }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#854d0e', marginBottom: 5 }}>Ler a fundo faz parte do plano Pro</div>
-              <div style={{ fontSize: 13, color: '#854d0e', lineHeight: 1.6, maxWidth: '58ch' }}>{precisaPro}</div>
-              <Link href="/pricing" style={{ display: 'inline-block', marginTop: 10, fontSize: 12.5, fontWeight: 700, color: '#854d0e' }}>Ver o plano Pro →</Link>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', background: 'var(--badge-amber-bg)' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--badge-amber-fg)', marginBottom: 5 }}>Ler a fundo faz parte do plano Pro</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--badge-amber-fg)', lineHeight: 1.6, maxWidth: '58ch' }}>{precisaPro}</div>
+              <Link href="/pricing" style={{ display: 'inline-block', marginTop: 10, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--badge-amber-fg)' }}>Ver o plano Pro →</Link>
             </div>
           )}
 
           {(decifrado || erroDecifrar) && (
-            <div style={{ padding: '16px 18px', borderBottom: '1px solid #e5e7eb', background: '#f8fafc' }}>
+            <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
               {erroDecifrar ? (
-                <div style={{ fontSize: 13, color: '#c53030', lineHeight: 1.6 }}>{erroDecifrar}</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--red)', lineHeight: 1.6 }}>{erroDecifrar}</div>
               ) : (
                 <>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 7 }}>
                     {aFundo ? 'Lido a fundo' : 'Explicado'}
                     {/* Dizer que a leitura é a de antes. Sem isto, quem abre o
                         documento não percebe porque é que já lá está. */}
@@ -615,34 +641,34 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                         pessoa guardado no cofre nao pode misturar-se com a
                         historia de saude de quem o guardou. */}
                     {arrumado && (
-                      <span style={{ textTransform: 'none', letterSpacing: 0, color: '#94a3b8', marginLeft: 8 }}>
+                      <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-5)', marginLeft: 8 }}>
                         · {arrumado}
                       </span>
                     )}
                     {decifrado === doc.analise && doc.analise_em && (
-                      <span style={{ textTransform: 'none', letterSpacing: 0, color: '#94a3b8', marginLeft: 8 }}>
+                      <span style={{ textTransform: 'none', letterSpacing: 0, color: 'var(--ink-5)', marginLeft: 8 }}>
                         · a leitura de {new Date(doc.analise_em).toLocaleDateString('pt-PT')}
                       </span>
                     )}
                   </div>
                   {decifrado.emDuasLinhas && (
-                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 16.5, lineHeight: 1.5, color: '#0b1120', margin: '0 0 12px', maxWidth: '54ch' }}>
+                    <p style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', lineHeight: 1.5, color: 'var(--ink)', margin: '0 0 12px', maxWidth: '54ch' }}>
                       {decifrado.emDuasLinhas}
                     </p>
                   )}
                   {!!decifrado.ligacoes?.length && (
-                    <div style={{ marginBottom: 12, paddingLeft: 11, borderLeft: '2px solid #0d6e42' }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#0d6e42', marginBottom: 6 }}>Em relação ao que já sabia</div>
+                    <div style={{ marginBottom: 12, paddingLeft: 11, borderLeft: '2px solid var(--green)' }}>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--green)', marginBottom: 6 }}>Em relação ao que já sabia</div>
                       {decifrado.ligacoes.map((x: string, i: number) => (
-                        <div key={i} style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6, padding: '2px 0' }}>{x}</div>
+                        <div key={i} style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6, padding: '2px 0' }}>{x}</div>
                       ))}
                     </div>
                   )}
                   {!!decifrado.oQueImporta?.length && (
                     <ul style={{ margin: '0 0 12px', padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 7 }}>
                       {decifrado.oQueImporta.map((x: string, i: number) => (
-                        <li key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: '#334155', lineHeight: 1.55 }}>
-                          <span aria-hidden style={{ color: '#0d6e42', fontWeight: 700 }}>—</span><span>{x}</span>
+                        <li key={i} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                          <span aria-hidden style={{ color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>—</span><span>{x}</span>
                         </li>
                       ))}
                     </ul>
@@ -650,8 +676,8 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                   {!!decifrado.termos?.length && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
                       {decifrado.termos.map((t: any, i: number) => (
-                        <div key={i} style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>
-                          <strong style={{ color: '#0b1120' }}>{t.termo}</strong> — {t.simples}
+                        <div key={i} style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.5 }}>
+                          <strong style={{ color: 'var(--ink)' }}>{t.termo}</strong> — {t.simples}
                         </div>
                       ))}
                     </div>
@@ -660,10 +686,10 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
                       {decifrado.secoes.map((sec: any, i: number) => (
                         <div key={i}>
-                          <div style={{ fontSize: 13, fontWeight: 750, color: '#0b1120', marginBottom: 3 }}>{sec.titulo}</div>
-                          <p style={{ margin: 0, fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>{sec.texto}</p>
+                          <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 3 }}>{sec.titulo}</div>
+                          <p style={{ margin: 0, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>{sec.texto}</p>
                           {sec.porqueImporta && (
-                            <p style={{ margin: '5px 0 0', fontSize: 12.5, color: '#64748b', lineHeight: 1.5, paddingLeft: 10, borderLeft: '2px solid #e5e7eb' }}>
+                            <p style={{ margin: '5px 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.5, paddingLeft: 10, borderLeft: '2px solid var(--border)' }}>
                               {sec.porqueImporta}
                             </p>
                           )}
@@ -674,10 +700,10 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
 
                   {!!decifrado.cronologia?.length && (
                     <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>A história, por datas</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 7 }}>A história, por datas</div>
                       {decifrado.cronologia.map((c: any, i: number) => (
-                        <div key={i} style={{ display: 'flex', gap: 11, fontSize: 13, color: '#334155', lineHeight: 1.55, padding: '4px 0' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: '#64748b', minWidth: 78, flexShrink: 0 }}>{c.quando}</span>
+                        <div key={i} style={{ display: 'flex', gap: 11, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55, padding: '4px 0' }}>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', minWidth: 78, flexShrink: 0 }}>{c.quando}</span>
                           <span>{c.o_que}</span>
                         </div>
                       ))}
@@ -686,20 +712,20 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
 
                   {!!decifrado.perguntasParaOMedico?.length && (
                     <div style={{ marginBottom: 14 }}>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em', textTransform: 'uppercase', color: '#64748b', marginBottom: 7 }}>Para perguntar na consulta</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 7 }}>Para perguntar na consulta</div>
                       {decifrado.perguntasParaOMedico.map((q: string, i: number) => (
-                        <div key={i} style={{ display: 'flex', gap: 9, fontSize: 13.5, color: '#334155', lineHeight: 1.55, padding: '3px 0' }}>
-                          <span style={{ color: '#94a3b8', flexShrink: 0 }}>{i + 1}.</span><span>{q}</span>
+                        <div key={i} style={{ display: 'flex', gap: 9, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55, padding: '3px 0' }}>
+                          <span style={{ color: 'var(--ink-5)', flexShrink: 0 }}>{i + 1}.</span><span>{q}</span>
                         </div>
                       ))}
                     </div>
                   )}
 
                   {decifrado.paginas && (
-                    <div style={{ fontSize: 11.5, color: '#94a3b8', marginBottom: 10 }}>Lido por inteiro — {decifrado.paginas}.</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginBottom: 10 }}>Lido por inteiro — {decifrado.paginas}.</div>
                   )}
 
-                  <Link href="/scan" style={{ fontSize: 12.5, color: '#0d6e42', fontWeight: 700, textDecoration: 'none' }}>
+                  <Link href="/scan" style={{ fontSize: 'var(--t-meta)', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>
                     Abrir no Explicar para perguntar sobre isto →
                   </Link>
                   <NaoEDispositivoMedico variante="linha" />
@@ -709,11 +735,11 @@ function ViewModal({ doc, onClose, onEdit }: { doc: VaultDoc; onClose: () => voi
           )}
 
           {doc.body_text && (
-            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: '#0b1120', lineHeight: 1.65, margin: 0, padding: '14px 18px', background: 'white' }}>{doc.body_text}</pre>
+            <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink)', lineHeight: 1.65, margin: 0, padding: '14px 18px', background: 'white' }}>{doc.body_text}</pre>
           )}
 
           {!doc.body_url && !doc.body_text && (
-            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#94a3b8', fontSize: 13 }}>
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-5)', fontSize: 'var(--t-dado)' }}>
               Documento sem ficheiro nem texto. Usa "Editar" para acrescentar.
             </div>
           )}
@@ -750,9 +776,9 @@ function ShareModal({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
 
   return (
     <div onClick={onClose} style={estiloFundoModal}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, width: 460, maxWidth: '100%', padding: 22 }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 6 }}>Partilhar com código</div>
-        <p style={{ fontSize: 12.5, color: '#64748b', marginTop: 0, marginBottom: 16, lineHeight: 1.55 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', width: 460, maxWidth: '100%', padding: 22 }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 6 }}>Partilhar com código</div>
+        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 0, marginBottom: 16, lineHeight: 1.55 }}>
           Gera um código temporário que qualquer pessoa pode usar em phlox.../v/CÓDIGO para ver este documento. Expira automaticamente.
         </p>
 
@@ -762,26 +788,26 @@ function ShareModal({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
             <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
               {[[24, '24h'], [168, '7 dias'], [720, '30 dias']].map(([v, l]) => (
                 <button key={v} onClick={() => setDuration(v as 24 | 168 | 720)}
-                  style={{ flex: 1, padding: '9px', borderRadius: 8, border: `1.5px solid ${duration === v ? '#0d6e42' : '#e5e7eb'}`, background: duration === v ? '#f0fdf4' : 'white', color: duration === v ? '#0d6e42' : '#475569', fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{l}</button>
+                  style={{ flex: 1, padding: '9px', borderRadius: 'var(--r-md)', border: `1.5px solid ${duration === v ? 'var(--green)' : 'var(--border)'}`, background: duration === v ? 'var(--badge-green-bg)' : 'white', color: duration === v ? 'var(--green)' : 'var(--ink-3)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>{l}</button>
               ))}
             </div>
             <Label>Máximo de visualizações</Label>
             <input type="number" min={1} max={50} value={maxViews} onChange={e => setMaxViews(Number(e.target.value) || 1)} style={input()} />
 
             <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 10 }}>
-              <button onClick={onClose} style={{ padding: '9px 16px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={createShare} disabled={creating} style={{ padding: '9px 18px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, cursor: 'pointer' }}>{creating ? 'A criar…' : 'Gerar código'}</button>
+              <button onClick={onClose} style={{ padding: '9px 16px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={createShare} disabled={creating} style={{ padding: '9px 18px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>{creating ? 'A criar…' : 'Gerar código'}</button>
             </div>
           </>
         ) : (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 800, color: '#0d6e42', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 8px', letterSpacing: '0.2em', marginBottom: 12 }}>{code}</div>
-            <div style={{ fontSize: 13, color: '#475569', marginBottom: 10 }}>Indica este código (ou o link) ao destinatário.</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-lg)', padding: '14px 8px', letterSpacing: '0.2em', marginBottom: 12 }}>{code}</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginBottom: 10 }}>Indica este código (ou o link) ao destinatário.</div>
             <button onClick={() => { navigator.clipboard.writeText(`${location.origin}/v/${code}`); toast.success('Link copiado') }}
-              style={{ width: '100%', padding: '10px', background: '#0b1120', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', marginBottom: 6 }}>
+              style={{ width: '100%', padding: '10px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', marginBottom: 6 }}>
               📋 Copiar link
             </button>
-            <button onClick={onClose} style={{ width: '100%', padding: '9px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Fechar</button>
+            <button onClick={onClose} style={{ width: '100%', padding: '9px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer' }}>Fechar</button>
           </div>
         )}
       </div>
@@ -789,5 +815,5 @@ function ShareModal({ doc, onClose }: { doc: VaultDoc; onClose: () => void }) {
   )
 }
 
-function Label({ children }: { children: React.ReactNode }) { return <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, marginBottom: 5, marginTop: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{children}</div> }
-function input(): React.CSSProperties { return { width: '100%', boxSizing: 'border-box', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 4 } }
+function Label({ children }: { children: React.ReactNode }) { return <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-forte)' as any, marginBottom: 5, marginTop: 10, fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{children}</div> }
+function input(): React.CSSProperties { return { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 4 } }

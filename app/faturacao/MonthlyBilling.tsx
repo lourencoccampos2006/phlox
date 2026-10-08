@@ -21,10 +21,15 @@ interface Entry {
 const euro = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`
 const thisMonth = () => new Date().toISOString().slice(0, 7)
 const due = (e: Entry) => e.fee + e.extras - e.subsidy - e.discount
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
-const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
+
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Campo, Folha, CAIXA,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 export default function MonthlyBilling() {
+  const largo = useLargo()
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   // O nome da casa, e nao o tipo dela. Os recibos e o mapa saiam assinados
@@ -96,7 +101,7 @@ export default function MonthlyBilling() {
   function printMonth() {
     const records: PrintRecord[] = monthEntries.map(e => ({
       title: nameOf(e.patient_id),
-      tags: [{ label: e.paid ? 'Pago' : 'Pendente', color: e.paid ? '#16a34a' : '#d97706' }],
+      tags: [{ label: e.paid ? 'Pago' : 'Pendente', color: e.paid ? 'var(--green)' : 'var(--amber)' }],
       fields: [
         { label: 'Mensalidade', value: euro(e.fee) },
         { label: 'Comparticipação', value: euro(e.subsidy) },
@@ -152,129 +157,232 @@ export default function MonthlyBilling() {
     })
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body" style={{ maxWidth: 940 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Financeiro</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Faturação & Mensalidades</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Mensalidades, comparticipações, extras e pagamentos — por {cfg.personNoun.toLowerCase()} e por mês.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-            <input type="month" value={month} onChange={e => setMonth(e.target.value)} style={{ ...inp, width: 'auto' }} />
-            {tab === 'mensalidades' && <button onClick={printMonth} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: '#374151' }}>Imprimir mapa</button>}
-          </div>
-        </div>
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Cada pessoa era um cartão com a conta em texto corrido: «Mens. 450,00 € ·
+     compart. 120,00 € · extras 15,00 € · desc. 0,00 €». Quatro valores numa
+     frase não se somam de cabeça nem se comparam entre linhas — e a pergunta
+     que se faz a esta página, «quem é que ainda não pagou», respondia-se a
+     ler sessenta frases.
 
-        {/* Tabs: mensalidades vs movimentos (despesas + outras receitas) */}
-        <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1.5px solid var(--border)' }}>
+     Passa a tabela, com os quatro valores em colunas. Os números alinham, e a
+     coluna «a pagar» lê-se de cima a baixo.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const ordenadas = [...monthEntries].sort((a, b) =>
+    Number(a.paid) - Number(b.paid) || nameOf(a.patient_id).localeCompare(nameOf(b.patient_id)))
+
+  return (
+    <>
+    <Mesa
+      altura={tab === 'mensalidades' ? 'janela' : 'documento'}
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Faturação</span>
+
+          <input type="month" value={month} onChange={e => setMonth(e.target.value)}
+            aria-label="Mês" style={{ ...CAIXA, width: 150 }} />
+
           {/* A conta de cada um fica no MEIO, e de propósito: as mensalidades
               são o acordo, a conta é o que cada pessoa deve de facto, e as
               despesas da casa são outra conversa. A ordem vai do mais próximo
               da pessoa para o mais longe. */}
-          {([['mensalidades', '💶 Mensalidades'], ['conta', '🧾 Conta de cada um'], ['movimentos', '📊 Despesas e receitas']] as const).map(([t, l]) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '9px 14px', border: 'none', borderBottom: `2px solid ${tab === t ? '#0d6e42' : 'transparent'}`, background: 'none', color: tab === t ? '#0d6e42' : 'var(--ink-4)', fontWeight: tab === t ? 700 : 500, fontSize: 13.5, cursor: 'pointer', marginBottom: -1.5, fontFamily: 'var(--font-sans)' }}>{l}</button>
-          ))}
-        </div>
+          <Seletor
+            opcoes={[
+              { id: 'mensalidades', rotulo: 'Mensalidades' },
+              { id: 'conta', rotulo: 'Conta de cada um' },
+              { id: 'movimentos', rotulo: 'Despesas e receitas' },
+            ]}
+            ativa={tab} aoMudar={t => setTab(t as any)} />
 
-        {tab === 'movimentos' ? (
-          <FinanceLedger month={month} monthlyReceived={received} />
-        ) : tab === 'conta' ? (
-          // Recebe as mensalidades que esta página já carregou. Uma segunda
-          // leitura das mesmas linhas acabaria por discordar da primeira — e
-          // num ecrã de dinheiro, duas respostas é não ter nenhuma.
-          <ContaCorrente
-            month={month}
-            patients={patients}
-            mensalidades={entries as any}
-          />
-        ) : tableMissing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Faturação ainda por ativar</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos — tudo o resto continua a funcionar normalmente.</div>
-          </div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-              {[
-                { v: euro(totalFee), l: 'Faturado', c: '#0b1120' },
-                { v: euro(received), l: 'Recebido', c: '#16a34a' },
-                { v: euro(owed), l: 'Em dívida', c: owed > 0 ? '#dc2626' : '#16a34a' },
-                { v: `${rate}%`, l: 'Taxa de cobrança', c: '#2563eb' },
-              ].map(s => (
-                <div key={s.l} style={{ flex: '1 1 150px', background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px' }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.v}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 5 }}>{s.l}</div>
-                </div>
-              ))}
+          {tab === 'mensalidades' && !loading && !tableMissing && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {euro(totalFee)} FATURADO
+              </span>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--green)' }}>
+                {euro(received)} RECEBIDO
+              </span>
+              {owed > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                  {euro(owed)} EM DÍVIDA
+                </span>
+              )}
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                {rate}% COBRADO
+              </span>
+            </span>
+          )}
+
+          {tab === 'mensalidades' && (
+            <div style={{ marginLeft: 'auto' }}>
+              <Botao onClick={printMonth}>IMPRIMIR O MAPA</Botao>
             </div>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        tab === 'mensalidades' ? (
+          <BarraDeEstado>
+            <span style={{ ...MONO, color: 'var(--green)' }}>PAGO</span>
+            <span style={{ ...MONO, color: 'var(--amber)' }}>POR PAGAR</span>
+            <span style={MONO}>A pagar = mensalidade − comparticipação + extras − desconto</span>
+            <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+              Mensalidades, comparticipações, extras e pagamentos — por {cfg.personNoun.toLowerCase()} e por mês
+            </span>
+          </BarraDeEstado>
+        ) : undefined
+      }
+    >
+      {tab === 'movimentos' ? (
+        <Painel>
+          <div style={{ padding: 14 }}>
+            <FinanceLedger month={month} monthlyReceived={received} />
+          </div>
+        </Painel>
+      ) : tab === 'conta' ? (
+        <Painel>
+          <div style={{ padding: 14 }}>
+            {/* Recebe as mensalidades que esta página já carregou. Uma segunda
+                leitura das mesmas linhas acabaria por discordar da primeira —
+                e num ecrã de dinheiro, duas respostas é não ter nenhuma. */}
+            <ContaCorrente month={month} patients={patients} mensalidades={entries as any} />
+          </div>
+        </Painel>
+      ) : tableMissing ? (
+        <Painel>
+          <Vazio titulo="A faturação ainda não está ativa nesta conta."
+            oQueFazer="Fale connosco e ativamos — tudo o resto continua a funcionar normalmente." />
+        </Painel>
+      ) : (
+        <>
+          {missing.length > 0 && (
+            <Aviso tom="atencao" titulo={`${missing.length} ${personPlural} sem faturação este mês`}>
+              Os valores do mês anterior podem ser copiados de uma vez.{' '}
+              <span style={{ display: 'inline-block', marginTop: 7 }}>
+                <Botao feitio="principal" onClick={generateMonth} esperando={generating}>
+                  GERAR O MÊS A PARTIR DO ANTERIOR
+                </Botao>
+              </span>
+            </Aviso>
+          )}
 
-            {missing.length > 0 && (
-              <div style={{ background: '#eff6ff', border: '1.5px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, color: '#1e40af' }}><strong>{missing.length}</strong> {personPlural} sem faturação este mês.</span>
-                <button onClick={generateMonth} disabled={generating} style={{ padding: '8px 16px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{generating ? 'A gerar…' : 'Gerar mês (copiar valores)'}</button>
-              </div>
-            )}
-
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural}</span>
+                <span style={{ ...ROTULO, width: 76, textAlign: 'right' }}>Mensalid.</span>
+                <span style={{ ...ROTULO, width: 76, textAlign: 'right' }}>Compart.</span>
+                <span style={{ ...ROTULO, width: 66, textAlign: 'right' }}>Extras</span>
+                <span style={{ ...ROTULO, width: 66, textAlign: 'right' }}>Desconto</span>
+                <span style={{ ...ROTULO, width: 84, textAlign: 'right' }}>A pagar</span>
+                <span style={{ ...ROTULO, width: 190 }}> </span>
+              </Cabecalho>
+            }
+            rodape={
+              <>
+                <span style={MONO}>{ordenadas.length} linha{ordenadas.length === 1 ? '' : 's'}</span>
+                <span style={{ ...MONO, marginLeft: 'auto' }}>
+                  {euro(received)} de {euro(totalFee)} · {rate}% cobrado
+                </span>
+              </>
+            }
+          >
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 10 }} />)}</div>
-            ) : monthEntries.length === 0 ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 36, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem faturação neste mês. Usa "Gerar mês".</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {monthEntries.sort((a, b) => Number(a.paid) - Number(b.paid) || nameOf(a.patient_id).localeCompare(nameOf(b.patient_id))).map(e => (
-                  <div key={e.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${e.paid ? '#16a34a' : '#d97706'}`, borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: 140 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{nameOf(e.patient_id)}</div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 1 }}>
-                        Mens. {euro(e.fee)}{e.subsidy ? ` · compart. ${euro(e.subsidy)}` : ''}{e.extras ? ` · extras ${euro(e.extras)}` : ''}{e.discount ? ` · desc. ${euro(e.discount)}` : ''}
-                      </div>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{euro(due(e))}</div>
-                      <div style={{ fontSize: 10, color: 'var(--ink-5)' }}>a pagar</div>
-                    </div>
-                    <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-                      <button onClick={() => togglePaid(e)} style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${e.paid ? '#bbf7d0' : '#fde68a'}`, background: e.paid ? '#f0fdf4' : '#fffbeb', color: e.paid ? '#16a34a' : '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                        {e.paid ? '✓ Pago' : 'Marcar pago'}
-                      </button>
-                      <button onClick={() => printReceipt(e)} title={e.paid ? 'Imprimir recibo' : 'Imprimir aviso de pagamento'} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-                      </button>
-                      <button onClick={() => setEdit(e)} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </div>
-
-      {edit && (
-        <div onMouseDown={e => { if (e.target === e.currentTarget) setEdit(null) }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 460, padding: '20px 22px 36px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{nameOf(edit.patient_id)}</h2>
-              <button aria-label="Fechar" onClick={() => setEdit(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div><span style={lbl}>Mensalidade (€)</span><input type="number" value={edit.fee} onChange={e => setEdit({ ...edit, fee: parseFloat(e.target.value) || 0 })} style={inp} /></div>
-              <div><span style={lbl}>Comparticipação (€)</span><input type="number" value={edit.subsidy} onChange={e => setEdit({ ...edit, subsidy: parseFloat(e.target.value) || 0 })} style={inp} /></div>
-              <div><span style={lbl}>Extras (€)</span><input type="number" value={edit.extras} onChange={e => setEdit({ ...edit, extras: parseFloat(e.target.value) || 0 })} style={inp} /></div>
-              <div><span style={lbl}>Desconto (€)</span><input type="number" value={edit.discount} onChange={e => setEdit({ ...edit, discount: parseFloat(e.target.value) || 0 })} style={inp} /></div>
-              <div style={{ gridColumn: '1 / -1' }}><span style={lbl}>Método</span><input value={edit.method || ''} onChange={e => setEdit({ ...edit, method: e.target.value })} placeholder="Transferência, débito direto..." style={inp} /></div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', margin: '14px 0' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>Total a pagar</span>
-              <span style={{ fontSize: 20, fontWeight: 800, color: 'var(--ink)' }}>{euro(due(edit))}</span>
-            </div>
-            <button onClick={saveEdit} disabled={saving} style={{ width: '100%', padding: '11px', background: saving ? 'var(--bg-3)' : '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A guardar…' : 'Guardar'}</button>
-          </div>
-        </div>
+              <ACarregar oQue="A somar o mês…" />
+            ) : ordenadas.length === 0 ? (
+              <Vazio titulo="Sem faturação neste mês."
+                oQueFazer="Os valores do mês anterior podem ser copiados de uma vez — e depois acerta-se o que mudou."
+                acao={<Botao feitio="principal" onClick={generateMonth} esperando={generating}>
+                  GERAR O MÊS A PARTIR DO ANTERIOR
+                </Botao>} />
+            ) : ordenadas.map(e => (
+              <LinhaTabela key={e.id}
+                filete={e.paid ? undefined : 'var(--amber)'}
+                principal={nameOf(e.patient_id)}
+                secundaria={e.method || undefined}
+                celulas={[
+                  { rotulo: 'Mensalidade', valor: euro(e.fee), largura: 76, direita: true },
+                  { rotulo: 'Comparticipação', valor: e.subsidy ? euro(e.subsidy) : '—', largura: 76, direita: true, cor: e.subsidy ? 'var(--ink-3)' : 'var(--ink-5)' },
+                  { rotulo: 'Extras', valor: e.extras ? euro(e.extras) : '—', largura: 66, direita: true, cor: e.extras ? 'var(--ink-3)' : 'var(--ink-5)' },
+                  { rotulo: 'Desconto', valor: e.discount ? euro(e.discount) : '—', largura: 66, direita: true, cor: e.discount ? 'var(--ink-3)' : 'var(--ink-5)' },
+                  { rotulo: 'A pagar', valor: euro(due(e)), largura: 84, direita: true, forte: true, cor: e.paid ? 'var(--green)' : 'var(--ink)' },
+                ]}
+                fim={
+                  <>
+                    <button type="button" className="mesa-botao" onClick={() => togglePaid(e)}
+                      style={{
+                        ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                        textTransform: 'uppercase', padding: '0 11px',
+                        borderRadius: 'var(--r-md)', cursor: 'pointer', whiteSpace: 'nowrap',
+                        border: `1px solid ${e.paid ? 'var(--green)' : 'var(--amber)'}`,
+                        background: e.paid ? 'var(--green)' : 'transparent',
+                        color: e.paid ? 'var(--sobre-acento)' : 'var(--amber)',
+                        fontWeight: 'var(--peso-forte)' as any,
+                      }}>{e.paid ? 'Pago' : 'Marcar pago'}</button>
+                    <Botao onClick={() => printReceipt(e)}
+                      titulo={e.paid ? 'Imprimir o recibo' : 'Imprimir o aviso de pagamento'}>
+                      {e.paid ? 'RECIBO' : 'AVISO'}
+                    </Botao>
+                    <Botao feitio="calmo" onClick={() => setEdit(e)}>MUDAR</Botao>
+                  </>
+                } />
+            ))}
+          </Painel>
+        </>
       )}
-    </div>
+    </Mesa>
+
+    {edit && (
+      <Folha titulo={nameOf(edit.patient_id)} aoFechar={() => setEdit(null)}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Campo rotulo="Mensalidade (€)" para="fat-fee">
+            <input id="fat-fee" type="number" inputMode="decimal" value={edit.fee}
+              onChange={e => setEdit({ ...edit, fee: parseFloat(e.target.value) || 0 })}
+              style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+          <Campo rotulo="Comparticipação (€)" para="fat-sub"
+            ajuda="O que a Segurança Social ou outra entidade paga — abate ao que a família paga.">
+            <input id="fat-sub" type="number" inputMode="decimal" value={edit.subsidy}
+              onChange={e => setEdit({ ...edit, subsidy: parseFloat(e.target.value) || 0 })}
+              style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+          <Campo rotulo="Extras (€)" para="fat-ext">
+            <input id="fat-ext" type="number" inputMode="decimal" value={edit.extras}
+              onChange={e => setEdit({ ...edit, extras: parseFloat(e.target.value) || 0 })}
+              style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+          <Campo rotulo="Desconto (€)" para="fat-desc">
+            <input id="fat-desc" type="number" inputMode="decimal" value={edit.discount}
+              onChange={e => setEdit({ ...edit, discount: parseFloat(e.target.value) || 0 })}
+              style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+        </div>
+
+        <Campo rotulo="Como paga" para="fat-metodo">
+          <input id="fat-metodo" value={edit.method || ''}
+            onChange={e => setEdit({ ...edit, method: e.target.value })}
+            placeholder="Transferência, débito direto…" style={{ ...CAIXA, width: '100%' }} />
+        </Campo>
+
+        <div style={{
+          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+          margin: '16px 0 0', paddingTop: 12, borderTop: '1px solid var(--border-2)',
+        }}>
+          <span style={ROTULO}>Total a pagar</span>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any,
+          }}>{euro(due(edit))}</span>
+        </div>
+
+        <div style={{ marginTop: 14 }}>
+          <Botao feitio="principal" onClick={saveEdit} esperando={saving}>GUARDAR</Botao>
+        </div>
+      </Folha>
+    )}
+    </>
   )
 }

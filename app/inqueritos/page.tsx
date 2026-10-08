@@ -29,59 +29,96 @@ import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
-import { blueprintFor } from '@/lib/institutionBlueprint'
 import { ptDate } from '@/lib/ptTime'
 import { printDoc } from '@/lib/print'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
 import { eFaltaDeSetup } from '@/lib/setupCodes'
 import {
-  ESCALA, NAO_SEI, ROTULO_DO_PUBLICO, perguntasDe, analisar, piores, melhores,
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Grupo,
+  Vazio, ACarregar, Aviso, Codigo, Botao, Seletor, Campo, CAIXA, CAIXA_TEXTO,
+  Linha, Numero, MONO, ROTULO, useLargo, type Tom,
+} from '@/components/ui/mesa'
+import {
+  ESCALA, NAO_SEI, ROTULO_DO_PUBLICO, perguntasDe, analisar, piores,
   comQuantas, confianca, comparar, estaAberto, oQueFalta,
   folhaParaImprimir, relatorioParaImprimir,
   type Publico, type Pergunta, type Inquerito, type Resposta, type Analise,
+  type ResultadoDaPergunta as Resultado,
 } from '@/lib/inqueritos'
 
-const MONO: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
-  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700,
+/**
+ * Que tom é que uma média pede.
+ *
+ * ── TRÊS, E NÃO CINCO ──────────────────────────────────────────────────────
+ * A primeira versão desta página pintava a barra de distribuição com um
+ * degradê de cinco cores, uma por degrau da escala. Era bonito e não se lê:
+ * ninguém decora um código de cinco cores para saber que o amarelo-torrado é
+ * «fraco» e o amarelo-mostarda é «razoável».
+ *
+ * A regra 03 do sistema diz que a cor diz três coisas. Aqui são mesmo três, e
+ * o resultado lê-se melhor: vê-se o tamanho da mancha vermelha contra o
+ * tamanho da verde, que é a pergunta que se estava a fazer.
+ */
+function tomDaMedia(m: number | null): Tom {
+  if (m == null) return 'neutro'
+  if (m < 2.5) return 'mau'
+  if (m < 3.5) return 'atencao'
+  return 'bom'
 }
 
-const campoStyle: React.CSSProperties = {
-  width: '100%', boxSizing: 'border-box', padding: '10px 12px', minHeight: 42,
-  borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
-  fontFamily: 'inherit', fontSize: 14, background: 'var(--bg)', color: 'var(--ink)',
+const COR_DO_TOM: Record<Tom, string> = {
+  mau: 'var(--red)', atencao: 'var(--amber)', bom: 'var(--green)', neutro: 'var(--ink-5)',
 }
 
-const pt = (d: string | null | undefined) => (d ? d.slice(0, 10).split('-').reverse().join('/') : '')
-
-/** A cor de uma média. Não é decoração: é por onde os olhos entram na folha. */
-function corDaMedia(m: number | null): string {
-  if (m == null) return 'var(--ink-5)'
-  if (m < 2.5) return '#b91c1c'
-  if (m < 3.5) return '#b45309'
-  return '#15803d'
+/** Quantas respostas caíram em cada um dos três tons. */
+function porTom(distribuicao: Record<number, number>) {
+  let mau = 0, atencao = 0, bom = 0
+  for (const e of ESCALA) {
+    const q = distribuicao[e.valor] || 0
+    if (e.valor <= 2) mau += q
+    else if (e.valor === 3) atencao += q
+    else bom += q
+  }
+  return { mau, atencao, bom }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
-   A BARRA DE UMA PERGUNTA
-   ══════════════════════════════════════════════════════════════════════════ */
+   O RESULTADO DE UMA PERGUNTA
+   ══════════════════════════════════════════════════════════════════════════
+   O título, a média, a mancha e — sempre — de quantas respostas saiu. */
 
-function Barra({ distribuicao, n }: { distribuicao: Record<number, number>; n: number }) {
-  if (!n) return null
-  // Do pior para o melhor, da esquerda para a direita. Quem olha vê de
-  // relance o tamanho da mancha vermelha, que é a pergunta toda.
-  const cores = ['#b91c1c', '#ea580c', '#ca8a04', '#65a30d', '#15803d']
+function ResultadoDaPergunta({ r }: { r: Resultado }) {
+  const t = tomDaMedia(r.media)
+  const { mau, atencao, bom } = porTom(r.distribuicao)
   return (
-    <div style={{ display: 'flex', height: 8, borderRadius: 4, overflow: 'hidden', background: 'var(--bg-3)' }}>
-      {ESCALA.map((e, i) => {
-        const quantas = distribuicao[e.valor] || 0
-        if (!quantas) return null
-        return (
-          <div key={e.valor}
-            title={`${e.rotulo}: ${quantas}`}
-            style={{ width: `${(quantas / n) * 100}%`, background: cores[i] }} />
-        )
-      })}
+    <div>
+      <div style={{
+        display: 'flex', justifyContent: 'space-between',
+        gap: 'var(--space-5)', alignItems: 'baseline',
+      }}>
+        <span style={{ fontSize: 'var(--texto-corpo)', color: 'var(--ink-2)' }}>{r.pergunta.texto}</span>
+        <span style={{
+          fontSize: 'var(--texto-corpo)', fontWeight: 'var(--peso-forte)' as any,
+          color: COR_DO_TOM[t], fontVariantNumeric: 'tabular-nums', flexShrink: 0,
+        }}>{r.media == null ? '—' : r.media.toFixed(1).replace('.', ',')}</span>
+      </div>
+
+      {r.n > 0 && (
+        <div style={{
+          display: 'flex', height: 8, borderRadius: 'var(--r-sm)',
+          overflow: 'hidden', background: 'var(--bg-3)', marginTop: 'var(--space-2)',
+        }}>
+          {mau > 0 && <div title={`Mau ou fraco: ${mau}`} style={{ width: `${(mau / r.n) * 100}%`, background: 'var(--red)' }} />}
+          {atencao > 0 && <div title={`Razoável: ${atencao}`} style={{ width: `${(atencao / r.n) * 100}%`, background: 'var(--amber)' }} />}
+          {bom > 0 && <div title={`Bom ou muito bom: ${bom}`} style={{ width: `${(bom / r.n) * 100}%`, background: 'var(--green)' }} />}
+        </div>
+      )}
+
+      <div style={{
+        fontSize: 'var(--texto-detalhe)', color: 'var(--ink-4)', marginTop: 'var(--space-2)',
+      }}>
+        {comQuantas(r.n)}{r.naoSei ? ` · ${r.naoSei} «não sei»` : ''}
+      </div>
     </div>
   )
 }
@@ -95,7 +132,6 @@ export default function Inqueritos() {
   const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
-  const cor = blueprintFor(institution).accent
   const hoje = ptDate()
 
   const [inqueritos, setInqueritos] = useState<Inquerito[]>([])
@@ -252,429 +288,351 @@ export default function Inqueritos() {
     // A página não desaparece: quem lá chegou veio à procura de uma coisa, e
     // um retângulo cinzento sozinho não lhe diz sequer onde está.
     return (
-      <div style={{ padding: 'var(--space-11) clamp(16px,3vw,32px) var(--space-18)', maxWidth: 640, margin: '0 auto' }}>
-        <span style={{ ...MONO, color: cor }}>Qualidade</span>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,38px)', fontWeight: 500,
-          color: 'var(--ink)', letterSpacing: '-0.025em', margin: 'var(--space-4) 0 var(--space-6)', lineHeight: 1.1,
-        }}>Inquéritos de satisfação</h1>
-        <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: '0 0 var(--space-8)', lineHeight: 1.6 }}>
-          A Segurança Social pede que a satisfação dos {cfg.personNounPlural.toLowerCase()} e das
-          famílias seja medida pelo menos uma vez por ano, analisada, e que daí saiam ações de
-          melhoria. As respostas são anónimas: o programa não guarda quem respondeu o quê.
-        </p>
-        <AvisoDeSetup codigo="PHX-Y2"
-          oQue="Os inquéritos de satisfação ainda não estão disponíveis nesta conta." />
-      </div>
+      <Mesa barra={<BarraDeTrabalho>
+        <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+          Inquéritos de satisfação
+        </span>
+      </BarraDeTrabalho>}>
+        <Painel>
+          <div style={{ padding: 16 }}>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55, maxWidth: '70ch', margin: '0 0 14px' }}>
+              A Segurança Social pede que a satisfação dos {cfg.personNounPlural.toLowerCase()} e
+              das famílias seja medida pelo menos uma vez por ano, analisada, e que daí saiam
+              ações de melhoria. As respostas são anónimas: o programa não guarda quem respondeu o quê.
+            </p>
+            <AvisoDeSetup codigo="PHX-Y2"
+              oQue="Os inquéritos de satisfação ainda não estão disponíveis nesta conta." />
+          </div>
+        </Painel>
+      </Mesa>
     )
   }
 
   if (!scope.pode('qualidade', 'ver')) {
     return (
-      <div style={{ padding: 'var(--space-14)', maxWidth: 520, margin: '0 auto', textAlign: 'center' }}>
-        <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-          Esta página é de quem acompanha a qualidade do serviço.
-        </p>
-      </div>
+      <Mesa barra={<BarraDeTrabalho>
+        <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+          Inquéritos de satisfação
+        </span>
+      </BarraDeTrabalho>}>
+        <Painel>
+          <Vazio titulo="Esta página é de quem acompanha a qualidade do serviço."
+            oQueFazer="Se precisa de lá chegar, peça o acesso a quem gere a casa." />
+        </Painel>
+      </Mesa>
     )
   }
 
   return (
-    <div style={{ padding: 'var(--space-11) clamp(16px,3vw,32px) var(--space-18)', maxWidth: 920, margin: '0 auto' }}>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+            Inquéritos
+          </span>
+          <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            {!jaCarregou ? 'a ver o que já há…'
+              : inqueritos.length === 0 ? 'nenhum ainda'
+              : `${inqueritos.length} ao todo`}
+          </span>
+          {emFoco && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>
+              {emFoco.titulo}
+            </span>
+          )}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            {!emFoco && podeEditar && !aCriar && (
+              <Botao feitio="principal" onClick={() => setACriar(true)}>+ NOVO INQUÉRITO</Botao>
+            )}
+            {emFoco && <>
+              <Botao onClick={() => printDoc(folhaParaImprimir(emFoco, cfg.unitNoun))}>IMPRIMIR A FOLHA</Botao>
+              {analise && (
+                <Botao onClick={() => printDoc(relatorioParaImprimir(emFoco, analise, cfg.unitNoun))}>
+                  IMPRIMIR O RELATÓRIO
+                </Botao>
+              )}
+              {podeEditar && estaAberto(emFoco) && (
+                <Botao feitio="calmo" onClick={() => fechar(emFoco)}>FECHAR</Botao>
+              )}
+            </>}
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO }}>
+            As respostas são anónimas por construção — não se guarda quem respondeu o quê.
+          </span>
+          <span style={{ marginLeft: 'auto', ...MONO }}>
+            A Segurança Social pede a medição anual, a análise e as ações de melhoria.
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      <Painel>
+      {erro && <Aviso tom="mau">{erro}</Aviso>}
 
-      <header style={{ marginBottom: 'var(--space-9)' }}>
-        <span style={{ ...MONO, color: cor }}>Qualidade</span>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,38px)', fontWeight: 500,
-          color: 'var(--ink)', letterSpacing: '-0.025em', margin: 'var(--space-4) 0 0', lineHeight: 1.1,
-        }}>Inquéritos de satisfação</h1>
-        <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: 'var(--space-5) 0 0', lineHeight: 1.55, maxWidth: '58ch' }}>
-          {!jaCarregou ? 'A ver o que já há…'
-            : inqueritos.length === 0
-              ? 'A Segurança Social pede que a satisfação dos utentes e das famílias seja medida '
-                + 'pelo menos uma vez por ano, analisada, e que daí saiam ações de melhoria.'
-              : `${inqueritos.length} inquérito${inqueritos.length > 1 ? 's' : ''}. `
-                + 'As respostas são anónimas: o programa não guarda quem respondeu o quê.'}
-        </p>
-      </header>
-
-      {erro && (
-        <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
-          fontSize: 13, fontWeight: 600,
-        }}>{erro}</div>
-      )}
-
-      {/* ── A lista ────────────────────────────────────────────────────────── */}
+      {/* ══ A LISTA ══════════════════════════════════════════════════════ */}
       {!emFoco && (
         <>
-          {podeEditar && !aCriar && (
-            <button onClick={() => setACriar(true)} style={{
-              minHeight: 44, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-              background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 14,
-              fontWeight: 700, cursor: 'pointer', marginBottom: 'var(--space-8)',
-            }}>Novo inquérito</button>
-          )}
-
           {aCriar && (
-            <div style={{
-              marginBottom: 'var(--space-9)', padding: 'var(--space-7)',
-              borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--surface-2)',
-            }}>
-              <div style={{ ...MONO, color: cor, marginBottom: 'var(--space-5)' }}>Novo inquérito</div>
+            <div style={{ background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', padding: 16 }}>
+              <div style={{ ...MONO, color: 'var(--green)' }}>Novo inquérito</div>
 
-              <label style={{ ...MONO, fontSize: 9.5, display: 'block', marginBottom: 4 }}>A quem</label>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 'var(--space-5)' }}>
-                {(['utentes', 'familias', 'equipa'] as Publico[]).map(p => {
-                  const on = novo.publico === p
-                  return (
-                    <button key={p} onClick={() => setNovo(n => ({ ...n, publico: p }))} style={{
-                      minHeight: 40, padding: '0 14px', borderRadius: 'var(--r-sm)', cursor: 'pointer',
-                      border: `1.5px solid ${on ? cor : 'var(--border)'}`,
-                      background: on ? cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
-                      fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-                    }}>{p === 'utentes' ? cfg.personNounPlural : ROTULO_DO_PUBLICO[p]}</button>
-                  )
-                })}
-              </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-5)', marginBottom: 'var(--space-6)', lineHeight: 1.5 }}>
-                {novo.publico === 'utentes'
-                  ? `${perguntasDe('utentes').length} perguntas sobre o quarto, a comida, a higiene, a maneira como lhe falam.`
+              <Campo rotulo="A quem"
+                ajuda={novo.publico === 'utentes'
+                  ? `${perguntasDe('utentes').length} perguntas sobre o quarto, a comida, a higiene e a maneira como lhe falam. Pode imprimir a folha e dar em papel.`
                   : novo.publico === 'familias'
-                    ? `${perguntasDe('familias').length} perguntas sobre a informação que recebem, o cuidado e o acolhimento.`
-                    : `${perguntasDe('equipa').length} perguntas sobre condições de trabalho, formação e coordenação.`}
-                {' '}Pode imprimir a folha e dar em papel.
-              </div>
+                    ? `${perguntasDe('familias').length} perguntas sobre a informação que recebem, o cuidado e o acolhimento. Pode imprimir a folha e dar em papel.`
+                    : `${perguntasDe('equipa').length} perguntas sobre condições de trabalho, formação e coordenação.`}>
+                <Seletor
+                  opcoes={[
+                    { id: 'utentes' as Publico, rotulo: cfg.personNounPlural },
+                    { id: 'familias' as Publico, rotulo: ROTULO_DO_PUBLICO.familias },
+                    { id: 'equipa' as Publico, rotulo: ROTULO_DO_PUBLICO.equipa },
+                  ]}
+                  ativa={novo.publico}
+                  aoMudar={p => setNovo(n => ({ ...n, publico: p }))} />
+              </Campo>
 
-              <label style={{ ...MONO, fontSize: 9.5, display: 'block', marginBottom: 4 }}>
-                Quantas pessoas vão ser convidadas
-              </label>
-              <input value={novo.convidados} inputMode="numeric"
-                onChange={e => setNovo(n => ({ ...n, convidados: e.target.value }))}
-                placeholder="Ex.: 28"
-                style={{ ...campoStyle, maxWidth: 160 }} />
-              <div style={{ fontSize: 12.5, color: 'var(--ink-5)', margin: '6px 0 var(--space-6)', lineHeight: 1.5 }}>
-                É o denominador da taxa de resposta — a primeira coisa que uma inspeção pergunta.
-                Pode escrever-se depois.
-              </div>
+              <Campo rotulo="Quantas pessoas vão ser convidadas"
+                ajuda="É o denominador da taxa de resposta — a primeira coisa que uma inspeção pergunta. Pode escrever-se depois.">
+                <input value={novo.convidados} inputMode="numeric" id="convidados"
+                  onChange={e => setNovo(n => ({ ...n, convidados: e.target.value }))}
+                  placeholder="Ex.: 28"
+                  style={{ ...CAIXA, maxWidth: 180 }} />
+              </Campo>
 
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={criar} style={{
-                  minHeight: 44, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-                  background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                }}>Criar</button>
-                <button onClick={() => setACriar(false)} style={{
-                  minHeight: 44, padding: '0 16px', borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border)', background: 'transparent',
-                  color: 'var(--ink-4)', fontFamily: 'inherit', fontSize: 14, cursor: 'pointer',
-                }}>Cancelar</button>
+              <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-8)', flexWrap: 'wrap' }}>
+                <Botao feitio="principal" onClick={criar}>Criar</Botao>
+                <Botao feitio="calmo" onClick={() => setACriar(false)}>Cancelar</Botao>
               </div>
             </div>
           )}
 
-          {jaCarregou && inqueritos.length === 0 && !aCriar && (
-            <p style={{ fontSize: 14, color: 'var(--ink-5)', lineHeight: 1.6 }}>
-              Ainda não há nenhum inquérito.
-            </p>
+          {!jaCarregou ? (
+            <ACarregar oQue="A ver o que já há…" />
+          ) : inqueritos.length === 0 && !aCriar ? (
+            <Vazio
+              titulo="Ainda não há nenhum inquérito."
+              oQueFazer="Crie um, imprima a folha e distribua. As respostas lançam-se aqui à medida que voltarem."
+              acao={podeEditar
+                ? <Botao feitio="principal" onClick={() => setACriar(true)}>Novo inquérito</Botao>
+                : undefined} />
+          ) : (
+            <div style={{ marginTop: 'var(--space-9)' }}>
+              {inqueritos.map(i => {
+                const rs = respostasPorInquerito[i.id] || []
+                const a = analisar(i.perguntas || [], rs, i.convidados || 0)
+                return (
+                  <Linha key={i.id}
+                    aoTocar={() => setAberto(i.id)}
+                    titulo={i.titulo}
+                    detalhe={<>
+                      {ROTULO_DO_PUBLICO[i.publico]} · {comQuantas(a.respostas, i.convidados || 0)}
+                      {a.global?.media != null && <> · no geral {a.global.media.toFixed(1).replace('.', ',')}</>}
+                    </>}
+                    fim={estaAberto(i)
+                      ? <Codigo texto="ABERTO" cor="var(--green)" />
+                      : <Codigo texto="FECHADO" />} />
+                )
+              })}
+            </div>
           )}
-
-          <div style={{ display: 'grid', gap: 'var(--space-5)' }}>
-            {inqueritos.map(i => {
-              const rs = respostasPorInquerito[i.id] || []
-              const a = analisar(i.perguntas || [], rs, i.convidados || 0)
-              return (
-                <button key={i.id} onClick={() => setAberto(i.id)} style={{
-                  textAlign: 'left', padding: 'var(--space-6)', borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border)', background: 'var(--surface)',
-                  cursor: 'pointer', fontFamily: 'inherit', display: 'block', width: '100%',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-                    <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)' }}>{i.titulo}</span>
-                    <span style={{ ...MONO, color: estaAberto(i) ? '#15803d' : 'var(--ink-5)' }}>
-                      {estaAberto(i) ? 'Aberto' : `Fechado a ${pt(i.fechado_em)}`}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 13.5, color: 'var(--ink-4)', marginTop: 5, lineHeight: 1.5 }}>
-                    {ROTULO_DO_PUBLICO[i.publico]} · {comQuantas(a.respostas, i.convidados || 0)}
-                    {a.global?.media != null && (
-                      <> · no geral <strong style={{ color: corDaMedia(a.global.media) }}>
-                        {a.global.media.toFixed(1).replace('.', ',')}
-                      </strong></>
-                    )}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
         </>
       )}
 
-      {/* ── Um inquérito ───────────────────────────────────────────────────── */}
+      {/* ══ UM INQUÉRITO ═════════════════════════════════════════════════ */}
       {emFoco && analise && (
         <>
-          <button onClick={() => { setAberto(null); setALancar(false) }} style={{
-            background: 'none', border: 'none', cursor: 'pointer', padding: 0,
-            ...MONO, color: 'var(--ink-4)', marginBottom: 'var(--space-7)',
-          }}>← Todos os inquéritos</button>
+          <Botao feitio="calmo" onClick={() => { setAberto(null); setALancar(false) }}>
+            ← Todos os inquéritos
+          </Botao>
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'baseline' }}>
-            <h2 style={{
-              fontFamily: 'var(--font-serif)', fontSize: 24, fontWeight: 500,
-              color: 'var(--ink)', margin: 0,
-            }}>{emFoco.titulo}</h2>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => printDoc(folhaParaImprimir(emFoco, cfg.unitNoun))} style={{
-                minHeight: 40, padding: '0 14px', borderRadius: 'var(--r-md)',
-                border: `1px solid ${cor}`, background: 'transparent', color: cor,
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-              }}>Imprimir a folha</button>
-              <button onClick={() => printDoc(relatorioParaImprimir(emFoco, analise, cfg.unitNoun))} style={{
-                minHeight: 40, padding: '0 14px', borderRadius: 'var(--r-md)',
-                border: `1px solid ${cor}`, background: 'transparent', color: cor,
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-              }}>Imprimir o relatório</button>
-              {podeEditar && estaAberto(emFoco) && (
-                <button onClick={() => fechar(emFoco)} style={{
-                  minHeight: 40, padding: '0 14px', borderRadius: 'var(--r-md)',
-                  border: '1px solid var(--border)', background: 'transparent',
-                  color: 'var(--ink-4)', fontFamily: 'inherit', fontSize: 13.5, cursor: 'pointer',
-                }}>Fechar</button>
-              )}
-            </div>
-          </div>
+          <h2 style={{
+            fontFamily: 'var(--font-serif)', fontSize: 'var(--texto-seccao)',
+            fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+            margin: 'var(--space-6) 0 0', lineHeight: 'var(--lh-apertado)',
+          }}>{emFoco.titulo}</h2>
 
-          {/* ── O que estes números aguentam ──────────────────────────────── */}
+          {/* ── O que estes números aguentam ──────────────────────────── */}
           {(() => {
             const c = confianca(analise)
-            const fundo = c.nivel === 'poucas' ? '#fef2f2' : c.nivel === 'alguma' ? '#fffbeb' : 'var(--surface-2)'
-            const borda = c.nivel === 'poucas' ? '#fecaca' : c.nivel === 'alguma' ? '#fde68a' : 'var(--border)'
-            const tinta = c.nivel === 'poucas' ? '#991b1b' : c.nivel === 'alguma' ? '#78350f' : 'var(--ink-4)'
             return (
-              <div style={{
-                marginTop: 'var(--space-7)', padding: 'var(--space-6)', borderRadius: 'var(--r-md)',
-                background: fundo, border: `1px solid ${borda}`,
-              }}>
-                <div style={{ fontSize: 14, color: tinta, lineHeight: 1.6 }}>{c.frase}</div>
-                <div style={{ fontSize: 12.5, color: tinta, marginTop: 8, lineHeight: 1.55, opacity: 0.85 }}>
+              <Aviso tom={c.nivel === 'poucas' ? 'mau' : c.nivel === 'alguma' ? 'atencao' : 'neutro'}>
+                {c.frase}
+                <div style={{ marginTop: 'var(--space-3)', fontSize: 'var(--texto-detalhe)', opacity: 0.85 }}>
                   As respostas são anónimas por construção — não se guarda quem respondeu o quê,
                   e por isso ninguém (nem o dono da casa) consegue descobrir.
                 </div>
-              </div>
+              </Aviso>
             )
           })()}
 
           {oQueFalta(emFoco, analise.respostas, hoje).map((f, n) => (
             <div key={n} style={{
-              marginTop: 'var(--space-5)', fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.55,
-              paddingLeft: 12, borderLeft: '2px solid var(--border-2)',
+              marginTop: 'var(--space-5)', fontSize: 'var(--texto-detalhe)',
+              color: 'var(--ink-4)', lineHeight: 'var(--lh)',
+              paddingLeft: 'var(--space-5)', borderLeft: '2px solid var(--border-2)',
             }}>{f}</div>
           ))}
 
-          {/* ── Lançar uma resposta ───────────────────────────────────────── */}
+          {/* ── Lançar uma resposta ───────────────────────────────────── */}
           {podeEditar && estaAberto(emFoco) && (
-            <div style={{ marginTop: 'var(--space-9)' }}>
+            <div style={{ marginTop: 'var(--space-10)' }}>
               {!aLancar ? (
-                <button onClick={() => { setALancar(true); setFolha({}) }} style={{
-                  minHeight: 44, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-                  background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
-                }}>Lançar uma resposta em papel</button>
+                <Botao feitio="principal" onClick={() => { setALancar(true); setFolha({}) }}>
+                  Lançar uma resposta em papel
+                </Botao>
               ) : (
-                <div style={{
-                  padding: 'var(--space-7)', borderRadius: 'var(--r-md)',
-                  border: `1.5px solid ${cor}`, background: 'var(--surface)',
-                }}>
-                  <div style={{ ...MONO, color: cor }}>Resposta em papel</div>
-                  <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '6px 0 var(--space-7)', lineHeight: 1.55 }}>
+                <div style={{ background: 'var(--bg)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', padding: 16 }}>
+                  <div style={{ ...MONO, color: 'var(--green)' }}>Resposta em papel</div>
+                  <p style={{
+                    fontSize: 'var(--texto-detalhe)', color: 'var(--ink-4)',
+                    margin: 'var(--space-3) 0 0', lineHeight: 'var(--lh)', maxWidth: 'var(--medida)',
+                  }}>
                     Escreva o que está na folha. Não escreva de quem é — e não há aqui onde o fazer.
                   </p>
 
                   {(emFoco.perguntas || []).map((p: Pergunta, n: number) => (
                     <div key={p.id} style={{
-                      padding: 'var(--space-5) 0', borderTop: n ? '1px solid var(--border)' : 'none',
+                      padding: 'var(--space-6) 0',
+                      borderTop: n ? '1px solid var(--border)' : 'none',
                     }}>
-                      <div style={{ fontSize: 14.5, color: 'var(--ink)', marginBottom: 8, lineHeight: 1.4 }}>
+                      <div style={{
+                        fontSize: 'var(--texto-realce)', color: 'var(--ink)',
+                        marginBottom: 'var(--space-3)', lineHeight: 'var(--lh-apertado)',
+                      }}>
                         <span style={{ color: 'var(--ink-5)', marginRight: 6 }}>{n + 1}.</span>{p.texto}
                       </div>
                       {p.aberta ? (
-                        <textarea rows={2}
+                        <textarea rows={2} id={`p-${p.id}`}
                           value={(folha[p.id] as string) || ''}
                           onChange={e => setFolha(f => ({ ...f, [p.id]: e.target.value }))}
                           placeholder="Tal como está escrito na folha"
-                          style={{ ...campoStyle, resize: 'vertical' }} />
+                          style={CAIXA_TEXTO} />
                       ) : (
-                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', gap: 'var(--space-2)', flexWrap: 'wrap' }}>
                           {[...ESCALA.map(e => ({ v: e.valor as number | null, r: e.rotulo })),
-                            { v: null, r: NAO_SEI.rotulo }].map(op => {
-                            const on = p.id in folha && folha[p.id] === op.v
-                            return (
-                              <button key={String(op.v)}
-                                onClick={() => setFolha(f => ({ ...f, [p.id]: op.v }))}
-                                style={{
-                                  minHeight: 40, padding: '0 12px', borderRadius: 'var(--r-sm)', cursor: 'pointer',
-                                  border: `1.5px solid ${on ? cor : 'var(--border)'}`,
-                                  background: on ? cor : 'transparent',
-                                  color: on ? '#fff' : 'var(--ink-3)',
-                                  fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 700 : 500,
-                                }}>{op.r}</button>
-                            )
-                          })}
+                            { v: null, r: NAO_SEI.rotulo }].map(op => (
+                            <Botao key={String(op.v)}
+                              feitio={p.id in folha && folha[p.id] === op.v ? 'principal' : 'contorno'}
+                              onClick={() => setFolha(f => ({ ...f, [p.id]: op.v }))}>{op.r}</Botao>
+                          ))}
                         </div>
                       )}
                     </div>
                   ))}
 
-                  <div style={{ display: 'flex', gap: 8, marginTop: 'var(--space-7)', flexWrap: 'wrap' }}>
-                    <button onClick={gravarResposta} disabled={aGravar || Object.keys(folha).length === 0} style={{
-                      minHeight: 44, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-                      background: Object.keys(folha).length ? cor : 'var(--bg-3)',
-                      color: Object.keys(folha).length ? '#fff' : 'var(--ink-5)',
-                      fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-                      cursor: Object.keys(folha).length && !aGravar ? 'pointer' : 'default',
-                    }}>{aGravar ? 'A gravar…' : 'Gravar e abrir a folha seguinte'}</button>
-                    <button onClick={() => setALancar(false)} style={{
-                      minHeight: 44, padding: '0 16px', borderRadius: 'var(--r-md)',
-                      border: '1px solid var(--border)', background: 'transparent',
-                      color: 'var(--ink-4)', fontFamily: 'inherit', fontSize: 14, cursor: 'pointer',
-                    }}>Terminar</button>
+                  <div style={{ display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-7)', flexWrap: 'wrap' }}>
+                    <Botao feitio="principal" onClick={gravarResposta}
+                      disabled={aGravar || Object.keys(folha).length === 0}>
+                      {aGravar ? 'A gravar…' : 'Gravar e abrir a folha seguinte'}
+                    </Botao>
+                    <Botao feitio="calmo" onClick={() => setALancar(false)}>Terminar</Botao>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* ── O resultado ───────────────────────────────────────────────── */}
-          {analise.respostas > 0 && (
+          {/* ── O resultado ───────────────────────────────────────────── */}
+          {analise.respostas === 0 ? (
+            <Vazio titulo="Ainda não há respostas."
+              oQueFazer="Imprima a folha, distribua, e lance aqui as que voltarem." />
+          ) : (
             <>
               {analise.global?.media != null && (
-                <div style={{ marginTop: 'var(--space-11)' }}>
-                  <div style={{ ...MONO, color: cor }}>No geral</div>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 6 }}>
-                    <span style={{
-                      fontFamily: 'var(--font-serif)', fontSize: 44, lineHeight: 1,
-                      color: corDaMedia(analise.global.media), fontWeight: 500,
-                    }}>{analise.global.media.toFixed(1).replace('.', ',')}</span>
-                    <span style={{ fontSize: 13.5, color: 'var(--ink-4)' }}>
-                      em 5 · {comQuantas(analise.global.n, emFoco.convidados || 0)}
-                    </span>
-                  </div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-5)', marginTop: 6, lineHeight: 1.5, maxWidth: '56ch' }}>
+                <div style={{ marginTop: 'var(--space-12)' }}>
+                  <Numero
+                    rotulo="No geral"
+                    valor={analise.global.media.toFixed(1).replace('.', ',')}
+                    unidade="em 5"
+                    base={comQuantas(analise.global.n, emFoco.convidados || 0)}
+                    tom={analise.global.media < 2.5 ? 'mau' : analise.global.media < 3.5 ? 'atencao' : 'bom'} />
+                  <p style={{
+                    fontSize: 'var(--texto-detalhe)', color: 'var(--ink-5)',
+                    marginTop: 'var(--space-3)', lineHeight: 'var(--lh)', maxWidth: '56ch',
+                  }}>
                     É a resposta à pergunta «{analise.global.pergunta.texto}», e não uma média de
                     tudo. As pessoas podem queixar-se de várias coisas e ainda assim gostar da casa.
-                  </div>
+                  </p>
                 </div>
               )}
 
               {piores(analise, 5).length > 0 && (
-                <div style={{ marginTop: 'var(--space-10)' }}>
-                  <div style={{ ...MONO, color: '#991b1b' }}>Onde agir primeiro</div>
-                  <div style={{ display: 'grid', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
+                <Grupo titulo="Onde agir primeiro">
+                  <div style={{ display: 'grid', gap: 'var(--space-6)', marginTop: 'var(--space-6)' }}>
                     {piores(analise, 5).map(p => (
-                      <div key={p.pergunta.id}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
-                          <span style={{ fontSize: 14, color: 'var(--ink)' }}>{p.pergunta.texto}</span>
-                          <span style={{ fontSize: 14, fontWeight: 800, color: corDaMedia(p.media) }}>
-                            {p.media!.toFixed(1).replace('.', ',')}
-                          </span>
-                        </div>
-                        <div style={{ marginTop: 5 }}><Barra distribuicao={p.distribuicao} n={p.n} /></div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>{comQuantas(p.n)}</div>
-                      </div>
+                      <ResultadoDaPergunta key={p.pergunta.id} r={p} />
                     ))}
                   </div>
-                </div>
+                </Grupo>
               )}
 
-              {/* Por dimensão */}
-              <div style={{ marginTop: 'var(--space-11)' }}>
-                <div style={{ ...MONO, color: cor }}>Por dimensão</div>
-                {analise.porDimensao.filter(d => d.perguntas.length).map(d => (
-                  <section key={d.dimensao.id} style={{ marginTop: 'var(--space-7)' }}>
-                    <div style={{
-                      display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-                      gap: 10, paddingBottom: 6, borderBottom: '1px solid var(--border)',
-                    }}>
-                      <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{d.dimensao.nome}</span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: corDaMedia(d.media) }}>
-                        {d.media == null ? '—' : d.media.toFixed(1).replace('.', ',')}
-                        <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--ink-5)', marginLeft: 6 }}>
-                          {comQuantas(d.n)}
-                        </span>
-                      </span>
-                    </div>
-                    {d.perguntas.map(p => (
-                      <div key={p.pergunta.id} style={{ padding: '9px 0', borderBottom: '1px solid var(--border)' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'baseline' }}>
-                          <span style={{ fontSize: 13.5, color: 'var(--ink-3)' }}>{p.pergunta.texto}</span>
-                          <span style={{ fontSize: 13.5, fontWeight: 700, color: corDaMedia(p.media) }}>
-                            {p.media == null ? '—' : p.media.toFixed(1).replace('.', ',')}
-                          </span>
-                        </div>
-                        <div style={{ marginTop: 5 }}><Barra distribuicao={p.distribuicao} n={p.n} /></div>
-                        <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>
-                          {comQuantas(p.n)}{p.naoSei ? ` · ${p.naoSei} «não sei»` : ''}
-                        </div>
-                      </div>
-                    ))}
-                  </section>
-                ))}
-              </div>
-
-              {/* O que escreveram */}
-              {analise.abertas.filter(x => x.textos.length).map(x => (
-                <div key={x.pergunta.id} style={{ marginTop: 'var(--space-10)' }}>
-                  <div style={{ ...MONO, color: cor }}>{x.pergunta.texto}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-5)', margin: '6px 0 var(--space-5)', lineHeight: 1.5 }}>
-                    Tal como foi escrito. É daqui que saem as ações concretas — não dos números.
+              {analise.porDimensao.filter(d => d.perguntas.length).map(d => (
+                <Grupo key={d.dimensao.id} titulo={d.dimensao.nome}
+                  extra={`${d.media == null ? '—' : d.media.toFixed(1).replace('.', ',')} · ${comQuantas(d.n)}`}>
+                  <div style={{ display: 'grid', gap: 'var(--space-5)', marginTop: 'var(--space-6)' }}>
+                    {d.perguntas.map(p => <ResultadoDaPergunta key={p.pergunta.id} r={p} />)}
                   </div>
-                  <div style={{ display: 'grid', gap: 'var(--space-4)' }}>
+                </Grupo>
+              ))}
+
+              {analise.abertas.filter(x => x.textos.length).map(x => (
+                <Grupo key={x.pergunta.id} titulo={x.pergunta.texto}>
+                  <p style={{
+                    fontSize: 'var(--texto-detalhe)', color: 'var(--ink-5)',
+                    margin: 'var(--space-4) 0 0', lineHeight: 'var(--lh)',
+                  }}>
+                    Tal como foi escrito. É daqui que saem as ações concretas — não dos números.
+                  </p>
+                  <div style={{ display: 'grid', gap: 'var(--space-4)', marginTop: 'var(--space-5)' }}>
                     {x.textos.map((t, n) => (
                       <blockquote key={n} style={{
-                        margin: 0, padding: '10px 14px', borderLeft: `3px solid ${cor}`,
-                        background: 'var(--surface-2)', borderRadius: '0 var(--r-sm) var(--r-sm) 0',
-                        fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55,
+                        margin: 0, padding: 'var(--space-5) var(--space-6)',
+                        borderLeft: '3px solid var(--green)', background: 'var(--bg-2)',
+                        borderRadius: '0 var(--r-sm) var(--r-sm) 0',
+                        fontSize: 'var(--texto-corpo)', color: 'var(--ink-2)', lineHeight: 'var(--lh)',
                       }}>{t}</blockquote>
                     ))}
                   </div>
-                </div>
+                </Grupo>
               ))}
 
-              {/* Comparação com o ano anterior */}
               {variacoes.length > 0 && anterior && (
-                <div style={{ marginTop: 'var(--space-11)' }}>
-                  <div style={{ ...MONO, color: cor }}>Comparado com {anterior.ano}</div>
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-5)', margin: '6px 0 var(--space-5)', lineHeight: 1.5 }}>
+                <Grupo titulo={`Comparado com ${anterior.ano}`}>
+                  <p style={{
+                    fontSize: 'var(--texto-detalhe)', color: 'var(--ink-5)',
+                    margin: 'var(--space-4) 0 0', lineHeight: 'var(--lh)',
+                  }}>
                     Só as perguntas que existem nos dois anos e que tiveram respostas suficientes
                     dos dois lados.
-                  </div>
-                  <div style={{ display: 'grid', gap: 7 }}>
+                  </p>
+                  <div style={{ marginTop: 'var(--space-4)' }}>
                     {variacoes.map(v => (
-                      <div key={v.pergunta.id} style={{
-                        display: 'flex', justifyContent: 'space-between', gap: 10,
-                        alignItems: 'baseline', fontSize: 13.5,
-                      }}>
-                        <span style={{ color: 'var(--ink-3)' }}>{v.pergunta.texto}</span>
-                        <span style={{ fontWeight: 700, color: v.diferenca < 0 ? '#b91c1c' : v.diferenca > 0 ? '#15803d' : 'var(--ink-5)' }}>
-                          {v.antes.toFixed(1).replace('.', ',')} → {v.agora.toFixed(1).replace('.', ',')}
-                          <span style={{ marginLeft: 6, fontSize: 12 }}>
-                            ({v.diferenca > 0 ? '+' : ''}{v.diferenca.toFixed(1).replace('.', ',')})
+                      <Linha key={v.pergunta.id}
+                        titulo={v.pergunta.texto}
+                        tom={v.diferenca < -0.3 ? 'mau' : v.diferenca > 0.3 ? 'bom' : 'neutro'}
+                        fim={
+                          <span style={{
+                            fontSize: 'var(--texto-corpo)',
+                            fontWeight: 'var(--peso-forte)' as any,
+                            color: v.diferenca < 0 ? 'var(--red)' : v.diferenca > 0 ? 'var(--green)' : 'var(--ink-5)',
+                            fontVariantNumeric: 'tabular-nums',
+                          }}>
+                            {v.antes.toFixed(1).replace('.', ',')} → {v.agora.toFixed(1).replace('.', ',')}
                           </span>
-                        </span>
-                      </div>
+                        } />
                     ))}
                   </div>
-                </div>
+                </Grupo>
               )}
             </>
           )}
-
-          {analise.respostas === 0 && (
-            <p style={{ marginTop: 'var(--space-9)', fontSize: 14, color: 'var(--ink-5)', lineHeight: 1.6 }}>
-              Ainda não há respostas. Imprima a folha, distribua, e lance aqui as que voltarem.
-            </p>
-          )}
         </>
       )}
-    </div>
+      </Painel>
+    </Mesa>
   )
 }

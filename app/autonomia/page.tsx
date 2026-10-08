@@ -31,9 +31,14 @@ import { ADL_TASKS, ADL_LEVELS, ADL_MAX, adlScore, adlLabel, adlTrend, type AdlR
 import { ptDate } from '@/lib/ptTime'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
 
-const ACCENT = '#0d9488'
+const ACCENT = 'var(--green)'
 interface Patient { id: string; name: string; room_number: string | null }
 interface Review extends AdlReview { id: string; patient_id: string }
+
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho,
+  Botao, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 export default function AutonomiaPage() {
   const { user, supabase } = useAuth() as any
@@ -49,6 +54,7 @@ export default function AutonomiaPage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
+  const largo = useLargo()
   const [search, setSearch] = useState('')
   const [openFor, setOpenFor] = useState<string | null>(null)
   const [draft, setDraft] = useState<Record<AdlTask, number | null>>({ higiene: null, alimentacao: null, mobilidade: null })
@@ -135,119 +141,244 @@ export default function AutonomiaPage() {
     )
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Cada pessoa era um cartão que crescia para 400px ao abrir — cinco
+     perguntas com quatro botões cada, vinte alvos dentro de um cartão no meio
+     de uma lista. Passa a mestre/detalhe: a lista com a trajectória à
+     esquerda, as perguntas à direita.
+
+     O que a página já fazia bem fica: mostrar a TRAJECTÓRIA e não só o número
+     de hoje. «7 › 6 › 6 › 4» é o que se leva a uma conversa com a família;
+     um «4» sozinho não é.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const escolhida = ordered.find(p => p.id === openFor) || null
+  const comSinal = ordered.filter(p => adlTrend(byPatient[p.id] || []).flag).length
+
+  /** A trajectória de uma pessoa: as últimas cinco revisões, em mono. */
+  function trajetoria(id: string) {
+    return (byPatient[id] || [])
+      .slice(0, 5)
+      .map(r => ({ date: r.date, score: adlScore(r) }))
+      .filter((h): h is { date: string; score: number } => h.score !== null)
+      .reverse()
+  }
+
+  const corDoScore = (n: number) => n >= 7 ? 'var(--green)' : n >= 4 ? 'var(--amber)' : 'var(--red)'
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
-        <div className="page-container">
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Autonomia</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0', maxWidth: 640, lineHeight: 1.55 }}>
-            De vez em quando, três perguntas rápidas sobre como cada {cfg.personNoun.toLowerCase()} se está a desenrascar. Não é para fazer todos os dias — uma vez por semana chega para se perceber se alguém está a precisar de mais ajuda do que precisava.
-          </p>
-        </div>
-      </div>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Autonomia</span>
 
-      <div className="page-container page-body" style={{ maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
-          style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', maxWidth: 280 }} />
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Procurar ${cfg.personNoun.toLowerCase()}…`} aria-label="Procurar"
+            style={{ ...CAIXA, width: 240 }} />
 
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 10 }} />)}</div>
-        ) : ordered.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 30, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13.5 }}>{cfg.emptyPeopleMsg}</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {ordered.map(p => {
-              const isOpen = openFor === p.id
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              {comSinal > 0 && (
+                <span style={{
+                  ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)',
+                  fontWeight: 'var(--peso-forte)' as any,
+                }}>{comSinal} A PRECISAR DE MAIS AJUDA</span>
+              )}
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                UMA VEZ POR SEMANA CHEGA
+              </span>
+            </span>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--green)' }}>7 ou mais — desenrasca-se</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>4 a 6 — precisa de ajuda</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>Menos de 4 — depende</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Não substitui uma avaliação formal (Barthel, Katz) — serve para notar mais
+            cedo que alguém está a precisar de mais ajuda
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(380px, 1fr) minmax(340px, 460px)' : '1fr',
+      }}>
+        {(largo || !escolhida) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural}</span>
+                <span style={{ ...ROTULO, width: 150 }}>Últimas revisões</span>
+                <span style={{ ...ROTULO, width: 60, textAlign: 'right' }}>Hoje</span>
+                <span style={{ ...ROTULO, width: 56, textAlign: 'right' }}>Há</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{ordered.length} {cfg.personNounPlural.toLowerCase()}</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A carregar…" />
+            ) : ordered.length === 0 ? (
+              <Vazio titulo={cfg.emptyPeopleMsg} />
+            ) : ordered.map(p => {
               const last = lastReview(p.id)
               const days = daysSince(p.id)
               const t = adlTrend(byPatient[p.id] || [])
               const lastScore = last ? adlScore(last) : null
-              // Últimas 5 revisões, da mais antiga para a mais recente.
-              const history = (byPatient[p.id] || [])
-                .slice(0, 5)
-                .map(r => ({ date: r.date, score: adlScore(r) }))
-                .filter((h): h is { date: string; score: number } => h.score !== null)
-                .reverse()
+              const hist = trajetoria(p.id)
               return (
-                <div key={p.id} style={{ background: 'white', border: `1px solid ${t.flag ? (t.flag.severity === 'critical' ? '#fca5a5' : '#fde68a') : 'var(--border)'}`, borderRadius: 12, padding: '13px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <div style={{ minWidth: 0 }}>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                      {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
-                      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>
-                        {lastScore != null
-                          ? <>{adlLabel(lastScore)} · <span style={{ fontFamily: 'var(--font-mono)' }}>{lastScore.toFixed(0)}/{ADL_MAX}</span>{days != null && <> · há {days === 0 ? 'hoje' : days === 1 ? '1 dia' : `${days} dias`}</>}</>
-                          : 'Ainda sem revisão'}
-                      </div>
-                      {/* Trajetória — o número de hoje não diz nada sozinho; o
-                          que conta numa conversa com a família ("ele já precisa
-                          de mais do que conseguimos dar aqui") é o CAMINHO. */}
-                      {history.length >= 2 && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 6, flexWrap: 'wrap' }}>
-                          {history.map((h, i) => (
-                            <span key={h.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
-                              {i > 0 && <span style={{ color: 'var(--ink-5)', fontSize: 11 }}>›</span>}
+                <LinhaTabela key={p.id}
+                  aoTocar={() => openFor === p.id ? setOpenFor(null) : openEditor(p.id)}
+                  ativa={openFor === p.id}
+                  filete={t.flag ? (t.flag.severity === 'critical' ? 'var(--red)' : 'var(--amber)') : undefined}
+                  principal={
+                    <>
+                      {p.name}
+                      {p.room_number && (
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                          {' '}· {p.room_number}
+                        </span>
+                      )}
+                    </>
+                  }
+                  secundaria={
+                    t.flag ? t.flag.title
+                      : lastScore != null ? adlLabel(lastScore)
+                      : 'Ainda sem revisão'
+                  }
+                  celulas={[
+                    {
+                      rotulo: 'Últimas revisões', largura: 150,
+                      valor: hist.length >= 2 ? (
+                        /* A trajectória. Cada número tinha fundo de cor — cinco
+                           rectângulos por pessoa, numa lista de trinta, são
+                           cento e cinquenta manchas. A cor fica no número. */
+                        <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
+                          {hist.map((h, i) => (
+                            <span key={h.date} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 3 }}>
+                              {i > 0 && <span style={{ color: 'var(--ink-5)' }}>›</span>}
                               <span title={new Date(h.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
-                                style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: h.score >= 7 ? '#15803d' : h.score >= 4 ? '#b45309' : '#b91c1c', background: h.score >= 7 ? '#f0fdf4' : h.score >= 4 ? '#fffbeb' : '#fef2f2', borderRadius: 5, padding: '1px 6px' }}>
-                                {h.score.toFixed(0)}
-                              </span>
+                                style={{
+                                  fontWeight: (i === hist.length - 1 ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+                                  color: corDoScore(h.score),
+                                }}>{h.score.toFixed(0)}</span>
                             </span>
                           ))}
-                          <span style={{ fontSize: 10.5, color: 'var(--ink-5)', marginLeft: 2 }}>últimas revisões</span>
-                        </div>
-                      )}
-                    </div>
-                    <button onClick={() => isOpen ? setOpenFor(null) : openEditor(p.id)}
-                      style={{ padding: '7px 14px', background: isOpen ? 'var(--bg-3)' : ACCENT, color: isOpen ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>
-                      {isOpen ? 'Fechar' : last ? 'Rever' : 'Registar'}
-                    </button>
-                  </div>
-
-                  {t.flag && (
-                    <div style={{ marginTop: 9, padding: '9px 12px', background: t.flag.severity === 'critical' ? '#fef2f2' : '#fffbeb', border: `1px solid ${t.flag.severity === 'critical' ? '#fca5a5' : '#fde68a'}`, borderRadius: 8 }}>
-                      <div style={{ fontSize: 12.5, fontWeight: 700, color: t.flag.severity === 'critical' ? '#b91c1c' : '#b45309' }}>{t.flag.title}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5, marginTop: 2 }}>{t.flag.detail}</div>
-                    </div>
-                  )}
-
-                  {isOpen && (
-                    <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 14 }}>
-                      {last && <div style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>Já vem preenchido com a última vez — muda só o que estiver diferente.</div>}
-                      {ADL_TASKS.map(task => (
-                        <div key={task.key}>
-                          <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 7 }}>{task.question}</div>
-                          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                            {ADL_LEVELS.map(lv => {
-                              const on = draft[task.key] === lv.value
-                              return (
-                                <button key={lv.value} onClick={() => setDraft(d => ({ ...d, [task.key]: on ? null : lv.value }))}
-                                  title={lv.hint}
-                                  style={{ padding: '8px 13px', borderRadius: 9, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontSize: 12.5, fontWeight: on ? 800 : 600, border: `1.5px solid ${on ? lv.color : 'var(--border)'}`, background: on ? lv.bg : 'white', color: on ? lv.color : 'var(--ink-3)' }}>
-                                  {lv.label}
-                                </button>
-                              )
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={save} disabled={saving} style={{ padding: '9px 18px', background: saving ? 'var(--bg-3)' : ACCENT, color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
-                          {saving ? 'A guardar…' : 'Guardar'}
-                        </button>
-                        <Link href={`/patients/${p.id}`} style={{ padding: '9px 16px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}`, borderRadius: 8, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>Abrir ficha</Link>
-                      </div>
-                    </div>
-                  )}
-                </div>
+                        </span>
+                      ) : '—',
+                    },
+                    {
+                      rotulo: 'Hoje', largura: 60, direita: true, forte: true,
+                      valor: lastScore != null ? `${lastScore.toFixed(0)}/${ADL_MAX}` : '—',
+                      cor: lastScore != null ? corDoScore(lastScore) : 'var(--ink-5)',
+                    },
+                    {
+                      rotulo: 'Há', largura: 56, direita: true,
+                      valor: days == null ? '—' : days === 0 ? 'hoje' : `${days}d`,
+                      cor: days != null && days > 14 ? 'var(--amber)' : 'var(--ink-4)',
+                    },
+                  ]} />
               )
             })}
-          </div>
+          </Painel>
         )}
 
-        <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10, padding: '11px 14px', fontSize: 12, color: '#475569', lineHeight: 1.5, marginTop: 4 }}>
-          ⓘ Isto não substitui uma avaliação formal (Barthel, Katz). Serve para notar mais cedo que alguém está a precisar de mais ajuda — a avaliação e a decisão são sempre do profissional.
-        </div>
+        {/* ══ AS CINCO PERGUNTAS ═══════════════════════════════════════════ */}
+        {escolhida ? (
+          <Painel
+            cabeca={
+              <div style={{
+                padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              }}>
+                <Botao onClick={() => setOpenFor(null)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-destaque)',
+                    fontWeight: 'var(--peso-corpo)' as any,
+                  }}>{escolhida.name}</span>
+                  <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                    {lastReview(escolhida.id) ? 'JÁ VEM PREENCHIDO COM A ÚLTIMA VEZ' : 'PRIMEIRA REVISÃO'}
+                  </span>
+                </span>
+              </div>
+            }
+            rodape={
+              <>
+                <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                  <Link href={`/patients/${escolhida.id}`} style={{ textDecoration: 'none' }}>
+                    <Botao>ABRIR A FICHA</Botao>
+                  </Link>
+                  <Botao feitio="principal" onClick={save} esperando={saving}>GUARDAR</Botao>
+                </span>
+              </>
+            }
+          >
+            <div style={{ padding: '0 14px 14px' }}>
+              {(() => {
+                const t = adlTrend(byPatient[escolhida.id] || [])
+                return t.flag ? (
+                  <div style={{ marginTop: 12 }}>
+                    <Aviso tom={t.flag.severity === 'critical' ? 'mau' : 'atencao'} titulo={t.flag.title}>
+                      {t.flag.detail}
+                    </Aviso>
+                  </div>
+                ) : null
+              })()}
+
+              {lastReview(escolhida.id) && (
+                <p style={{
+                  margin: '12px 0 0', fontSize: 'var(--t-meta)',
+                  color: 'var(--ink-5)', lineHeight: 1.55,
+                }}>
+                  Vem preenchido com a última vez. Mude só o que estiver diferente —
+                  é isso que torna a trajectória legível.
+                </p>
+              )}
+
+              {ADL_TASKS.map(task => (
+                <div key={task.key} style={{ marginTop: 14 }}>
+                  <div style={{
+                    fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any,
+                    color: 'var(--ink-2)', marginBottom: 6,
+                  }}>{task.question}</div>
+                  <div role="radiogroup" aria-label={task.question}
+                    style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                    {ADL_LEVELS.map(lv => {
+                      const on = draft[task.key] === lv.value
+                      return (
+                        <button key={lv.value} type="button" role="radio" aria-checked={on}
+                          className="mesa-botao" title={lv.hint}
+                          onClick={() => setDraft(d => ({ ...d, [task.key]: on ? null : lv.value }))}
+                          style={{
+                            ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.04em',
+                            padding: '0 11px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                            border: `1px solid ${on ? lv.color : 'var(--border-2)'}`,
+                            background: on ? lv.color : 'transparent',
+                            color: on ? 'var(--sobre-acento)' : 'var(--ink-3)',
+                            fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                          }}>{lv.label}</button>
+                      )
+                    })}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Painel>
+        ) : largo ? (
+          <Painel>
+            <Vazio titulo={`Escolha um ${cfg.personNoun.toLowerCase()}.`}
+              oQueFazer="São três perguntas rápidas sobre como a pessoa se está a desenrascar. Não é para fazer todos os dias — uma vez por semana chega para se perceber se alguém está a precisar de mais ajuda do que precisava." />
+          </Painel>
+        ) : null}
       </div>
-    </div>
+    </Mesa>
   )
 }

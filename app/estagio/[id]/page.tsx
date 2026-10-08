@@ -14,8 +14,13 @@
 import { useState, useEffect, useCallback, useMemo, use } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+import Icon from '@/components/Icon'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 type Tab = 'coach'|'dashboard'|'doentes'|'diario'|'objectivos'|'procedimentos'|'casos'|'relatorios'|'reflexoes'|'avaliacoes'|'horas'|'ferramentas'
 
@@ -49,6 +54,7 @@ interface Report {
 export default function EstagioPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const { user, supabase } = useAuth() as any
+  const largo = useLargo()
   const [tab, setTab] = useState<Tab>('dashboard')
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
@@ -73,7 +79,7 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
 
   useEffect(() => { load() }, [load])
 
-  if (loading || !data?.internship) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
+  if (loading || !data?.internship) return <main style={{ padding: 24 }}><p style={{ color: 'var(--ink-4)' }}>A carregar…</p></main>
   const { internship: it, patients, log, objectives, procedures, cases, reports, reflections, evaluations, hours } = data
 
   const objCompleted = objectives.filter((o: Objective) => o.status === 'completed' || o.status === 'validated').length
@@ -109,45 +115,70 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
     return j
   }
 
-  return (
-    <main style={{ padding: '20px clamp(12px, 3vw, 28px)', maxWidth: 1400, margin: '0 auto' }}>
-      {/* Header */}
-      <Link href="/estagio" style={{ fontSize: 12, color: '#6b7280', textDecoration: 'none' }}>← Todos os estágios</Link>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 10, marginTop: 8, marginBottom: 14 }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700 }}>{it.name}</h1>
-          <div style={{ display: 'flex', gap: 10, fontSize: 12, color: '#6b7280', marginTop: 4, flexWrap: 'wrap' }}>
-            {it.institution && <span>📍 {it.institution}{it.ward && ` · ${it.ward}`}</span>}
-            {it.supervisor && <span>👤 {it.supervisor}</span>}
-            <span>📅 {new Date(it.start_date).toLocaleDateString('pt-PT')} → {new Date(it.end_date).toLocaleDateString('pt-PT')}</span>
-          </div>
-        </div>
-      </div>
+  /* REFEITA 2026-10-08 — era a página com mais emoji da aplicação: 82.
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, marginBottom: 18, overflowX: 'auto', borderBottom: '1px solid #e5e7eb', paddingBottom: 0 }}>
-        {([
-          ['coach', '✦ Coach'],
-          ['dashboard', '📊 Dashboard'],
-          ['doentes', `👥 Doentes (${patients.length})`],
-          ['diario', `📝 Diário (${log.length})`],
-          ['objectivos', `✅ Objectivos (${objCompleted}/${objectives.length})`],
-          ['procedimentos', `⚙️ Procedimentos (${procedures.length})`],
-          ['casos', `📋 Casos (${cases.length})`],
-          ['relatorios', `📄 Relatórios (${reports.length})`],
-          ['reflexoes', `💭 Reflexões (${reflections.length})`],
-          ['avaliacoes', `⭐ Avaliações (${evaluations.length})`],
-          ['horas', `⏱ Horas`],
-          ['ferramentas', `🛠 Ferramentas IA`],
-        ] as [Tab, string][]).map(([t, label]) => (
-          <button key={t} onClick={() => setTab(t)} style={{
-            padding: '8px 12px', border: 'none', background: 'transparent', cursor: 'pointer',
-            fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap',
-            color: tab === t ? ACCENT : '#6b7280',
-            borderBottom: `2px solid ${tab === t ? ACCENT : 'transparent'}`, marginBottom: -1,
-          }}>{label}</button>
-        ))}
-      </div>
+     DOZE SEPARADORES COM DOZE EMOJI (📊 👥 📝 ✅ ⚙️ 📋 📄 💭 ⭐ ⏱ 🛠 ✦).
+     Um emoji por separador não distingue nada — distingue a palavra que
+     está ao lado. E numa fila que já rola de lado, cada um custa uns 22px:
+     doze são 260px, precisamente o que falta para os doze caberem sem
+     arrastar.
+
+     TRÊS EMOJI A FAZER DE RÓTULO (📍 instituição, 👤 tutor, 📅 datas).
+     Estes são os piores do género: «📍 Hospital de Aveiro» obriga a
+     adivinhar o que o pino quer dizer; «LOCAL Hospital de Aveiro» não.
+
+     E 90px de cabeçalho antes do primeiro separador. O nome do estágio sobe
+     para a barra, onde se vê nos doze separadores em vez de desaparecer. */
+  return (
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <Link href="/estagio" style={{ ...MONO, textDecoration: 'none', color: 'var(--ink-4)' }}>← ESTÁGIOS</Link>
+
+          <span style={{
+            fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)',
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: largo ? 230 : '100%',
+          }} title={it.name}>{it.name}</span>
+
+          <Seletor
+            opcoes={([
+              ['coach', 'Coach'],
+              ['dashboard', 'Painel'],
+              ['doentes', `Doentes ${patients.length}`],
+              ['diario', `Diário ${log.length}`],
+              ['objectivos', `Objetivos ${objCompleted}/${objectives.length}`],
+              ['procedimentos', `Procedimentos ${procedures.length}`],
+              ['casos', `Casos ${cases.length}`],
+              ['relatorios', `Relatórios ${reports.length}`],
+              ['reflexoes', `Reflexões ${reflections.length}`],
+              ['avaliacoes', `Avaliações ${evaluations.length}`],
+              ['horas', 'Horas'],
+              ['ferramentas', 'Ferramentas'],
+            ] as [Tab, string][]).map(([id, rotulo]) => ({ id, rotulo }))}
+            ativa={tab} aoMudar={setTab} />
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          {it.institution && (
+            <span style={MONO}>
+              <span style={{ color: 'var(--ink-5)' }}>LOCAL </span>
+              {it.institution}{it.ward && ` · ${it.ward}`}
+            </span>
+          )}
+          {it.supervisor && (
+            <span style={MONO}><span style={{ color: 'var(--ink-5)' }}>TUTOR </span>{it.supervisor}</span>
+          )}
+          <span style={MONO}>
+            <span style={{ color: 'var(--ink-5)' }}>DE </span>
+            {new Date(it.start_date).toLocaleDateString('pt-PT')}
+            <span style={{ color: 'var(--ink-5)' }}> A </span>
+            {new Date(it.end_date).toLocaleDateString('pt-PT')}
+          </span>
+        </BarraDeEstado>
+      }
+    >
 
       {/* Tab content */}
       {tab === 'coach' && (
@@ -201,40 +232,40 @@ export default function EstagioPage({ params }: { params: Promise<{ id: string }
       {/* Resultado IA legível (DDx, caso) */}
       {aiResult && (
         <div onClick={() => setAiResult(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, maxWidth: 620, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 22, maxWidth: 620, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <h3 style={{ margin: 0, fontSize: 18 }}>{aiResult.title}</h3>
-              <button aria-label="Fechar" onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>            </div>
+              <h3 style={{ margin: 0, fontSize: 'var(--t-destaque)' }}>{aiResult.title}</h3>
+              <button aria-label="Fechar" onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 'var(--t-destaque)', cursor: 'pointer', color: 'var(--ink-5)' }}>×</button>            </div>
             {aiResult.ddx ? (
               <div style={{ display: 'grid', gap: 10 }}>
                 {(aiResult.ddx.differential || []).map((d: any, i: number) => {
-                  const c = d.probability === 'alta' ? '#dc2626' : d.probability === 'média' ? '#d97706' : '#6b7280'
+                  const c = d.probability === 'alta' ? 'var(--red)' : d.probability === 'média' ? 'var(--amber)' : 'var(--ink-4)'
                   return (
                     <div key={i} style={{ borderLeft: `3px solid ${c}`, paddingLeft: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                        <span style={{ fontWeight: 700, fontSize: 14 }}>{d.dx}</span>
-                        <span style={{ fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase' }}>{d.probability}</span>
+                        <span style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>{d.dx}</span>
+                        <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: c, textTransform: 'uppercase' }}>{d.probability}</span>
                       </div>
-                      <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{d.reason}</div>
+                      <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginTop: 2 }}>{d.reason}</div>
                     </div>
                   )
                 })}
                 {aiResult.ddx.next_steps?.length > 0 && (
-                  <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Próximos passos</div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>
+                  <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--bg-3)' }}>
+                    <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Próximos passos</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.7 }}>
                       {aiResult.ddx.next_steps.map((s: string, i: number) => <li key={i}>{s}</li>)}
                     </ul>
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}><MarkdownLike text={aiResult.text || ''} /></div>
+              <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.6 }}><MarkdownLike text={aiResult.text || ''} /></div>
             )}
           </div>
         </div>
       )}
-    </main>
+    </Mesa>
   )
 }
 
@@ -260,10 +291,10 @@ function CoachTab({ internshipId, supabase, patientCount }: any) {
 
   if (patientCount === 0) {
     return (
-      <div style={{ textAlign: 'center', padding: '40px 20px', background: '#f8fafc', border: '1px solid #e7e8ea', borderRadius: 12 }}>
-        <div style={{ fontSize: 34, marginBottom: 8 }}>✦</div>
+      <div style={{ textAlign: 'center', padding: '40px 20px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)' }}>
+        <div style={{ fontSize: 'var(--t-numero)', marginBottom: 8 }}>✦</div>
         <h3 style={{ margin: '0 0 6px' }}>O Coach precisa de te conhecer</h3>
-        <p style={{ color: '#6b7280', fontSize: 14, maxWidth: 420, margin: '0 auto', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-corpo)', maxWidth: 420, margin: '0 auto', lineHeight: 1.5 }}>
           Regista os primeiros doentes na tab <b>Doentes</b>. Depois o Coach interpreta a tua casuística e gera estudo, debrief e ferramentas à medida deste estágio.
         </p>
       </div>
@@ -272,17 +303,17 @@ function CoachTab({ internshipId, supabase, patientCount }: any) {
 
   return (
     <div>
-      <div style={{ background: 'linear-gradient(0deg,#fff,#faf5ff)', border: '1px solid #e9d5ff', borderRadius: 12, padding: 14, marginBottom: 14 }}>
-        <div style={{ fontWeight: 700, fontSize: 14, color: '#6d28d9' }}>✦ Coach do Estágio</div>
-        <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 2 }}>A IA lê tudo o que registas neste estágio e trabalha para a TUA performance — não é só um caderno.</div>
+      <div style={{ background: 'linear-gradient(0deg,var(--bg),var(--roxo-claro))', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-xl)', padding: 14, marginBottom: 14 }}>
+        <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', color: 'var(--roxo)' }}>Coach do Estágio</div>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>A IA lê tudo o que registas neste estágio e trabalha para a TUA performance — não é só um caderno.</div>
       </div>
 
       <div style={{ display: 'flex', gap: 4, marginBottom: 14, flexWrap: 'wrap' }}>
-        {([['curriculo', '🎯 Currículo dos teus doentes'], ['debrief', '🌙 Debrief do dia'], ['prep', '☀️ Preparar turno'], ['tools', '🛠 Ferramentas à medida']] as [typeof view, string][]).map(([v, l]) => (
+        {([['curriculo', 'Currículo dos teus doentes'], ['debrief', 'Debrief do dia'], ['prep', 'Preparar turno'], ['tools', 'Ferramentas à medida']] as [typeof view, string][]).map(([v, l]) => (
           <button key={v} onClick={() => setView(v)} style={{
-            padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (view === v ? '#6d28d9' : '#e7e8ea'),
-            background: view === v ? '#6d28d9' : 'white', color: view === v ? 'white' : '#374151',
-            cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+            padding: '7px 12px', borderRadius: 999, border: '1px solid ' + (view === v ? 'var(--roxo)' : 'var(--border)'),
+            background: view === v ? 'var(--roxo)' : 'white', color: view === v ? 'white' : 'var(--ink-3)',
+            cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any,
           }}>{l}</button>
         ))}
       </div>
@@ -328,20 +359,20 @@ function CurriculoView({ call, internshipId, headers }: any) {
 
   return (
     <div style={{ display: 'grid', gap: 12 }}>
-      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13 }}>{err}</div>}
+      {err && <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: 10, borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)' }}>{err}</div>}
       {/* Casuística */}
       <section style={card}>
         <Head title="A tua casuística" sub="O que estás realmente a ver neste estágio" />
         {!caseload ? (
           <button onClick={() => run('caseload')} disabled={busy === 'caseload'} style={btn('primary')}>{busy === 'caseload' ? 'A analisar…' : 'Analisar os meus doentes'}</button>
         ) : (
-          <div style={{ fontSize: 13.5, color: '#374151', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
             <p style={{ margin: '0 0 10px' }}>{caseload.summary}</p>
             {caseload.must_master?.length > 0 && <>
               <div style={lbl}>Tens de dominar</div>
               <ul style={ul}>{caseload.must_master.map((m: string, i: number) => <li key={i}>{m}</li>)}</ul>
             </>}
-            {caseload.exposure_balance && <p style={{ margin: '8px 0 0', fontSize: 12.5, color: '#6b7280' }}>⚖️ {caseload.exposure_balance}</p>}
+            {caseload.exposure_balance && <p style={{ margin: '8px 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{caseload.exposure_balance}</p>}
           </div>
         )}
       </section>
@@ -353,12 +384,12 @@ function CurriculoView({ call, internshipId, headers }: any) {
           <button onClick={() => run('gaps')} disabled={busy === 'gaps'} style={btn('primary')}>{busy === 'gaps' ? 'A detetar…' : 'Detetar lacunas'}</button>
         ) : (
           <div>
-            {gaps.next_best_action && <div style={{ background: '#fef3c7', border: '1px solid #fde68a', borderRadius: 8, padding: 10, fontSize: 13, marginBottom: 10 }}><b>A seguir:</b> {gaps.next_best_action}</div>}
+            {gaps.next_best_action && <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: 10, fontSize: 'var(--t-dado)', marginBottom: 10 }}><b>A seguir:</b> {gaps.next_best_action}</div>}
             <div style={{ display: 'grid', gap: 8 }}>
               {(gaps.gaps || []).map((g: any, i: number) => (
-                <div key={i} style={{ borderLeft: `3px solid ${g.severity === 'alta' ? '#dc2626' : g.severity === 'media' ? '#d97706' : '#6b7280'}`, paddingLeft: 10 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 600, color: '#16181d' }}>{g.gap}</div>
-                  <div style={{ fontSize: 12.5, color: '#6b7280' }}>➜ {g.action} · <b>Estuda:</b> {g.study}</div>
+                <div key={i} style={{ borderLeft: `3px solid ${g.severity === 'alta' ? 'var(--red)' : g.severity === 'media' ? 'var(--amber)' : 'var(--ink-4)'}`, paddingLeft: 10 }}>
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-2)' }}>{g.gap}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{g.action} · <b>Estuda:</b> {g.study}</div>
                 </div>
               ))}
             </div>
@@ -369,8 +400,8 @@ function CurriculoView({ call, internshipId, headers }: any) {
       {/* Flashcards dos casos → memória */}
       <section style={card}>
         <Head title="Transforma os teus casos em revisão" sub="A IA cria flashcards dos doentes que viste, que entram na tua revisão espaçada" />
-        <button onClick={makeCards} style={{ ...btn('primary'), background: '#6d28d9' }}>Gerar flashcards dos meus casos</button>
-        {cardMsg && <p style={{ fontSize: 12.5, color: '#6d28d9', marginTop: 8 }}>{cardMsg}</p>}
+        <button onClick={makeCards} style={{ ...btn('primary'), background: 'var(--roxo)' }}>Gerar flashcards dos meus casos</button>
+        {cardMsg && <p style={{ fontSize: 'var(--t-meta)', color: 'var(--roxo)', marginTop: 8 }}>{cardMsg}</p>}
       </section>
     </div>
   )
@@ -395,18 +426,18 @@ function DebriefView({ call }: any) {
       <Head title="Debrief do dia" sub="No fim do turno: consolida o que viste e testa-te" />
       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="O que viste hoje? (opcional — se vazio, uso a tua casuística geral)" style={{ ...inputStyle, resize: 'vertical', marginBottom: 8 }} />
       <button onClick={run} disabled={busy} style={btn('primary')}>{busy ? 'A preparar debrief…' : 'Fazer debrief'}</button>
-      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginTop: 8 }}>{err}</div>}
+      {err && <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: 10, borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', marginTop: 8 }}>{err}</div>}
       {res && (
-        <div style={{ marginTop: 12, fontSize: 13.5, color: '#374151', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 12, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
           <p style={{ margin: '0 0 10px' }}>{res.recap}</p>
           {(res.questions_detail || []).map((qd: any, i: number) => (
-            <div key={i} style={{ borderTop: '1px solid #f1f5f9', paddingTop: 8, marginTop: 8 }}>
-              <div style={{ fontWeight: 600 }}>{i + 1}. {qd.q}</div>
-              {revealed[i] ? <div style={{ color: '#0d6e42', marginTop: 4 }}>{qd.answer}</div>
-                : <button onClick={() => setRevealed(r => ({ ...r, [i]: true }))} style={{ ...btn('ghost'), marginTop: 4, padding: '4px 10px', fontSize: 12 }}>Ver resposta</button>}
+            <div key={i} style={{ borderTop: '1px solid var(--bg-3)', paddingTop: 8, marginTop: 8 }}>
+              <div style={{ fontWeight: 'var(--peso-corpo)' as any }}>{i + 1}. {qd.q}</div>
+              {revealed[i] ? <div style={{ color: 'var(--green)', marginTop: 4 }}>{qd.answer}</div>
+                : <button onClick={() => setRevealed(r => ({ ...r, [i]: true }))} style={{ ...btn('ghost'), marginTop: 4, padding: '4px 10px', fontSize: 'var(--t-meta)' }}>Ver resposta</button>}
             </div>
           ))}
-          {res.one_thing && <div style={{ background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, padding: 10, marginTop: 12, fontSize: 13 }}>🌙 <b>Esta noite (5 min):</b> {res.one_thing}</div>}
+          {res.one_thing && <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: 10, marginTop: 12, fontSize: 'var(--t-dado)' }}><b>Esta noite, 5 minutos:</b> {res.one_thing}</div>}
         </div>
       )}
     </section>
@@ -427,13 +458,13 @@ function PrepView({ call }: any) {
       <Head title="Preparar o próximo turno" sub="Antes de ires: o que rever, o que o tutor pode perguntar, red flags" />
       <input value={expect} onChange={e => setExpect(e.target.value)} placeholder="O que esperas hoje? (ex: dia de admissões, bloco operatório…)" style={{ ...inputStyle, marginBottom: 8 }} />
       <button onClick={run} disabled={busy} style={btn('primary')}>{busy ? 'A preparar…' : 'Preparar-me'}</button>
-      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginTop: 8 }}>{err}</div>}
+      {err && <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: 10, borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', marginTop: 8 }}>{err}</div>}
       {res && (
-        <div style={{ fontSize: 13.5, color: '#374151' }}>
-          <Block title="Rever antes" items={res.review} icon="📖" />
-          <Block title="O tutor pode perguntar" items={res.tutor_questions} icon="🎓" />
-          <Block title="Red flags a vigiar" items={res.red_flags} icon="🚩" />
-          <Block title="Competências a treinar" items={res.skills} icon="🤲" />
+        <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>
+          <Block title="Rever antes" items={res.review} />
+          <Block title="O tutor pode perguntar" items={res.tutor_questions} />
+          <Block title="Red flags a vigiar" items={res.red_flags} />
+          <Block title="Competências a treinar" items={res.skills} />
         </div>
       )}
     </section>
@@ -467,8 +498,8 @@ function CoachToolsView({ call, internshipId, headers }: any) {
   return (
     <section style={card}>
       <Head title="Ferramentas geradas para ESTE estágio" sub="A IA propõe ferramentas práticas à medida do que tu realmente vês e precisas" />
-      <button onClick={generate} disabled={busy} style={{ ...btn('primary'), background: '#6d28d9', marginBottom: 12 }}>{busy ? 'A gerar…' : tools.length ? 'Gerar mais ferramentas' : 'Gerar as minhas ferramentas'}</button>
-      {loaded && tools.length === 0 && <p style={{ fontSize: 13, color: '#6b7280' }}>Ainda sem ferramentas. Carrega no botão para a IA criar ferramentas adaptadas ao teu estágio.</p>}
+      <button onClick={generate} disabled={busy} style={{ ...btn('primary'), background: 'var(--roxo)', marginBottom: 12 }}>{busy ? 'A gerar…' : tools.length ? 'Gerar mais ferramentas' : 'Gerar as minhas ferramentas'}</button>
+      {loaded && tools.length === 0 && <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>Ainda sem ferramentas. Carrega no botão para a IA criar ferramentas adaptadas ao teu estágio.</p>}
       <div style={{ display: 'grid', gap: 10 }}>
         {tools.map(t => <GeneratedTool key={t.id} tool={t} />)}
       </div>
@@ -478,23 +509,28 @@ function CoachToolsView({ call, internshipId, headers }: any) {
 
 function GeneratedTool({ tool }: any) {
   const [open, setOpen] = useState(false)
-  const KIND: Record<string, string> = { checklist: '☑️', drill: '🎯', reference: '📌', calculator: '🧮', protocol: '🔀' }
+  /* Eram cinco emoji (☑️ 🎯 📌 🧮 🔀). Cinco desenhos que ninguém distingue de
+   relance e que obrigam a adivinhar — um alvo e uma pioneta querem dizer o
+   mesmo a quem não os conhece. Quatro letras dizem-no. */
+const KIND: Record<string, string> = { checklist: 'LIST', drill: 'TREI', reference: 'REFE', calculator: 'CALC', protocol: 'PROT' }
   const items: string[] = tool.content?.items || []
   return (
-    <div style={{ border: '1px solid #e7e8ea', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
       <button onClick={() => setOpen(o => !o)} style={{ width: '100%', textAlign: 'left', padding: 12, background: 'white', border: 'none', cursor: 'pointer' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontWeight: 700, fontSize: 14 }}>{KIND[tool.kind] || '🛠'} {tool.title}</span>
-          <span style={{ color: '#9ca3af' }}>{open ? '−' : '+'}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 7, fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>
+                      <Codigo texto={KIND[tool.kind] || 'OUTR'} />{tool.title}
+                    </span>
+          <span style={{ color: 'var(--ink-5)' }}>{open ? '−' : '+'}</span>
         </div>
-        {tool.rationale && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3 }}>{tool.rationale}</div>}
+        {tool.rationale && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 3 }}>{tool.rationale}</div>}
       </button>
       {open && items.length > 0 && (
         <div style={{ padding: '0 12px 12px' }}>
           {tool.kind === 'checklist' || tool.kind === 'protocol' ? (
-            <ol style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ol>
+            <ol style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.7 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ol>
           ) : (
-            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
+            <ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.7 }}>{items.map((x, i) => <li key={i}>{x}</li>)}</ul>
           )}
         </div>
       )}
@@ -503,12 +539,12 @@ function GeneratedTool({ tool }: any) {
 }
 
 // helpers do Coach
-const card: React.CSSProperties = { background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16 }
-const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, margin: '4px 0 4px' }
-const ul: React.CSSProperties = { margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }
+const lbl: React.CSSProperties = { fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: 0.5, margin: '4px 0 4px' }
+const ul: React.CSSProperties = { margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.7 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '9px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontFamily: 'inherit', boxSizing: 'border-box' }
 function Head({ title, sub }: { title: string; sub: string }) {
-  return <div style={{ marginBottom: 12 }}><div style={{ fontWeight: 700, fontSize: 15 }}>{title}</div><div style={{ fontSize: 12.5, color: '#6b7280' }}>{sub}</div></div>
+  return <div style={{ marginBottom: 12 }}><div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>{title}</div><div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{sub}</div></div>
 }
 
 // ════════════════════════════════════════════════════════════════════════
@@ -519,11 +555,11 @@ function ToolsTab({ internshipId, patients, onAi, onReload }: any) {
   const [tool, setTool] = useState<null | 'voice' | 'sbar' | 'shift' | 'ddx' | 'portfolio'>(null)
 
   const TOOLS = [
-    { id: 'voice', icon: '🎙️', title: 'Voz → SOAP', desc: 'Dita o que observaste e a IA estrutura como SOAP automaticamente.', color: '#7c3aed' },
-    { id: 'sbar', icon: '📋', title: 'Passagem de turno SBAR', desc: 'Gera passagem estruturada de todos os doentes seguidos com priorização.', color: '#dc2626' },
-    { id: 'shift', icon: '💬', title: 'Companion de turno', desc: 'Tutor IA especializado na tua rotação para dúvidas em tempo real.', color: '#0d6e42' },
-    { id: 'ddx', icon: '🧠', title: 'Diagnóstico diferencial', desc: 'Insere sintomas — recebe DDx ordenado por probabilidade com red flags.', color: '#1d4ed8' },
-    { id: 'portfolio', icon: '📦', title: 'Exportar portefólio', desc: 'Bundle completo em markdown para submissão académica.', color: '#b45309' },
+    { id: 'voice', icon: 'megaphone', title: 'Voz → SOAP', desc: 'Dita o que observaste e a IA estrutura como SOAP automaticamente.', color: 'var(--roxo)' },
+    { id: 'sbar', icon: 'clipboard', title: 'Passagem de turno SBAR', desc: 'Gera passagem estruturada de todos os doentes seguidos com priorização.', color: 'var(--red)' },
+    { id: 'shift', icon: 'chat', title: 'Companion de turno', desc: 'Tutor IA especializado na tua rotação para dúvidas em tempo real.', color: 'var(--green)' },
+    { id: 'ddx', icon: 'spark', title: 'Diagnóstico diferencial', desc: 'Insere sintomas — recebe DDx ordenado por probabilidade com red flags.', color: 'var(--ink-2)' },
+    { id: 'portfolio', icon: 'package', title: 'Exportar portefólio', desc: 'Bundle completo em markdown para submissão académica.', color: 'var(--amber)' },
   ] as const
 
   if (tool === 'voice') return <VoiceToSOAP internshipId={internshipId} patients={patients} onAi={onAi} onClose={() => { setTool(null); onReload() }} />
@@ -534,21 +570,21 @@ function ToolsTab({ internshipId, patients, onAi, onReload }: any) {
 
   return (
     <div>
-      <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 14px' }}>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-corpo)', margin: '0 0 14px' }}>
         Ferramentas que poupam tempo durante o estágio. Tudo IA-powered e adaptado à tua rotação.
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 12 }}>
         {TOOLS.map(t => (
           <button key={t.id} onClick={() => setTool(t.id)} style={{
-            textAlign: 'left', padding: 16, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, cursor: 'pointer',
+            textAlign: 'left', padding: 16, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', cursor: 'pointer',
             transition: 'border-color 0.12s, transform 0.12s',
           }}
             onMouseEnter={e => { e.currentTarget.style.borderColor = t.color; e.currentTarget.style.transform = 'translateY(-1px)' }}
-            onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.transform = 'none' }}
+            onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.transform = 'none' }}
           >
-            <div style={{ fontSize: 28, marginBottom: 8 }}>{t.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#111827', marginBottom: 4 }}>{t.title}</div>
-            <div style={{ fontSize: 12.5, color: '#6b7280', lineHeight: 1.45 }}>{t.desc}</div>
+            <div style={{ fontSize: 'var(--t-numero)', marginBottom: 8 }}><Icon name={t.icon} size={16} /></div>
+            <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', color: 'var(--ink)', marginBottom: 4 }}>{t.title}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.45 }}>{t.desc}</div>
           </button>
         ))}
       </div>
@@ -597,18 +633,18 @@ function VoiceToSOAP({ internshipId: _internshipId, patients, onAi, onClose }: a
   return (
     <div>
       <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>🎙️ Voz → SOAP</h2>
-      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+      <h2 style={{ margin: '0 0 6px', fontSize: 'var(--t-destaque)' }}>Voz → SOAP</h2>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)', margin: '0 0 14px' }}>
         Pressiona Gravar e descreve o doente naturalmente. A IA transcreve e estrutura como SOAP. Se associares a um doente, fica guardado como evolução.
       </p>
 
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14, marginBottom: 12 }}>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
           <button onClick={toggleRecord} style={{
-            padding: '10px 18px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700,
-            background: recording ? '#dc2626' : '#7c3aed', color: 'white',
+            padding: '10px 18px', borderRadius: 'var(--r-md)', border: 'none', cursor: 'pointer', fontWeight: 'var(--peso-forte)' as any,
+            background: recording ? 'var(--red)' : 'var(--roxo)', color: 'white',
           }}>
-            {recording ? '⏹ Parar' : '🎙️ Gravar'}
+            {recording ? '⏹ Parar' : 'Gravar'}
           </button>
           <select value={patientId} onChange={e => setPatientId(e.target.value)} style={input}>
             <option value="">Sem doente associado</option>
@@ -619,7 +655,7 @@ function VoiceToSOAP({ internshipId: _internshipId, patients, onAi, onClose }: a
           value={transcript} onChange={e => setTranscript(e.target.value)}
           placeholder="A transcrição aparece aqui à medida que falas. Podes também escrever directamente."
           rows={6}
-          style={{ width: '100%', padding: 12, border: '1px solid #d1d5db', borderRadius: 8, fontFamily: 'inherit', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }}
+          style={{ width: '100%', padding: 12, border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', fontFamily: 'inherit', fontSize: 'var(--t-corpo)', boxSizing: 'border-box', resize: 'vertical' }}
         />
         <button onClick={structure} disabled={busy || !transcript.trim()} style={{ ...btn('primary'), marginTop: 8 }}>
           {busy ? 'A estruturar…' : 'Estruturar como SOAP'}
@@ -627,18 +663,18 @@ function VoiceToSOAP({ internshipId: _internshipId, patients, onAi, onClose }: a
       </div>
 
       {result && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 16 }}>Resultado SOAP {patientId && <span style={{ fontSize: 11, color: '#065f46', fontWeight: 700 }}>✓ guardado como evolução</span>}</h3>
-          {[['S', '#1d4ed8', result.subjective], ['O', '#7c3aed', result.objective], ['A', '#b45309', result.assessment], ['P', '#0d6e42', result.plan]].map(([k, color, text]) => (
-            <div key={k as string} style={{ marginBottom: 10, padding: 10, background: '#f9fafb', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: color as string, marginBottom: 4 }}>{k} — {(k === 'S' ? 'Subjectivo' : k === 'O' ? 'Objectivo' : k === 'A' ? 'Avaliação' : 'Plano')}</div>
-              <div style={{ fontSize: 13, color: '#111827', whiteSpace: 'pre-wrap' }}>{text as string || '—'}</div>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-destaque)' }}>Resultado SOAP {patientId && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>guardado como evolução</span>}</h3>
+          {[['S', 'var(--ink-2)', result.subjective], ['O', 'var(--roxo)', result.objective], ['A', 'var(--amber)', result.assessment], ['P', 'var(--green)', result.plan]].map(([k, color, text]) => (
+            <div key={k as string} style={{ marginBottom: 10, padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: color as string, marginBottom: 4 }}>{k} — {(k === 'S' ? 'Subjectivo' : k === 'O' ? 'Objectivo' : k === 'A' ? 'Avaliação' : 'Plano')}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', whiteSpace: 'pre-wrap' }}>{text as string || '—'}</div>
             </div>
           ))}
           {result.vitals && Object.keys(result.vitals).length > 0 && (
-            <div style={{ padding: 10, background: '#eff6ff', borderRadius: 8 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: '#1e40af', marginBottom: 4 }}>SINAIS VITAIS</div>
-              <div style={{ fontSize: 13, color: '#111827' }}>
+            <div style={{ padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', marginBottom: 4 }}>SINAIS VITAIS</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)' }}>
                 {Object.entries(result.vitals).map(([k, v]: any) => <span key={k} style={{ marginRight: 12 }}><b>{k.toUpperCase()}</b>: {v}</span>)}
               </div>
             </div>
@@ -666,20 +702,20 @@ function SBARGenerator({ internshipId, patients: _patients, onAi, onClose }: any
   return (
     <div>
       <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>📋 Passagem de turno SBAR</h2>
-      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
-        Gera passagem estruturada de todos os doentes activos com priorização clara (🔴/🟡/🟢) e tarefas pendentes.
+      <h2 style={{ margin: '0 0 6px', fontSize: 'var(--t-destaque)' }}>Passagem de turno SBAR</h2>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)', margin: '0 0 14px' }}>
+        Gera passagem estruturada de todos os doentes activos com prioridade marcada e tarefas pendentes.
       </p>
       {!handover && (
-        <button onClick={generate} disabled={busy} style={btn('primary')}>{busy ? 'A gerar…' : '🔮 Gerar SBAR'}</button>
+        <button onClick={generate} disabled={busy} style={btn('primary')}>{busy ? 'A gerar…' : 'Gerar SBAR'}</button>
       )}
       {handover && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6, marginBottom: 10 }}>
-            <button onClick={copyAll} style={btn('ghost')}>📋 Copiar tudo</button>
+            <button onClick={copyAll} style={btn('ghost')}>COPIAR TUDO</button>
             <button onClick={generate} disabled={busy} style={btn('ghost')}>↻ Regerar</button>
           </div>
-          <div style={{ fontSize: 14, lineHeight: 1.7, whiteSpace: 'pre-wrap', color: '#111827' }}>
+          <div style={{ fontSize: 'var(--t-corpo)', lineHeight: 1.7, whiteSpace: 'pre-wrap', color: 'var(--ink)' }}>
             <MarkdownLike text={handover} />
           </div>
         </div>
@@ -706,36 +742,36 @@ function ShiftCompanion({ internshipId, onAi, onClose }: any) {
   return (
     <div>
       <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>💬 Companion de turno</h2>
-      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+      <h2 style={{ margin: '0 0 6px', fontSize: 'var(--t-destaque)' }}>Companion de turno</h2>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)', margin: '0 0 14px' }}>
         Tutor IA especializado na tua área. Faz qualquer pergunta prática.
       </p>
 
       <details style={{ marginBottom: 12 }}>
-        <summary style={{ cursor: 'pointer', fontSize: 12, color: '#6b7280' }}>+ Contexto do doente (opcional)</summary>
+        <summary style={{ cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>+ Contexto do doente (opcional)</summary>
         <textarea value={context} onChange={e => setContext(e.target.value)} rows={2} placeholder="Ex: idoso 78a, IC, DRC, em IECA e furosemida..." style={{ ...input, marginTop: 6, resize: 'vertical' }} />
       </details>
 
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, minHeight: 300, marginBottom: 10 }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14, minHeight: 300, marginBottom: 10 }}>
         {messages.length === 0 ? (
-          <p style={{ color: '#9ca3af', fontSize: 13, margin: 0 }}>Faz a primeira pergunta. Ex: "Quando suspender IECA pré-cirurgia?"</p>
+          <p style={{ color: 'var(--ink-5)', fontSize: 'var(--t-dado)', margin: 0 }}>Faz a primeira pergunta. Ex: "Quando suspender IECA pré-cirurgia?"</p>
         ) : (
           messages.map((m, i) => (
             <div key={i} style={{ marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontWeight: 800, color: m.role === 'user' ? '#0d6e42' : '#7c3aed', marginBottom: 4 }}>
-                {m.role === 'user' ? 'TU' : '🤖 IA'}
+              <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: m.role === 'user' ? 'var(--green)' : 'var(--roxo)', marginBottom: 4 }}>
+                {m.role === 'user' ? 'TU' : 'IA'}
               </div>
-              <div style={{ fontSize: 14, color: '#111827', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
                 <MarkdownLike text={m.text} />
               </div>
             </div>
           ))
         )}
-        {busy && <p style={{ color: '#6b7280', fontSize: 13 }}>A IA está a pensar…</p>}
+        {busy && <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)' }}>A IA está a pensar…</p>}
       </div>
 
       <form onSubmit={e => { e.preventDefault(); ask(draft) }} style={{ display: 'flex', gap: 8 }}>
-        <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="Pergunta…" style={{ ...input, flex: 1, fontSize: 14 }} />
+        <input value={draft} onChange={e => setDraft(e.target.value)} placeholder="Pergunta…" style={{ ...input, flex: 1, fontSize: 'var(--t-corpo)' }} />
         <button type="submit" disabled={busy || !draft.trim()} style={btn('primary')}>Perguntar</button>
       </form>
     </div>
@@ -759,12 +795,12 @@ function DDxAssistant({ onAi, onClose }: any) {
   return (
     <div>
       <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>🧠 Diagnóstico diferencial</h2>
-      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+      <h2 style={{ margin: '0 0 6px', fontSize: 'var(--t-destaque)' }}>Diagnóstico diferencial</h2>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)', margin: '0 0 14px' }}>
         Insere sintomas. IA constrói DDx ordenado por probabilidade com sinais distintivos, próximas investigações e red flags.
       </p>
 
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14, marginBottom: 12 }}>
         <Field label="Sintomas / sinais"><textarea required value={symptoms} onChange={e => setSymptoms(e.target.value)} rows={3} placeholder="Ex: dor torácica há 2h, dispneia, sudorese, irradia para braço esquerdo" style={{ ...input, resize: 'vertical' }} /></Field>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
           <Field label="Demografia"><input value={demo} onChange={e => setDemo(e.target.value)} style={input} placeholder="68a, M, ex-fumador" /></Field>
@@ -776,24 +812,24 @@ function DDxAssistant({ onAi, onClose }: any) {
       </div>
 
       {res?.ddx && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 16 }}>Diagnóstico diferencial</h3>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-destaque)' }}>Diagnóstico diferencial</h3>
           <div style={{ display: 'grid', gap: 8 }}>
             {res.ddx.map((d: any, i: number) => (
-              <div key={i} style={{ padding: 10, background: '#f9fafb', borderRadius: 8 }}>
+              <div key={i} style={{ padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 }}>
-                  <span style={{ fontWeight: 700, fontSize: 14, color: '#111827' }}>{i + 1}. {d.dx}</span>
-                  <span style={{ padding: '2px 10px', borderRadius: 999, background: d.probability === 'alta' ? '#fee2e2' : d.probability === 'média' ? '#fef3c7' : '#dcfce7', color: d.probability === 'alta' ? '#991b1b' : d.probability === 'média' ? '#92400e' : '#065f46', fontSize: 11, fontWeight: 700 }}>
+                  <span style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{i + 1}. {d.dx}</span>
+                  <span style={{ padding: '2px 10px', borderRadius: 999, background: d.probability === 'alta' ? 'var(--badge-red-bg)' : d.probability === 'média' ? 'var(--badge-amber-bg)' : 'var(--badge-green-bg)', color: d.probability === 'alta' ? 'var(--red)' : d.probability === 'média' ? 'var(--amber)' : 'var(--green)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>
                     {d.probability}
                   </span>
                 </div>
                 {d.key_features?.length > 0 && (
-                  <div style={{ fontSize: 12, color: '#374151', marginBottom: 4 }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginBottom: 4 }}>
                     <b>Pistas:</b> {d.key_features.join(' · ')}
                   </div>
                 )}
                 {d.rule_out && (
-                  <div style={{ fontSize: 12, color: '#6b7280' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
                     <b>Como excluir:</b> {d.rule_out}
                   </div>
                 )}
@@ -801,17 +837,17 @@ function DDxAssistant({ onAi, onClose }: any) {
             ))}
           </div>
           {res.investigations?.length > 0 && (
-            <div style={{ marginTop: 14, padding: 12, background: '#eff6ff', borderRadius: 8 }}>
-              <div style={{ fontSize: 11, color: '#1e40af', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>📋 Investigações prioritárias</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#1e40af' }}>
+            <div style={{ marginTop: 14, padding: 12, background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', marginBottom: 4 }}>Investigações prioritárias</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-2)' }}>
                 {res.investigations.map((x: string, i: number) => <li key={i}>{x}</li>)}
               </ul>
             </div>
           )}
           {res.red_flags?.length > 0 && (
-            <div style={{ marginTop: 10, padding: 12, background: '#fee2e2', borderRadius: 8 }}>
-              <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>🚨 Red flags</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#991b1b' }}>
+            <div style={{ marginTop: 10, padding: 12, background: 'var(--badge-red-bg)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', marginBottom: 4 }}>Red flags</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--red)' }}>
                 {res.red_flags.map((x: string, i: number) => <li key={i}>{x}</li>)}
               </ul>
             </div>
@@ -844,21 +880,21 @@ function PortfolioExport({ internshipId, onAi, onClose }: any) {
   return (
     <div>
       <button onClick={onClose} style={{ ...btn('ghost'), marginBottom: 12 }}>← Voltar</button>
-      <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>📦 Exportar portefólio</h2>
-      <p style={{ color: '#6b7280', fontSize: 13, margin: '0 0 14px' }}>
+      <h2 style={{ margin: '0 0 6px', fontSize: 'var(--t-destaque)' }}>Exportar portefólio</h2>
+      <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)', margin: '0 0 14px' }}>
         Gera ficheiro markdown completo com objectivos, doentes, procedimentos, casos, diário, reflexões, avaliações e horas — pronto para submissão.
       </p>
       {!md && (
-        <button onClick={generate} disabled={busy} style={btn('primary')}>{busy ? 'A montar portefólio…' : '📦 Gerar portefólio completo'}</button>
+        <button onClick={generate} disabled={busy} style={btn('primary')}>{busy ? 'A montar portefólio…' : 'Gerar portefólio completo'}</button>
       )}
       {md && (
         <div>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-            <button onClick={download} style={btn('primary')}>⬇ Descarregar {filename}</button>
-            <button onClick={() => navigator.clipboard.writeText(md).then(() => alert('Copiado!'))} style={btn('ghost')}>📋 Copiar</button>
+            <button onClick={download} style={btn('primary')}>Descarregar {filename}</button>
+            <button onClick={() => navigator.clipboard.writeText(md).then(() => alert('Copiado!'))} style={btn('ghost')}>Copiar</button>
             <button onClick={generate} disabled={busy} style={btn('ghost')}>↻ Regerar</button>
           </div>
-          <pre style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: 14, fontSize: 12, whiteSpace: 'pre-wrap', maxHeight: 600, overflowY: 'auto', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5 }}>{md}</pre>
+          <pre style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 14, fontSize: 'var(--t-meta)', whiteSpace: 'pre-wrap', maxHeight: 600, overflowY: 'auto', fontFamily: 'JetBrains Mono, monospace', lineHeight: 1.5 }}>{md}</pre>
         </div>
       )}
     </div>
@@ -889,24 +925,24 @@ function DashboardTab({ it, objPct, objCompleted, objTotal, hoursPct, log, patie
     <div style={{ display: 'grid', gap: 14 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 10 }}>
         <KPI label="Objectivos" value={`${objCompleted}/${objTotal}`} pct={objPct} color={ACCENT} />
-        <KPI label="Horas" value={`${it.hours_done || 0} / ${it.hours_required || 0}`} pct={hoursPct} color="#1d4ed8" />
-        <KPI label="Doentes seguidos" value={patients.length.toString()} color="#7c3aed" />
-        <KPI label="Procedimentos" value={procedures.length.toString()} color="#dc2626" />
+        <KPI label="Horas" value={`${it.hours_done || 0} / ${it.hours_required || 0}`} pct={hoursPct} color="var(--ink-2)" />
+        <KPI label="Doentes seguidos" value={patients.length.toString()} color="var(--roxo)" />
+        <KPI label="Procedimentos" value={procedures.length.toString()} color="var(--red)" />
       </div>
 
-      <section style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
-        <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700 }}>Últimas notas de diário</h3>
+      <section style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
+        <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>Últimas notas de diário</h3>
         {recentLog.length === 0 ? (
-          <p style={{ color: '#6b7280', fontSize: 13, margin: 0 }}>Nenhum registo ainda. Vai à tab "Diário".</p>
+          <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-dado)', margin: 0 }}>Nenhum registo ainda. Vai à tab "Diário".</p>
         ) : (
           <div style={{ display: 'grid', gap: 6 }}>
             {recentLog.map((l: LogEntry) => (
-              <div key={l.id} style={{ background: '#f9fafb', padding: 10, borderRadius: 8 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', marginBottom: 4 }}>
+              <div key={l.id} style={{ background: 'var(--bg-2)', padding: 10, borderRadius: 'var(--r-md)' }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', marginBottom: 4 }}>
                   {new Date(l.entry_date).toLocaleDateString('pt-PT')} {l.shift && `· ${l.shift}`}
                 </div>
-                {l.what_was_done && <div style={{ fontSize: 13, color: '#111827' }}>{l.what_was_done}</div>}
-                {l.learning && <div style={{ fontSize: 12, color: '#065f46', marginTop: 4 }}>💡 {l.learning}</div>}
+                {l.what_was_done && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)' }}>{l.what_was_done}</div>}
+                {l.learning && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green)', marginTop: 4 }}><span style={{ ...ROTULO, color: 'var(--green)' }}>Aprendi </span>{l.learning}</div>}
               </div>
             ))}
           </div>
@@ -918,11 +954,11 @@ function DashboardTab({ it, objPct, objCompleted, objTotal, hoursPct, log, patie
 
 function KPI({ label, value, pct, color }: { label: string; value: string; pct?: number; color: string }) {
   return (
-    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
-      <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
-      <div style={{ fontSize: 22, fontWeight: 800, color: '#111827', marginTop: 4 }}>{value}</div>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
+      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>
+      <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginTop: 4 }}>{value}</div>
       {pct != null && (
-        <div style={{ height: 4, background: '#f3f4f6', borderRadius: 2, marginTop: 6, overflow: 'hidden' }}>
+        <div style={{ height: 4, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', marginTop: 6, overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: color, transition: 'width 0.3s' }} />
         </div>
       )}
@@ -943,19 +979,19 @@ function PatientsTab({ patients, onAdd, onUpdate, onDel, onAiCase, onAiDdx, busy
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 10 }}>
           {patients.map((p: Patient) => (
-            <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14 }}>
+            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                <span style={{ fontSize: 16, fontWeight: 700, color: '#111827' }}>{p.initials || '—'}</span>
-                <span style={{ padding: '2px 8px', borderRadius: 999, background: p.status === 'active' ? '#dcfce7' : '#f3f4f6', color: p.status === 'active' ? '#065f46' : '#6b7280', fontSize: 10, fontWeight: 700 }}>{p.status}</span>
+                <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.initials || '—'}</span>
+                <span style={{ padding: '2px 8px', borderRadius: 999, background: p.status === 'active' ? 'var(--badge-green-bg)' : 'var(--bg-3)', color: p.status === 'active' ? 'var(--green)' : 'var(--ink-4)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any }}>{p.status}</span>
               </div>
-              <div style={{ fontSize: 13, color: '#374151' }}>{p.age ? `${p.age}a` : ''} {p.sex || ''}</div>
-              {p.diagnosis && <div style={{ fontSize: 13, color: '#111827', fontWeight: 600, marginTop: 6 }}>{p.diagnosis}</div>}
-              {p.chief_complaint && <div style={{ fontSize: 12, color: '#6b7280', marginTop: 4 }}>{p.chief_complaint}</div>}
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>{p.age ? `${p.age}a` : ''} {p.sex || ''}</div>
+              {p.diagnosis && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any, marginTop: 6 }}>{p.diagnosis}</div>}
+              {p.chief_complaint && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 4 }}>{p.chief_complaint}</div>}
               <div style={{ display: 'flex', gap: 4, marginTop: 10, flexWrap: 'wrap' }}>
-                <Link href={`/estagio/${internshipId}/doente/${p.id}`} style={{ ...btn('ghost'), fontSize: 11, padding: '4px 8px', textDecoration: 'none' }}>Abrir</Link>
-                <button onClick={() => onAiDdx(p.id)} disabled={busy} style={{ ...btn('ghost'), fontSize: 11, padding: '4px 8px' }}>🧠 DDx IA</button>
-                <button onClick={() => onAiCase(p.id)} disabled={busy} style={{ ...btn('ghost'), fontSize: 11, padding: '4px 8px' }}>📋 Caso IA</button>
-                <button onClick={() => { if (confirm('Eliminar?')) onDel(p.id) }} style={{ ...btn('ghost'), fontSize: 11, padding: '4px 8px', color: '#dc2626' }}>Apagar</button>
+                <Link href={`/estagio/${internshipId}/doente/${p.id}`} style={{ ...btn('ghost'), fontSize: 'var(--t-meta)', padding: '4px 8px', textDecoration: 'none' }}>Abrir</Link>
+                <button onClick={() => onAiDdx(p.id)} disabled={busy} style={{ ...btn('ghost'), fontSize: 'var(--t-meta)', padding: '4px 8px' }}>DDx IA</button>
+                <button onClick={() => onAiCase(p.id)} disabled={busy} style={{ ...btn('ghost'), fontSize: 'var(--t-meta)', padding: '4px 8px' }}>Caso IA</button>
+                <button onClick={() => { if (confirm('Eliminar?')) onDel(p.id) }} style={{ ...btn('ghost'), fontSize: 'var(--t-meta)', padding: '4px 8px', color: 'var(--red)' }}>Apagar</button>
               </div>
             </div>
           ))}
@@ -980,7 +1016,7 @@ function PatientFormModal({ patient, onClose, onSave }: { patient?: Patient; onC
   const toArr = (s: string) => s.split(/[,\n]/).map(x => x.trim()).filter(Boolean)
   return (
     <Modal title="Novo doente seguido (anónimo)" onClose={onClose} wide>
-      <p style={{ fontSize: 12, color: '#6b7280', margin: '0 0 10px' }}>⚠ Apenas iniciais, idade, sexo. <b>Sem nome, sem SNS, sem PII.</b></p>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', margin: '0 0 10px' }}>Apenas iniciais, idade, sexo. <b>Sem nome, sem SNS, sem PII.</b></p>
       <div style={{ display: 'grid', gap: 10 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 80px 90px', gap: 8 }}>
           <Field label="Iniciais"><input value={initials} onChange={e => setInitials(e.target.value.slice(0, 5))} placeholder="M.S." style={input} /></Field>
@@ -1019,16 +1055,16 @@ function LogTab({ log, onAdd, onUpdate, onDel, busy, internshipId }: any) {
       {log.length === 0 ? <Empty msg="Sem notas. Regista o que aconteceu hoje." /> : (
         <div style={{ display: 'grid', gap: 8 }}>
           {log.map((l: LogEntry) => (
-            <div key={l.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
+            <div key={l.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-                <span style={{ fontWeight: 700, fontSize: 14 }}>{new Date(l.entry_date).toLocaleDateString('pt-PT')} {l.shift && `· ${l.shift}`} {l.hours && `· ${l.hours}h`}</span>
-                <button onClick={() => { if (confirm('Apagar?')) onDel(l.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 12 }}>Apagar</button>
+                <span style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>{new Date(l.entry_date).toLocaleDateString('pt-PT')} {l.shift && `· ${l.shift}`} {l.hours && `· ${l.hours}h`}</span>
+                <button onClick={() => { if (confirm('Apagar?')) onDel(l.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 'var(--t-meta)' }}>Apagar</button>
               </div>
-              {l.what_was_done && <p style={{ margin: '4px 0', fontSize: 13 }}><b>Actividades:</b> {l.what_was_done}</p>}
-              {l.highlights && <p style={{ margin: '4px 0', fontSize: 13 }}><b>Destaques:</b> {l.highlights}</p>}
-              {l.learning && <p style={{ margin: '4px 0', fontSize: 13, color: '#065f46' }}><b>💡 Aprendi:</b> {l.learning}</p>}
-              {l.questions && <p style={{ margin: '4px 0', fontSize: 13, color: '#1d4ed8' }}><b>❓ A esclarecer:</b> {l.questions}</p>}
-              {l.difficulties && <p style={{ margin: '4px 0', fontSize: 13, color: '#991b1b' }}><b>⚠ Dificuldades:</b> {l.difficulties}</p>}
+              {l.what_was_done && <p style={{ margin: '4px 0', fontSize: 'var(--t-dado)' }}><b>Actividades:</b> {l.what_was_done}</p>}
+              {l.highlights && <p style={{ margin: '4px 0', fontSize: 'var(--t-dado)' }}><b>Destaques:</b> {l.highlights}</p>}
+              {l.learning && <p style={{ margin: '4px 0', fontSize: 'var(--t-dado)', color: 'var(--green)' }}><b>Aprendi:</b> {l.learning}</p>}
+              {l.questions && <p style={{ margin: '4px 0', fontSize: 'var(--t-dado)', color: 'var(--ink-2)' }}><b>A esclarecer:</b> {l.questions}</p>}
+              {l.difficulties && <p style={{ margin: '4px 0', fontSize: 'var(--t-dado)', color: 'var(--red)' }}><b>Dificuldades:</b> {l.difficulties}</p>}
             </div>
           ))}
         </div>
@@ -1096,26 +1132,24 @@ function ObjectivesTab({ objectives, onUpdate, onAdd, onDel, internshipId, onAi,
   return (
     <div style={{ display: 'grid', gap: 14 }}>
       {Object.keys(byCategory).length === 0 && (
-        <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 24 }}>
-          <h2 style={{ margin: '0 0 6px', fontSize: 18 }}>Define os teus objectivos</h2>
-          <p style={{ color: '#6b7280', fontSize: 14, margin: '0 0 16px' }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
+          <h2 style={{ margin: '0 0 6px', fontSize: 'var(--t-destaque)' }}>Define os teus objectivos</h2>
+          <p style={{ color: 'var(--ink-4)', fontSize: 'var(--t-corpo)', margin: '0 0 16px' }}>
             Não há objectivos predefinidos. Personaliza o que queres aprender neste estágio em particular.
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 10 }}>
             <button onClick={() => setShowInterview(true)} style={{
-              padding: 14, background: 'linear-gradient(135deg, #0d6e42 0%, #047857 100%)',
-              color: 'white', border: 'none', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+              padding: 14, background: 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)',
+              color: 'white', border: 'none', borderRadius: 'var(--r-xl)', cursor: 'pointer', textAlign: 'left',
             }}>
-              <div style={{ fontSize: 22, marginBottom: 6 }}>🤖</div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Entrevista IA (recomendado)</div>
-              <div style={{ fontSize: 12, opacity: 0.9 }}>A IA pergunta sobre o teu nível, interesses e contexto. Cria objectivos SMART personalizados.</div>
+              <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', marginBottom: 4 }}>Entrevista IA (recomendado)</div>
+              <div style={{ fontSize: 'var(--t-meta)', opacity: 0.9 }}>A IA pergunta sobre o teu nível, interesses e contexto. Cria objectivos SMART personalizados.</div>
             </button>
             <button onClick={() => setShowAdd(true)} style={{
-              padding: 14, background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 12, cursor: 'pointer', textAlign: 'left',
+              padding: 14, background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', cursor: 'pointer', textAlign: 'left',
             }}>
-              <div style={{ fontSize: 22, marginBottom: 6 }}>✏️</div>
-              <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 4 }}>Criar manualmente</div>
-              <div style={{ fontSize: 12, color: '#6b7280' }}>Adicionas tu próprio cada objectivo.</div>
+              <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', marginBottom: 4 }}>Criar manualmente</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>Adicionas tu próprio cada objectivo.</div>
             </button>
           </div>
         </div>
@@ -1123,27 +1157,27 @@ function ObjectivesTab({ objectives, onUpdate, onAdd, onDel, internshipId, onAi,
 
       {Object.keys(byCategory).length > 0 && (
         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-          <button onClick={() => setShowInterview(true)} style={btn('ghost')}>🤖 Refazer com IA</button>
+          <button onClick={() => setShowInterview(true)} style={btn('ghost')}>Refazer com IA</button>
           <button onClick={() => setShowAdd(true)} style={btn('primary')}>+ Novo objectivo</button>
         </div>
       )}
 
       {Object.entries(byCategory).map(([cat, items]) => (
-        <section key={cat} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 12 }}>
-          <h3 style={{ margin: '0 0 10px', fontSize: 14, fontWeight: 700, color: '#374151' }}>{cat}</h3>
+        <section key={cat} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 12 }}>
+          <h3 style={{ margin: '0 0 10px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)' }}>{cat}</h3>
           <div style={{ display: 'grid', gap: 4 }}>
             {items.map(o => (
-              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, background: o.status === 'completed' || o.status === 'validated' ? '#f0fdf5' : '#f9fafb', borderRadius: 6 }}>
-                <select value={o.status} onChange={e => onUpdate(o.id, { status: e.target.value, completed_at: ['completed','validated'].includes(e.target.value) ? new Date().toISOString() : null })} style={{ ...input, padding: '3px 6px', fontSize: 11, width: 'auto' }}>
+              <div key={o.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 8, background: o.status === 'completed' || o.status === 'validated' ? 'var(--green-light)' : 'var(--bg-2)', borderRadius: 'var(--r)' }}>
+                <select value={o.status} onChange={e => onUpdate(o.id, { status: e.target.value, completed_at: ['completed','validated'].includes(e.target.value) ? new Date().toISOString() : null })} style={{ ...input, padding: '3px 6px', fontSize: 'var(--t-meta)', width: 'auto' }}>
                   <option value="pending">Por fazer</option>
                   <option value="in_progress">A fazer</option>
                   <option value="completed">Concluído</option>
                   <option value="validated">Validado</option>
                 </select>
-                <span style={{ flex: 1, fontSize: 13, color: '#111827', textDecoration: o.status === 'completed' || o.status === 'validated' ? 'line-through' : 'none' }}>{o.title}</span>
-                <span style={{ padding: '2px 6px', borderRadius: 4, background: '#f3f4f6', fontSize: 10, fontWeight: 700, color: '#374151' }}>{o.level}</span>
-                {o.required && <span style={{ fontSize: 10, color: '#dc2626' }}>obrigatório</span>}
-                <button aria-label="Eliminar" onClick={() => { if (confirm('Apagar este objectivo?')) onDel(o.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 12 }}>×</button>              </div>
+                <span style={{ flex: 1, fontSize: 'var(--t-dado)', color: 'var(--ink)', textDecoration: o.status === 'completed' || o.status === 'validated' ? 'line-through' : 'none' }}>{o.title}</span>
+                <span style={{ padding: '2px 6px', borderRadius: 'var(--r)', background: 'var(--bg-3)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)' }}>{o.level}</span>
+                {o.required && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--red)' }}>obrigatório</span>}
+                <button aria-label="Eliminar" onClick={() => { if (confirm('Apagar este objectivo?')) onDel(o.id) }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 'var(--t-meta)' }}>×</button>              </div>
             ))}
           </div>
         </section>
@@ -1188,27 +1222,27 @@ function InterviewModal({ internshipId, onAi, onClose, onDone }: any) {
 
   return (
     <Modal title="Entrevista personalizada" onClose={onClose} wide>
-      {step === 'loading' && <p style={{ color: '#6b7280' }}>A preparar perguntas para o teu estágio…</p>}
-      {step === 'generating' && <p style={{ color: '#6b7280' }}>A gerar objectivos personalizados…</p>}
-      {step === 'done' && <p style={{ color: '#065f46' }}>✓ Objectivos criados!</p>}
-      {err && <div style={{ background: '#fee2e2', color: '#991b1b', padding: 8, borderRadius: 6, fontSize: 12, marginBottom: 10 }}>{err}</div>}
+      {step === 'loading' && <p style={{ color: 'var(--ink-4)' }}>A preparar perguntas para o teu estágio…</p>}
+      {step === 'generating' && <p style={{ color: 'var(--ink-4)' }}>A gerar objectivos personalizados…</p>}
+      {step === 'done' && <p style={{ color: 'var(--green)' }}>Objectivos criados!</p>}
+      {err && <div style={{ background: 'var(--badge-red-bg)', color: 'var(--red)', padding: 8, borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', marginBottom: 10 }}>{err}</div>}
       {step === 'answer' && (
         <div style={{ display: 'grid', gap: 14 }}>
-          <p style={{ fontSize: 13, color: '#6b7280', margin: 0 }}>
+          <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: 0 }}>
             Responde para a IA criar objectivos adequados ao teu nível e ao que queres aprender.
           </p>
           {questions.map((q, i) => (
             <div key={q.id}>
-              <label style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#374151', marginBottom: 4 }}>
+              <label style={{ display: 'block', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', marginBottom: 4 }}>
                 <span style={{ color: ACCENT }}>{i + 1}.</span> {q.text}
               </label>
               {q.type === 'choice' && q.options ? (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {q.options.map((opt: string) => (
                     <button key={opt} type="button" onClick={() => setAnswers(a => ({ ...a, [q.id]: opt }))} style={{
-                      padding: '6px 12px', border: 'none', borderRadius: 999, cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                      background: answers[q.id] === opt ? ACCENT : '#f3f4f6',
-                      color: answers[q.id] === opt ? 'white' : '#374151',
+                      padding: '6px 12px', border: 'none', borderRadius: 999, cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any,
+                      background: answers[q.id] === opt ? ACCENT : 'var(--bg-3)',
+                      color: answers[q.id] === opt ? 'white' : 'var(--ink-3)',
                     }}>{opt}</button>
                   ))}
                 </div>
@@ -1252,7 +1286,7 @@ function AddObjectiveModal({ onClose, onSave }: any) {
               <option value="master">Autónomo</option>
             </select>
           </Field>
-          <label style={{ display: 'flex', alignItems: 'flex-end', gap: 6, fontSize: 13 }}>
+          <label style={{ display: 'flex', alignItems: 'flex-end', gap: 6, fontSize: 'var(--t-dado)' }}>
             <input type="checkbox" checked={required} onChange={e => setRequired(e.target.checked)} /> Obrigatório
           </label>
         </div>
@@ -1275,7 +1309,7 @@ function ProceduresTab({ procedures, patients, onAdd, onDel }: any) {
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10, flexWrap: 'wrap', gap: 10 }}>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {['observed','assisted','performed_supervised','performed_alone'].map(l => (
-            <span key={l} style={{ padding: '3px 10px', background: '#f3f4f6', borderRadius: 999, fontSize: 11, fontWeight: 600, color: '#374151' }}>
+            <span key={l} style={{ padding: '3px 10px', background: 'var(--bg-3)', borderRadius: 999, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)' }}>
               {l.replace('_', ' ')}: <b>{byLevel[l] || 0}</b>
             </span>
           ))}
@@ -1285,10 +1319,10 @@ function ProceduresTab({ procedures, patients, onAdd, onDel }: any) {
       {procedures.length === 0 ? <Empty msg="Sem procedimentos. Adiciona o primeiro." /> : (
         <div style={{ display: 'grid', gap: 6 }}>
           {procedures.map((p: Procedure) => (
-            <div key={p.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: 10, display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center' }}>
-              <span style={{ fontWeight: 600 }}>{p.procedure_name}</span>
-              <span style={{ padding: '2px 10px', borderRadius: 999, background: '#dbeafe', color: '#1e40af', fontSize: 10, fontWeight: 700 }}>{p.level}</span>
-              <span style={{ fontSize: 11, color: '#6b7280' }}>{new Date(p.performed_at).toLocaleDateString('pt-PT')}</span>
+            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 10, display: 'grid', gridTemplateColumns: '1fr auto auto', gap: 10, alignItems: 'center' }}>
+              <span style={{ fontWeight: 'var(--peso-corpo)' as any }}>{p.procedure_name}</span>
+              <span style={{ padding: '2px 10px', borderRadius: 999, background: 'var(--bg-3)', color: 'var(--ink-2)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any }}>{p.level}</span>
+              <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{new Date(p.performed_at).toLocaleDateString('pt-PT')}</span>
             </div>
           ))}
         </div>
@@ -1335,28 +1369,28 @@ function ProcFormModal({ patients, onClose, onSave }: any) {
 
 function CasesTab({ cases }: any) {
   const [open, setOpen] = useState<Case | null>(null)
-  if (cases.length === 0) return <Empty msg="Sem casos. Na tab Doentes, clica em '📋 Caso IA' para gerar um caso clínico completo a partir do doente." />
+  if (cases.length === 0) return <Empty msg="Sem casos. Na tab Doentes, clica em 'Caso IA' para gerar um caso clínico completo a partir do doente." />
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       {cases.map((c: Case) => (
-        <button key={c.id} onClick={() => setOpen(c)} style={{ textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, cursor: 'pointer' }}>
+        <button key={c.id} onClick={() => setOpen(c)} style={{ textAlign: 'left', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12, cursor: 'pointer' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-            <span style={{ fontWeight: 700, fontSize: 14 }}>{c.title}</span>
+            <span style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>{c.title}</span>
             <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-              {c.ai_assisted && <span style={{ padding: '2px 8px', background: '#ede9fe', color: '#6d28d9', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>IA</span>}
-              <span style={{ color: ACCENT, fontSize: 12, fontWeight: 700 }}>Abrir →</span>
+              {c.ai_assisted && <span style={{ padding: '2px 8px', background: 'var(--roxo-claro)', color: 'var(--roxo)', borderRadius: 999, fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any }}>IA</span>}
+              <span style={{ color: ACCENT, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>Abrir →</span>
             </div>
           </div>
-          {c.final_diagnosis && <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>🎯 {c.final_diagnosis}</div>}
+          {c.final_diagnosis && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginTop: 4 }}><span style={{ ...ROTULO }}>Diagnóstico </span>{c.final_diagnosis}</div>}
         </button>
       ))}
 
       {open && (
         <div onClick={() => setOpen(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 10 }}>
-              <h2 style={{ margin: 0, fontSize: 20, fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
-              <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>            </div>
+              <h2 style={{ margin: 0, fontSize: 'var(--t-destaque)', fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
+              <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 'var(--t-numero)', cursor: 'pointer', color: 'var(--ink-5)', lineHeight: 1 }}>×</button>            </div>
             {[
               ['História clínica', open.history],
               ['Exame físico', open.exam_findings],
@@ -1369,8 +1403,8 @@ function CasesTab({ cases }: any) {
               ['Referências', open.references_text],
             ].filter(([, v]) => v).map(([label, v]) => (
               <div key={label as string} style={{ marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: ACCENT, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>{label}</div>
-                <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{v}</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: ACCENT, textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 4 }}>{label}</div>
+                <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{v}</div>
               </div>
             ))}
           </div>
@@ -1391,22 +1425,22 @@ function ReportsTab({ reports, onGenerate, busy }: any) {
   return (
     <div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-        <button onClick={() => onGenerate('final')} disabled={busy} style={btn('primary')}>{busy ? 'A gerar…' : '📄 Gerar relatório final IA'}</button>
-        <button onClick={() => onGenerate('weekly')} disabled={busy} style={btn('ghost')}>📋 Relatório semanal</button>
-        <button onClick={() => onGenerate('intermediate')} disabled={busy} style={btn('ghost')}>📋 Relatório intermédio</button>
+        <button onClick={() => onGenerate('final')} disabled={busy} style={btn('primary')}>{busy ? 'A gerar…' : 'Gerar relatório final IA'}</button>
+        <button onClick={() => onGenerate('weekly')} disabled={busy} style={btn('ghost')}>Relatório semanal</button>
+        <button onClick={() => onGenerate('intermediate')} disabled={busy} style={btn('ghost')}>Relatório intermédio</button>
       </div>
       {reports.length === 0 ? <Empty msg="Sem relatórios. Clica num botão para gerar um relatório completo a partir de tudo o que registaste." /> : (
         <div style={{ display: 'grid', gap: 8 }}>
           {reports.map((r: Report) => (
-            <button key={r.id} onClick={() => setOpen(r)} style={{ textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12, cursor: 'pointer' }}>
+            <button key={r.id} onClick={() => setOpen(r)} style={{ textAlign: 'left', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12, cursor: 'pointer' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
                 <div>
-                  <div style={{ fontWeight: 700, fontSize: 14 }}>{r.title}</div>
-                  <div style={{ fontSize: 11, color: '#6b7280' }}>{new Date(r.created_at).toLocaleString('pt-PT')}</div>
+                  <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>{r.title}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{new Date(r.created_at).toLocaleString('pt-PT')}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                  {r.ai_assisted && <span style={{ padding: '2px 8px', background: '#ede9fe', color: '#6d28d9', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>IA</span>}
-                  <span style={{ color: ACCENT, fontSize: 12, fontWeight: 700 }}>Abrir →</span>
+                  {r.ai_assisted && <span style={{ padding: '2px 8px', background: 'var(--roxo-claro)', color: 'var(--roxo)', borderRadius: 999, fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any }}>IA</span>}
+                  <span style={{ color: ACCENT, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>Abrir →</span>
                 </div>
               </div>
             </button>
@@ -1416,15 +1450,15 @@ function ReportsTab({ reports, onGenerate, busy }: any) {
 
       {open && (
         <div onClick={() => setOpen(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, maxWidth: 720, width: '100%', maxHeight: '88vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10 }}>
-              <h2 style={{ margin: 0, fontSize: 19, fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
+              <h2 style={{ margin: 0, fontSize: 'var(--t-destaque)', fontFamily: 'var(--font-serif,serif)' }}>{open.title}</h2>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={() => download(open)} style={btn('ghost')}>↓ Descarregar</button>
-                <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 24, cursor: 'pointer', color: '#9ca3af', lineHeight: 1 }}>×</button>              </div>
+                <button aria-label="Fechar" onClick={() => setOpen(null)} style={{ border: 'none', background: 'none', fontSize: 'var(--t-numero)', cursor: 'pointer', color: 'var(--ink-5)', lineHeight: 1 }}>×</button>              </div>
             </div>
-            <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6 }}>
-              {open.body ? <MarkdownLike text={open.body} /> : <p style={{ color: '#9ca3af' }}>(Relatório sem conteúdo)</p>}
+            <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
+              {open.body ? <MarkdownLike text={open.body} /> : <p style={{ color: 'var(--ink-5)' }}>(Relatório sem conteúdo)</p>}
             </div>
           </div>
         </div>
@@ -1443,9 +1477,9 @@ function ReflectionsTab({ reflections, onAdd, onDel }: any) {
       {reflections.length === 0 ? <Empty msg="Sem reflexões. Usa o modelo Gibbs para reflectir sobre experiências." /> : (
         <div style={{ display: 'grid', gap: 8 }}>
           {reflections.map((r: any) => (
-            <div key={r.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', marginBottom: 4 }}>{r.framework}</div>
-              <div style={{ fontSize: 12 }}>{new Date(r.created_at).toLocaleDateString('pt-PT')}</div>
+            <div key={r.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12 }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', marginBottom: 4 }}>{r.framework}</div>
+              <div style={{ fontSize: 'var(--t-meta)' }}>{new Date(r.created_at).toLocaleDateString('pt-PT')}</div>
             </div>
           ))}
         </div>
@@ -1527,9 +1561,9 @@ function EvaluationsTab({ evaluations, internshipId, supabase, onReload }: any) 
   return (
     <div>
       {/* Pedir avaliação por link */}
-      <section style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>Pedir avaliação ao supervisor</div>
-        <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 10 }}>Gera um link. O supervisor avalia-te sem precisar de conta — fica registado aqui.</div>
+      <section style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, marginBottom: 12 }}>
+        <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>Pedir avaliação ao supervisor</div>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 10 }}>Gera um link. O supervisor avalia-te sem precisar de conta — fica registado aqui.</div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
           <select value={evalKind} onChange={e => setEvalKind(e.target.value)} style={input}>
             <option value="formative">Formativa</option>
@@ -1541,40 +1575,40 @@ function EvaluationsTab({ evaluations, internshipId, supabase, onReload }: any) 
           <button onClick={makeEvalLink} disabled={busy === 'eval'} style={btn('primary')}>{busy === 'eval' ? '…' : 'Gerar link de avaliação'}</button>
         </div>
         {link && (
-          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center', background: '#f6f7f8', borderRadius: 8, padding: '8px 10px' }}>
-            <input readOnly value={link} style={{ ...input, flex: 1, fontSize: 12 }} onFocus={e => e.target.select()} />
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 10px' }}>
+            <input readOnly value={link} style={{ ...input, flex: 1, fontSize: 'var(--t-meta)' }} onFocus={e => e.target.select()} />
             <button onClick={() => copy(link)} style={btn('ghost')}>Copiar</button>
           </div>
         )}
       </section>
 
       {/* Partilhar portefólio */}
-      <section style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16, marginBottom: 12 }}>
-        <div style={{ fontWeight: 700, fontSize: 15 }}>Partilhar portefólio</div>
-        <div style={{ fontSize: 12.5, color: '#6b7280', marginBottom: 10 }}>Link só-leitura com objetivos, procedimentos, casos e avaliações — para mostrar à escola/supervisor.</div>
+      <section style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, marginBottom: 12 }}>
+        <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>Partilhar portefólio</div>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 10 }}>Link só-leitura com objetivos, procedimentos, casos e avaliações — para mostrar à escola/supervisor.</div>
         <button onClick={makePortfolioLink} disabled={busy === 'portfolio'} style={btn('primary')}>{busy === 'portfolio' ? '…' : 'Gerar link do portefólio'}</button>
         {portfolioLink && (
-          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center', background: '#f6f7f8', borderRadius: 8, padding: '8px 10px' }}>
-            <input readOnly value={portfolioLink} style={{ ...input, flex: 1, fontSize: 12 }} onFocus={e => e.target.select()} />
+          <div style={{ marginTop: 10, display: 'flex', gap: 6, alignItems: 'center', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 10px' }}>
+            <input readOnly value={portfolioLink} style={{ ...input, flex: 1, fontSize: 'var(--t-meta)' }} onFocus={e => e.target.select()} />
             <button onClick={() => copy(portfolioLink)} style={btn('ghost')}>Copiar</button>
           </div>
         )}
       </section>
 
       {/* Avaliações recebidas */}
-      <div style={{ fontWeight: 700, fontSize: 14, marginBottom: 8 }}>Avaliações recebidas</div>
+      <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', marginBottom: 8 }}>Avaliações recebidas</div>
       {evaluations.length === 0 ? <Empty msg="Ainda sem avaliações. Gera um link acima e envia ao teu supervisor." /> : (
         <div style={{ display: 'grid', gap: 8 }}>
           {evaluations.map((e: any) => (
-            <div key={e.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+            <div key={e.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontWeight: 700 }}>{e.evaluator_name || (e.submitted_at ? 'Supervisor' : 'A aguardar resposta…')} · {e.kind}</span>
+                <span style={{ fontWeight: 'var(--peso-forte)' as any }}>{e.evaluator_name || (e.submitted_at ? 'Supervisor' : 'A aguardar resposta…')} · {e.kind}</span>
                 {e.overall_score
-                  ? <span style={{ padding: '2px 8px', borderRadius: 999, background: '#dcfce7', color: '#065f46', fontWeight: 700 }}>{e.overall_score}/5</span>
-                  : <span style={{ fontSize: 11, color: '#d97706', fontWeight: 700 }}>pendente</span>}
+                  ? <span style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--badge-green-bg)', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>{e.overall_score}/5</span>
+                  : <span style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>pendente</span>}
               </div>
-              {(e.strengths || e.comments) && <div style={{ fontSize: 12.5, color: '#374151', marginTop: 6 }}>{e.strengths || e.comments}</div>}
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 4 }}>{e.evaluation_date}</div>
+              {(e.strengths || e.comments) && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 6 }}>{e.strengths || e.comments}</div>}
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 4 }}>{e.evaluation_date}</div>
             </div>
           ))}
         </div>
@@ -1587,12 +1621,12 @@ function HoursTab({ hours, required, done, pct, onAdd, onDel }: any) {
   const [showAdd, setShowAdd] = useState(false)
   return (
     <div>
-      <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 14, marginBottom: 12 }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14, marginBottom: 12 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-          <span style={{ fontSize: 13, color: '#374151', fontWeight: 600 }}>Progresso</span>
-          <span style={{ fontSize: 13, fontWeight: 700 }}>{done} / {required} ({pct}%)</span>
+          <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any }}>Progresso</span>
+          <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>{done} / {required} ({pct}%)</span>
         </div>
-        <div style={{ height: 6, background: '#f3f4f6', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
           <div style={{ height: '100%', width: `${pct}%`, background: ACCENT }} />
         </div>
       </div>
@@ -1602,7 +1636,7 @@ function HoursTab({ hours, required, done, pct, onAdd, onDel }: any) {
       {hours.length === 0 ? <Empty msg="Sem registos de horas." /> : (
         <div style={{ display: 'grid', gap: 4 }}>
           {hours.map((h: any) => (
-            <div key={h.id} style={{ background: 'white', border: '1px solid #f3f4f6', padding: 8, borderRadius: 6, display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+            <div key={h.id} style={{ background: 'white', border: '1px solid var(--bg-3)', padding: 8, borderRadius: 'var(--r)', display: 'flex', justifyContent: 'space-between', fontSize: 'var(--t-dado)' }}>
               <span>{new Date(h.hours_date).toLocaleDateString('pt-PT')} {h.activity && `· ${h.activity}`}</span>
               <b>{h.hours}h</b>
             </div>
@@ -1641,10 +1675,10 @@ function HoursFormModal({ onClose, onSave }: any) {
 function Modal({ children, onClose, title, wide }: { children: React.ReactNode; onClose: () => void; title: string; wide?: boolean }) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 20, maxWidth: wide ? 640 : 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 20, maxWidth: wide ? 640 : 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-          <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h3>
-          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+          <h3 style={{ margin: 0, fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any }}>{title}</h3>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)' }}>×</button>
         </div>
         {children}
       </div>
@@ -1652,13 +1686,13 @@ function Modal({ children, onClose, title, wide }: { children: React.ReactNode; 
   )
 }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: 'block' }}><div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>{children}</label>
+  return <label style={{ display: 'block' }}><div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>{children}</label>
 }
 function Empty({ msg }: { msg: string }) {
-  return <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 12, padding: 24, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>{msg}</div>
+  return <div style={{ background: 'white', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-xl)', padding: 24, textAlign: 'center', color: 'var(--ink-4)', fontSize: 'var(--t-dado)' }}>{msg}</div>
 }
-const input: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
+const input: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
 function btn(kind: 'primary' | 'ghost'): React.CSSProperties {
-  if (kind === 'primary') return { padding: '7px 14px', border: 'none', borderRadius: 8, cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 13 }
-  return { padding: '7px 14px', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', background: 'white', color: '#374151', fontWeight: 600, fontSize: 13 }
+  if (kind === 'primary') return { padding: '7px 14px', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 'var(--peso-corpo)' as any, fontSize: 'var(--t-dado)' }
+  return { padding: '7px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', background: 'white', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any, fontSize: 'var(--t-dado)' }
 }

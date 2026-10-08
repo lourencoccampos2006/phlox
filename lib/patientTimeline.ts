@@ -63,7 +63,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
     out.push({
       kind: 'med',
       at: isoOf(m.date, null, m.recorded_at),
-      icon: '💊',
+      icon: 'pill',
       title: given ? `Deu ${medName}` : `${medName} — ${m.status === 'refused' ? 'recusada' : m.status || 'por dar'}`,
       detail: [SHIFT_LABEL[m.shift] && `turno ${SHIFT_LABEL[m.shift]}`, m.source === 'home' && 'em casa', m.recorded_by].filter(Boolean).join(' · ') || undefined,
       tone: given ? 'good' : m.status === 'refused' ? 'warn' : 'default',
@@ -79,7 +79,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
     if (meals.length) { const avg = Math.round(meals.reduce((a: number, b: number) => a + b, 0) / meals.length); bits.push(avg >= 75 ? 'comeu bem' : avg >= 40 ? 'comeu razoável' : 'comeu pouco') }
     if (c.notes) bits.push(String(c.notes).slice(0, 80))
     out.push({
-      kind: 'care', at: isoOf(c.date, null, c.created_at), icon: '📝',
+      kind: 'care', at: isoOf(c.date, null, c.created_at), icon: 'note',
       title: `Registo do dia${c.shift ? ` (${SHIFT_LABEL[c.shift] || c.shift})` : ''}`,
       detail: bits.filter(Boolean).join(' · ') || undefined,
     })
@@ -92,7 +92,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
       v.temp && `${v.temp}°`, v.glucose && `gli ${v.glucose}`, v.weight && `${v.weight}kg`,
     ].filter(Boolean)
     if (!parts.length) continue
-    out.push({ kind: 'vital', at: isoOf(v.date, null, v.recorded_at), icon: '❤️', title: 'Sinais vitais', detail: parts.join(' · ') })
+    out.push({ kind: 'vital', at: isoOf(v.date, null, v.recorded_at), icon: 'heart', title: 'Sinais vitais', detail: parts.join(' · ') })
   }
 
   for (const i of input.incidents || []) {
@@ -106,7 +106,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
 
   for (const a of input.assessments || []) {
     out.push({
-      kind: 'assessment', at: isoOf(a.date, null, a.created_at), icon: '📐',
+      kind: 'assessment', at: isoOf(a.date, null, a.created_at), icon: 'calculator',
       title: `Avaliação ${SCALE_LABEL[a.scale] || a.scale}`, detail: `Pontuação: ${a.score}`,
     })
   }
@@ -114,7 +114,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
   for (const ap of input.appointments || []) {
     const future = ap.date >= new Date().toISOString().slice(0, 10)
     out.push({
-      kind: 'appointment', at: isoOf(ap.date, ap.time), icon: '📅',
+      kind: 'appointment', at: isoOf(ap.date, ap.time), icon: 'calendar',
       title: ap.title || (ap.type === 'consulta' ? 'Consulta' : 'Marcação'),
       detail: [ap.time, future ? 'agendada' : ap.status === 'completed' ? 'realizada' : ap.status].filter(Boolean).join(' · ') || undefined,
     })
@@ -123,7 +123,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
   for (const f of input.family || []) {
     const who = f.author_side === 'family' ? (f.author_name || 'Família') : 'Equipa'
     out.push({
-      kind: 'family', at: f.created_at || new Date().toISOString(), icon: '👨‍👩‍👧',
+      kind: 'family', at: f.created_at || new Date().toISOString(), icon: 'family',
       title: `${who}: ${f.kind === 'photo' ? 'partilhou uma foto' : String(f.content || '').slice(0, 90)}`,
     })
   }
@@ -131,7 +131,7 @@ export function buildPatientTimeline(input: TimelineInput): TimelineItem[] {
   for (const r of input.requests || []) {
     const lbl = r.kind === 'queixa' ? 'Queixa' : r.kind === 'observacao' ? 'Observação' : 'Pedido'
     out.push({
-      kind: 'request', at: r.created_at || new Date().toISOString(), icon: '🙋',
+      kind: 'request', at: r.created_at || new Date().toISOString(), icon: 'user',
       title: `${lbl}: ${String(r.content || '').slice(0, 90)}`,
       detail: r.status && r.status !== 'aberto' ? r.status : undefined,
       tone: r.kind === 'queixa' ? 'warn' : 'default',

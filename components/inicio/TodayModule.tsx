@@ -50,7 +50,7 @@ export default function TodayModule({ theme: t }: { theme: ModeTheme }) {
     return () => { cancel = true }
   }, [user, supabase])
 
-  if (events === null) return <div className="skeleton" style={{ height: 120, borderRadius: 10 }} />
+  if (events === null) return <div className="skeleton" style={{ height: 120, borderRadius: 'var(--r-lg)' }} />
 
   const pendingCount = events.filter(e => e.pending).length
 
@@ -70,9 +70,9 @@ export default function TodayModule({ theme: t }: { theme: ModeTheme }) {
           {events.map((e, i) => (
             <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '9px 0', borderTop: i === 0 ? 'none' : `1px solid ${t.border}` }}>
               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700, color: e.pending ? t.accent : t.inkFaint, width: 42, flexShrink: 0 }}>{e.time}</span>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: e.taken ? '#16a34a' : e.pending ? t.accent : t.border }} />
+              <span style={{ width: 7, height: 7, borderRadius: '50%', flexShrink: 0, background: e.taken ? 'var(--green)' : e.pending ? t.accent : t.border }} />
               <span style={{ flex: 1, fontSize: 13.5, color: e.taken ? t.inkFaint : t.ink, textDecoration: e.taken ? 'line-through' : 'none' }}>{e.medName}</span>
-              {e.taken && <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700 }}>Tomado</span>}
+              {e.taken && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>Tomado</span>}
               {e.pending && <Link href="/mymeds" style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none' }}>Marcar →</Link>}
             </div>
           ))}

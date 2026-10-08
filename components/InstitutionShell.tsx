@@ -207,11 +207,15 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
 
   return (
     <ContadoresProvider>
-    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa', ['--accent' as any]: bp.accent, ['--accent-soft' as any]: bp.accentSoft }}>
+    <div style={{ minHeight: '100vh', background: 'var(--chao)', ['--accent' as any]: bp.accent, ['--accent-soft' as any]: bp.accentSoft }}>
       <header style={{
         position: 'sticky', top: 0, zIndex: 40, height: 58, display: 'flex', alignItems: 'center',
         gap: 'var(--space-6)', padding: '0 clamp(14px,2.5vw,24px)',
-        background: 'rgba(255,255,255,0.9)', backdropFilter: 'blur(12px)',
+        // Opaco, nao vidro fosco. O desfoque e um efeito de aplicacao de
+        // telemovel: deixa ver o conteudo a passar por tras e, numa lista
+        // densa, isso le-se como sujidade. Numa barra de ferramentas quer-se
+        // o contrario — que ela esteja quieta e nao mostre nada.
+        background: 'var(--bg)',
         borderBottom: '1px solid var(--border)',
       }}>
         <button onClick={() => setMobileNav(v => !v)} className="ish-burger" aria-label="Menu"
@@ -274,10 +278,23 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
 
       {/* Separadores — as cinco vistas do painel. Fora do painel nenhum acende:
           é a forma honesta de dizer "estás numa ferramenta, não numa vista". */}
+      {/* ── A MOLDURA FICA, O CONTEÚDO É QUE ROLA (2026-10-07) ──────────────
+          O cabeçalho já era colado; esta barra não, e ia-se embora ao rolar.
+          Numa ferramenta que se usa de pé, perder a navegação a meio de uma
+          lista obriga a voltar ao topo só para mudar de sítio.
+
+          E havia uma conta errada por trás disto: a coluna da esquerda era
+          `100vh - 58px` mas começa aos 108px — ficava 50px mais alta do que a
+          janela, e isso fazia a PÁGINA INTEIRA rolar 50px em TODAS as páginas.
+          Media-se a olho e parecia um erro de espaçamento; era aritmética.
+
+          58 (cabeçalho) + 50 (esta barra) = 108. Os três números têm de
+          concordar, e por isso estão aqui juntos. */}
       <nav className="ish-tabs" style={{
         display: 'flex', gap: 'var(--space-2)', alignItems: 'center',
         padding: '0 clamp(14px,2.5vw,24px)', borderBottom: '1px solid var(--border)',
         background: 'var(--bg)', overflowX: 'auto',
+        position: 'sticky', top: 58, zIndex: 39, height: 50, boxSizing: 'border-box',
       }}>
         {SEPARADORES.map(sep => {
           const activo = pathname === '/painel' && (searchParams.get('aba') || 'hoje') === sep.aba
@@ -292,9 +309,23 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         })}
       </nav>
 
-      <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1320, margin: '0 auto' }}>
+      {/* ── O TECTO DE LARGURA MUDOU-SE DE SÍTIO (2026-10-07) ──────────────
+          Eram 1320px aqui, para todas as páginas ao mesmo tempo. Mas há dois
+          tipos de página nesta aplicação e eles querem coisas opostas:
+
+            • as de LER (um relatório, um plano) querem a linha curta, senão
+              os olhos perdem-se a voltar para trás — e essas já põem o seu
+              próprio `maxWidth`, que continua a mandar;
+            • as de TRABALHAR (o dia, a medicação, a faturação) querem o ecrã
+              todo — numa casa de trinta pessoas, cada centímetro de lista é
+              uma linha que se vê sem rolar.
+
+          Com o tecto aqui, as segundas nunca podiam crescer. Agora decide cada
+          página, e este valor é só o limite de bom senso de um ecrã muito
+          largo. */}
+      <div style={{ display: 'flex', alignItems: 'flex-start', maxWidth: 1760, margin: '0 auto' }}>
         <aside className="ish-sidebar" style={{
-          width: 260, flexShrink: 0, position: 'sticky', top: 58, height: 'calc(100vh - 58px)',
+          width: 260, flexShrink: 0, position: 'sticky', top: 108, height: 'calc(100vh - 108px)',
           overflowY: 'auto', padding: 'var(--space-8) var(--space-6)', borderRight: '1px solid var(--border)',
         }}>
           {SidebarInner}
@@ -306,7 +337,7 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
       {mobileNav && (
         <>
           <div onClick={() => setMobileNav(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', zIndex: 48 }} />
-          <aside style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 270, background: warm ? '#fbfaf8' : 'white', zIndex: 49, padding: 'var(--space-8) var(--space-6)', overflowY: 'auto', boxShadow: '4px 0 24px rgba(0,0,0,0.12)' }}>
+          <aside style={{ position: 'fixed', top: 0, left: 0, bottom: 0, width: 270, background: warm ? 'var(--bg-2)' : 'white', zIndex: 49, padding: 'var(--space-8) var(--space-6)', overflowY: 'auto', boxShadow: '4px 0 24px rgba(0,0,0,0.12)' }}>
             {SidebarInner}
           </aside>
         </>

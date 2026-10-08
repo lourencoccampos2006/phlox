@@ -13,6 +13,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { summarize, STUDY_EVENT, type StudySummary } from '@/lib/studyProgress'
 import { useAuth } from '@/components/AuthContext'
+import Icon from '@/components/Icon'
 
 export default function StudyProgressBar({ compact = false }: { compact?: boolean }) {
   const { supabase } = useAuth() as any
@@ -41,30 +42,30 @@ export default function StudyProgressBar({ compact = false }: { compact?: boolea
   }, [supabase])
 
   if (!s) return null
-  const ring = `conic-gradient(#7c3aed ${s.goalPct * 3.6}deg, #ede9fe ${s.goalPct * 3.6}deg)`
+  const ring = `conic-gradient(var(--roxo) ${s.goalPct * 3.6}deg, var(--roxo-claro) ${s.goalPct * 3.6}deg)`
 
   return (
     <div style={{
       display: 'flex', alignItems: 'center', gap: compact ? 12 : 16, flexWrap: 'wrap',
-      background: 'white', border: '1px solid #ece9f6', borderRadius: 14,
+      background: 'white', border: '1px solid var(--blue-light)', borderRadius: 'var(--r-xl)',
       padding: compact ? '10px 14px' : '14px 16px', marginBottom: 16,
     }}>
       {/* Anel de meta diária */}
       <div style={{ position: 'relative', width: 52, height: 52, borderRadius: '50%', background: ring, flexShrink: 0 }}>
         <div style={{ position: 'absolute', inset: 5, borderRadius: '50%', background: 'white', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-          <span style={{ fontSize: 13, fontWeight: 800, color: '#7c3aed', lineHeight: 1 }}>{s.goalPct}%</span>
-          <span style={{ fontSize: 8, color: '#94a3b8', fontWeight: 700 }}>META</span>
+          <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--roxo)', lineHeight: 1 }}>{s.goalPct}%</span>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontWeight: 'var(--peso-forte)' as any }}>META</span>
         </div>
       </div>
 
       <div style={{ display: 'flex', gap: compact ? 12 : 18, flexWrap: 'wrap', flex: 1, minWidth: 0 }}>
-        <Metric icon="🔥" value={`${s.streak}`} label={s.streak === 1 ? 'dia seguido' : 'dias seguidos'} color="#dc2626" />
-        <Metric icon="✨" value={`${s.xpToday}`} label={`XP hoje · meta ${s.dailyGoal}`} color="#7c3aed" />
-        <Metric icon="🎯" value={`Nv. ${s.level}`} label={`${s.xpTotal} XP total`} color="#1d4ed8" />
-        {s.accuracy7d != null && <Metric icon="✅" value={`${s.accuracy7d}%`} label="acerto 7 dias" color="#0d6e42" />}
+        <Metric icon="flame" value={`${s.streak}`} label={s.streak === 1 ? 'dia seguido' : 'dias seguidos'} color="var(--red)" />
+        <Metric icon="spark" value={`${s.xpToday}`} label={`XP hoje · meta ${s.dailyGoal}`} color="var(--roxo)" />
+        <Metric icon="target" value={`Nv. ${s.level}`} label={`${s.xpTotal} XP total`} color="var(--ink-2)" />
+        {s.accuracy7d != null && <Metric icon="check" value={`${s.accuracy7d}%`} label="acerto 7 dias" color="var(--green)" />}
         {cardsDue != null && cardsDue > 0 && (
           <Link href="/study/notas" style={{ textDecoration: 'none' }}>
-            <Metric icon="🃏" value={`${cardsDue}`} label="a rever hoje" color="#b45309" />
+            <Metric icon="cards" value={`${cardsDue}`} label="a rever hoje" color="var(--amber)" />
           </Link>
         )}
       </div>
@@ -73,31 +74,42 @@ export default function StudyProgressBar({ compact = false }: { compact?: boolea
       {cardsDue != null && cardsDue > 0 ? (
         <Link href="/study/notas" style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '8px 14px', background: '#b45309', color: 'white', borderRadius: 999,
-          fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
+          padding: '8px 14px', background: 'var(--amber)', color: 'white', borderRadius: 'var(--r-sm)', minHeight: 'var(--alvo)',
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none',
         }}>
-          🃏 Rever {cardsDue}
+          <Icon name="cards" size={13} color="white" /> Rever {cardsDue}
         </Link>
       ) : s.lastTool && (
         <Link href={s.lastTool.href} style={{
           flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 6,
-          padding: '8px 14px', background: '#7c3aed', color: 'white', borderRadius: 999,
-          fontSize: 12.5, fontWeight: 700, textDecoration: 'none',
+          padding: '8px 14px', background: 'var(--roxo)', color: 'white', borderRadius: 'var(--r-sm)', minHeight: 'var(--alvo)',
+          fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none',
         }}>
-          ▸ Continuar
+          Continuar →
         </Link>
       )}
     </div>
   )
 }
 
+/* O `icon` era um emoji (🔥 ✨ 🎯 ✅ 🃏) colado à esquerda do número com
+   4px de margem. Passa a um ícone desenhado, da mesma espessura das linhas
+   do resto — e o número passa a mono tabular, porque é um número que se
+   compara com o de ontem. */
 function Metric({ icon, value, label, color }: { icon: string; value: string; label: string; color: string }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color, lineHeight: 1.1, whiteSpace: 'nowrap' }}>
-        <span style={{ marginRight: 4 }}>{icon}</span>{value}
+      <div style={{
+        display: 'flex', alignItems: 'center', gap: 5,
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--t-corpo)',
+        fontWeight: 'var(--peso-forte)' as any, color, lineHeight: 1.1, whiteSpace: 'nowrap',
+      }}>
+        <Icon name={icon} size={13} color={color} />{value}
       </div>
-      <div style={{ fontSize: 10.5, color: '#94a3b8', fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{label}</div>
+      <div style={{
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)',
+        whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+      }}>{label}</div>
     </div>
   )
 }

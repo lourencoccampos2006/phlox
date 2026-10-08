@@ -46,7 +46,7 @@ const MONO: React.CSSProperties = {
 const CORES = {
   livre: { bg: 'var(--bg-2)', bd: 'var(--border)', fg: 'var(--ink-4)' },
   atencao: { bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)', fg: 'var(--badge-amber-fg)' },
-  limite: { bg: '#fff5f5', bd: '#fed7d7', fg: '#c53030' },
+  limite: { bg: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)', fg: 'var(--red)' },
 }
 
 export default function MedicacaoSOS({ pid, nome, cor }: { pid: string; nome: string; cor: string }) {
@@ -146,7 +146,7 @@ export default function MedicacaoSOS({ pid, nome, cor }: { pid: string; nome: st
       </div>
 
       {erro && (
-        <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>
+        <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>
       )}
 
       {avisos.map((a, i) => (
@@ -181,7 +181,7 @@ export default function MedicacaoSOS({ pid, nome, cor }: { pid: string; nome: st
                 {podeDar && (
                   <button onClick={() => setADar(m)} style={{
                     flexShrink: 0, minHeight: 44, padding: '0 20px', borderRadius: 'var(--r-md)',
-                    border: 'none', background: cor, color: '#fff',
+                    border: 'none', background: cor, color: 'var(--bg)',
                     fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
                   }}>Dar agora</button>
                 )}
@@ -275,14 +275,14 @@ function FolhaDar({ med, nome, tomas, cor, aoFechar, aoRegistar }: {
     <div onClick={aoFechar} style={{ ...estiloFundoModal, alignItems: 'flex-end', padding: 0 }}>
       <div onClick={e => e.stopPropagation()} role="dialog" aria-label={`Dar ${med.name}`}
         style={{
-          width: '100%', maxWidth: 460, background: 'var(--bg, #fff)',
+          width: '100%', maxWidth: 460, background: 'var(--bg, var(--bg))',
           borderRadius: '18px 18px 0 0', padding: '20px 18px calc(18px + env(safe-area-inset-bottom))',
           maxHeight: '86vh', overflowY: 'auto',
         }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, #111)' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, var(--ink))' }}>
           {med.name}{med.dose ? ` · ${med.dose}` : ''}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--ink-4, #6b7280)', marginTop: 3 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink-4, var(--ink-4))', marginTop: 3 }}>
           a {nome.split(' ')[0]}
         </div>
 
@@ -300,9 +300,9 @@ function FolhaDar({ med, nome, tomas, cor, aoFechar, aoRegistar }: {
             {MOTIVOS_COMUNS.map(m => (
               <button key={m} onClick={() => setMotivo(m)} style={{
                 padding: '7px 12px', borderRadius: 999, minHeight: 36, cursor: 'pointer',
-                border: `1.5px solid ${motivo === m ? cor : 'var(--border, #e5e7eb)'}`,
+                border: `1.5px solid ${motivo === m ? cor : 'var(--border, var(--border))'}`,
                 background: motivo === m ? cor + '14' : 'transparent',
-                color: motivo === m ? cor : 'var(--ink-3, #374151)',
+                color: motivo === m ? cor : 'var(--ink-3, var(--ink-3))',
                 fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
               }}>{m}</button>
             ))}
@@ -312,30 +312,30 @@ function FolhaDar({ med, nome, tomas, cor, aoFechar, aoRegistar }: {
             placeholder="ou escreva o que se passa"
             style={{
               width: '100%', boxSizing: 'border-box', marginTop: 10, padding: '10px 12px',
-              borderRadius: 10, border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: 'var(--r-lg)', border: '1px solid var(--border, var(--border))',
               fontFamily: 'inherit', fontSize: 14, minHeight: 44,
             }} />
         </div>
 
         <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
           <button onClick={aoFechar} style={{
-            flex: '0 0 auto', minHeight: 46, padding: '0 18px', borderRadius: 11,
-            border: '1px solid var(--border-2, #d1d5db)', background: 'transparent',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, #374151)', cursor: 'pointer',
+            flex: '0 0 auto', minHeight: 46, padding: '0 18px', borderRadius: 'var(--r-xl)',
+            border: '1px solid var(--border-2, var(--border-2))', background: 'transparent',
+            fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, var(--ink-3))', cursor: 'pointer',
           }}>Cancelar</button>
           <button
             onClick={() => { setAGravar(true); aoRegistar(motivo.trim()) }}
             disabled={!motivo.trim() || aGravar}
             style={{
-              flex: 1, minHeight: 46, borderRadius: 11, border: 'none',
-              background: motivo.trim() ? cor : 'var(--bg-3, #e5e7eb)',
-              color: motivo.trim() ? '#fff' : 'var(--ink-5, #9ca3af)',
+              flex: 1, minHeight: 46, borderRadius: 'var(--r-xl)', border: 'none',
+              background: motivo.trim() ? cor : 'var(--bg-3, var(--border))',
+              color: motivo.trim() ? 'var(--bg)' : 'var(--ink-5, var(--ink-5))',
               fontFamily: 'inherit', fontSize: 15, fontWeight: 700,
               cursor: motivo.trim() && !aGravar ? 'pointer' : 'default',
             }}>{aGravar ? 'A registar…' : 'Dei agora'}</button>
         </div>
 
-        <div style={{ fontSize: 11.5, color: 'var(--ink-5, #9ca3af)', marginTop: 10, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-5, var(--ink-5))', marginTop: 10, lineHeight: 1.5 }}>
           Fica registada a hora exata e quem deu. A pergunta «resultou?» aparece
           a seguir — responde-se quando se souber.
         </div>
@@ -351,30 +351,30 @@ function FolhaAvaliar({ cor, aoFechar, aoEscolher }: {
     <div onClick={aoFechar} style={{ ...estiloFundoModal, alignItems: 'flex-end', padding: 0 }}>
       <div onClick={e => e.stopPropagation()} role="dialog" aria-label="Como correu"
         style={{
-          width: '100%', maxWidth: 460, background: 'var(--bg, #fff)',
+          width: '100%', maxWidth: 460, background: 'var(--bg, var(--bg))',
           borderRadius: '18px 18px 0 0', padding: '20px 18px calc(18px + env(safe-area-inset-bottom))',
         }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, #111)', marginBottom: 4 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, var(--ink))', marginBottom: 4 }}>
           Como correu?
         </div>
-        <div style={{ fontSize: 13, color: 'var(--ink-4, #6b7280)', marginBottom: 16, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink-4, var(--ink-4))', marginBottom: 16, lineHeight: 1.5 }}>
           É isto que permite, ao fim de um mês, dizer se aquele medicamento serve
           para alguma coisa a esta pessoa.
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {RESULTADOS.map(r => (
             <button key={r.id} onClick={() => aoEscolher(r.id)} style={{
-              textAlign: 'left', padding: '13px 14px', borderRadius: 11, minHeight: 48,
-              border: '1.5px solid var(--border, #e5e7eb)', background: 'transparent',
+              textAlign: 'left', padding: '13px 14px', borderRadius: 'var(--r-xl)', minHeight: 48,
+              border: '1.5px solid var(--border, var(--border))', background: 'transparent',
               fontFamily: 'inherit', fontSize: 14.5, fontWeight: 600,
-              color: 'var(--ink, #111)', cursor: 'pointer',
+              color: 'var(--ink, var(--ink))', cursor: 'pointer',
             }}>{r.label}</button>
           ))}
         </div>
         <button onClick={aoFechar} style={{
-          width: '100%', minHeight: 44, marginTop: 12, borderRadius: 11,
-          border: '1px solid var(--border-2, #d1d5db)', background: 'transparent',
-          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, #374151)', cursor: 'pointer',
+          width: '100%', minHeight: 44, marginTop: 12, borderRadius: 'var(--r-xl)',
+          border: '1px solid var(--border-2, var(--border-2))', background: 'transparent',
+          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, var(--ink-3))', cursor: 'pointer',
         }}>Ainda não sei</button>
       </div>
     </div>

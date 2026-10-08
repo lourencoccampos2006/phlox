@@ -10,6 +10,10 @@
 import { useState, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 type SourceSystem = 'sifarma' | 'sclinico' | 'phc' | 'excel' | 'mysns' | 'word' | 'manual'
 type ImportMode = 'patients' | 'medications' | 'residents' | 'labs'
@@ -23,13 +27,13 @@ interface ImportResult {
 }
 
 const SOURCE_SYSTEMS: { id: SourceSystem; label: string; desc: string; formats: string[]; color: string }[] = [
-  { id: 'sifarma', label: 'Sifarma 2000 / Next', desc: 'Sistema de gestão de farmácia — exportação de histórico de dispensação ou lista de doentes', formats: ['.csv', '.xls', '.xlsx', '.txt'], color: '#1d4ed8' },
-  { id: 'sclinico', label: 'SClínico', desc: 'Registo clínico dos CSP — exportação de lista de medicação activa ou sumário de saúde', formats: ['.pdf', '.txt', '.xml'], color: '#0d6e42' },
-  { id: 'phc', label: 'PHC / WinMED', desc: 'Sistema clínico de consultórios — exportação de fichas de utente com medicação', formats: ['.csv', '.xls', '.xlsx'], color: '#7c3aed' },
-  { id: 'excel', label: 'Excel / CSV', desc: 'Folha de cálculo com lista de doentes, residentes ou medicação — qualquer formato', formats: ['.xlsx', '.xls', '.csv', '.tsv'], color: '#0891b2' },
-  { id: 'mysns', label: 'MySNS / Portal do Utente', desc: 'PDF descarregado do portal SNS24 com medicação activa, vacinas ou histórico', formats: ['.pdf'], color: '#dc2626' },
-  { id: 'word', label: 'Word / PDF / Texto', desc: 'Carta de alta, resumo de internamento, ou qualquer documento clínico com medicação', formats: ['.pdf', '.docx', '.txt'], color: '#b45309' },
-  { id: 'manual', label: 'Introdução manual', desc: 'Cola directamente o texto — lista de medicação, nomes de residentes, ou resultados de análises', formats: ['texto livre'], color: '#374151' },
+  { id: 'sifarma', label: 'Sifarma 2000 / Next', desc: 'Sistema de gestão de farmácia — exportação de histórico de dispensação ou lista de doentes', formats: ['.csv', '.xls', '.xlsx', '.txt'], color: 'var(--ink-2)' },
+  { id: 'sclinico', label: 'SClínico', desc: 'Registo clínico dos CSP — exportação de lista de medicação activa ou sumário de saúde', formats: ['.pdf', '.txt', '.xml'], color: 'var(--ink-3)' },
+  { id: 'phc', label: 'PHC / WinMED', desc: 'Sistema clínico de consultórios — exportação de fichas de utente com medicação', formats: ['.csv', '.xls', '.xlsx'], color: 'var(--ink-3)' },
+  { id: 'excel', label: 'Excel / CSV', desc: 'Folha de cálculo com lista de doentes, residentes ou medicação — qualquer formato', formats: ['.xlsx', '.xls', '.csv', '.tsv'], color: 'var(--ink-3)' },
+  { id: 'mysns', label: 'MySNS / Portal do Utente', desc: 'PDF descarregado do portal SNS24 com medicação activa, vacinas ou histórico', formats: ['.pdf'], color: 'var(--red)' },
+  { id: 'word', label: 'Word / PDF / Texto', desc: 'Carta de alta, resumo de internamento, ou qualquer documento clínico com medicação', formats: ['.pdf', '.docx', '.txt'], color: 'var(--amber)' },
+  { id: 'manual', label: 'Introdução manual', desc: 'Cola directamente o texto — lista de medicação, nomes de residentes, ou resultados de análises', formats: ['texto livre'], color: 'var(--ink-3)' },
 ]
 
 const IMPORT_MODES: { id: ImportMode; label: string; desc: string }[] = [
@@ -135,44 +139,55 @@ export default function MigrarPage() {
   }
 
   if (!canImport) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-      <div className="page-container page-body" style={{ maxWidth: 560 }}>
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '48px 36px', textAlign: 'center' }}>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, marginBottom: 14 }}>Phlox Migração</h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.75, marginBottom: 24, maxWidth: 400, margin: '0 auto 24px' }}>
-            Importa dados de Sifarma, SClínico, PHC, Excel, MySNS ou qualquer documento clínico. Disponível no plano Plus ou superior.
-          </p>
-          <Link href="/pricing" style={{ display: 'inline-block', background: '#1d4ed8', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>Ver planos →</Link>
-        </div>
-      </div>
-    </div>
+    <Mesa altura="documento">
+      <Painel>
+        <Vazio
+          titulo="A migração de dados não está incluída neste plano."
+          oQueFazer="Importa de Sifarma, SClínico, PHC, Excel, MySNS ou de qualquer documento clínico. Disponível no plano Plus ou superior."
+          acao={<Link href="/pricing" style={{ textDecoration: 'none' }}><Botao feitio="principal">VER PLANOS</Botao></Link>} />
+      </Painel>
+    </Mesa>
   )
 
+  /* A MOLDURA — refeita (2026-10-08).
+     Tinha 110px antes do primeiro botão: migalha, «Phlox Migração» em serifa
+     de 38px, e um parágrafo. Isto usa-se UMA VEZ na vida de cada casa, e o
+     que importa nessa vez é o passo seguinte, não o nome da ferramenta. */
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-      <div className="page-container page-body" style={{ maxWidth: 820 }}>
-        <div style={{ marginBottom: 36 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 10 }}>Migração de dados</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3.5vw,38px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 12 }}>Phlox Migração</h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, maxWidth: 540 }}>
-            Importa dados de qualquer sistema. Sifarma, SClínico, PHC, Excel, MySNS, Word, PDF — a AI extrai e estrutura automaticamente.
-          </p>
-        </div>
-
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Migração</span>
+          <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            {imported ? 'IMPORTADO' : source ? 'POR CONFIRMAR' : 'À ESPERA DO FICHEIRO'}
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Sifarma · SClínico · PHC · Excel · MySNS · Word · PDF</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Nada entra na casa antes de o rever — a extração é uma proposta, não um registo
+          </span>
+        </BarraDeEstado>
+      }
+    >
         {imported ? (
-          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 14, padding: '40px', textAlign: 'center' }}>
+          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-xl)', padding: '40px', textAlign: 'center' }}>
             <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round" style={{ marginBottom: 16 }}><path d="M22 11.08V12a10 10 0 11-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, marginBottom: 10 }}>Importação concluída</h2>
-            <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 24 }}>{result?.success} registos importados com sucesso.</p>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, marginBottom: 10 }}>Importação concluída</h2>
+            <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', marginBottom: 24 }}>{result?.success} registos importados com sucesso.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
               <Link href={mode === 'patients' ? '/patients' : mode === 'residents' ? '/residentes' : mode === 'labs' ? '/registo' : '/mymeds'}
-                style={{ padding: '11px 22px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+                style={{ padding: '11px 22px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
                 Ver dados importados →
               </Link>
               <button onClick={() => { setImported(false); setResult(null); setText(''); setFile(null); setSource(null) }}
-                style={{ padding: '11px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)', fontWeight: 600 }}>
+                style={{ padding: '11px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any }}>
                 Importar mais
               </button>
             </div>
@@ -184,30 +199,30 @@ export default function MigrarPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
 
               {/* Modo */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '20px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>O que queres importar?</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>O que queres importar?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {IMPORT_MODES.map(m => (
                     <button key={m.id} onClick={() => setMode(m.id)}
-                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '10px 12px', border: `1.5px solid ${mode === m.id ? 'var(--green)' : 'var(--border)'}`, borderRadius: 8, background: mode === m.id ? 'var(--green-light)' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.1s' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: mode === m.id ? 'var(--green)' : 'var(--ink)', marginBottom: 2 }}>{m.label}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.4 }}>{m.desc}</span>
+                      style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '10px 12px', border: `1.5px solid ${mode === m.id ? 'var(--green)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: mode === m.id ? 'var(--green-light)' : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.1s' }}>
+                      <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: mode === m.id ? 'var(--green)' : 'var(--ink)', marginBottom: 2 }}>{m.label}</span>
+                      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.4 }}>{m.desc}</span>
                     </button>
                   ))}
                 </div>
               </div>
 
               {/* Origem */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '20px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>De onde vêm os dados?</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>De onde vêm os dados?</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   {SOURCE_SYSTEMS.map(s => (
                     <button key={s.id} onClick={() => setSource(s.id)}
-                      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 12px', border: `1.5px solid ${source === s.id ? s.color : 'var(--border)'}`, borderRadius: 7, background: source === s.id ? `${s.color}08` : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.1s' }}>
+                      style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 12px', border: `1.5px solid ${source === s.id ? s.color : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: source === s.id ? `${s.color}08` : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.1s' }}>
                       <div style={{ width: 7, height: 7, borderRadius: '50%', background: s.color, flexShrink: 0, marginTop: 5 }} />
                       <div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: source === s.id ? s.color : 'var(--ink)', marginBottom: 1 }}>{s.label}</div>
-                        <div style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{s.formats.join(' · ')}</div>
+                        <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: source === s.id ? s.color : 'var(--ink)', marginBottom: 1 }}>{s.label}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{s.formats.join(' · ')}</div>
                       </div>
                     </button>
                   ))}
@@ -217,21 +232,21 @@ export default function MigrarPage() {
 
             {/* Coluna direita — input */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', flex: 1 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px', flex: 1 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>
                   {selectedSource ? `Dados de ${selectedSource.label}` : 'Cola os dados ou faz upload do ficheiro'}
                 </div>
 
                 {/* Upload */}
                 <input ref={fileRef} type="file" accept=".csv,.xlsx,.xls,.txt,.pdf,.docx,.tsv" style={{ display: 'none' }} onChange={handleFile} />
                 <button onClick={() => fileRef.current?.click()}
-                  style={{ width: '100%', padding: '14px', border: '1.5px dashed var(--border)', borderRadius: 8, background: file ? 'var(--green-light)' : 'var(--bg-2)', cursor: 'pointer', fontSize: 13, color: file ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', marginBottom: 10, transition: 'all 0.15s', fontWeight: file ? 700 : 400 }}>
+                  style={{ width: '100%', padding: '14px', border: '1.5px dashed var(--border)', borderRadius: 'var(--r-md)', background: file ? 'var(--green-light)' : 'var(--bg-2)', cursor: 'pointer', fontSize: 'var(--t-dado)', color: file ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', marginBottom: 10, transition: 'all 0.15s', fontWeight: file ? 700 : 400 }}>
                   {file ? `Ficheiro: ${file.name}` : 'Clica para fazer upload (PDF, Excel, CSV, Word, TXT)'}
                 </button>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                   <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>ou</span>
+                  <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>ou</span>
                   <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
                 </div>
 
@@ -246,15 +261,15 @@ export default function MigrarPage() {
                       : 'Cola aqui os resultados das análises — qualquer formato de laboratório:\n\nHemoglobina: 11.2 g/dL [12-16]\nGlicose: 125 mg/dL [70-110]...'
                   }
                   rows={14}
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
+                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
 
                 {error && (
-                  <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, padding: '10px 14px', marginTop: 10, fontSize: 13, color: '#991b1b' }}>{error}</div>
+                  <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding: '10px 14px', marginTop: 10, fontSize: 'var(--t-dado)', color: 'var(--red)' }}>{error}</div>
                 )}
               </div>
 
               <button onClick={analyse} disabled={loading || (!text.trim() && !file)}
-                style={{ width: '100%', padding: '14px', background: loading || (!text.trim() && !file) ? 'var(--bg-3)' : '#1d4ed8', color: loading || (!text.trim() && !file) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: loading || (!text.trim() && !file) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                style={{ width: '100%', padding: '14px', background: loading || (!text.trim() && !file) ? 'var(--bg-3)' : 'var(--ink-2)', color: loading || (!text.trim() && !file) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: loading || (!text.trim() && !file) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'opacity 0.15s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 {loading ? (
                   <>
                     <div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -265,24 +280,24 @@ export default function MigrarPage() {
 
               {/* Preview */}
               {result && (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
                   <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-2)' }}>
                     <div>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pré-visualização</span>
-                      <span style={{ marginLeft: 10, fontSize: 12, color: 'var(--ink-3)' }}>{result.success} registos encontrados</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Pré-visualização</span>
+                      <span style={{ marginLeft: 10, fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>{result.success} registos encontrados</span>
                     </div>
-                    {result.errors > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#dc2626' }}>{result.errors} com erros</span>}
+                    {result.errors > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--red)' }}>{result.errors} com erros</span>}
                   </div>
 
                   {result.warnings?.length > 0 && (
-                    <div style={{ padding: '10px 16px', background: '#fffbeb', borderBottom: '1px solid #fde68a' }}>
-                      {result.warnings.map((w, i) => <div key={i} style={{ fontSize: 12, color: '#92400e', marginBottom: i < result.warnings.length - 1 ? 3 : 0 }}>⚠ {w}</div>)}
+                    <div style={{ padding: '10px 16px', background: 'var(--badge-amber-bg)', borderBottom: '1px solid var(--badge-amber-border)' }}>
+                      {result.warnings.map((w, i) => <div key={i} style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)', marginBottom: i < result.warnings.length - 1 ? 3 : 0 }}>⚠ {w}</div>)}
                     </div>
                   )}
 
                   <div style={{ maxHeight: 220, overflowY: 'auto' }}>
                     {result.preview?.slice(0, 10).map((item: any, i: number) => (
-                      <div key={i} style={{ padding: '9px 16px', borderBottom: i < Math.min(result.preview.length - 1, 9) ? '1px solid var(--bg-3)' : 'none', fontSize: 12, color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>
+                      <div key={i} style={{ padding: '9px 16px', borderBottom: i < Math.min(result.preview.length - 1, 9) ? '1px solid var(--bg-3)' : 'none', fontSize: 'var(--t-meta)', color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>
                         {mode === 'medications'
                           ? `${item.name || '—'} · ${item.dose || ''} · ${item.frequency || ''}`
                           : mode === 'patients' || mode === 'residents'
@@ -291,7 +306,7 @@ export default function MigrarPage() {
                       </div>
                     ))}
                     {result.preview?.length > 10 && (
-                      <div style={{ padding: '8px 16px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)' }}>
+                      <div style={{ padding: '8px 16px', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                         + {result.preview.length - 10} mais registos...
                       </div>
                     )}
@@ -299,7 +314,7 @@ export default function MigrarPage() {
 
                   <div style={{ padding: '14px 16px', borderTop: '1px solid var(--border)' }}>
                     <button onClick={confirmImport} disabled={loading}
-                      style={{ width: '100%', padding: '12px', background: loading ? 'var(--bg-3)' : 'var(--green)', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                      style={{ width: '100%', padding: '12px', background: loading ? 'var(--bg-3)' : 'var(--green)', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                       {loading ? 'A importar...' : `Confirmar e importar ${result.success} registos`}
                     </button>
                   </div>
@@ -309,16 +324,15 @@ export default function MigrarPage() {
           </div>
         )}
 
-        <div style={{ marginTop: 24, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
-          <p style={{ fontSize: 11, color: 'var(--ink-5)', margin: 0, fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 24, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+          <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', margin: 0, fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
             Os dados são processados por AI e importados para a tua conta Phlox. Nenhum dado é partilhado externamente. Podes apagar os registos importados a qualquer momento.
           </p>
         </div>
-      </div>
       <style>{`
         @media(max-width:768px){.migrar-grid{grid-template-columns:1fr!important}}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
-    </div>
+    </Mesa>
   )
 }

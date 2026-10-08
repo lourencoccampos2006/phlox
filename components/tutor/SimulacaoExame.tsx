@@ -14,15 +14,15 @@ const EXAM_CONFIGS = [
 ]
 
 const ALL_DOMAINS = [
-  { id: 'farmacologia', label: 'Farmacologia Clínica', icon: 'Rx', color: '#0d6e42',
+  { id: 'farmacologia', label: 'Farmacologia Clínica', icon: 'Rx', color: 'var(--green)',
     topics: ['Beta-bloqueadores', 'IECA / ARA-II', 'Estatinas', 'Anticoagulantes', 'Antidiabéticos orais', 'Antibióticos Beta-lactâmicos', 'Opióides', 'Benzodiazepinas', 'ISRS / IRSN'] },
-  { id: 'medicina_interna', label: 'Medicina Interna', icon: 'Mi', color: '#dc2626',
+  { id: 'medicina_interna', label: 'Medicina Interna', icon: 'Mi', color: 'var(--red)',
     topics: ['Insuficiência Cardíaca', 'Fibrilhação Auricular', 'DM Tipo 2', 'Hipertensão', 'DPOC', 'Pneumonia'] },
-  { id: 'emergencia', label: 'Emergência', icon: 'Ur', color: '#b45309',
+  { id: 'emergencia', label: 'Emergência', icon: 'Ur', color: 'var(--amber)',
     topics: ['Paragem Cardiorrespiratória', 'Choque Séptico', 'AVC Isquémico', 'Choque Anafilático'] },
-  { id: 'cirurgia', label: 'Cirurgia', icon: 'Cx', color: '#1d4ed8',
+  { id: 'cirurgia', label: 'Cirurgia', icon: 'Cx', color: 'var(--ink-2)',
     topics: ['Apendicite Aguda', 'Oclusão Intestinal', 'Peri-operatório'] },
-  { id: 'pediatria', label: 'Pediatria', icon: 'Pe', color: '#7c3aed',
+  { id: 'pediatria', label: 'Pediatria', icon: 'Pe', color: 'var(--roxo)',
     topics: ['Febre Pediátrica', 'Asma Pediátrica', 'Antibioterapia Pediátrica'] },
 ]
 const ALL_CLASSES = ALL_DOMAINS.flatMap(d => d.topics)
@@ -155,7 +155,7 @@ export default function SimulacaoExame() {
             <div className="card-grid-2" style={{ gap: 8 }}>
               {EXAM_CONFIGS.map(cfg => (
                 <button key={cfg.id} onClick={() => setConfig(cfg)}
-                  style={{ background: config.id === cfg.id ? 'var(--green-light)' : 'white', border: `2px solid ${config.id === cfg.id ? 'var(--green)' : 'var(--border)'}`, borderRadius: 6, padding: '14px 16px', cursor: 'pointer', textAlign: 'left' }}>
+                  style={{ background: config.id === cfg.id ? 'var(--green-light)' : 'white', border: `2px solid ${config.id === cfg.id ? 'var(--green)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '14px 16px', cursor: 'pointer', textAlign: 'left' }}>
                   <div style={{ fontSize: 14, fontWeight: 600, color: config.id === cfg.id ? 'var(--green)' : 'var(--ink)', marginBottom: 4 }}>{cfg.label}</div>
                   <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{cfg.desc} · {cfg.difficulty}</div>
                 </button>
@@ -174,7 +174,7 @@ export default function SimulacaoExame() {
             <div className="card-grid-3" style={{ gap: 6 }}>
               {ALL_CLASSES.map(cls => (
                 <button key={cls} onClick={() => setSelectedClasses(p => p.includes(cls) ? p.filter(c => c !== cls) : [...p, cls])}
-                  style={{ background: selectedClasses.includes(cls) ? 'var(--green)' : 'white', border: `1px solid ${selectedClasses.includes(cls) ? 'var(--green)' : 'var(--border)'}`, borderRadius: 4, padding: '7px 10px', cursor: 'pointer', fontSize: 12, color: selectedClasses.includes(cls) ? 'white' : 'var(--ink-2)', textAlign: 'left', fontFamily: 'var(--font-sans)' }}>
+                  style={{ background: selectedClasses.includes(cls) ? 'var(--green)' : 'white', border: `1px solid ${selectedClasses.includes(cls) ? 'var(--green)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '7px 10px', cursor: 'pointer', fontSize: 12, color: selectedClasses.includes(cls) ? 'white' : 'var(--ink-2)', textAlign: 'left', fontFamily: 'var(--font-sans)' }}>
                   {cls}
                 </button>
               ))}
@@ -184,10 +184,10 @@ export default function SimulacaoExame() {
             </p>
           </div>
 
-          {error && <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 4, padding: '12px 16px', marginBottom: 16, fontSize: 13, color: '#742a2a' }}>{error}</div>}
+          {error && <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r)', padding: '12px 16px', marginBottom: 16, fontSize: 13, color: 'var(--badge-red-fg)' }}>{error}</div>}
 
           <button onClick={startExam} disabled={loading}
-            style={{ width: '100%', background: loading ? 'var(--bg-3)' : 'var(--green)', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 6, padding: '14px', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+            style={{ width: '100%', background: loading ? 'var(--bg-3)' : 'var(--green)', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r)', padding: '14px', fontSize: 15, fontWeight: 600, cursor: loading ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
             {loading ? 'A preparar exame...' : `Iniciar exame — ${config.questions} perguntas (${config.desc})`}
           </button>
         </div>
@@ -195,21 +195,21 @@ export default function SimulacaoExame() {
 
       {examState === 'running' && questions.length > 0 && (
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 6 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--ink-3)' }}>{current + 1} / {questions.length}</div>
-            <div style={{ display: 'flex', gap: 8, flex: 1, margin: '0 16px', height: 4, background: 'var(--border)', borderRadius: 2, overflow: 'hidden' }}>
-              <div style={{ height: '100%', width: `${((current) / questions.length) * 100}%`, background: 'var(--green)', borderRadius: 2, transition: 'width 0.3s' }} />
+            <div style={{ display: 'flex', gap: 8, flex: 1, margin: '0 16px', height: 4, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+              <div style={{ height: '100%', width: `${((current) / questions.length) * 100}%`, background: 'var(--green)', borderRadius: 'var(--r-sm)', transition: 'width 0.3s' }} />
             </div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: timeLeft < 120 ? '#c53030' : 'var(--ink)', minWidth: 48, textAlign: 'right' }}>⏱ {formatTime(timeLeft)}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700, color: timeLeft < 120 ? 'var(--red)' : 'var(--ink)', minWidth: 48, textAlign: 'right' }}>⏱ {formatTime(timeLeft)}</div>
           </div>
 
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '24px 20px', marginBottom: 14 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '24px 20px', marginBottom: 14 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-2)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{questions[current].class}</div>
               <ReportQuizError source="exam" sourceKey={questionKey(questions[current])} qualityFlags={questions[current].quality_flags} snapshot={questions[current]} />
             </div>
             {questions[current].quality_flags && questions[current].quality_flags!.length > 0 && (
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '7px 10px', marginBottom: 12, fontSize: 11.5, color: '#92400e', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
+              <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '7px 10px', marginBottom: 12, fontSize: 11.5, color: 'var(--amber)', display: 'flex', gap: 6, alignItems: 'flex-start' }}>
                 <span style={{ fontWeight: 800 }}>⚠ Esta pergunta tem sinais de qualidade suspeitos —</span>
                 <span>verifica com cuidado e usa o botão "Reportar" se confirmares erro.</span>
               </div>
@@ -222,13 +222,13 @@ export default function SimulacaoExame() {
                 const isSelected = answers[current] === i
                 let bg = 'var(--bg-2)', border = 'var(--border)', color = 'var(--ink-2)'
                 if (answered) {
-                  if (isCorrect) { bg = '#f0fff4'; border = '#9ae6b4'; color = '#276749' }
-                  else if (isSelected) { bg = '#fff5f5'; border = '#feb2b2'; color = '#742a2a' }
+                  if (isCorrect) { bg = 'var(--green-light)'; border = 'var(--green-mid)'; color = 'var(--green-3)' }
+                  else if (isSelected) { bg = 'var(--badge-red-bg)'; border = 'var(--badge-red-border)'; color = 'var(--badge-red-fg)' }
                   else { bg = 'white'; color = 'var(--ink-4)' }
                 }
                 return (
                   <button key={i} onClick={() => answer(i)}
-                    style={{ background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: '12px 14px', fontSize: 14, color, cursor: !answered ? 'pointer' : 'default', textAlign: 'left', fontFamily: 'var(--font-sans)', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                    style={{ background: bg, border: `1px solid ${border}`, borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, color, cursor: !answered ? 'pointer' : 'default', textAlign: 'left', fontFamily: 'var(--font-sans)', lineHeight: 1.5, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, minWidth: 18, flexShrink: 0, marginTop: 1 }}>{String.fromCharCode(65 + i)}.</span>
                     {opt}
                   </button>
@@ -238,14 +238,14 @@ export default function SimulacaoExame() {
           </div>
 
           {showExplanation && (
-            <div style={{ background: '#f0fff4', border: '1px solid #9ae6b4', borderLeft: '4px solid #276749', borderRadius: 4, padding: '14px 18px', marginBottom: 14 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#276749', letterSpacing: '0.1em', marginBottom: 6 }}>EXPLICAÇÃO</div>
+            <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderLeft: '4px solid var(--green-3)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 14 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-3)', letterSpacing: '0.1em', marginBottom: 6 }}>EXPLICAÇÃO</div>
               <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{questions[current].explanation}</p>
             </div>
           )}
 
           {answers[current] !== -1 && (
-            <button onClick={next} style={{ width: '100%', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 4, padding: '12px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
+            <button onClick={next} style={{ width: '100%', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r)', padding: '12px', fontSize: 14, fontWeight: 600, cursor: 'pointer' }}>
               {current < questions.length - 1 ? 'Próxima →' : 'Ver resultados'}
             </button>
           )}
@@ -254,8 +254,8 @@ export default function SimulacaoExame() {
 
       {examState === 'done' && (
         <div style={{ maxWidth: 680, margin: '0 auto' }}>
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
-            <div style={{ background: pct >= 70 ? 'var(--green)' : pct >= 50 ? '#dd6b20' : '#c53030', padding: '28px 24px', textAlign: 'center' }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden', marginBottom: 16 }}>
+            <div style={{ background: pct >= 70 ? 'var(--green)' : pct >= 50 ? 'var(--amber)' : 'var(--red)', padding: '28px 24px', textAlign: 'center' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'rgba(255,255,255,0.6)', letterSpacing: '0.15em', marginBottom: 8 }}>RESULTADO FINAL</div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 56, color: 'white', fontWeight: 700, lineHeight: 1 }}>{pct}%</div>
               <div style={{ fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 8 }}>{score} correctas em {questions.length} perguntas</div>
@@ -269,13 +269,13 @@ export default function SimulacaoExame() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
                 {Object.entries(classResults).map(([cls, { correct, total }]) => {
                   const p = Math.round((correct / total) * 100)
-                  const col = p >= 70 ? '#276749' : p >= 50 ? '#dd6b20' : '#c53030'
+                  const col = p >= 70 ? 'var(--green-3)' : p >= 50 ? 'var(--amber)' : 'var(--red)'
                   return (
                     <div key={cls} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ fontSize: 13, color: 'var(--ink-2)', flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{cls}</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-                        <div style={{ width: 80, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${p}%`, background: col, borderRadius: 3 }} />
+                        <div style={{ width: 80, height: 6, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${p}%`, background: col, borderRadius: 'var(--r-sm)' }} />
                         </div>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: col, minWidth: 36, textAlign: 'right' }}>{p}%</span>
                       </div>
@@ -285,22 +285,22 @@ export default function SimulacaoExame() {
               </div>
 
               {weakClasses.length > 0 && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '12px 14px', marginBottom: 16 }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#92400e', letterSpacing: '0.1em', marginBottom: 6 }}>PONTOS FRACOS — ESTUDAR</div>
+                <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '12px 14px', marginBottom: 16 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--amber)', letterSpacing: '0.1em', marginBottom: 6 }}>PONTOS FRACOS — ESTUDAR</div>
                   {weakClasses.slice(0, 3).map(([cls]) => (
-                    <div key={cls} style={{ fontSize: 13, color: '#78350f', marginBottom: 4 }}>→ {cls}</div>
+                    <div key={cls} style={{ fontSize: 13, color: 'var(--amber)', marginBottom: 4 }}>→ {cls}</div>
                   ))}
                 </div>
               )}
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
                 <button onClick={() => { setExamState('config'); setQuestions([]); setAnswers([]) }}
-                  style={{ flex: 1, background: 'var(--green)', color: 'white', border: 'none', borderRadius: 4, padding: '11px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minWidth: 140 }}>
+                  style={{ flex: 1, background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r)', padding: '11px', fontSize: 14, fontWeight: 600, cursor: 'pointer', minWidth: 140 }}>
                   Novo exame
                 </button>
                 {weakClasses.length > 0 && (
                   <button onClick={() => { setSelectedClasses(weakClasses.slice(0, 3).map(([c]) => c)); setConfig(EXAM_CONFIGS[0]); setExamState('config'); setQuestions([]) }}
-                    style={{ flex: 1, background: '#fffbeb', color: '#92400e', border: '1px solid #fde68a', borderRadius: 4, padding: '11px', fontSize: 13, fontWeight: 600, cursor: 'pointer', minWidth: 140 }}>
+                    style={{ flex: 1, background: 'var(--badge-amber-bg)', color: 'var(--amber)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '11px', fontSize: 13, fontWeight: 600, cursor: 'pointer', minWidth: 140 }}>
                     Treinar pontos fracos
                   </button>
                 )}

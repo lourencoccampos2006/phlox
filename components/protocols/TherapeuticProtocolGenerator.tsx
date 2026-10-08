@@ -20,14 +20,14 @@ const EXAMPLES = [
 
 function UpgradeGate() {
   return (
-    <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 8, padding: '48px 32px', textAlign: 'center' }}>
+    <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 'var(--r-md)', padding: '48px 32px', textAlign: 'center' }}>
       <div style={{ fontSize: 32, marginBottom: 16 }}>⚡</div>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 12 }}>Funcionalidade Pro</h2>
       <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28, maxWidth: 420, margin: '0 auto 28px' }}>
         Os protocolos terapêuticos são exclusivos do plano Pro. Gerados com base em guidelines ESC, ADA, NICE e DGS para o contexto clínico do teu doente.
       </p>
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '11px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
+        <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '11px 28px', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 600 }}>
           Upgrade para Pro — 12,99€/mês →
         </Link>
       </div>
@@ -89,8 +89,8 @@ export default function TherapeuticProtocolGenerator() {
         )}
 
         <div style={{ marginBottom: 20 }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: '#dbeafe', border: '1px solid #93c5fd', borderRadius: 20, padding: '3px 10px', marginBottom: 10 }}>
-            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1e40af', letterSpacing: '0.08em', fontWeight: 700 }}>PRO</span>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, background: 'var(--bg-3)', border: '1px solid var(--border-2)', borderRadius: 'var(--r-xl)', padding: '3px 10px', marginBottom: 10 }}>
+            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', letterSpacing: '0.08em', fontWeight: 700 }}>PRO</span>
           </div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Protocolo Terapêutico</h1>
           <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>Descreve o contexto do doente e recebe um protocolo terapêutico completo baseado em guidelines actuais.</p>
@@ -98,17 +98,17 @@ export default function TherapeuticProtocolGenerator() {
 
         {isPro && (
           <>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '16px', marginBottom: 12 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px', marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
                 Contexto do doente
               </label>
               <textarea value={prompt} onChange={e => setPrompt(e.target.value)}
                 placeholder="Ex: Homem 65 anos, IC com FE reduzida 35%, TA 110/70, creatinina 1.4, K 4.2..."
                 rows={5}
-                style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 4, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', lineHeight: 1.5 }} />
+                style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 'var(--r)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', lineHeight: 1.5 }} />
             </div>
             <button onClick={() => generate()} disabled={!prompt.trim() || loading}
-              style={{ width: '100%', background: prompt.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: prompt.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, padding: '12px', fontSize: 14, fontWeight: 600, cursor: prompt.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', marginBottom: 20 }}>
+              style={{ width: '100%', background: prompt.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: prompt.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r)', padding: '12px', fontSize: 14, fontWeight: 600, cursor: prompt.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', marginBottom: 20 }}>
               {loading ? 'A gerar protocolo...' : 'Gerar Protocolo'}
             </button>
             <div>
@@ -116,7 +116,7 @@ export default function TherapeuticProtocolGenerator() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {EXAMPLES.map(ex => (
                   <button key={ex.label} onClick={() => { setPrompt(ex.prompt); generate(ex.prompt) }}
-                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 4, padding: '9px 12px', cursor: 'pointer', textAlign: 'left' }}>
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '9px 12px', cursor: 'pointer', textAlign: 'left' }}>
                     <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 2 }}>{ex.label}</div>
                     <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{ex.prompt.slice(0, 60)}...</div>
                   </button>
@@ -131,7 +131,7 @@ export default function TherapeuticProtocolGenerator() {
         {!isPro && <UpgradeGate />}
 
         {isPro && !result && !loading && !error && (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '60px 24px', textAlign: 'center' }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '60px 24px', textAlign: 'center' }}>
             <div style={{ fontSize: 36, marginBottom: 16 }}>📋</div>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink-2)', marginBottom: 8 }}>Protocolo baseado em guidelines</div>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 300, margin: '0 auto' }}>
@@ -141,14 +141,14 @@ export default function TherapeuticProtocolGenerator() {
         )}
 
         {loading && (
-          <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}>
+          <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', overflow: 'hidden' }}>
             <div style={{ background: 'var(--bg-3)', padding: '20px 24px' }}>
               <div className="skeleton" style={{ height: 10, width: 160, marginBottom: 12 }} />
               <div className="skeleton" style={{ height: 22, width: '75%' }} />
             </div>
             <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {[0,1,2,3].map(i => (
-                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 4, padding: '14px' }}>
+                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px' }}>
                   <div className="skeleton" style={{ height: 11, width: 120, marginBottom: 10 }} />
                   <div className="skeleton" style={{ height: 13, width: '88%', marginBottom: 6 }} />
                   <div className="skeleton" style={{ height: 13, width: '70%' }} />
@@ -159,8 +159,8 @@ export default function TherapeuticProtocolGenerator() {
         )}
 
         {error && error !== 'upgrade' && (
-          <div style={{ background: '#fff5f5', border: '1px solid #feb2b2', borderRadius: 6, padding: '20px' }}>
-            <p style={{ fontSize: 14, color: '#742a2a', margin: 0 }}>{error}</p>
+          <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r)', padding: '20px' }}>
+            <p style={{ fontSize: 14, color: 'var(--badge-red-fg)', margin: 0 }}>{error}</p>
           </div>
         )}
 
@@ -181,7 +181,7 @@ export default function TherapeuticProtocolGenerator() {
                   </div>
 
                   {step.drugs?.map((drug: any, j: number) => (
-                    <div key={j} style={{ padding: '10px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 4, marginBottom: 8 }}>
+                    <div key={j} style={{ padding: '10px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', marginBottom: 8 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
                         <span style={{ fontFamily: 'var(--font-serif)', fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>{drug.name}</span>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--green-2)', fontWeight: 600 }}>{drug.dose}</span>
@@ -191,7 +191,7 @@ export default function TherapeuticProtocolGenerator() {
                   ))}
 
                   {step.targets && (
-                    <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 4 }}>
+                    <div style={{ marginTop: 8, padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 'var(--r)' }}>
                       <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.08em' }}>ALVOS: </span>
                       <span style={{ fontSize: 12, color: 'var(--ink-2)' }}>{step.targets}</span>
                     </div>
@@ -201,19 +201,19 @@ export default function TherapeuticProtocolGenerator() {
             </div>
 
             {result.monitoring && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: '16px 20px', marginBottom: 12 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px 20px', marginBottom: 12 }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', marginBottom: 8 }}>MONITORIZAÇÃO E FOLLOW-UP</div>
                 <p style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{result.monitoring}</p>
               </div>
             )}
 
             {result.warnings?.length > 0 && (
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '14px 18px', marginBottom: 12 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#92400e', letterSpacing: '0.1em', marginBottom: 8 }}>ATENÇÃO</div>
+              <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 12 }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--amber)', letterSpacing: '0.1em', marginBottom: 8 }}>ATENÇÃO</div>
                 {result.warnings.map((w: string, i: number) => (
                   <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-                    <span style={{ color: '#d97706', flexShrink: 0 }}>⚠</span>
-                    <span style={{ fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>{w}</span>
+                    <span style={{ color: 'var(--amber)', flexShrink: 0 }}>⚠</span>
+                    <span style={{ fontSize: 13, color: 'var(--amber)', lineHeight: 1.6 }}>{w}</span>
                   </div>
                 ))}
               </div>

@@ -41,10 +41,10 @@ export const ADL_TASKS: { key: AdlTask; label: string; question: string }[] = [
 
 // 3 = mais autónomo. Palavras do dia a dia, não escala clínica.
 export const ADL_LEVELS: { value: number; label: string; hint: string; color: string; bg: string }[] = [
-  { value: 3, label: 'Sozinho',          hint: 'Fez tudo sem ajuda',                 color: '#15803d', bg: '#f0fdf4' },
-  { value: 2, label: 'Só a vigiar',      hint: 'Fez sozinho, alguém por perto',      color: '#0d9488', bg: '#f0fdfa' },
-  { value: 1, label: 'Com alguma ajuda', hint: 'Precisou de ajuda em parte',          color: '#b45309', bg: '#fffbeb' },
-  { value: 0, label: 'Fizemos nós',      hint: 'Precisou que fizessem por ele/ela',  color: '#b91c1c', bg: '#fef2f2' },
+  { value: 3, label: 'Sozinho',          hint: 'Fez tudo sem ajuda',                 color: 'var(--green-3)', bg: 'var(--green-light)' },
+  { value: 2, label: 'Só a vigiar',      hint: 'Fez sozinho, alguém por perto',      color: 'var(--green-3)', bg: 'var(--green-light)' },
+  { value: 1, label: 'Com alguma ajuda', hint: 'Precisou de ajuda em parte',          color: 'var(--amber)', bg: 'var(--amber-light)' },
+  { value: 0, label: 'Fizemos nós',      hint: 'Precisou que fizessem por ele/ela',  color: 'var(--red)', bg: 'var(--red-light)' },
 ]
 
 export const ADL_MAX = ADL_TASKS.length * 3   // 9 = totalmente autónomo

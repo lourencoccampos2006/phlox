@@ -10,6 +10,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import HealthInsights from '@/components/HealthInsights'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 type Section = 'labs' | 'vaccines' | 'vitals' | 'documents'
 type Profile = { id: string; name: string; type: 'self' | 'family' | 'patient' }
@@ -36,11 +40,11 @@ interface HealthDoc {
 }
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  NORMAL:        { color: '#0d6e42', bg: '#d1fae5', label: 'Normal' },
-  ALTO:          { color: '#b45309', bg: '#fef9c3', label: 'Alto' },
-  BAIXO:         { color: '#1d4ed8', bg: '#eff6ff', label: 'Baixo' },
-  CRITICO_ALTO:  { color: '#991b1b', bg: '#fee2e2', label: 'Crítico ↑' },
-  CRITICO_BAIXO: { color: '#991b1b', bg: '#fee2e2', label: 'Crítico ↓' },
+  NORMAL:        { color: 'var(--green)', bg: 'var(--badge-green-bg)', label: 'Normal' },
+  ALTO:          { color: 'var(--amber)', bg: 'var(--amber-light)', label: 'Alto' },
+  BAIXO:         { color: 'var(--ink-2)', bg: 'var(--bg-2)', label: 'Baixo' },
+  CRITICO_ALTO:  { color: 'var(--red)', bg: 'var(--badge-red-bg)', label: 'Crítico ↑' },
+  CRITICO_BAIXO: { color: 'var(--red)', bg: 'var(--badge-red-bg)', label: 'Crítico ↓' },
 }
 
 const VITAL_TYPES = [
@@ -64,10 +68,10 @@ const DOC_TYPES = [
 function SectionTab({ id, label, count, active, onClick }: { id: Section; label: string; count?: number; active: boolean; onClick: () => void }) {
   return (
     <button onClick={onClick}
-      style={{ padding: '10px 18px', background: 'none', border: 'none', borderBottom: `2px solid ${active ? 'var(--ink)' : 'transparent'}`, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: active ? 'var(--ink)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: -1, whiteSpace: 'nowrap' }}>
+      style={{ padding: '10px 18px', background: 'none', border: 'none', borderBottom: `2px solid ${active ? 'var(--ink)' : 'transparent'}`, cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: active ? 'var(--ink)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: -1, whiteSpace: 'nowrap' }}>
       {label}
       {count !== undefined && count > 0 && (
-        <span style={{ marginLeft: 6, fontFamily: 'var(--font-mono)', fontSize: 10, color: active ? 'var(--ink)' : 'var(--ink-4)' }}>({count})</span>
+        <span style={{ marginLeft: 6, fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: active ? 'var(--ink)' : 'var(--ink-4)' }}>({count})</span>
       )}
     </button>
   )
@@ -268,35 +272,35 @@ export default function RegistoPage() {
     await load()
   }
 
-  const input_s = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }
-  const label_s = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 5, display: 'block' }
+  const input_s = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }
+  const label_s = { fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 5, display: 'block' }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-
-      {/* Page header */}
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <div className="eyebrow" style={{ marginBottom: 8 }}>Registo de Saúde</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 4 }}>
-                {selectedProfile?.name || 'A minha saúde'}
-              </h1>
-              <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: 0 }}>
-                Análises, vacinas, parâmetros vitais e documentos — tudo num só lugar, para sempre.
-              </p>
-            </div>
-
-            {/* Profile selector */}
+    <Mesa
+      altura="documento"
+      barra={
+        /* Eram 90px antes da primeira análise: migalha, o nome do perfil em
+           serifa de 26px, e um parágrafo a prometer «tudo num só lugar,
+           para sempre». O nome fica — é de quem é o registo, e isso tem de
+           estar à vista — mas na barra, em vez de numa banda. */
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Registo de saúde</span>
+          <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
+            {selectedProfile?.name || 'A minha saúde'}
+          </span>
+          {/* Quem é o dono do registo e que secção se está a ver sobem os
+              dois para a barra: eram o cabeçalho e os separadores, em duas
+              filas por baixo um do outro. */}
             <select
               onChange={e => {
                 const found = profiles.find(p => p.id === e.target.value)
                 if (found) setSelectedProfile(found)
               }}
               value={selectedProfile?.id || 'self'}
-              style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, padding: '9px 14px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', cursor: 'pointer' }}>
+              style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 14px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', cursor: 'pointer' }}>
               {profiles.filter(p => p.type === 'self').map(p => <option key={p.id} value={p.id}>{p.name} (eu)</option>)}
               {profiles.filter(p => p.type === 'family').length > 0 && (
                 <>
@@ -311,19 +315,28 @@ export default function RegistoPage() {
                 </>
               )}
             </select>
-          </div>
 
-          {/* Section tabs */}
-          <div style={{ display: 'flex', borderTop: '1px solid var(--border)', overflowX: 'auto' }}>
-            <SectionTab id="labs" label="Análises" count={labs.length} active={section === 'labs'} onClick={() => setSection('labs')} />
-            <SectionTab id="vaccines" label="Vacinas" count={vaccines.length} active={section === 'vaccines'} onClick={() => setSection('vaccines')} />
-            <SectionTab id="vitals" label="Parâmetros Vitais" count={vitals.length} active={section === 'vitals'} onClick={() => setSection('vitals')} />
-            <SectionTab id="documents" label="Documentos" count={docs.length} active={section === 'documents'} onClick={() => setSection('documents')} />
-          </div>
-        </div>
-      </div>
+          <Seletor
+            opcoes={[
+              { id: 'labs', rotulo: `Análises ${labs.length}` },
+              { id: 'vaccines', rotulo: `Vacinas ${vaccines.length}` },
+              { id: 'vitals', rotulo: `Parâmetros ${vitals.length}` },
+              { id: 'documents', rotulo: `Documentos ${docs.length}` },
+            ]}
+            ativa={section} aoMudar={v => setSection(v as typeof section)} />
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Análises, vacinas, parâmetros e documentos — num só sítio</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Fica guardado mesmo que mude de médico, de centro de saúde ou de seguro
+          </span>
+        </BarraDeEstado>
+      }
+    >
 
-      <div className="page-container page-body">
+      <div>
 
         {/* ── LABS ────────────────────────────────────────────────────────── */}
         {section === 'labs' && (
@@ -343,39 +356,39 @@ export default function RegistoPage() {
             <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
               <input ref={fileRef} type="file" accept=".txt,.pdf,.csv" style={{ display: 'none' }} onChange={handleFileUpload} />
               <button onClick={() => fileRef.current?.click()} disabled={importing}
-                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 7 }}>
+                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 7 }}>
                 {importing ? 'A importar...' : 'Importar análise (PDF/TXT)'}
               </button>
-              <Link href="/labs" style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 7, textDecoration: 'none', fontSize: 13, fontWeight: 700 }}>
+              <Link href="/labs" style={{ padding: '9px 14px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textDecoration: 'none', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
                 Analisar e guardar →
               </Link>
             </div>
 
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 8 }} />)}
+                {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--r-md)' }} />)}
               </div>
             ) : labs.length === 0 ? (
-              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>Sem análises guardadas</div>
-                <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
+              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-lg)', padding: '48px 24px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 10 }}>Sem análises guardadas</div>
+                <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 20, maxWidth: 360, margin: '0 auto 20px' }}>
                   Importa o PDF ou texto das tuas análises — o Phlox interpreta automaticamente e guarda no teu historial.
                 </p>
                 <button onClick={() => fileRef.current?.click()}
-                  style={{ padding: '10px 22px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '10px 22px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
                   Importar primeira análise →
                 </button>
               </div>
             ) : labs.map(lab => (
-              <div key={lab.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 10 }}>
+              <div key={lab.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', marginBottom: 10 }}>
                 <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-2)' }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{lab.lab_name || 'Análise clínica'}</div>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginTop: 2 }}>
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{lab.lab_name || 'Análise clínica'}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginTop: 2 }}>
                       {new Date(lab.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
                       {lab.profile_name && <span> · {lab.profile_name}</span>}
                       {labs.length > 1 && labs.indexOf(lab) === 0 && (
-                        <span style={{ marginLeft: 6, color: 'var(--green)', fontWeight: 700 }}>· Mais recente</span>
+                        <span style={{ marginLeft: 6, color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>· Mais recente</span>
                       )}
                     </div>
                   </div>
@@ -388,14 +401,14 @@ export default function RegistoPage() {
                         const el = document.getElementById(`lab-detail-${lab.id}`)
                         if (el) el.style.display = el.style.display === 'none' ? 'block' : 'none'
                       }}
-                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 5, padding: '3px 8px', cursor: 'pointer', fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                      style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '3px 8px', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                       detalhes
                     </button>
                   </div>
                 </div>
 
                 {lab.ai_summary && (
-                  <div style={{ padding: '10px 16px', background: '#eff6ff', borderBottom: '1px solid var(--border)', fontSize: 13, color: '#1d4ed8', lineHeight: 1.6 }}>
+                  <div style={{ padding: '10px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)', fontSize: 'var(--t-dado)', color: 'var(--ink-2)', lineHeight: 1.6 }}>
                     {lab.ai_summary}
                   </div>
                 )}
@@ -404,10 +417,10 @@ export default function RegistoPage() {
                   {((lab.values || []) as any[]).map((v: any, i: number) => {
                     const s = STATUS_STYLE[v.status] || STATUS_STYLE.NORMAL
                     return (
-                      <div key={i} style={{ padding: '6px 10px', background: s.bg, border: `1px solid ${s.bg}`, borderRadius: 6, minWidth: 90 }}>
-                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: s.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{v.name}</div>
-                        <div style={{ fontSize: 14, fontWeight: 700, color: s.color }}>{v.value} <span style={{ fontSize: 10, fontWeight: 400 }}>{v.unit}</span></div>
-                        <div style={{ fontSize: 9, color: s.color, opacity: 0.7, fontFamily: 'var(--font-mono)', marginTop: 1 }}>{s.label}</div>
+                      <div key={i} style={{ padding: '6px 10px', background: s.bg, border: `1px solid ${s.bg}`, borderRadius: 'var(--r)', minWidth: 90 }}>
+                        <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: s.color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>{v.name}</div>
+                        <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: s.color }}>{v.value} <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-normal)' as any }}>{v.unit}</span></div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: s.color, opacity: 0.7, fontFamily: 'var(--font-mono)', marginTop: 1 }}>{s.label}</div>
                       </div>
                     )
                   })}
@@ -422,14 +435,14 @@ export default function RegistoPage() {
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <button onClick={() => setAdding(!adding)}
-                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
                 + Registar vacina
               </button>
             </div>
 
             {adding && (
-              <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 10, padding: 18, marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Nova vacina</div>
+              <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 'var(--r-lg)', padding: 18, marginBottom: 14 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Nova vacina</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                   <div>
                     <label style={label_s}>Nome da vacina *</label>
@@ -454,11 +467,11 @@ export default function RegistoPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={saveVaccine} disabled={!newVax.name}
-                    style={{ padding: '9px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', opacity: newVax.name ? 1 : 0.5 }}>
+                    style={{ padding: '9px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', opacity: newVax.name ? 1 : 0.5 }}>
                     Guardar
                   </button>
                   <button onClick={() => setAdding(false)}
-                    style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                    style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)' }}>
                     Cancelar
                   </button>
                 </div>
@@ -466,26 +479,26 @@ export default function RegistoPage() {
             )}
 
             {vaccines.length === 0 ? (
-              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 10, padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Sem vacinas registadas</div>
-                <div style={{ fontSize: 13 }}>Regista as vacinas para ter o teu historial vacinal sempre acessível.</div>
+              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-lg)', padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Sem vacinas registadas</div>
+                <div style={{ fontSize: 'var(--t-dado)' }}>Regista as vacinas para ter o teu historial vacinal sempre acessível.</div>
               </div>
             ) : (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
                 {vaccines.map((vax, i) => (
                   <div key={vax.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '13px 16px', borderBottom: i < vaccines.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 3 }}>{vax.vaccine_name}</div>
-                      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
+                      <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 3 }}>{vax.vaccine_name}</div>
+                      <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
                         {vax.date_given && `Tomada em ${new Date(vax.date_given).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                         {vax.dose_number && <span> · Dose {vax.dose_number}</span>}
                       </div>
-                      {vax.notes && <div style={{ fontSize: 12, color: 'var(--ink-3)', marginTop: 3 }}>{vax.notes}</div>}
+                      {vax.notes && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 3 }}>{vax.notes}</div>}
                     </div>
                     {vax.next_due && (
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Próxima</div>
-                        <div style={{ fontSize: 12, fontWeight: 700, color: new Date(vax.next_due) < new Date() ? '#dc2626' : '#0d6e42', fontFamily: 'var(--font-mono)' }}>
+                        <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 2 }}>Próxima</div>
+                        <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: new Date(vax.next_due) < new Date() ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--font-mono)' }}>
                           {new Date(vax.next_due).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}
                         </div>
                       </div>
@@ -502,14 +515,14 @@ export default function RegistoPage() {
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <button onClick={() => setAdding(!adding)}
-                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
                 + Registar parâmetro
               </button>
             </div>
 
             {adding && (
-              <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 10, padding: 18, marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Novo parâmetro vital</div>
+              <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 'var(--r-lg)', padding: 18, marginBottom: 14 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Novo parâmetro vital</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px,1fr))', gap: 10, marginBottom: 10 }}>
                   <div>
                     <label style={label_s}>Tipo</label>
@@ -541,11 +554,11 @@ export default function RegistoPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={saveVital} disabled={!newVital.v1}
-                    style={{ padding: '9px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', opacity: newVital.v1 ? 1 : 0.5 }}>
+                    style={{ padding: '9px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', opacity: newVital.v1 ? 1 : 0.5 }}>
                     Guardar
                   </button>
                   <button onClick={() => setAdding(false)}
-                    style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                    style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)' }}>
                     Cancelar
                   </button>
                 </div>
@@ -553,25 +566,25 @@ export default function RegistoPage() {
             )}
 
             {vitals.length === 0 ? (
-              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 10, padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Sem registos</div>
-                <div style={{ fontSize: 13 }}>Regista tensão arterial, glicemia, peso, SpO2 e outros parâmetros ao longo do tempo.</div>
+              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-lg)', padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Sem registos</div>
+                <div style={{ fontSize: 'var(--t-dado)' }}>Regista tensão arterial, glicemia, peso, SpO2 e outros parâmetros ao longo do tempo.</div>
               </div>
             ) : (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
                 {vitals.map((v, i) => {
                   const vt = VITAL_TYPES.find(x => x.id === v.vital_type)
                   return (
                     <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '11px 16px', borderBottom: i < vitals.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{vt?.label || v.vital_type}</div>
-                        {v.notes && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 2 }}>{v.notes}</div>}
+                        <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{vt?.label || v.vital_type}</div>
+                        {v.notes && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>{v.notes}</div>}
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400 }}>
-                          {v.value_1}{v.value_2 ? `/${v.value_2}` : ''} <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)', fontWeight: 400 }}>{v.unit}</span>
+                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any }}>
+                          {v.value_1}{v.value_2 ? `/${v.value_2}` : ''} <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-sans)', fontWeight: 'var(--peso-normal)' as any }}>{v.unit}</span>
                         </div>
-                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
+                        <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
                           {new Date(v.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
                         </div>
                       </div>
@@ -588,14 +601,14 @@ export default function RegistoPage() {
           <div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               <button onClick={() => setAdding(!adding)}
-                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
                 + Adicionar documento
               </button>
             </div>
 
             {adding && (
-              <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 10, padding: 18, marginBottom: 14 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Novo documento</div>
+              <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 'var(--r-lg)', padding: 18, marginBottom: 14 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Novo documento</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
                   <div>
                     <label style={label_s}>Tipo</label>
@@ -623,11 +636,11 @@ export default function RegistoPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={saveDoc} disabled={!newDoc.title}
-                    style={{ padding: '9px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', opacity: newDoc.title ? 1 : 0.5 }}>
+                    style={{ padding: '9px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', opacity: newDoc.title ? 1 : 0.5 }}>
                     Guardar
                   </button>
                   <button onClick={() => setAdding(false)}
-                    style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                    style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)' }}>
                     Cancelar
                   </button>
                 </div>
@@ -635,27 +648,27 @@ export default function RegistoPage() {
             )}
 
             {docs.length === 0 ? (
-              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 10, padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Sem documentos</div>
-                <div style={{ fontSize: 13 }}>Guarda receitas, relatórios médicos, cartas de referenciação e notas de alta.</div>
+              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-lg)', padding: '40px 24px', textAlign: 'center', color: 'var(--ink-4)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Sem documentos</div>
+                <div style={{ fontSize: 'var(--t-dado)' }}>Guarda receitas, relatórios médicos, cartas de referenciação e notas de alta.</div>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {docs.map(doc => {
                   const dt = DOC_TYPES.find(d => d.id === doc.doc_type)
                   return (
-                    <div key={doc.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '13px 16px' }}>
+                    <div key={doc.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '13px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                         <div style={{ flex: 1 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{doc.title}</span>
+                            <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{doc.title}</span>
                             <span className="badge badge-mono">{dt?.label || doc.doc_type}</span>
                           </div>
-                          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
+                          <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>
                             {doc.issuer && <span>{doc.issuer}</span>}
                             {doc.date && <span>{doc.issuer ? ' · ' : ''}{new Date(doc.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}</span>}
                           </div>
-                          {doc.summary && <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, marginTop: 5 }}>{doc.summary.slice(0, 200)}{doc.summary.length > 200 ? '...' : ''}</div>}
+                          {doc.summary && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', lineHeight: 1.5, marginTop: 5 }}>{doc.summary.slice(0, 200)}{doc.summary.length > 200 ? '...' : ''}</div>}
                         </div>
                       </div>
                     </div>
@@ -666,6 +679,6 @@ export default function RegistoPage() {
           </div>
         )}
       </div>
-    </div>
+    </Mesa>
   )
 }

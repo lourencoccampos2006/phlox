@@ -13,7 +13,7 @@ const CAT_LABEL: Record<string, string> = {
 
 export default function SubprocessadoresPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 820 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 14 }}>Transparência</div>
         <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 36, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.02em', lineHeight: 1.15 }}>Subprocessadores</h1>
@@ -27,10 +27,10 @@ export default function SubprocessadoresPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {SUBPROCESSORS.map(s => (
-            <div key={s.name} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px' }}>
+            <div key={s.name} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '14px 16px' }}>
               <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 15.5, fontWeight: 800, color: 'var(--ink)' }}>{s.name}</span>
-                <span style={{ fontSize: 11, fontWeight: 700, color: '#475569', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 6, padding: '2px 9px' }}>{CAT_LABEL[s.category]}</span>
+                <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 9px' }}>{CAT_LABEL[s.category]}</span>
               </div>
               <div style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, marginTop: 5 }}>{s.purpose}</div>
               <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 6, display: 'flex', gap: 14, flexWrap: 'wrap' }}>

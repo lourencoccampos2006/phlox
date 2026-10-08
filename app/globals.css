@@ -4,20 +4,24 @@
 
 :root {
   /* Tinta — escala neutra fria, contraste preciso (estilo dispositivo médico) */
-  --ink:   #16181d;   /* quase-preto azulado, não preto puro */
-  --ink-2: #2b2e36;
-  --ink-3: #545862;   /* corpo secundário — contraste AA reforçado */
-  --ink-4: #767b86;   /* meta/labels — escurecido p/ legibilidade real */
-  --ink-5: #b3b6bf;
+  --ink:   #101418;   /* quase-preto azulado, não preto puro */
+  --ink-2: #2b333a;
+  --ink-3: #464f57;   /* corpo secundário — contraste AA reforçado */
+  --ink-4: #79838c;   /* meta/labels — escurecido p/ legibilidade real */
+  --ink-5: #a3abb3;
 
   /* Fundo — branco verdadeiro, com cinzentos frios subtis */
   --bg:     #ffffff;
-  --bg-2:   #f6f7f8;
-  --bg-3:   #eceef0;
-  --bg-4:   #dfe1e5;
+  --bg-2:   #fafbfc;
+  --bg-3:   #f0f2f5;
+  --bg-4:   #e3e6ea;
 
-  --border:   #e7e8ea;
-  --border-2: #d2d4d8;
+  --border:   #e3e6ea;
+
+  /* O CHAO de uma mesa de trabalho: o cinzento por tras dos paineis brancos.
+     Sem ele os paineis sao recortes no nada; com ele sao coisas pousadas. */
+  --chao: #f4f5f7;
+  --border-2: #c9cfd6;
 
   /* Verde da marca — dessaturado, mais sóbrio */
   --green:       #0d6e42;
@@ -29,9 +33,9 @@
   --green-glow:  rgba(13,110,66,0.18);
 
   /* Estados — dessaturados para encaixar no editorial */
-  --red:         #a82828;
+  --red:         #b42318;
   --red-light:   #fbf2f2;
-  --amber:       #8a5a16;
+  --amber:       #b54708;
   --amber-light: #fbf6ec;
   --blue:        #1f4a8a;
   --blue-light:  #f0f3f8;
@@ -50,11 +54,11 @@
 
   /* Sombras — sussurro, com tom frio da tinta para profundidade coerente.
      Camadas duplas (ambient + key light) tornam as superfícies mais "reais". */
-  --shadow-xs: 0 1px 2px rgba(22,24,29,0.04);
-  --shadow:    0 1px 2px rgba(22,24,29,0.05), 0 1px 1px rgba(22,24,29,0.03);
-  --shadow-md: 0 1px 3px rgba(22,24,29,0.05), 0 4px 12px rgba(22,24,29,0.05);
-  --shadow-lg: 0 2px 6px rgba(22,24,29,0.05), 0 10px 28px rgba(22,24,29,0.08);
-  --shadow-xl: 0 4px 12px rgba(22,24,29,0.06), 0 18px 48px rgba(22,24,29,0.11);
+  --shadow-xs: none;
+  --shadow:    none;
+  --shadow-md: 0 1px 2px rgba(16,20,24,0.04);
+  --shadow-lg: 0 1px 3px rgba(16,20,24,0.06), 0 6px 16px rgba(16,20,24,0.06);
+  --shadow-xl: 0 2px 8px rgba(16,20,24,0.08), 0 16px 40px rgba(16,20,24,0.10);
 
   /* Escala de espaçamento — vinda do sistema de design partilhado com o
      Claude Design (ver docs/designs/). Não é linear de propósito: aperta no
@@ -76,17 +80,147 @@
   --badge-blue-bg:   #dbeafe;  --badge-blue-border:   #bfdbfe;  --badge-blue-fg:   #1e40af;
   --badge-purple-bg: #ede9fe;  --badge-purple-border: #ddd6fe;  --badge-purple-fg: #5b21b6;
 
+  /* ── O ROXO DO LADO ESTUDANTE/PESSOAL ────────────────────────────────────
+     Medido a 2026-10-08: 471 ocorrências em 85 ficheiros, com DEZANOVE tons
+     diferentes do mesmo roxo (#7c3aed, #6d28d9, #9333ea, #7e22ce, #9d5cf0…).
+     Ninguém distingue #9333ea de #7e22ce — o que existe são cinco papéis, e
+     os dezanove tons são o resultado de cada ecrã ter escolhido o seu.
+
+     São cinco, e vivem aqui para que o modo escuro tenha UM sítio onde mudar
+     em vez de oitenta e cinco. O verde da casa (`--green`) continua a ser a
+     cor da parte institucional; isto é o acento do outro lado. */
+  --roxo:        #7c3aed;   /* o acento: botões, títulos, sublinhados */
+  --roxo-escuro: #5b21b6;   /* texto roxo sobre fundo claro — contraste AA */
+  --roxo-meio:   #c4b5fd;   /* pontos, barras, o que separa sem gritar */
+  --roxo-borda:  #e9d5ff;   /* contornos de caixa */
+  --roxo-claro:  #faf5ff;   /* fundo de caixa */
+
+  /* O PÓDIO DA ARENA — ouro, prata e bronze, a 12% de opacidade, como fundo
+     das três primeiras linhas da classificação.
+     São a única excepção ao «quatro cores e um neutro», e é uma excepção
+     com razão: primeiro, segundo e terceiro é um conceito com três valores
+     e um código que toda a gente já lê, e não se confunde com os estados —
+     ninguém olha para um fundo dourado e pensa «isto precisa de atenção».
+     Ficam aqui, com nome, em vez de três hex com alfa escritos à mão. */
+  --podio-1: #ffd70020;
+  --podio-2: #c0c0c020;
+  --podio-3: #cd7f3220;
+
   /* Áreas de toque e safe-areas (iOS notch / barra inferior) */
   --tap-min: 44px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-top:    env(safe-area-inset-top, 0px);
 
   /* Raios — linhas limpas, nada de cantos exagerados */
-  --r-sm: 3px;
-  --r:    6px;
-  --r-md: 8px;
-  --r-lg: 10px;
-  --r-xl: 12px;
+  --r-sm: 2px;
+  --r:    3px;
+  --r-md: 4px;
+  --r-lg: 6px;
+  --r-xl: 8px;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     A ESCALA — semana 1 do redesenho (2026-10-06)
+     ═══════════════════════════════════════════════════════════════════════
+     ── PORQUE É QUE ISTO NASCEU TARDE ──────────────────────────────────────
+     Contei os valores que a aplicação usa hoje: 97 tamanhos de letra, 56
+     raios, 28 alturas de botão, 281 cores escritas à mão. Não foi por falta
+     de sistema — as cores, os espaços e os raios já estavam aqui em cima.
+     Foi por não haver NADA para tamanho de letra: quem escrevia uma página
+     tinha de inventar um número, e inventou 97 vezes.
+
+     O `--tap-min: 44px` prova o resto da história: está definido desde
+     sempre e é usado ZERO vezes em 386 ficheiros. Um token que não é mais
+     fácil de usar do que escrever o número não é usado.
+
+     Por isso a seguir a isto vêm as peças (`components/ui/`). O token é a
+     regra; a peça é o que faz cumpri-la sem esforço.
+
+     ── DUAS DENSIDADES, UM CORTE (decisão do Fernando, 2026-10-06) ─────────
+     No telemóvel é CONFORTÁVEL: letra maior, alvos de 48px, linhas soltas.
+     Quem o usa está de pé, com uma mão ocupada e óculos de leitura.
+
+     No computador é COMPACTO: a direção lê sentada, quer a tabela toda no
+     ecrã, e tem rato — 40px de alvo chegam.
+
+     Um corte só, aos 900px. Dois cortes seriam dois sítios para a conta sair
+     diferente, e ninguém saberia qual deles estava a ver.
+
+     O TÍTULO DA PÁGINA é a exceção e CRESCE no computador: não é densidade,
+     é editorial — é o que diz onde se está, e num ecrã grande pode respirar.
+     ═══════════════════════════════════════════════════════════════════════ */
+
+  /* Telemóvel — confortável. */
+  --texto-etiqueta: 11px;    /* a monoespaçada maiúscula dos cabeçalhos */
+  --texto-detalhe:  13.5px;  /* a segunda linha de uma linha de lista */
+  --texto-corpo:    16px;    /* tudo o que é para ler */
+  --texto-realce:   18px;    /* o nome de uma pessoa, o que a linha é */
+  --texto-seccao:   22px;
+  --texto-pagina:   30px;    /* serifa */
+  --texto-numero:   34px;    /* o número grande de um indicador */
+
+  --lh-apertado: 1.25;
+  --lh:          1.5;
+  --lh-largo:    1.65;
+
+  /* O alvo. UM. Vale para botões, caixas de escolha, campos e linhas que se
+     tocam — porque um polegar não distingue um botão de uma linha. */
+  --alvo: 48px;
+  /* O espaço de respiração dentro de uma linha de lista. */
+  --linha-pad: 14px;
+  /* A largura máxima do texto corrido. Mais do que isto e os olhos perdem a
+     linha a voltar para trás. */
+  --medida: 64ch;
+
+  /* Três pesos, e só três. Ter 400, 500, 600, 650, 700 e 800 ao mesmo tempo
+     (é o que há hoje: nove) não cria hierarquia nenhuma — cria nove coisas que
+     parecem quase iguais. */
+  --peso-normal: 400;
+  --peso-corpo:  500;
+  --peso-forte:  700;
+
+  /* ═══════════════════════════════════════════════════════════════════════
+     A ESCALA DA MESA — seis tamanhos, e só seis
+     ═══════════════════════════════════════════════════════════════════════
+     Os `--texto-*` em cima são da semana 1 e servem as páginas de LER, onde
+     o corpo tem de ter 16px. Uma mesa de trabalho é outra coisa: a mesma
+     informação em metade do espaço, para caberem trinta linhas no ecrã.
+
+     Seis, e a conta é esta:
+       micro     o código de três letras, o rótulo de uma coluna
+       meta      a segunda linha de uma linha, as unidades
+       dado      um número numa tabela — é o que mais aparece
+       corpo     o nome de uma coisa
+       destaque  o nome da pessoa que está aberta
+       numero    o indicador grande
+
+     Qualquer valor fora destes seis é um erro que a `auditoria-design` apanha.
+     ═══════════════════════════════════════════════════════════════════════ */
+  --t-micro:    10px;
+  --t-meta:     12px;
+  --t-dado:     13px;
+  --t-corpo:    14.5px;
+  --t-destaque: 19px;
+  --t-numero:   30px;
+
+  /* A tinta que se usa POR CIMA do verde da casa. Existe como token porque a
+     escrever-se `#fff` à mão ela não muda quando o modo escuro chegar — e o
+     modo escuro é a semana 4. */
+  --sobre-acento: #ffffff;
+}
+
+@media (min-width: 900px) {
+  :root {
+    --texto-etiqueta: 10.5px;
+    --texto-detalhe:  12.5px;
+    --texto-corpo:    14.5px;
+    --texto-realce:   16px;
+    --texto-seccao:   21px;
+    --texto-pagina:   36px;    /* cresce: é editorial, não densidade */
+    --texto-numero:   32px;
+
+    --alvo: 40px;
+    --linha-pad: 10px;
+  }
 }
 
 /* NÃO pôr overflow-x aqui. `overflow-x: clip` no <html> parte o scroll vertical
@@ -748,3 +882,43 @@ img, svg, video { max-width: 100%; }
     scroll-behavior: auto !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   AS PEÇAS DA MESA (components/ui/mesa.tsx)
+   ═══════════════════════════════════════════════════════════════════════════
+   A altura de um alvo não é uma só: é uma POR CONTEXTO, e nunca duas no mesmo
+   ecrã. No telemóvel toca-se com o dedo e são 44px; no computador aponta-se
+   com o rato e 30px chegam — um botão de 48px numa barra de ferramentas densa
+   parece um botão de brincar.
+
+   Fica em CSS e não no objeto de estilo porque uma media query não cabe num
+   `style={{…}}`, e porque assim há UM sítio onde a altura se muda.
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* UM DOCUMENTO NAO E UMA MESA DE TRABALHO.
+   Numa mesa, os paineis rolam por dentro e cabem na janela. Num documento —
+   as /estatisticas, com oito seccoes empilhadas — limitar cada painel a 100%
+   da altura faz os oito dividirem entre si o espaco que ha, e cada um fica
+   com uma fatia onde cabe o cabecalho e meia linha. Aqui a pagina e que rola. */
+.mesa-documento > * { max-height: none; }
+
+/* A BARRA DE TRABALHO DA MESA — nenhum filho e mais largo do que ela.
+   Um grupo de botoes com `margin-left: auto` nao quebra de linha sozinho: na
+   /equipa dois botoes somavam 430px e punham a pagina a rolar de lado a
+   390px. Isto resolve-o para todas as paginas de uma vez. */
+.mesa-barra > * { min-width: 0; max-width: 100%; }
+.mesa-barra > div { flex-wrap: wrap; }
+
+/* A BARRA DE ESTADO DA MESA — uma linha, e cada legenda que nao caiba acaba
+   em reticencias em vez de transbordar para fora do painel.
+   O `text-overflow` de um contentor so corta o texto DIRECTO dele; os filhos
+   precisam da regra deles, e e por isso que isto vive aqui e nao no estilo
+   em linha da peca. */
+/* Os primeiros itens NAO encolhem; so o ultimo e que acaba em reticencias.
+   Com `min-width: 0` em todos, o flex repartia a falta de espaco por igual e
+   a barra ficava com quatro legendas cortadas a meio («EM CURSO = a
+   acontec…», «CANCE…») — quatro meias-frases em vez de duas inteiras. */
+.mesa-estado > *            { white-space: nowrap; flex: 0 0 auto; }
+.mesa-estado > *:last-child { min-width: 0; flex: 0 1 auto; overflow: hidden; text-overflow: ellipsis; }
+
+.mesa-botao { min-height: 44px; }
+@media (min-width: 1040px) { .mesa-botao { min-height: 30px; } }

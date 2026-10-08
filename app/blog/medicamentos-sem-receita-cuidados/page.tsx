@@ -46,7 +46,7 @@ export default function PostMNSRM() {
           </div>
 
           <div style={{ marginBottom: 36 }}>
-            <div style={{ display: 'inline-block', background: '#f0fdf5', color: '#0d6e42', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>SEGURANÇA</div>
+            <div style={{ display: 'inline-block', background: 'var(--green-light)', color: 'var(--green)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>SEGURANÇA</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,5vw,38px)', color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
               Medicamentos sem receita: o que pode (e não deve) misturar
             </h1>
@@ -63,9 +63,9 @@ export default function PostMNSRM() {
             <p style={P}>Sim — e esta é uma das poucas combinações que é mesmo segura e até útil. O paracetamol e o ibuprofeno funcionam de maneiras diferentes, por isso podem ser tomados em conjunto para dor ou febre que não cede só com um deles. A forma mais comum é <strong>alterná-los</strong>: por exemplo, paracetamol e, três horas depois, ibuprofeno. O que <strong>não</strong> deve fazer é ultrapassar a dose máxima diária de cada um.</p>
             <p style={P}>O cuidado real está noutro lado: o ibuprofeno (e outros anti-inflamatórios como o naproxeno ou o diclofenac) é que tem mais limitações. Não é para quem tem <strong>úlcera, problemas renais, insuficiência cardíaca</strong>, nem para quem toma <strong>anticoagulantes</strong> (como a varfarina). Nesses casos, o paracetamol sozinho é a escolha mais segura.</p>
 
-            <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderLeft: '4px solid #dc2626', borderRadius: '0 8px 8px 0', padding: '14px 18px', marginBottom: 28 }}>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7f1d1d', letterSpacing: '0.08em', marginBottom: 5 }}>⚠ O ERRO MAIS PERIGOSO</div>
-              <p style={{ fontSize: 14, color: '#742a2a', lineHeight: 1.7, margin: 0 }}>
+            <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderLeft: '4px solid var(--red)', borderRadius: '0 8px 8px 0', padding: '14px 18px', marginBottom: 28 }}>
+              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--red)', letterSpacing: '0.08em', marginBottom: 5 }}>⚠ O ERRO MAIS PERIGOSO</div>
+              <p style={{ fontSize: 14, color: 'var(--badge-red-fg)', lineHeight: 1.7, margin: 0 }}>
                 Tomar paracetamol "escondido" em vários produtos ao mesmo tempo. Muitos medicamentos para constipação e gripe já <strong>contêm paracetamol</strong>. Se juntar a isso comprimidos de paracetamol para a dor, pode passar a dose máxima sem dar conta — e o excesso de paracetamol faz mal ao fígado. Leia sempre os componentes.
               </p>
             </div>
@@ -90,13 +90,13 @@ export default function PostMNSRM() {
             <p style={P}>O farmacêutico é o profissional de saúde mais acessível do país: não precisa de marcação nem de pagar consulta. Antes de misturar coisas, vale sempre a pergunta no balcão.</p>
           </div>
 
-          <div style={{ marginTop: 44, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ marginTop: 44, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Quer ter a certeza antes de misturar?</div>
             <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>O verificador do Phlox cruza tudo o que toma — incluindo medicamentos de venda livre — e diz-lhe o risco de cada combinação.</p>
-            <Link href="/interactions" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Verificar interações grátis →</Link>
+            <Link href="/interactions" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Verificar interações grátis →</Link>
           </div>
 
-          <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+          <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
             <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
               Artigo informativo e educativo. Não substitui o aconselhamento de um profissional de saúde. Em caso de dúvida, fale com o seu farmacêutico ou médico. Base: INFARMED, EMA, DGS.
             </p>

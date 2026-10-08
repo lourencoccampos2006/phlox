@@ -16,10 +16,10 @@ interface RiskResp {
 }
 
 const LEVEL_META: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  critical: { label: 'Precisa de atenção', color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
-  warning:  { label: 'A acompanhar',       color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-  info:     { label: 'Tudo sob controlo',  color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
-  ok:       { label: 'Tudo bem',           color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  critical: { label: 'Precisa de atenção', color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)' },
+  warning:  { label: 'A acompanhar',       color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' },
+  info:     { label: 'Tudo sob controlo',  color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)' },
+  ok:       { label: 'Tudo bem',           color: 'var(--green)', bg: 'var(--badge-green-bg)', border: 'var(--green-mid)' },
 }
 
 function ScoreRing({ score, color }: { score: number; color: string }) {
@@ -28,7 +28,7 @@ function ScoreRing({ score, color }: { score: number; color: string }) {
   const dash = (score / 100) * circ
   return (
     <svg width={64} height={64} style={{ transform: 'rotate(-90deg)', flexShrink: 0 }}>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="#e5e7eb" strokeWidth={6} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--border)" strokeWidth={6} />
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={color} strokeWidth={6}
         strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" style={{ transition: 'stroke-dasharray 0.6s ease' }} />
       <text x={cx} y={cy} textAnchor="middle" dominantBaseline="middle"
@@ -61,7 +61,7 @@ export default function RiskIndexCard({ profileId, title = 'Índice de Risco' }:
     return () => { cancelled = true }
   }, [supabase, profileId])
 
-  if (loading) return <div className="skeleton" style={{ height: 88, borderRadius: 14 }} />
+  if (loading) return <div className="skeleton" style={{ height: 88, borderRadius: 'var(--r-xl)' }} />
   if (err || !data) return null
 
   const lv = LEVEL_META[data.today.level]
@@ -69,21 +69,21 @@ export default function RiskIndexCard({ profileId, title = 'Índice de Risco' }:
   const trend = hist.length >= 2 ? data.today.score - hist[0].score : null
 
   return (
-    <div style={{ background: 'white', border: `1px solid ${lv.border}`, borderRadius: 14, padding: '16px 18px' }}>
+    <div style={{ background: 'white', border: `1px solid ${lv.border}`, borderRadius: 'var(--r-xl)', padding: '16px 18px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
         <ScoreRing score={data.today.score} color={lv.color} />
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>{title}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>{title}</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontSize: 14, fontWeight: 800, color: lv.color }}>{lv.label}</span>
             {trend != null && trend !== 0 && (
-              <span style={{ fontSize: 11.5, fontWeight: 700, color: trend > 0 ? '#b45309' : '#15803d' }}>
+              <span style={{ fontSize: 11.5, fontWeight: 700, color: trend > 0 ? 'var(--amber)' : 'var(--green)' }}>
                 {trend > 0 ? '↑' : '↓'} {Math.abs(trend)} em {hist.length} dias
               </span>
             )}
           </div>
           {data.today.topFactors.length > 0 && (
-            <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, lineHeight: 1.4 }}>
+            <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 4, lineHeight: 1.4 }}>
               {data.today.topFactors.slice(0, 2).map(f => f.title).join(' · ')}
             </div>
           )}
@@ -92,7 +92,7 @@ export default function RiskIndexCard({ profileId, title = 'Índice de Risco' }:
       {hist.length >= 3 && (
         <div style={{ display: 'flex', alignItems: 'flex-end', gap: 3, height: 28, marginTop: 12 }}>
           {hist.map((h, i) => (
-            <div key={i} title={`${h.snapshot_date}: ${h.score}`} style={{ flex: 1, height: `${Math.max(8, h.score)}%`, background: LEVEL_META[h.level]?.color || '#cbd5e1', borderRadius: 2, opacity: 0.55 + (i / hist.length) * 0.45 }} />
+            <div key={i} title={`${h.snapshot_date}: ${h.score}`} style={{ flex: 1, height: `${Math.max(8, h.score)}%`, background: LEVEL_META[h.level]?.color || 'var(--border-2)', borderRadius: 'var(--r-sm)', opacity: 0.55 + (i / hist.length) * 0.45 }} />
           ))}
         </div>
       )}

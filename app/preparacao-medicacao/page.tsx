@@ -42,6 +42,11 @@ const SHIFT_LABEL: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', n
 function startOfWeek(d: Date) { const x = new Date(d); const day = x.getDay(); x.setDate(x.getDate() - day); x.setHours(0, 0, 0, 0); return x }
 function fmtDate(d: Date) { return d.toISOString().slice(0, 10) }
 
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
 export default function PreparacaoMedicacaoPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
@@ -58,6 +63,7 @@ export default function PreparacaoMedicacaoPage() {
   const [logs, setLogs] = useState<PrepLog[]>([])
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
+  const largo = useLargo()
   const [search, setSearch] = useState('')
   const [open, setOpen] = useState<string | null>(null)
   const [stock, setStock] = useState<any[]>([])
@@ -156,130 +162,264 @@ export default function PreparacaoMedicacaoPage() {
     )
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Era um acordeão: cada pessoa abria uma grelha de sete dias por N turnos
+     dentro da própria linha. Com trinta pessoas, abrir a terceira empurrava a
+     quarta trezentos pixéis para baixo.
+
+     Passa a mestre/detalhe: a lista à esquerda com o que falta preparar em
+     coluna, a grelha da semana à direita.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const aberta = filtered.find(p => p.id === open) || null
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
-        <div className="page-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Preparação da medicação</h1>
-            <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>A grelha de quem preparou o pastilheiro de cada {cfg.personNoun.toLowerCase()}, dia a dia.</p>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <button onClick={() => shiftWeek(-1)} aria-label="Semana anterior" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', cursor: 'pointer' }}>‹</button>
-            <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', minWidth: 130, textAlign: 'center' }}>{weekLabel()}</span>
-            <button onClick={() => shiftWeek(1)} aria-label="Semana seguinte" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', cursor: 'pointer' }}>›</button>
-          </div>
-        </div>
-      </div>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Preparação</span>
 
-      <div className="page-container page-body" style={{ maxWidth: 900, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Botao onClick={() => shiftWeek(-1)} titulo="Semana anterior">‹</Botao>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
+              color: 'var(--ink-2)', minWidth: 130, textAlign: 'center',
+            }}>{weekLabel()}</span>
+            <Botao onClick={() => shiftWeek(1)} titulo="Semana seguinte">›</Botao>
+          </span>
 
-        {/* O que é preciso ter em cima da mesa ANTES de começar a preparar.
-            A grelha em baixo diz o que já se fez; isto diz o que falta. */}
-        {!loading && (
-          <div style={{ marginBottom: 6 }}>
-            <ListaDePicking meds={meds} stock={stock} dias={7} cor={blueprintFor(institution).accent} />
-          </div>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Procurar ${cfg.personNoun.toLowerCase()}…`} aria-label="Procurar"
+            style={{ ...CAIXA, width: 230 }} />
+
+          {!loading && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+              A GRELHA DIZ QUEM PREPAROU O QUÊ, DIA A DIA
+            </span>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--green)' }}>Semana preparada</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>Com alerta — ver antes de preparar</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Cada marca fica com a data e com quem a fez
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {/* O que é preciso ter em cima da mesa ANTES de começar a preparar.
+          A grelha diz o que já se fez; isto diz o que falta ir buscar. */}
+      {!loading && (
+        <ListaDePicking meds={meds} stock={stock} dias={7} cor="var(--green)" />
+      )}
+
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo && aberta ? 'minmax(320px, 440px) minmax(380px, 1fr)' : '1fr',
+      }}>
+        {(largo || !aberta) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural}</span>
+                <span style={{ ...ROTULO, width: 48, textAlign: 'right' }}>Meds</span>
+                <span style={{ ...ROTULO, width: 78, textAlign: 'right' }}>Semana</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{filtered.length} com medicação ativa</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A juntar a semana…" />
+            ) : filtered.length === 0 ? (
+              <Vazio titulo="Ninguém com medicação ativa para preparar."
+                oQueFazer="Esta grelha faz-se da medicação ativa de cada pessoa. Assim que houver prescrições, aparecem aqui com um alvo por dia e por turno." />
+            ) : filtered.map(p => {
+              const ms = medsFor(p.id)
+              const shifts = shiftsFor(p.id)
+              const findings = findingsFor(p)
+              const notable = findings.filter(f => f.severity === 'critical' || f.severity === 'major')
+              const packedCount = WEEKDAY_LABELS.reduce(
+                (n, _, wd) => n + shifts.filter(sh => logFor(p.id, wd, sh)?.packed).length, 0)
+              const totalCount = WEEKDAY_LABELS.length * shifts.length
+              const feita = packedCount === totalCount && totalCount > 0
+              return (
+                <LinhaTabela key={p.id}
+                  aoTocar={() => setOpen(open === p.id ? null : p.id)}
+                  ativa={open === p.id}
+                  filete={notable.length ? 'var(--red)' : undefined}
+                  principal={
+                    <>
+                      {p.name}
+                      {p.room_number && (
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                          {' '}· {p.room_number}
+                        </span>
+                      )}
+                    </>
+                  }
+                  secundaria={notable.length
+                    ? `${notable.length} alerta${notable.length === 1 ? '' : 's'} a ver antes de preparar`
+                    : undefined}
+                  celulas={[
+                    { rotulo: 'Meds', valor: ms.length, largura: 48, direita: true },
+                    {
+                      rotulo: 'Semana', valor: `${packedCount}/${totalCount}`, largura: 78,
+                      direita: true, forte: true,
+                      cor: feita ? 'var(--green)' : packedCount ? 'var(--amber)' : 'var(--ink-5)',
+                    },
+                  ]} />
+              )
+            })}
+          </Painel>
         )}
 
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
-          style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', maxWidth: 280 }} />
-
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 10 }} />)}</div>
-        ) : filtered.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 30, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13.5 }}>
-            Ninguém com medicação ativa para preparar.
-          </div>
-        ) : (
-          filtered.map(p => {
-            const isOpen = open === p.id
-            const ms = medsFor(p.id)
-            const shifts = shiftsFor(p.id)
-            const findings = findingsFor(p)
-            const notable = findings.filter(f => f.severity === 'critical' || f.severity === 'major')
-            const packedCount = WEEKDAY_LABELS.reduce((n, _, wd) => n + shifts.filter(s => logFor(p.id, wd, s)?.packed).length, 0)
-            const totalCount = WEEKDAY_LABELS.length * shifts.length
-            return (
-              <div key={p.id} style={{ background: 'white', border: `1px solid ${notable.length ? '#fca5a5' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
-                <button onClick={() => setOpen(isOpen ? null : p.id)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '13px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-                  <div>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                    {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
-                    <span style={{ fontSize: 11.5, color: 'var(--ink-4)', marginLeft: 10 }}>{ms.length} medicamento{ms.length !== 1 ? 's' : ''}</span>
-                    {notable.length > 0 && (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10.5, fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 99, padding: '2px 8px', marginLeft: 10 }}>
-                        <Icon name="alert" size={10} color="#b91c1c" /> {notable.length} alerta{notable.length !== 1 ? 's' : ''}
-                      </span>
-                    )}
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 700, color: packedCount === totalCount ? '#16a34a' : 'var(--ink-4)' }}>{packedCount}/{totalCount} preparado{packedCount !== 1 ? 's' : ''}</span>
-                    <Icon name="chevron" size={13} color="var(--ink-4)" style={{ transform: isOpen ? 'rotate(90deg)' : 'none' }} />
-                  </div>
-                </button>
-
-                {isOpen && (
-                  <div style={{ borderTop: '1px solid var(--bg-3)', padding: '12px 16px 16px' }}>
-                    {findings.length > 0 && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
-                        {findings.map(f => {
-                          const meta = SEVERITY_META[f.severity]
-                          return (
-                            <div key={f.id} style={{ background: meta.bg, border: `1px solid ${meta.color}33`, borderRadius: 9, padding: '9px 12px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 800, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{meta.label}</span>
-                                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>{f.title}</span>
-                              </div>
-                              <div style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5 }}>{f.detail}</div>
-                              {f.action && <div style={{ fontSize: 11.5, color: meta.color, fontWeight: 600, marginTop: 4 }}>→ {f.action}</div>}
-                            </div>
-                          )
-                        })}
-                      </div>
-                    )}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                      {ms.map(m => <span key={m.id} style={{ fontSize: 11.5, color: 'var(--ink-3)', background: 'var(--bg-2)', borderRadius: 6, padding: '3px 9px' }}>{m.name}{m.dose ? ` · ${m.dose}` : ''}</span>)}
-                    </div>
-                    <div style={{ overflowX: 'auto' }}>
-                      <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: shifts.length * 90 + 90 }}>
-                        <thead>
-                          <tr>
-                            <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Dia</th>
-                            {shifts.map(s => <th key={s} style={{ padding: '6px 8px', fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{SHIFT_LABEL[s]}</th>)}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {WEEKDAY_LABELS.map((label, wd) => (
-                            <tr key={wd}>
-                              <td style={{ padding: '5px 8px', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', borderTop: '1px solid var(--bg-3)' }}>
-                                <span className="prep-weekday-full">{label}</span><span className="prep-weekday-short">{WEEKDAY_SHORT[wd]}</span>
-                              </td>
-                              {shifts.map(s => {
-                                const packed = !!logFor(p.id, wd, s)?.packed
-                                return (
-                                  <td key={s} style={{ padding: '5px 8px', textAlign: 'center', borderTop: '1px solid var(--bg-3)' }}>
-                                    <button onClick={() => toggle(p.id, wd, s)} aria-label={`${label} · ${SHIFT_LABEL[s]}`} style={{
-                                      width: 30, height: 30, borderRadius: 8, cursor: 'pointer',
-                                      border: `1.5px solid ${packed ? '#16a34a' : 'var(--border)'}`, background: packed ? '#f0fdf4' : 'white',
-                                      color: packed ? '#16a34a' : 'var(--ink-4)', fontSize: 14, fontWeight: 800,
-                                    }}>{packed ? '✓' : ''}</button>
-                                  </td>
-                                )
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+        {/* ══ A SEMANA DE QUEM ESTÁ ESCOLHIDO ═══════════════════════════════ */}
+        {aberta ? (() => {
+          const p = aberta
+          const ms = medsFor(p.id)
+          const shifts = shiftsFor(p.id)
+          const findings = findingsFor(p)
+          return (
+            <Painel
+              cabeca={
+                <div style={{
+                  padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                }}>
+                  <Botao onClick={() => setOpen(null)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{
+                      display: 'block', fontSize: 'var(--t-destaque)',
+                      fontWeight: 'var(--peso-corpo)' as any,
+                    }}>{p.name}</span>
+                    <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                      {weekLabel().toUpperCase()} · {ms.length} MEDICAMENTO{ms.length === 1 ? '' : 'S'}
+                    </span>
+                  </span>
+                </div>
+              }
+            >
+              <div style={{ padding: '0 14px 14px' }}>
+                {/* Os achados clínicos. Vêm ANTES da grelha, de propósito:
+                    quem vai preparar tem de os ver antes de pôr no pastilheiro. */}
+                {findings.length > 0 && (
+                  <div style={{ marginTop: 12 }}>
+                    <div style={{ ...ROTULO, marginBottom: 6 }}>Ver antes de preparar</div>
+                    {findings.map(f => {
+                      const meta = SEVERITY_META[f.severity]
+                      return (
+                        <div key={f.id} style={{
+                          padding: '8px 0 8px 11px', borderBottom: '1px solid var(--border)',
+                          borderLeft: `3px solid ${meta.color}`,
+                        }}>
+                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                            <span style={{
+                              ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.06em',
+                              fontWeight: 'var(--peso-forte)' as any, color: meta.color,
+                              textTransform: 'uppercase',
+                            }}>{meta.label}</span>
+                            <span style={{
+                              fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any,
+                              color: 'var(--ink)',
+                            }}>{f.title}</span>
+                          </div>
+                          <div style={{
+                            fontSize: 'var(--t-meta)', color: 'var(--ink-3)', lineHeight: 1.5, marginTop: 2,
+                          }}>{f.detail}</div>
+                          {f.action && (
+                            <div style={{
+                              fontSize: 'var(--t-meta)', color: meta.color,
+                              fontWeight: 'var(--peso-corpo)' as any, marginTop: 3,
+                            }}>→ {f.action}</div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )}
+
+                <div style={{ ...ROTULO, margin: '14px 0 6px' }}>O que leva</div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                  {ms.map(m => (
+                    <Codigo key={m.id} texto={`${m.name}${m.dose ? ` ${m.dose}` : ''}`} />
+                  ))}
+                </div>
+
+                <div style={{ ...ROTULO, margin: '16px 0 6px' }}>A semana</div>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{
+                    borderCollapse: 'collapse', width: '100%',
+                    minWidth: shifts.length * 80 + 90,
+                  }}>
+                    <thead>
+                      <tr>
+                        <th style={{ ...ROTULO, textAlign: 'left', padding: '5px 8px' }}>Dia</th>
+                        {shifts.map(sh => (
+                          <th key={sh} style={{ ...ROTULO, padding: '5px 8px' }}>{SHIFT_LABEL[sh]}</th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {WEEKDAY_LABELS.map((label, wd) => (
+                        <tr key={wd}>
+                          <td style={{
+                            padding: '4px 8px', fontSize: 'var(--t-dado)',
+                            color: 'var(--ink-3)', borderTop: '1px solid var(--border)',
+                          }}>
+                            <span className="prep-weekday-full">{label}</span>
+                            <span className="prep-weekday-short">{WEEKDAY_SHORT[wd]}</span>
+                          </td>
+                          {shifts.map(sh => {
+                            const packed = !!logFor(p.id, wd, sh)?.packed
+                            return (
+                              <td key={sh} style={{
+                                padding: '4px 8px', textAlign: 'center',
+                                borderTop: '1px solid var(--border)',
+                              }}>
+                                <button onClick={() => toggle(p.id, wd, sh)}
+                                  aria-label={`${label} · ${SHIFT_LABEL[sh]}`}
+                                  aria-pressed={packed}
+                                  className="mesa-botao"
+                                  style={{
+                                    width: 30, padding: 0, borderRadius: 'var(--r-sm)', cursor: 'pointer',
+                                    border: `1px solid ${packed ? 'var(--green)' : 'var(--border-2)'}`,
+                                    background: packed ? 'var(--green)' : 'transparent',
+                                    color: packed ? 'var(--sobre-acento)' : 'var(--ink-5)',
+                                    fontSize: 'var(--t-dado)',
+                                    fontWeight: 'var(--peso-forte)' as any,
+                                  }}>{packed ? '✓' : ''}</button>
+                              </td>
+                            )
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            )
-          })
-        )}
+            </Painel>
+          )
+        })() : largo ? (
+          <Painel>
+            <Vazio titulo={`Escolha um ${cfg.personNoun.toLowerCase()}.`}
+              oQueFazer="A semana abre aqui ao lado, com um alvo por dia e por turno — e com os alertas da medicação em cima, para se verem antes de pôr seja o que for no pastilheiro." />
+          </Painel>
+        ) : null}
       </div>
-      <style>{`.prep-weekday-short{display:none} @media (max-width:480px){.prep-weekday-full{display:none} .prep-weekday-short{display:inline}}`}</style>
-    </div>
+
+      <style>{`
+        .prep-weekday-short { display: none }
+        @media (max-width: 480px) {
+          .prep-weekday-full { display: none }
+          .prep-weekday-short { display: inline }
+        }
+      `}</style>
+    </Mesa>
   )
 }

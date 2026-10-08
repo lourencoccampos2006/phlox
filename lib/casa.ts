@@ -87,12 +87,19 @@ export interface Leitura {
   nota: string | null
 }
 
-export const CATEGORIAS: Record<CategoriaDaCasa, { label: string; cor: string; icone: string }> = {
-  limpeza:    { label: 'Limpeza',    cor: '#5f7161', icone: '🧹' },
-  lavandaria: { label: 'Lavandaria', cor: '#5a6d7c', icone: '🧺' },
-  cozinha:    { label: 'Cozinha',    cor: '#7c6f5a', icone: '🍲' },
-  manutencao: { label: 'Manutenção', cor: '#6b6a80', icone: '🔧' },
-  outro:      { label: 'Outro',      cor: '#7a5f70', icone: '•' },
+/* AS CATEGORIAS NAO SAO UM CODIGO DE CORES (2026-10-07)
+   Eram cinco tons surdos e cinco emoji (🧹 🧺 🍲 🔧 •). Cinco cores que
+   ninguem decora, nenhuma delas uma das tres com significado — e um leitor de
+   ecra a dizer «emoji de vassoura Limpeza».
+
+   A categoria e um FACTO: le-se a palavra. Onde nao cabe a palavra, cabe o
+   codigo de quatro letras, como o MED e o CUI do /o-dia. */
+export const CATEGORIAS: Record<CategoriaDaCasa, { label: string; codigo: string }> = {
+  limpeza:    { label: 'Limpeza',    codigo: 'LIMP' },
+  lavandaria: { label: 'Lavandaria', codigo: 'LAVA' },
+  cozinha:    { label: 'Cozinha',    codigo: 'COZI' },
+  manutencao: { label: 'Manutenção', codigo: 'MANU' },
+  outro:      { label: 'Outro',      codigo: 'OUTR' },
 }
 
 export const ORDEM_DAS_CATEGORIAS: CategoriaDaCasa[] =

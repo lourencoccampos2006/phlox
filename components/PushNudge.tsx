@@ -43,18 +43,18 @@ export default function PushNudge({ text }: { text: string }) {
   if (!show) return null
 
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: '11px 14px', marginBottom: 14 }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '11px 14px', marginBottom: 14 }}>
       <span style={{ fontSize: 18, flexShrink: 0 }}>🔔</span>
-      <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: '#1e3a8a' }}>
+      <div style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--badge-blue-fg)' }}>
         {done ? 'Notificações ativadas ✓' : text}
-        {err && <div style={{ fontSize: 11.5, color: '#dc2626', marginTop: 3 }}>{err}</div>}
+        {err && <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 3 }}>{err}</div>}
       </div>
       {!done && (
         <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-          <button onClick={activate} disabled={busy} style={{ fontSize: 12, fontWeight: 700, color: 'white', background: '#1d4ed8', border: 'none', borderRadius: 7, padding: '7px 12px', cursor: busy ? 'wait' : 'pointer' }}>
+          <button onClick={activate} disabled={busy} style={{ fontSize: 12, fontWeight: 700, color: 'white', background: 'var(--ink-2)', border: 'none', borderRadius: 'var(--r-md)', padding: '7px 12px', cursor: busy ? 'wait' : 'pointer' }}>
             {busy ? '…' : 'Ativar'}
           </button>
-          <button onClick={dismiss} style={{ fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>Agora não</button>
+          <button onClick={dismiss} style={{ fontSize: 12, color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer' }}>Agora não</button>
         </div>
       )}
     </div>

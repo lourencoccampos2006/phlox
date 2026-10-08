@@ -49,15 +49,15 @@ const TREND_TO_LEVEL: Record<TrendSeverity, HealthAlert['level'] | null> = {
 const SELF_CTA: Record<string, { icon: string; href: string; cta: string }> = {
   bp_high: { icon: '🩸', href: '/timeline', cta: 'Ver histórico' },
   bp_crisis: { icon: '🩸', href: 'tel:112', cta: 'Ligar 112' },
-  spo2_low: { icon: '🫁', href: 'tel:112', cta: 'Ligar 112' },
+  spo2_low: { icon: 'heart', href: 'tel:112', cta: 'Ligar 112' },
   glucose_out: { icon: '🍬', href: '/vitals', cta: 'Ver vitais' },
-  weight_loss: { icon: '⚖️', href: '/timeline', cta: 'Ver histórico' },
+  weight_loss: { icon: 'scale', href: '/timeline', cta: 'Ver histórico' },
   vitals_stale: { icon: '📏', href: '/vitals', cta: 'Registar' },
   vitals_none: { icon: '📏', href: '/vitals', cta: 'Começar' },
-  stock_out: { icon: '💊', href: '/mymeds', cta: 'Ver medicação' },
-  stock_low: { icon: '💊', href: '/mymeds', cta: 'Ver medicação' },
-  fever_recurrent: { icon: '🌡️', href: '/sintomas', cta: 'Diário' },
-  pain_high: { icon: '🩹', href: '/sintomas', cta: 'Diário' },
+  stock_out: { icon: 'pill', href: '/mymeds', cta: 'Ver medicação' },
+  stock_low: { icon: 'pill', href: '/mymeds', cta: 'Ver medicação' },
+  fever_recurrent: { icon: 'droplet', href: '/sintomas', cta: 'Diário' },
+  pain_high: { icon: 'bandage', href: '/sintomas', cta: 'Diário' },
 }
 
 const KIND_CATEGORY: Record<string, AlertCategory> = {
@@ -142,7 +142,7 @@ export function computeHealthAlerts(input: AlertInput): HealthAlert[] {
       else if (v.bp_sys != null && (v.bp_sys >= 140 || (v.bp_dia != null && v.bp_dia >= 90)))
         alerts.push({ level: 'medium', icon: '🩸', title: 'Tensão arterial acima do alvo', detail: `Última leitura ${v.bp_sys}/${v.bp_dia ?? '—'} mmHg. Vale a pena vigiar.`, href: '/vitals', cta: 'Ver vitais', category: 'vitals' })
       if (v.spo2 != null && v.spo2 < 92)
-        alerts.push({ level: 'high', icon: '🫁', title: 'Oxigenação baixa', detail: `SpO₂ ${v.spo2}%. Abaixo de 92% merece atenção.`, href: '/vitals', cta: 'Ver vitais', category: 'vitals' })
+        alerts.push({ level: 'high', icon: 'heart', title: 'Oxigenação baixa', detail: `SpO₂ ${v.spo2}%. Abaixo de 92% merece atenção.`, href: '/vitals', cta: 'Ver vitais', category: 'vitals' })
       if (v.glucose != null && (v.glucose >= 250 || v.glucose < 70))
         alerts.push({ level: 'high', icon: '🍬', title: v.glucose < 70 ? 'Glicemia baixa' : 'Glicemia alta', detail: `Última glicemia ${v.glucose} mg/dL.`, href: '/vitals', cta: 'Ver vitais', category: 'vitals' })
     }
@@ -160,7 +160,7 @@ export function computeHealthAlerts(input: AlertInput): HealthAlert[] {
 
   // 5) Adesão a cair
   if (input.adherencePct != null && input.adherencePct < 60 && medNames.length > 0)
-    alerts.push({ level: 'medium', icon: '💊', title: 'Adesão à medicação a descer', detail: `Tem tomado ${input.adherencePct}% das doses recentes. Ativar lembretes pode ajudar.`, href: '/adherencia', cta: 'Ver padrões', category: 'adherence' })
+    alerts.push({ level: 'medium', icon: 'pill', title: 'Adesão à medicação a descer', detail: `Tem tomado ${input.adherencePct}% das doses recentes. Ativar lembretes pode ajudar.`, href: '/adherencia', cta: 'Ver padrões', category: 'adherence' })
 
   // Dedup por título + ordena por gravidade.
   const seen = new Set<string>()

@@ -6,6 +6,7 @@
 // "personalizado nas definições", item pedido pelo Fernando 2026-07-17).
 
 import { PINNABLE_TOOLS, PIN_MAX } from '@/lib/pinnedTools'
+import Icon from '@/components/Icon'
 
 export default function PinPickerGrid({ pins, onToggle }: { pins: string[]; onToggle: (path: string) => void }) {
   return (
@@ -20,15 +21,15 @@ export default function PinPickerGrid({ pins, onToggle }: { pins: string[]; onTo
               return (
                 <button key={t.path} onClick={() => !disabled && onToggle(t.path)} disabled={disabled}
                   style={{
-                    display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', borderRadius: 9,
-                    border: `1.5px solid ${checked ? '#0d6e42' : 'var(--border)'}`,
-                    background: checked ? '#f0fdf4' : 'white',
+                    display: 'flex', alignItems: 'center', gap: 9, padding: '10px 12px', borderRadius: 'var(--r-lg)',
+                    border: `1.5px solid ${checked ? 'var(--green)' : 'var(--border)'}`,
+                    background: checked ? 'var(--badge-green-bg)' : 'white',
                     cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.45 : 1,
                     fontFamily: 'var(--font-sans)', textAlign: 'left',
                   }}>
-                  <span style={{ fontSize: 16 }}>{t.icon}</span>
-                  <span style={{ fontSize: 12.5, color: checked ? '#15803d' : 'var(--ink-2)', fontWeight: checked ? 700 : 500, flex: 1 }}>{t.label}</span>
-                  {checked && <span style={{ fontSize: 11, color: '#15803d' }}>✓</span>}
+                  <Icon name={t.icon} size={16} />
+                  <span style={{ fontSize: 12.5, color: checked ? 'var(--green)' : 'var(--ink-2)', fontWeight: checked ? 700 : 500, flex: 1 }}>{t.label}</span>
+                  {checked && <span style={{ fontSize: 11, color: 'var(--green)' }}>✓</span>}
                 </button>
               )
             })}

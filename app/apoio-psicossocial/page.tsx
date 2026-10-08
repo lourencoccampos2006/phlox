@@ -46,12 +46,18 @@ interface Note {
 }
 
 const REFERRAL_STATUS: Record<string, { label: string; color: string; bg: string }> = {
-  sugerido:  { label: 'Sugerido',  color: '#64748b', bg: '#f8fafc' },
-  agendado:  { label: 'Agendado',  color: '#b45309', bg: '#fffbeb' },
-  em_curso:  { label: 'Em curso',  color: '#1d4ed8', bg: '#eff6ff' },
-  concluido: { label: 'Concluído', color: '#16a34a', bg: '#f0fdf4' },
+  sugerido:  { label: 'Sugerido',  color: 'var(--ink-4)', bg: 'var(--bg-2)' },
+  agendado:  { label: 'Agendado',  color: 'var(--amber)', bg: 'var(--badge-amber-bg)' },
+  em_curso:  { label: 'Em curso',  color: 'var(--ink-2)', bg: 'var(--bg-2)' },
+  concluido: { label: 'Concluído', color: 'var(--green)', bg: 'var(--badge-green-bg)' },
 }
 const REFERRAL_OPTIONS = ['Psicologia', 'Psiquiatria', 'Assistente Social (externo)', 'Terapia Ocupacional', 'Outro especialista']
+
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Campo, CAIXA, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 export default function ApoioPsicossocialPage() {
   const { user, supabase } = useAuth() as any
@@ -95,6 +101,8 @@ export default function ApoioPsicossocialPage() {
   }
   const [loading, setLoading] = useState(true)
   const [needsSetup, setNeedsSetup] = useState(false)
+  const largo = useLargo()
+  const [soSilencio, setSoSilencio] = useState(false)
   const [search, setSearch] = useState('')
   const [openFor, setOpenFor] = useState<string | null>(null)
 
@@ -250,218 +258,305 @@ export default function ApoioPsicossocialPage() {
     )
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     A MESMA PESSOA APARECIA DUAS VEZES: uma no bloco «A quem ir falar hoje»,
+     outra na lista por baixo. Quem registasse o contacto em cima ficava a ver
+     a linha de baixo ainda a dizer «12 dias sem contacto» — o que faz duvidar
+     de que o toque tenha gravado.
+
+     Passa a uma lista só, ordenada por quem precisa mais, com um filtro «em
+     silêncio» que destaca os mesmos sem os repetir. As notas saem de dentro
+     da linha e vão para o painel da direita.
+
+     O que a página já faz bem fica: deixou de ser «onde se escrevem notas» e
+     passou a ser «a quem ir falar» — e o «Falei com ele/ela» continua a ser
+     um toque, porque se registar um contacto der trabalho ninguém regista.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const emSilencioAgora = flaggedFirst.filter(p => emSilencio(p.id))
+  const lista = soSilencio ? emSilencioAgora : flaggedFirst
+  const aberta = flaggedFirst.find(p => p.id === openFor) || null
+
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
-        <div className="page-container">
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Apoio psico-social</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Notas de acompanhamento e encaminhamento a especialistas — só visível à equipa.</p>
-          {!loading && (erodingCount > 0 || moodFlags.size > 0 || calados.length > 0) && (
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Apoio psico-social</span>
+
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Procurar ${cfg.personNoun.toLowerCase()}…`} aria-label="Procurar"
+            style={{ ...CAIXA, width: 230 }} />
+
+          {!loading && emSilencioAgora.length > 0 && (
+            <Seletor
+              opcoes={[
+                { id: 'todos', rotulo: `Todos ${flaggedFirst.length}` },
+                { id: 'silencio', rotulo: `Em silêncio ${emSilencioAgora.length}` },
+              ]}
+              ativa={soSilencio ? 'silencio' : 'todos'}
+              aoMudar={v => setSoSilencio(v === 'silencio')} />
+          )}
+
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
               {erodingCount > 0 && (
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 20, padding: '4px 12px' }}>
-                  {erodingCount} a cair face ao próprio hábito
-                </span>
-              )}
-              {calados.length > 0 && (
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', background: 'var(--bg-2)', border: '1px solid var(--border-2)', borderRadius: 20, padding: '4px 12px' }}>
-                  {calados.length} sem ninguém falar {calados.length === 1 ? 'consigo' : 'com elas'} há {SILENCIO_DIAS}+ dias
-                </span>
+                <span style={{
+                  ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)',
+                  fontWeight: 'var(--peso-forte)' as any,
+                }}>{erodingCount} A CAIR FACE AO PRÓPRIO HÁBITO</span>
               )}
               {moodFlags.size > 0 && (
-                <span style={{ fontSize: 12.5, fontWeight: 700, color: '#6d28d9', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 20, padding: '4px 12px' }}>
-                  {moodFlags.size} com humor persistentemente baixo
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                  {moodFlags.size} COM HUMOR EM BAIXA
                 </span>
               )}
-            </div>
+            </span>
           )}
-        </div>
-      </div>
-
-      <div className="page-container page-body" style={{ maxWidth: 780, display: 'flex', flexDirection: 'column', gap: 10 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
-          style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', maxWidth: 280 }} />
-
-        {/* ── A quem ir falar hoje ─────────────────────────────────────────
-            Esta página era um sítio para escrever notas. A pergunta que ela
-            devia responder é outra: com quem é que ninguém fala há mais tempo?
-            Aqui ficam os três primeiros, com um toque para dizer que se falou —
-            se registar um contacto der trabalho, ninguém regista, e o número
-            de dias deixa de querer dizer alguma coisa. */}
-        {!loading && flaggedFirst.length > 0 && (() => {
-          const fila = flaggedFirst.filter(p => emSilencio(p.id)).slice(0, 3)
-          if (!fila.length) return (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '14px 16px', marginBottom: 14, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
-              Ninguém está há mais de {SILENCIO_DIAS} dias sem contacto. A lista abaixo continua ordenada por quem
-              precisa de mais atenção.
-            </div>
-          )
-          return (
-            <div style={{ background: 'white', border: '1px solid var(--border-2)', borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 12 }}>
-                A quem ir falar hoje
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {fila.map(p => {
-                  const d = diasSem(p.id)
-                  const porque = [
-                    erosionBy[p.id] ? 'está a cair face ao próprio hábito' : '',
-                    moodFlags.has(p.id) ? 'humor em baixa há dias' : '',
-                    d === null ? 'nunca foi contactado' : `${d} dias sem contacto`,
-                  ].filter(Boolean)
-                  return (
-                    <div key={p.id} style={{
-                      display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
-                      border: '1px solid var(--bg-3)', borderRadius: 10, padding: '11px 13px',
-                    }}>
-                      <span style={{
-                        flexShrink: 0, width: 34, height: 34, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: corDaPessoa(p.id), color: 'white', fontSize: 12, fontWeight: 700,
-                      }}>{iniciais(p.name)}</span>
-                      <span style={{ minWidth: 0, flex: '1 1 180px' }}>
-                        <span style={{ display: 'block', fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
-                        <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.4 }}>
-                          {porque.join(' · ')}
-                        </span>
-                      </span>
-                      <div style={{ display: 'flex', gap: 7, flexShrink: 0 }}>
-                        <button onClick={() => registarContacto(p.id, p.name)} disabled={aRegistar === p.id}
-                          style={{ minHeight: 38, padding: '0 14px', borderRadius: 8, border: 'none', background: 'var(--ink)', color: 'white', fontSize: 12.5, fontWeight: 600, cursor: aRegistar === p.id ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-                          {aRegistar === p.id ? '…' : 'Falei com ele/ela'}
-                        </button>
-                        <button onClick={() => openNoteEditor(p.id)}
-                          style={{ minHeight: 38, padding: '0 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                          + Nota
-                        </button>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )
-        })()}
-
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 10 }} />)}</div>
-        ) : flaggedFirst.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 30, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13.5 }}>{cfg.emptyPeopleMsg}</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {flaggedFirst.map(p => {
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>A ordem sai de há quanto tempo ninguém fala com cada pessoa</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>
+            {SILENCIO_DIAS}+ dias sem contacto
+          </span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Notas de acompanhamento e encaminhamento — só visíveis à equipa
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(380px, 1fr) minmax(340px, 480px)' : '1fr',
+      }}>
+        {(largo || !aberta) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural} · por quem precisa mais</span>
+                <span style={{ ...ROTULO, width: 48, textAlign: 'right' }}>Notas</span>
+                <span style={{ ...ROTULO, width: 96, textAlign: 'right' }}>Sem contacto</span>
+                <span style={{ ...ROTULO, width: 140 }}> </span>
+              </Cabecalho>
+            }
+            rodape={
+              emSilencioAgora.length === 0 ? (
+                <span style={{ ...MONO, color: 'var(--green)' }}>
+                  Ninguém está há mais de {SILENCIO_DIAS} dias sem contacto
+                </span>
+              ) : (
+                <span style={MONO}>{lista.length} de {flaggedFirst.length}</span>
+              )
+            }
+          >
+            {loading ? (
+              <ACarregar oQue="A ver com quem ninguém fala há mais tempo…" />
+            ) : lista.length === 0 ? (
+              <Vazio titulo={flaggedFirst.length === 0 ? cfg.emptyPeopleMsg : 'Ninguém em silêncio.'}
+                oQueFazer={flaggedFirst.length === 0 ? undefined
+                  : `Ninguém está há mais de ${SILENCIO_DIAS} dias sem que alguém tenha falado consigo.`} />
+            ) : lista.map(p => {
               const pNotes = notesFor(p.id)
               const flagged = moodFlags.has(p.id)
               const erosion = erosionBy[p.id]
-              const isOpen = openFor === p.id
-              const borderColor = erosion
-                ? (erosion.level === 'critical' ? '#fca5a5' : '#fde68a')
-                : (flagged ? '#c4b5fd' : 'var(--border)')
+              const d = diasSem(p.id)
+              const calado = d === null || d >= SILENCIO_DIAS
+              const porque = [
+                erosion ? 'está a cair face ao próprio hábito' : '',
+                flagged ? 'humor em baixa há dias' : '',
+              ].filter(Boolean).join(' · ')
               return (
-                <div key={p.id} style={{ background: 'white', border: `1px solid ${borderColor}`, borderRadius: 12, padding: '13px 16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-                    <div>
-                      <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                      {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
-                      {pNotes.length > 0 && <span style={{ fontSize: 11.5, color: 'var(--ink-4)', marginLeft: 10 }}>{pNotes.length} nota{pNotes.length !== 1 ? 's' : ''}</span>}
-                    </div>
-                    {/* Há quanto tempo ninguém fala com esta pessoa. É este
-                        número que decide a ordem da lista — a página deixou de
-                        ser "onde se escrevem notas" e passou a ser "a quem ir
-                        falar". */}
-                    {(() => {
-                      const d = diasSem(p.id)
-                      if (d !== null && d < SILENCIO_DIAS) return null
-                      return (
-                        <span style={{
-                          fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 600,
-                          letterSpacing: '0.1em', textTransform: 'uppercase',
-                          color: d === null ? '#b45309' : 'var(--ink-3)',
-                          background: d === null ? '#fffbeb' : 'var(--bg-2)',
-                          border: `1px solid ${d === null ? '#fde68a' : 'var(--border-2)'}`,
-                          borderRadius: 20, padding: '3px 10px', marginLeft: 'auto', marginRight: 8, whiteSpace: 'nowrap',
-                        }}>{d === null ? 'nunca contactado' : `${d} dias sem contacto`}</span>
-                      )
-                    })()}
-                    <button onClick={() => isOpen ? setOpenFor(null) : openNoteEditor(p.id)} style={{ padding: '6px 12px', background: isOpen ? 'var(--bg-3)' : 'var(--ink)', color: isOpen ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
-                      {isOpen ? 'Fechar' : '+ Nota'}
-                    </button>
-                  </div>
-
-                  {/* Erosão: está A CAIR face ao próprio hábito (2-3 semanas) */}
-                  {erosion && (
-                    <div style={{ marginTop: 8, padding: '9px 12px', background: erosion.level === 'critical' ? '#fef2f2' : '#fffbeb', border: `1px solid ${erosion.level === 'critical' ? '#fca5a5' : '#fde68a'}`, borderRadius: 8 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: erosion.flags.length ? 6 : 0 }}>
-                        <Icon name="chart" size={13} color={erosion.level === 'critical' ? '#b91c1c' : '#b45309'} />
-                        <span style={{ fontSize: 12, fontWeight: 800, color: erosion.level === 'critical' ? '#b91c1c' : '#b45309', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                          Erosão psico-social{erosion.declining.length >= 2 ? ` · ${erosion.declining.length} áreas a cair` : ''}
+                <LinhaTabela key={p.id}
+                  aoTocar={() => setOpenFor(openFor === p.id ? null : p.id)}
+                  ativa={openFor === p.id}
+                  filete={erosion
+                    ? (erosion.level === 'critical' ? 'var(--red)' : 'var(--amber)')
+                    : calado ? 'var(--amber)' : undefined}
+                  principal={
+                    <>
+                      {p.name}
+                      {p.room_number && (
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                          {' '}· {p.room_number}
                         </span>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                        {erosion.flags.map((f, i) => (
-                          <div key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-                            <strong style={{ color: SEVERITY_STYLE[f.severity].color }}>{f.title}</strong> — {f.detail}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Limiar estático: está SEMPRE em baixo (não precisa de estar a cair) */}
-                  {flagged && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, padding: '7px 11px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8 }}>
-                      <Icon name="alert" size={13} color="#7c3aed" />
-                      <span style={{ fontSize: 12, color: '#6d28d9', fontWeight: 600 }}>Humor em baixo persistente nos últimos 14 dias — pode valer a pena um acompanhamento.</span>
-                    </div>
-                  )}
-
-                  {pNotes.length > 0 && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
-                      {pNotes.slice(0, 5).map(n => (
-                        <div key={n.id} style={{ borderTop: '1px solid var(--bg-3)', paddingTop: 8 }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, alignItems: 'flex-start' }}>
-                            <div style={{ fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{new Date(n.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</div>
-                            {n.referral_status && (
-                              <button onClick={() => advanceReferral(n)} disabled={n.referral_status === 'concluido'} style={{ fontSize: 10.5, fontWeight: 700, color: REFERRAL_STATUS[n.referral_status].color, background: REFERRAL_STATUS[n.referral_status].bg, border: `1px solid ${REFERRAL_STATUS[n.referral_status].color}33`, borderRadius: 6, padding: '2px 8px', cursor: n.referral_status === 'concluido' ? 'default' : 'pointer' }}>
-                                {n.referred_to} · {REFERRAL_STATUS[n.referral_status].label}{n.referral_status !== 'concluido' ? ' →' : ''}
-                              </button>
-                            )}
-                          </div>
-                          <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, marginTop: 3 }}>{n.note}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {isOpen && (
-                    <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      <textarea autoFocus value={newNote} onChange={e => setNewNote(e.target.value)} rows={3} placeholder="Nota de acompanhamento…"
-                        style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                        <select value={newReferTo} onChange={e => setNewReferTo(e.target.value)} style={{ flex: '1 1 200px', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none', background: 'white' }}>
-                          <option value="">Sem encaminhamento</option>
-                          {REFERRAL_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
-                        </select>
-                        {newReferTo && (
-                          <>
-                            <select value={newReferStatus} onChange={e => setNewReferStatus(e.target.value)} style={{ flex: '1 1 130px', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none', background: 'white' }}>
-                              {Object.entries(REFERRAL_STATUS).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
-                            </select>
-                            <input type="date" value={newReferDate} onChange={e => setNewReferDate(e.target.value)} style={{ flex: '1 1 140px', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} />
-                          </>
-                        )}
-                      </div>
-                      <button onClick={saveNote} disabled={saving || !newNote.trim()} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving || !newNote.trim() ? 'var(--bg-3)' : 'var(--ink)', color: saving || !newNote.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving || !newNote.trim() ? 'not-allowed' : 'pointer' }}>
-                        {saving ? 'A guardar…' : 'Guardar nota'}
-                      </button>
-                    </div>
-                  )}
-                </div>
+                      )}
+                    </>
+                  }
+                  secundaria={porque || undefined}
+                  celulas={[
+                    {
+                      rotulo: 'Notas', valor: pNotes.length || '—', largura: 48, direita: true,
+                      cor: pNotes.length ? 'var(--ink-4)' : 'var(--ink-5)',
+                    },
+                    {
+                      rotulo: 'Sem contacto', largura: 96, direita: true, forte: calado,
+                      valor: d === null ? 'nunca' : `${d}d`,
+                      cor: d === null ? 'var(--amber)' : calado ? 'var(--amber)' : 'var(--ink-4)',
+                    },
+                  ]}
+                  fim={
+                    /* Um toque. Se registar um contacto der trabalho, ninguém
+                       regista — e o número de dias deixa de querer dizer nada. */
+                    <Botao feitio="principal"
+                      onClick={() => registarContacto(p.id, p.name)}
+                      esperando={aRegistar === p.id}>
+                      FALEI COM ELE
+                    </Botao>
+                  } />
               )
             })}
-          </div>
+          </Painel>
         )}
+
+        {/* ══ O QUE SE SABE DESTA PESSOA ═══════════════════════════════════ */}
+        {aberta ? (() => {
+          const p = aberta
+          const pNotes = notesFor(p.id)
+          const erosion = erosionBy[p.id]
+          const flagged = moodFlags.has(p.id)
+          return (
+            <Painel
+              cabeca={
+                <div style={{
+                  padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                }}>
+                  <Botao onClick={() => setOpenFor(null)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{
+                      display: 'block', fontSize: 'var(--t-destaque)',
+                      fontWeight: 'var(--peso-corpo)' as any,
+                    }}>{p.name}</span>
+                    <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                      {(() => { const d = diasSem(p.id); return d === null ? 'NUNCA CONTACTADO' : `${d} DIAS SEM CONTACTO` })()}
+                      {' · '}{pNotes.length} NOTA{pNotes.length === 1 ? '' : 'S'}
+                    </span>
+                  </span>
+                </div>
+              }
+            >
+              <div style={{ padding: '0 14px 14px' }}>
+                {/* Erosão: está A CAIR face ao próprio hábito (2 a 3 semanas). */}
+                {erosion && (
+                  <div style={{ marginTop: 12 }}>
+                    <Aviso tom={erosion.level === 'critical' ? 'mau' : 'atencao'}
+                      titulo={`Erosão psico-social${erosion.declining.length >= 2 ? ` · ${erosion.declining.length} áreas a cair` : ''}`}>
+                      {erosion.flags.map((f, i) => (
+                        <div key={i} style={{ marginTop: i ? 4 : 0, lineHeight: 1.55 }}>
+                          <strong style={{ color: SEVERITY_STYLE[f.severity].color }}>{f.title}</strong> — {f.detail}
+                        </div>
+                      ))}
+                    </Aviso>
+                  </div>
+                )}
+
+                {/* Limiar estático: está SEMPRE em baixo, sem precisar de cair. */}
+                {flagged && (
+                  <p style={{
+                    margin: '12px 0 0', fontSize: 'var(--t-dado)',
+                    color: 'var(--ink-3)', lineHeight: 1.6,
+                  }}>
+                    Humor em baixo persistente nos últimos 14 dias — pode valer a pena
+                    um acompanhamento.
+                  </p>
+                )}
+
+                {/* ── A NOTA NOVA ────────────────────────────────────────── */}
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-2)' }}>
+                  <Campo rotulo="Nota de acompanhamento" para="ps-nota">
+                    <textarea id="ps-nota" value={newNote} onChange={e => setNewNote(e.target.value)}
+                      rows={3} placeholder="O que se falou, o que se notou, o que fica combinado."
+                      style={{ ...CAIXA_TEXTO, width: '100%' }} />
+                  </Campo>
+
+                  <Campo rotulo="Encaminhar para" para="ps-refer">
+                    <select id="ps-refer" value={newReferTo}
+                      onChange={e => setNewReferTo(e.target.value)} style={{ ...CAIXA, width: '100%' }}>
+                      <option value="">Sem encaminhamento</option>
+                      {REFERRAL_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </Campo>
+
+                  {newReferTo && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                      <Campo rotulo="Em que ponto está" para="ps-estado">
+                        <select id="ps-estado" value={newReferStatus}
+                          onChange={e => setNewReferStatus(e.target.value)} style={{ ...CAIXA, width: '100%' }}>
+                          {Object.entries(REFERRAL_STATUS).map(([k, v]) => (
+                            <option key={k} value={k}>{v.label}</option>
+                          ))}
+                        </select>
+                      </Campo>
+                      <Campo rotulo="Quando" para="ps-data">
+                        <input id="ps-data" type="date" value={newReferDate}
+                          onChange={e => setNewReferDate(e.target.value)} style={{ ...CAIXA, width: '100%' }} />
+                      </Campo>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: 12 }}>
+                    <Botao feitio="principal" onClick={saveNote} esperando={saving}
+                      disabled={!newNote.trim()}>
+                      GUARDAR A NOTA
+                    </Botao>
+                  </div>
+                </div>
+
+                {/* ── O QUE JÁ ESTÁ ESCRITO ──────────────────────────────── */}
+                {pNotes.length > 0 && (
+                  <div style={{ marginTop: 16 }}>
+                    <div style={{ ...ROTULO, marginBottom: 4 }}>O que já ficou escrito</div>
+                    {pNotes.map(n => (
+                      <div key={n.id} style={{ padding: '8px 0', borderTop: '1px solid var(--border)' }}>
+                        <div style={{
+                          display: 'flex', justifyContent: 'space-between',
+                          gap: 8, alignItems: 'center', flexWrap: 'wrap',
+                        }}>
+                          <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                            {new Date(n.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                          {n.referral_status && (
+                            <button onClick={() => advanceReferral(n)}
+                              disabled={n.referral_status === 'concluido'}
+                              className="mesa-botao"
+                              style={{
+                                ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.06em',
+                                padding: '0 9px', borderRadius: 'var(--r-sm)',
+                                border: `1px solid ${REFERRAL_STATUS[n.referral_status].color}`,
+                                background: 'transparent',
+                                color: REFERRAL_STATUS[n.referral_status].color,
+                                fontWeight: 'var(--peso-forte)' as any,
+                                cursor: n.referral_status === 'concluido' ? 'default' : 'pointer',
+                                whiteSpace: 'nowrap',
+                              }}>
+                              {n.referred_to} · {REFERRAL_STATUS[n.referral_status].label}
+                              {n.referral_status !== 'concluido' ? ' →' : ''}
+                            </button>
+                          )}
+                        </div>
+                        <div style={{
+                          fontSize: 'var(--t-dado)', color: 'var(--ink-2)',
+                          lineHeight: 1.6, marginTop: 3, whiteSpace: 'pre-wrap',
+                        }}>{n.note}</div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </Painel>
+          )
+        })() : largo ? (
+          <Painel>
+            <Vazio titulo={`Escolha um ${cfg.personNoun.toLowerCase()}.`}
+              oQueFazer="As notas de acompanhamento e os encaminhamentos abrem aqui ao lado. E o «falei com ele» na lista é um toque — é isso que mantém o número de dias verdadeiro." />
+          </Painel>
+        ) : null}
       </div>
-    </div>
+    </Mesa>
   )
 }

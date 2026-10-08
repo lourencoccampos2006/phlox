@@ -33,6 +33,11 @@ import { montarRota, folhaDoMotorista, horariosDoCircuito, type Paragem } from '
 import { useOrgName } from '@/lib/useOrgName'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
 import { registar, ACOES } from '@/lib/registo'
+import { ptDate } from '@/lib/ptTime'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Patient { id: string; name: string; room_number?: string | null; address?: string | null; photo_url?: string | null; lat?: number | null; lon?: number | null }
 type TipoTransporte = 'circuito' | 'consulta' | 'passeio' | 'pontual'
@@ -67,9 +72,9 @@ const ABAS: { id: Aba; label: string; icon: string; sub: string }[] = [
   { id: 'servicos', label: 'Outros',        icon: 'clipboard', sub: 'Fim de semana, noite e pedidos avulsos.' },
 ]
 const STATUS_META: Record<Service['status'], { label: string; color: string; bg: string }> = {
-  pedido:    { label: 'Pedido',    color: '#b45309', bg: '#fffbeb' },
-  em_curso:  { label: 'Em curso',  color: '#1d4ed8', bg: '#eff6ff' },
-  concluido: { label: 'Concluído', color: '#16a34a', bg: '#f0fdf4' },
+  pedido:    { label: 'Pedido',    color: 'var(--amber)', bg: 'var(--badge-amber-bg)' },
+  em_curso:  { label: 'Em curso',  color: 'var(--ink-2)', bg: 'var(--bg-2)' },
+  concluido: { label: 'Concluído', color: 'var(--green)', bg: 'var(--badge-green-bg)' },
 }
 
 export default function ApoioServicosPage() {
@@ -83,9 +88,13 @@ export default function ApoioServicosPage() {
   const cfg = institutionConfig(institution)
   const ACCENT = blueprintFor(institution).accent
 
-  const today = new Date().toISOString().slice(0, 10)
+  /* Era `toISOString()`: em Lisboa, no verão, entre a meia-noite e a 1h isso
+     devolve o dia ANTERIOR — e esta é a data com que se grava se o transporte
+     foi feito. Ver lib/ptTime. */
+  const today = ptDate()
   const todayWeekday = new Date().getDay()
 
+  const largo = useLargo()
   const [aba, setAba] = useState<Aba>('circuito')
   const [patients, setPatients] = useState<Patient[]>([])
   const [schedules, setSchedules] = useState<Schedule[]>([])
@@ -419,11 +428,9 @@ export default function ApoioServicosPage() {
 
   if (needsSetup) {
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-        <div className="page-container page-body" style={{ maxWidth: 620 }}>
-          <AvisoDeSetup codigo="PHX-H5" oQue="Os transportes recorrentes ainda não estão disponíveis nesta conta." />
-        </div>
-      </div>
+      <Mesa altura="documento">
+        <AvisoDeSetup codigo="PHX-H5" oQue="Os transportes recorrentes ainda não estão disponíveis nesta conta." />
+      </Mesa>
     )
   }
 
@@ -446,8 +453,8 @@ export default function ApoioServicosPage() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {comAlgo.length === 0 && !newFor && (
           <div style={{
-            background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 12,
-            padding: '16px 18px', fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.6,
+            background: 'var(--bg)', border: '1px dashed var(--border)', borderRadius: 'var(--r-xl)',
+            padding: '16px 18px', fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.6,
           }}>
             Ainda não há nada marcado. Escolhe a pessoa em baixo e carrega em <strong style={{ color: 'var(--ink-3)' }}>+ Marcar</strong>.
           </div>
@@ -457,15 +464,15 @@ export default function ApoioServicosPage() {
           const seus = doKind(p.id)
           const isNew = newFor === p.id
           return (
-            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+            <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '9px 12px', background: 'var(--bg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                 <div style={{ minWidth: 0 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                  {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
+                  <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.name}</span>
+                  {p.room_number && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
                 </div>
                 <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{
                   padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white',
-                  border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                  border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', flexShrink: 0,
                 }}>{isNew ? 'Fechar' : '+ Marcar'}</button>
               </div>
 
@@ -474,15 +481,15 @@ export default function ApoioServicosPage() {
                   {seus.map(sc => {
                     const done = !!logFor(sc.id)?.done
                     return (
-                      <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                      <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? 'var(--badge-green-bg)' : 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px' }}>
                         <input type="checkbox" checked={done} onChange={() => toggle(sc)} style={{ width: 17, height: 17, flexShrink: 0 }} />
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--t-dado)', color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
                           {sc.label}
-                          {sc.time ? <strong style={{ marginLeft: 7, fontFamily: 'var(--font-mono)', fontSize: 12.5 }}>{String(sc.time).slice(0, 5)}</strong> : null}
+                          {sc.time ? <strong style={{ marginLeft: 7, fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)' }}>{String(sc.time).slice(0, 5)}</strong> : null}
                           {sc.destino ? <span style={{ color: 'var(--ink-4)', marginLeft: 7 }}>→ {sc.destino}</span> : null}
                         </span>
-                        {!sc.weekdays && kind !== 'pontual' && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
-                        <button onClick={() => removeSchedule(sc.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, flexShrink: 0 }}>×</button>
+                        {!sc.weekdays && kind !== 'pontual' && <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
+                        <button onClick={() => removeSchedule(sc.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-corpo)', flexShrink: 0 }}>×</button>
                       </div>
                     )
                   })}
@@ -522,12 +529,12 @@ export default function ApoioServicosPage() {
                     </div>
                   )}
 
-                  {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
+                  {err && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)' }}>{err}</div>}
                   <button onClick={() => createSchedule(kind)} disabled={saving || !newLabel.trim()} style={{
                     alignSelf: 'flex-start', padding: '8px 16px',
                     background: saving || !newLabel.trim() ? 'var(--bg-3)' : 'var(--ink)',
                     color: saving || !newLabel.trim() ? 'var(--ink-4)' : 'white',
-                    border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700,
+                    border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
                     cursor: saving || !newLabel.trim() ? 'not-allowed' : 'pointer',
                   }}>{saving ? 'A guardar…' : 'Marcar'}</button>
                 </div>
@@ -539,39 +546,45 @@ export default function ApoioServicosPage() {
     )
   }
 
+  /* A MOLDURA — refeita (2026-10-08).
+
+     Tinha 120px antes de qualquer trabalho: banda branca, título em serifa de
+     28px («Serviços de apoio», que a barra lateral já diz), um parágrafo que
+     muda com o separador, e só depois os separadores.
+
+     O parágrafo não é inútil — diz o que cada separador é. Mas é um ESTADO, e
+     estados vivem na barra de estado, por baixo, não por cima do trabalho. */
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 0' }}>
-        <div className="page-container">
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Serviços de apoio</h1>
-          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0', maxWidth: '62ch', lineHeight: 1.55 }}>{abaMeta.sub}</p>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Apoio</span>
 
-          {/* ── Os separadores ──────────────────────────────────────────────
-              Percorre na horizontal no telemóvel, em vez de empurrar a página
-              para baixo, que era o que obrigava a rolar meia dúzia de ecrãs
-              para chegar aos serviços. */}
-          <div style={{ display: 'flex', gap: 2, marginTop: 14, overflowX: 'auto', scrollbarWidth: 'none' }}>
-            {ABAS.map(a => {
-              const on = aba === a.id
-              return (
-                <button key={a.id} onClick={() => { setAba(a.id); setNewFor(null) }} style={{
-                  display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap',
-                  padding: '9px 14px', background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 13, fontWeight: on ? 700 : 500,
-                  color: on ? 'var(--ink)' : 'var(--ink-4)',
-                  borderBottom: `2px solid ${on ? ACCENT : 'transparent'}`,
-                }}>
-                  <Icon name={a.icon} size={14} color={on ? ACCENT : 'var(--ink-5)'} />
-                  {a.label}
-                </button>
-              )
-            })}
-          </div>
-        </div>
-      </div>
+          <Seletor
+            opcoes={ABAS.map(a => ({ id: a.id, rotulo: a.label }))}
+            ativa={aba}
+            aoMudar={v => { setAba(v as Aba); setNewFor(null) }} />
 
-      <div className="page-container page-body" style={{ maxWidth: 860, display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {aba !== 'roupa' && aba !== 'servicos' && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              {schedules.filter(x => (x.kind || 'circuito') === aba).length} MARCADOS
+            </span>
+          )}
 
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Procurar pessoa…"
+            style={{ ...CAIXA, width: largo ? 190 : '100%', marginLeft: largo ? 'auto' : undefined }} />
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>{abaMeta.sub}</span>
+        </BarraDeEstado>
+      }
+    >
         {faltaSprint143 && aba !== 'roupa' && aba !== 'servicos' && (
           <AvisoDeSetup codigo="PHX-T3" oQue="Os vários tipos de transporte ainda não estão disponíveis nesta conta — por agora tudo funciona como circuito diário." />
         )}
@@ -580,18 +593,17 @@ export default function ApoioServicosPage() {
         {aba === 'circuito' && (
           <>
             {/* A hora de partida. A ÚNICA hora que alguém escreve. */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }}>
+            <Painel><div style={{ padding: '12px 14px' }}>
               {circuitos.length > 1 && (
-                <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-                  {circuitos.map(c => (
-                    <button key={c.id} onClick={() => setCircuitoId(c.id)} style={pilula(circuitoAtivo?.id === c.id)}>{c.nome}</button>
-                  ))}
+                <div style={{ marginBottom: 12 }}>
+                  <Seletor opcoes={circuitos.map(c => ({ id: c.id, rotulo: c.nome }))}
+                    ativa={circuitoAtivo?.id || ''} aoMudar={setCircuitoId} />
                 </div>
               )}
 
               {!circuitoAtivo ? (
                 <div>
-                  <div style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, maxWidth: '56ch' }}>
+                  <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6, maxWidth: '56ch' }}>
                     Ainda não há circuito. Cria um e diz só a que horas a carrinha sai —
                     a hora a que chega a cada porta é calculada a partir da rota, com os tempos
                     de estrada reais. Ninguém tem de adivinhar horas pessoa a pessoa.
@@ -608,7 +620,7 @@ export default function ApoioServicosPage() {
                     <input type="time" value={circuitoAtivo.hora_partida}
                       onChange={e => guardarCircuito(circuitoAtivo.id, { hora_partida: e.target.value })}
                       disabled={!podeEditar}
-                      style={{ ...campo, width: 118, fontSize: 19, fontWeight: 700, fontFamily: 'var(--font-mono)' }} />
+                      style={{ ...campo, width: 118, fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-mono)' }} />
                   </div>
                   <div>
                     <div style={rotulo}>A cada porta</div>
@@ -616,16 +628,16 @@ export default function ApoioServicosPage() {
                       <input type="number" min={1} max={15} value={circuitoAtivo.minutos_paragem}
                         onChange={e => guardarCircuito(circuitoAtivo.id, { minutos_paragem: Math.max(1, Math.min(15, Number(e.target.value) || 3)) })}
                         disabled={!podeEditar} style={{ ...campo, width: 68 }} />
-                      <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>minutos</span>
+                      <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>minutos</span>
                     </div>
                   </div>
                   {circuitoComHoras && (
                     <div style={{ flex: '1 1 190px' }}>
                       <div style={rotulo}>De volta por volta das</div>
-                      <div style={{ fontSize: 19, fontWeight: 700, fontFamily: 'var(--font-mono)', color: ACCENT }}>
+                      <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-mono)', color: ACCENT }}>
                         {circuitoComHoras.regresso}
                       </div>
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45 }}>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45 }}>
                         {circuitoComHoras.minutosTotal} min no total
                         {circuitoComHoras.aproximado ? ' · estimativa, ainda sem tempos de estrada reais' : ' · com os tempos de estrada reais'}
                       </div>
@@ -638,16 +650,16 @@ export default function ApoioServicosPage() {
                   )}
                 </div>
               )}
-            </div>
+            </div></Painel>
 
             {/* O mapa e a sequência */}
             {!loading && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px 16px' }}>
+              <Painel><div style={{ padding: '12px 14px' }}>
                 {semMoradaCasa && (
                   <div style={{ marginBottom: 13, display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 240px' }}>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 240px' }}>
                       A instituição ainda não tem coordenadas — sem elas a rota não começa nem acaba na casa.
-                      {' '}<a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 600 }}>Confirma a morada</a>, ou converte-a agora.
+                      {' '}<a href="/equipa?tab=definicoes" style={{ color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any }}>Confirma a morada</a>, ou converte-a agora.
                     </span>
                     <button onClick={converterCasa} disabled={aConverterCasa} style={botaoVazio(aConverterCasa)}>
                       {aConverterCasa ? 'a converter…' : 'Converter a morada da casa'}
@@ -680,31 +692,31 @@ export default function ApoioServicosPage() {
                         return (
                           <div key={pg.scheduleId} style={{
                             display: 'flex', alignItems: 'center', gap: 11,
-                            background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 9, padding: '9px 12px',
+                            background: done ? 'var(--badge-green-bg)' : 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: '9px 12px',
                           }}>
                             <input type="checkbox" checked={done} onChange={() => { const sc = schedules.find(x => x.id === pg.scheduleId); if (sc) toggle(sc) }} style={{ width: 17, height: 17, flexShrink: 0 }} />
                             <span style={{
-                              fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700,
-                              color: done ? '#16a34a' : ACCENT, minWidth: 46,
+                              fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+                              color: done ? 'var(--green)' : ACCENT, minWidth: 46,
                             }}>{pg.hora || `${i + 1}.`}</span>
-                            <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)', opacity: done ? 0.6 : 1, textDecoration: done ? 'line-through' : 'none' }}>
+                            <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--t-dado)', color: 'var(--ink)', opacity: done ? 0.6 : 1, textDecoration: done ? 'line-through' : 'none' }}>
                               {pg.nome}
-                              {pg.morada ? <span style={{ color: 'var(--ink-4)', fontSize: 12.5 }}> · {pg.morada}</span> : null}
+                              {pg.morada ? <span style={{ color: 'var(--ink-4)', fontSize: 'var(--t-meta)' }}> · {pg.morada}</span> : null}
                             </span>
-                            <button onClick={() => removeSchedule(pg.scheduleId)} aria-label="Tirar do circuito" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, flexShrink: 0 }}>×</button>
+                            <button onClick={() => removeSchedule(pg.scheduleId)} aria-label="Tirar do circuito" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-corpo)', flexShrink: 0 }}>×</button>
                           </div>
                         )
                       })}
                     </div>
                     {circuitoComHoras && (
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.55, maxWidth: '62ch' }}>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.55, maxWidth: '62ch' }}>
                         As horas são calculadas a partir da hora de partida e do tempo de estrada entre
                         cada porta. São uma estimativa boa, não uma promessa — o trânsito é do trânsito.
                       </div>
                     )}
                   </div>
                 )}
-              </div>
+              </div></Painel>
             )}
 
             {/* Quem anda no circuito */}
@@ -714,9 +726,9 @@ export default function ApoioServicosPage() {
                 <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`} style={{ ...campo, width: 210 }} />
               </div>
               {loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 58, borderRadius: 10 }} />)}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 58, borderRadius: 'var(--r-lg)' }} />)}</div>
               ) : filtered.length === 0 ? (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 30, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13.5 }}>{cfg.emptyPeopleMsg}</div>
+                <Painel><Vazio titulo={cfg.emptyPeopleMsg} /></Painel>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {filtered.map(pp => {
@@ -724,26 +736,26 @@ export default function ApoioServicosPage() {
                     const isNew = newFor === pp.id
                     const semMorada = !pp.address
                     return (
-                      <div key={pp.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+                      <div key={pp.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '9px 12px', background: 'var(--bg)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                           <div style={{ minWidth: 0 }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{pp.name}</span>
-                            {semMorada && <span style={{ fontSize: 11, color: '#b45309', marginLeft: 8 }}>sem morada na ficha</span>}
+                            <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{pp.name}</span>
+                            {semMorada && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)', marginLeft: 8 }}>sem morada na ficha</span>}
                           </div>
                           <button onClick={() => isNew ? setNewFor(null) : openNew(pp.id)} style={{
                             padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white',
-                            border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', flexShrink: 0,
+                            border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', flexShrink: 0,
                           }}>{isNew ? 'Fechar' : seus.length ? '+ Outro' : '+ Pôr no circuito'}</button>
                         </div>
 
                         {seus.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 10 }}>
                             {seus.map(sc => (
-                              <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                              <div key={sc.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px' }}>
                                 <Icon name="route" size={14} color="var(--ink-4)" />
-                                <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, color: 'var(--ink)' }}>{sc.label}</span>
-                                {!sc.weekdays && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
-                                <button onClick={() => removeSchedule(sc.id)} aria-label="Tirar do circuito" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15 }}>×</button>
+                                <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--t-dado)', color: 'var(--ink)' }}>{sc.label}</span>
+                                {!sc.weekdays && <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
+                                <button onClick={() => removeSchedule(sc.id)} aria-label="Tirar do circuito" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-corpo)' }}>×</button>
                               </div>
                             ))}
                           </div>
@@ -761,16 +773,16 @@ export default function ApoioServicosPage() {
                                 ))}
                               </div>
                             </div>
-                            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', lineHeight: 1.5, maxWidth: '54ch' }}>
+                            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.5, maxWidth: '54ch' }}>
                               Sem hora, de propósito: neste circuito o carro sai às {circuitoAtivo?.hora_partida || '08:00'} e
                               a hora de chegada a cada porta sai da rota.
                             </div>
-                            {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
+                            {err && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)' }}>{err}</div>}
                             <button onClick={() => createSchedule('circuito')} disabled={saving || !newLabel.trim()} style={{
                               alignSelf: 'flex-start', padding: '8px 16px',
                               background: saving || !newLabel.trim() ? 'var(--bg-3)' : 'var(--ink)',
                               color: saving || !newLabel.trim() ? 'var(--ink-4)' : 'white',
-                              border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700,
+                              border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
                               cursor: saving || !newLabel.trim() ? 'not-allowed' : 'pointer',
                             }}>{saving ? 'A guardar…' : 'Pôr no circuito'}</button>
                           </div>
@@ -792,7 +804,7 @@ export default function ApoioServicosPage() {
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`} style={{ ...campo, width: 210 }} />
             </div>
             {loading
-              ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 58, borderRadius: 10 }} />)}</div>
+              ? <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{Array.from({ length: 3 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 58, borderRadius: 'var(--r-lg)' }} />)}</div>
               : quadroPorPessoa(aba)}
           </>
         )}
@@ -818,10 +830,10 @@ export default function ApoioServicosPage() {
               </div>
 
               {showNewSvc && (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16, display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 12 }}>
+                <Painel><div style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', gap: 6 }}>
-                    <button onClick={() => setNewSvcKind('roupa')} style={pilula(newSvcKind === 'roupa')}>Tratamento de roupa</button>
-                    <button onClick={() => setNewSvcKind('outro')} style={pilula(newSvcKind === 'outro')}>Outro</button>
+                    <Seletor opcoes={[{ id: 'roupa', rotulo: 'Tratamento de roupa' }, { id: 'outro', rotulo: 'Outro' }]}
+                      ativa={newSvcKind} aoMudar={v => setNewSvcKind(v as Service['kind'])} />
                   </div>
                   <select value={newSvcPatient} onChange={e => setNewSvcPatient(e.target.value)} style={campo}>
                     <option value="">Sem {cfg.personNoun.toLowerCase()} associado</option>
@@ -831,7 +843,7 @@ export default function ApoioServicosPage() {
                   <button onClick={createService} disabled={svcSaving} style={botaoSolido(ACCENT, svcSaving)}>
                     {svcSaving ? 'A publicar…' : 'Publicar pedido'}
                   </button>
-                </div>
+                </div></Painel>
               )}
 
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 14 }}>
@@ -839,22 +851,22 @@ export default function ApoioServicosPage() {
                   const items = services.filter(sv => sv.status === colStatus)
                   return (
                     <div key={colStatus}>
-                      <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: STATUS_META[colStatus].color, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: 8 }}>
+                      <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: STATUS_META[colStatus].color, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 'var(--peso-forte)' as any, marginBottom: 8 }}>
                         {STATUS_META[colStatus].label} ({items.length})
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {items.length === 0 && <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 10, padding: 16, textAlign: 'center', color: 'var(--ink-5)', fontSize: 12 }}>Nada aqui.</div>}
+                        {items.length === 0 && <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 'var(--r-lg)', padding: 16, textAlign: 'center', color: 'var(--ink-5)', fontSize: 'var(--t-meta)' }}>Nada aqui.</div>}
                         {items.map(sv => (
-                          <div key={sv.id} style={{ background: STATUS_META[sv.status].bg, border: `1px solid ${STATUS_META[sv.status].color}33`, borderRadius: 10, padding: '10px 12px' }}>
+                          <div key={sv.id} style={{ background: STATUS_META[sv.status].bg, border: `1px solid ${STATUS_META[sv.status].color}33`, borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 700, color: 'var(--ink)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
                                 <Icon name={sv.kind === 'roupa' ? 'shirt' : 'package'} size={14} color="var(--ink)" /> {sv.kind === 'roupa' ? 'Tratamento de roupa' : 'Outro'}
                               </div>
-                              <button onClick={() => removeService(sv.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15, padding: 0 }}>×</button>
+                              <button onClick={() => removeService(sv.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-corpo)', padding: 0 }}>×</button>
                             </div>
-                            {nameOf(sv.patient_id) && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>{nameOf(sv.patient_id)}</div>}
-                            {sv.notes && <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 3 }}>{sv.notes}</div>}
-                            <button onClick={() => advanceService(sv)} style={{ marginTop: 8, padding: '5px 11px', background: 'white', border: `1px solid ${STATUS_META[sv.status].color}`, color: STATUS_META[sv.status].color, borderRadius: 6, fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+                            {nameOf(sv.patient_id) && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 2 }}>{nameOf(sv.patient_id)}</div>}
+                            {sv.notes && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 3 }}>{sv.notes}</div>}
+                            <button onClick={() => advanceService(sv)} style={{ marginTop: 8, padding: '5px 11px', background: 'white', border: `1px solid ${STATUS_META[sv.status].color}`, color: STATUS_META[sv.status].color, borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>
                               {sv.status === 'pedido' ? 'Assumir →' : 'Concluir ✓'}
                             </button>
                           </div>
@@ -867,35 +879,41 @@ export default function ApoioServicosPage() {
             </div>
           </>
         )}
-      </div>
-    </div>
+    </Mesa>
   )
 }
 
 // ── Alguns estilos repetidos, num sítio só ──────────────────────────────────
 const campo: React.CSSProperties = {
-  border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 11px',
-  fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none',
+  border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 11px',
+  fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none',
   boxSizing: 'border-box', minWidth: 0, maxWidth: '100%',
 }
 const rotulo: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-4)',
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)',
   textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5,
 }
+/* Fica só para escolha MÚLTIPLA — os dias da semana. Onde era «qual de N»
+   (o circuito, o tipo de serviço) passou ao `Seletor`. */
 const pilula = (on: boolean): React.CSSProperties => ({
-  padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-  fontFamily: 'inherit', border: `1.5px solid ${on ? 'var(--ink)' : 'var(--border)'}`,
-  background: on ? 'var(--ink)' : 'white', color: on ? 'white' : 'var(--ink-4)',
+  minHeight: 'var(--alvo)', padding: '0 11px', borderRadius: 'var(--r-sm)',
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', letterSpacing: '.04em',
+  fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
+  border: `1px solid ${on ? 'var(--green)' : 'var(--border)'}`,
+  background: on ? 'var(--green-light)' : 'var(--bg)', color: on ? 'var(--green)' : 'var(--ink-4)',
 })
 const botaoSolido = (cor: string, ocupado: boolean): React.CSSProperties => ({
-  alignSelf: 'flex-start', padding: '9px 16px', background: ocupado ? 'var(--bg-3)' : cor,
-  color: ocupado ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8,
-  fontSize: 12.5, fontWeight: 700, cursor: ocupado ? 'wait' : 'pointer', fontFamily: 'inherit',
+  alignSelf: 'flex-start', minHeight: 'var(--alvo)', padding: '0 14px',
+  background: ocupado ? 'var(--bg-3)' : cor, color: ocupado ? 'var(--ink-4)' : 'white',
+  border: `1px solid ${ocupado ? 'var(--border)' : cor}`, borderRadius: 'var(--r-sm)',
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', letterSpacing: '.05em',
+  fontWeight: 'var(--peso-forte)' as any, cursor: ocupado ? 'wait' : 'pointer',
 })
 const botaoVazio = (ocupado: boolean): React.CSSProperties => ({
-  minHeight: 34, padding: '0 13px', borderRadius: 8, border: '1px solid var(--border-2)',
-  background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600,
-  cursor: ocupado ? 'wait' : 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
+  minHeight: 'var(--alvo)', padding: '0 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border-2)',
+  background: 'var(--bg)', color: 'var(--ink-3)',
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', letterSpacing: '.05em',
+  fontWeight: 'var(--peso-corpo)' as any, cursor: ocupado ? 'wait' : 'pointer', whiteSpace: 'nowrap',
 })
 
 // ─── Quadro de serviço recorrente genérico ──────────────────────────────────
@@ -917,7 +935,10 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
   // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
   const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
-  const today = new Date().toISOString().slice(0, 10)
+  /* Era `toISOString()`: em Lisboa, no verão, entre a meia-noite e a 1h isso
+     devolve o dia ANTERIOR — e esta é a data com que se grava se o transporte
+     foi feito. Ver lib/ptTime. */
+  const today = ptDate()
   const todayWeekday = new Date().getDay()
   const kindIds = kinds.map(k => k.id)
 
@@ -1010,13 +1031,13 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
     )
   }
 
-  if (loading) return <div className="skeleton" style={{ height: 60, borderRadius: 10 }} />
+  if (loading) return <div className="skeleton" style={{ height: 60, borderRadius: 'var(--r-lg)' }} />
 
   return (
     <div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{title}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>{title}</div>
       {!anyScheduled && !newFor ? (
-        <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 12, padding: 20, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>
+        <div style={{ background: 'white', border: '1px dashed var(--border)', borderRadius: 'var(--r-xl)', padding: 20, textAlign: 'center', color: 'var(--ink-4)', fontSize: 'var(--t-dado)' }}>
           Nada agendado ainda. Escolha {kinds.length === 1 ? 'a pessoa' : 'a pessoa e o tipo'} abaixo.
         </div>
       ) : null}
@@ -1025,10 +1046,10 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
           const todays = todaysFor(p.id)
           const isNew = newFor === p.id
           return (
-            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+            <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '9px 12px', background: 'var(--bg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
-                <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{ padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.name}</span>
+                <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{ padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>
                   {isNew ? 'Fechar' : '+ Adicionar'}
                 </button>
               </div>
@@ -1037,13 +1058,13 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
                   {todays.map(s => {
                     const done = !!logFor(s.id)?.done
                     return (
-                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                      <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? 'var(--badge-green-bg)' : 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px' }}>
                         <input type="checkbox" checked={done} onChange={() => toggle(s)} style={{ width: 17, height: 17 }} />
-                        <Icon name={icon} size={14} color={done ? '#16a34a' : 'var(--ink-4)'} />
-                        <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
+                        <Icon name={icon} size={14} color={done ? 'var(--green)' : 'var(--ink-4)'} />
+                        <span style={{ flex: 1, fontSize: 'var(--t-dado)', color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>
                           {kindLabel(s.kind)}{s.label ? ` · ${s.label}` : ''}{s.time ? ` · ${s.time}` : ''}
                         </span>
-                        <button onClick={() => removeSchedule(s.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 15 }}>×</button>
+                        <button onClick={() => removeSchedule(s.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-corpo)' }}>×</button>
                       </div>
                     )
                   })}
@@ -1054,24 +1075,24 @@ function RecurringServiceBoard({ title, kinds, icon, patients, search }: {
                   {kinds.length > 1 && (
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                       {kinds.map(k => (
-                        <button key={k.id} onClick={() => setNewKind(k.id)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newKind === k.id ? 'var(--ink)' : 'var(--border)'}`, background: newKind === k.id ? 'var(--ink)' : 'white', color: newKind === k.id ? 'white' : 'var(--ink-4)' }}>{k.label}</button>
+                        <button key={k.id} onClick={() => setNewKind(k.id)} style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${newKind === k.id ? 'var(--ink)' : 'var(--border)'}`, background: newKind === k.id ? 'var(--ink)' : 'white', color: newKind === k.id ? 'white' : 'var(--ink-4)' }}>{k.label}</button>
                       ))}
                     </div>
                   )}
                   <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)} placeholder="Nota (opcional)"
-                    style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                    style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
                   <input type="time" value={newTime} onChange={e => setNewTime(e.target.value)} placeholder="Hora (opcional)"
-                    style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', width: 130 }} />
+                    style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', width: 130 }} />
                   <div>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Quando</div>
+                    <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Quando</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button onClick={() => setNewDays(null)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays === null ? 'var(--ink)' : 'var(--border)'}`, background: newDays === null ? 'var(--ink)' : 'white', color: newDays === null ? 'white' : 'var(--ink-4)' }}>Todos os dias</button>
+                      <button onClick={() => setNewDays(null)} style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${newDays === null ? 'var(--ink)' : 'var(--border)'}`, background: newDays === null ? 'var(--ink)' : 'white', color: newDays === null ? 'white' : 'var(--ink-4)' }}>Todos os dias</button>
                       {WEEKDAY_LABELS.map((label, d) => (
-                        <button key={d} onClick={() => toggleDay(d)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays?.includes(d) ? 'var(--ink)' : 'var(--border)'}`, background: newDays?.includes(d) ? 'var(--ink)' : 'white', color: newDays?.includes(d) ? 'white' : 'var(--ink-4)' }}>{label}</button>
+                        <button key={d} onClick={() => toggleDay(d)} style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${newDays?.includes(d) ? 'var(--ink)' : 'var(--border)'}`, background: newDays?.includes(d) ? 'var(--ink)' : 'white', color: newDays?.includes(d) ? 'white' : 'var(--ink-4)' }}>{label}</button>
                       ))}
                     </div>
                   </div>
-                  <button onClick={createSchedule} disabled={saving} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving ? 'var(--bg-3)' : 'var(--ink)', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}>
+                  <button onClick={createSchedule} disabled={saving} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving ? 'var(--bg-3)' : 'var(--ink)', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: saving ? 'not-allowed' : 'pointer' }}>
                     {saving ? 'A criar…' : 'Criar'}
                   </button>
                 </div>

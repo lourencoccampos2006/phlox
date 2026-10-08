@@ -204,7 +204,24 @@ export async function carregarEntradaCuidador(
   }
   const tol = async (q: any) => { try { const r = await q; return r?.error ? { data: [] } : r } catch { return { data: [] } } }
 
-  const [meds, doses, vitals, sintomas, consultas] = await Promise.all([
+  /* AS CONSULTAS SAÍRAM DAQUI — 2026-10-08.
+     Havia uma quinta leitura:
+
+         supabase.from('appointments').select('date').eq('profile_id', perfilId)
+
+     A `appointments` não tem `profile_id`: tem `user_id` e `patient_id`. O
+     PostgREST devolvia 400 em TODAS as visitas à /familia, e o `tol` logo
+     abaixo engolia o erro — por isso ninguém reparou.
+
+     E mesmo com a coluna certa não daria nada: a `appointments` é a agenda
+     INSTITUCIONAL, escrita só pela /agenda com um `patient_id`. Nada no lado
+     da família alguma vez lá escreve. O sinal não tinha dados por trás.
+
+     Não escrevi uma migração para acrescentar a coluna: acrescentar uma
+     coluna onde ninguém escreve é guardar o mesmo vazio com outro nome.
+     Quando as consultas da família existirem, o sinal volta — com a tabela
+     que as guardar. */
+  const [meds, doses, vitals, sintomas] = await Promise.all([
     // Sem `shifts` (não existe nesta tabela) — as tomas por dia saem de
     // pills_per_day. Ver scripts/check-colunas.mjs.
     tol(supabase.from('family_profile_meds').select('id,name,pills_per_day,active,created_at').eq('profile_id', perfilId)),
@@ -213,7 +230,6 @@ export async function carregarEntradaCuidador(
     // `pain` (0-10), não `severity` — essa coluna não existe em symptom_logs e
     // fazia o select falhar inteiro. Ver scripts/check-colunas.mjs.
     tol(supabase.from('symptom_logs').select('at,created_at,pain').eq('profile_id', perfilId).gte('created_at', desde(60) + 'T00:00:00')),
-    tol(supabase.from('appointments').select('date').eq('profile_id', perfilId).gte('date', desde(60))),
   ])
 
   const listaMeds = ((meds as any).data || []) as MedDoCuidado[]
@@ -226,7 +242,6 @@ export async function carregarEntradaCuidador(
     ...listaDoses.map(d => dia(d.date)),
     ...(((vitals as any).data || []) as any[]).map(v => dia(v.recorded_at)),
     ...(((sintomas as any).data || []) as any[]).map(s => dia(s.at || s.created_at || '')),
-    ...(((consultas as any).data || []) as any[]).map(c => dia(c.date)),
   ].filter(Boolean)
 
   return {

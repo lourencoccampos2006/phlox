@@ -57,46 +57,48 @@ export default function RegistoDoDia() {
   const requested = sp?.get('tab') as TabId | null
   const [tab, setTab] = useState<TabId>(requested && tabs.includes(requested) ? requested : tabs[0])
 
+  /* ══════════════════════════════════════════════════════════════════════
+     A MOLDURA DAS TRÊS FERRAMENTAS — refeita (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════
+     Tinha um cabeçalho de 230px: a migalha de pão, um título em serifa, uma
+     frase de explicação, e só depois as abas. Por baixo vinha a barra de
+     trabalho da ferramenta — duas camadas de cabeçalho antes de aparecer
+     uma única linha de conteúdo.
+
+     Quem abre isto cinquenta vezes por dia não precisa de ler «Tudo o que se
+     regista sobre cada utente ao longo do dia» cinquenta vezes. Precisa das
+     abas e do trabalho.
+
+     Fica uma tira fina, da altura de um separador, e nada mais.
+     ══════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f7f8fa', overflowX: 'hidden' }}>
-      <div style={{ maxWidth: 1120, margin: '0 auto', padding: '22px clamp(14px,3vw,28px) 8px' }}>
-        {/* Cabeçalho */}
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: bp.accent, fontWeight: 700, marginBottom: 5 }}>Cuidado diário</div>
-          <h1 style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: warm ? 'clamp(24px,4vw,32px)' : 'clamp(21px,3vw,27px)', fontWeight: warm ? 500 : 800, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>
-            Registo do dia
-          </h1>
-          <p style={{ fontSize: 13.5, color: '#64748b', margin: '5px 0 0' }}>
-            Tudo o que se regista sobre cada {cfg.personNoun.toLowerCase()} ao longo do dia, num só sítio.
-          </p>
-        </div>
-
-        {/* Abas — adaptadas ao tipo */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', borderBottom: '1px solid #eceef0' }}>
-          {tabs.map(t => {
-            const m = TAB_META[t]
-            const active = tab === t
-            return (
-              <button key={t} onClick={() => setTab(t)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'none', border: 'none',
-                  borderBottom: `2.5px solid ${active ? bp.accent : 'transparent'}`, cursor: 'pointer',
-                  fontSize: 14, fontWeight: active ? 800 : 600, color: active ? bp.accent : '#64748b', marginBottom: -1,
-                  fontFamily: 'var(--font-sans)',
-                }}>
-                <Icon name={m.icon} size={16} color={active ? bp.accent : '#64748b'} /> {m.label}
-              </button>
-            )
-          })}
-        </div>
+    <div style={{ background: 'var(--chao)', minHeight: '100vh', overflowX: 'hidden' }}>
+      <div style={{
+        display: 'flex', gap: 2, alignItems: 'stretch', flexWrap: 'wrap',
+        background: 'var(--bg)', borderBottom: '1px solid var(--border)',
+        padding: '0 clamp(10px, 1.2vw, 16px)',
+      }}>
+        {tabs.map(t => {
+          const m = TAB_META[t]
+          const on = tab === t
+          return (
+            <button key={t} onClick={() => setTab(t)} style={{
+              display: 'flex', alignItems: 'center', gap: 7, height: 38, padding: '0 14px',
+              background: 'none', border: 'none', cursor: 'pointer',
+              borderBottom: `2px solid ${on ? 'var(--green)' : 'transparent'}`, marginBottom: -1,
+              fontFamily: 'var(--font-mono)', fontSize: 11.5, letterSpacing: '.08em',
+              textTransform: 'uppercase',
+              fontWeight: on ? 700 : 500, color: on ? 'var(--green)' : 'var(--ink-4)',
+            }}>
+              <Icon name={m.icon} size={14} color={on ? 'var(--green)' : 'var(--ink-4)'} /> {m.label}
+            </button>
+          )
+        })}
       </div>
 
-      {/* Conteúdo da aba — o componente real, intacto */}
-      <div>
-        {tab === 'registo' && <CareLogTool />}
-        {tab === 'feridas' && <FeridasTool />}
-        {tab === 'atividades' && <AtividadesTool />}
-      </div>
+      {tab === 'registo' && <CareLogTool />}
+      {tab === 'feridas' && <FeridasTool />}
+      {tab === 'atividades' && <AtividadesTool />}
     </div>
   )
 }

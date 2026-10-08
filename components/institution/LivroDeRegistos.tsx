@@ -133,7 +133,7 @@ export default function LivroDeRegistos({ subjectId, limite = 40, titulo }: {
           })}
           {!tudo && entradas.length >= limite && (
             <button onClick={() => setTudo(true)} style={{
-              marginTop: 12, minHeight: 36, padding: '0 12px', borderRadius: 8,
+              marginTop: 12, minHeight: 36, padding: '0 12px', borderRadius: 'var(--r-md)',
               border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--ink-3)',
               fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
             }}>Ver mais atrás</button>
@@ -147,7 +147,7 @@ export default function LivroDeRegistos({ subjectId, limite = 40, titulo }: {
 function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; children: React.ReactNode }) {
   return (
     <button onClick={onClick} style={{
-      minHeight: 28, padding: '0 10px', borderRadius: 20,
+      minHeight: 28, padding: '0 10px', borderRadius: 'var(--r-xl)',
       border: `1px solid ${on ? 'var(--ink)' : 'var(--border-2)'}`,
       background: on ? 'var(--ink)' : 'var(--bg)', color: on ? 'var(--bg)' : 'var(--ink-4)',
       fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',

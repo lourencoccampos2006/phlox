@@ -24,10 +24,10 @@ const SOURCES = [
 ]
 
 const MODES = [
-  { icon: 'home', title: 'Centro de Dia e Lar', desc: 'O dia de cada utente num só sítio: presenças, medicação, refeições, humor e atividades. As famílias acompanham pelo telemóvel. Toda a equipa, sem limite de utilizadores.', color: '#1d4ed8' },
-  { icon: 'family', title: 'Cuidador Familiar', desc: 'Para quem gere a medicação dos pais idosos, filhos ou cônjuge. Perfis por familiar, alertas de interações, tradutor de bula, nota de entrega.', color: '#b45309' },
-  { icon: 'user', title: 'Uso Pessoal', desc: 'Gere a tua própria medicação. Verifica interações, percebe receitas e análises, acompanha vacinas e tem resposta a qualquer dúvida.', color: '#0d6e42' },
-  { icon: 'book', title: 'Estudante', desc: 'Medicina, farmácia, enfermagem, nutrição e mais. Flashcards e quiz sobre qualquer tema, Arena de casos, OSCE, tutor IA e caso clínico evolutivo. O companheiro de estudo que passa os exames contigo.', color: '#7c3aed' },
+  { icon: 'home', title: 'Centro de Dia e Lar', desc: 'O dia de cada utente num só sítio: presenças, medicação, refeições, humor e atividades. As famílias acompanham pelo telemóvel. Toda a equipa, sem limite de utilizadores.', color: 'var(--ink-2)' },
+  { icon: 'family', title: 'Cuidador Familiar', desc: 'Para quem gere a medicação dos pais idosos, filhos ou cônjuge. Perfis por familiar, alertas de interações, tradutor de bula, nota de entrega.', color: 'var(--amber)' },
+  { icon: 'user', title: 'Uso Pessoal', desc: 'Gere a tua própria medicação. Verifica interações, percebe receitas e análises, acompanha vacinas e tem resposta a qualquer dúvida.', color: 'var(--green)' },
+  { icon: 'book', title: 'Estudante', desc: 'Medicina, farmácia, enfermagem, nutrição e mais. Flashcards e quiz sobre qualquer tema, Arena de casos, OSCE, tutor IA e caso clínico evolutivo. O companheiro de estudo que passa os exames contigo.', color: 'var(--roxo)' },
 ]
 
 const ROADMAP = [
@@ -42,22 +42,22 @@ export default function AboutPage() {
 
 
       {/* Hero */}
-      <section style={{ background: 'var(--ink)', padding: '72px 0 56px', borderBottom: '1px solid #1e293b' }}>
+      <section style={{ background: 'var(--ink)', padding: '72px 0 56px', borderBottom: '1px solid var(--ink-2)' }}>
         <div className="page-container" style={{ maxWidth: 720, margin: '0 auto', textAlign: 'center' }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 20 }}>
+          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.18em', textTransform: 'uppercase', marginBottom: 20 }}>
             Feito em Portugal · Para o Mundo
           </div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 5vw, 48px)', color: '#f8fafc', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 20, lineHeight: 1.2 }}>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px, 5vw, 48px)', color: 'var(--bg-2)', fontWeight: 400, letterSpacing: '-0.02em', marginBottom: 20, lineHeight: 1.2 }}>
             O cuidado que já existe,<br />finalmente organizado
           </h1>
-          <p style={{ fontSize: 17, color: '#64748b', lineHeight: 1.8, maxWidth: 560, margin: '0 auto 40px' }}>
+          <p style={{ fontSize: 17, color: 'var(--ink-4)', lineHeight: 1.8, maxWidth: 560, margin: '0 auto 40px' }}>
             O Phlox nasceu de uma frustração: os centros de dia e os lares cuidam bem, mas em cadernos soltos — e as famílias ficam de fora. Construímos a ferramenta que junta o dia num sítio, mostra às famílias como correu, e serve também quem cuida da sua saúde em casa ou estuda para cuidar dos outros.
           </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: '#1e293b', borderRadius: 10, overflow: 'hidden', maxWidth: 600, margin: '0 auto' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, background: 'var(--ink-2)', borderRadius: 'var(--r-lg)', overflow: 'hidden', maxWidth: 600, margin: '0 auto' }}>
             {STATS.map(s => (
-              <div key={s.label} style={{ background: '#0f172a', padding: '20px 12px', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#f8fafc', fontWeight: 400, marginBottom: 4 }}>{s.value}</div>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1.4 }}>{s.label}</div>
+              <div key={s.label} style={{ background: 'var(--ink)', padding: '20px 12px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--bg-2)', fontWeight: 400, marginBottom: 4 }}>{s.value}</div>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1.4 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -75,7 +75,7 @@ export default function AboutPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: 12 }}>
             {MODES.map(m => (
-              <div key={m.title} style={{ padding: '24px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 12 }}>
+              <div key={m.title} style={{ padding: '24px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)' }}>
                 <div style={{ marginBottom: 12 }}><Icon name={m.icon} size={26} color={m.color} /></div>
                 <div style={{ fontSize: 15, fontWeight: 700, color: m.color, marginBottom: 8 }}>{m.title}</div>
                 <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7 }}>{m.desc}</p>
@@ -98,7 +98,7 @@ export default function AboutPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {SOURCES.map(s => (
               <a key={s.name} href={s.href} target="_blank" rel="noopener noreferrer"
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, textDecoration: 'none', transition: 'border-color 0.15s' }}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 14, padding: '16px 18px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', textDecoration: 'none', transition: 'border-color 0.15s' }}
                 className="source-link">
                 <span style={{ flexShrink: 0, marginTop: 2, color: 'var(--ink-4)' }}><Icon name={s.icon} size={18} /></span>
                 <div style={{ flex: 1, minWidth: 0 }}>
@@ -109,8 +109,8 @@ export default function AboutPage() {
               </a>
             ))}
           </div>
-          <div style={{ marginTop: 16, padding: '14px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, fontSize: 13, color: '#78350f', lineHeight: 1.6, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
-            <span style={{ flexShrink: 0, marginTop: 1 }}><Icon name="alert" size={16} color="#b45309" /></span>
+          <div style={{ marginTop: 16, padding: '14px 16px', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--amber)', lineHeight: 1.6, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+            <span style={{ flexShrink: 0, marginTop: 1 }}><Icon name="alert" size={16} color="var(--amber)" /></span>
             <span>O Phlox é uma ferramenta de apoio à decisão — não substitui o julgamento clínico. Confirma sempre informação crítica com fontes primárias e especialistas.</span>
           </div>
         </div>
@@ -125,15 +125,15 @@ export default function AboutPage() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             {ROADMAP.map((r, i) => (
-              <div key={r.q} style={{ padding: '20px', background: i === 0 ? 'var(--ink)' : 'var(--bg)', border: `1px solid ${i === 0 ? 'transparent' : 'var(--border)'}`, borderRadius: 10 }}>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: i === 0 ? '#22c55e' : 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {i === 0 && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#22c55e', animation: 'pulse 2s infinite' }} />}
+              <div key={r.q} style={{ padding: '20px', background: i === 0 ? 'var(--ink)' : 'var(--bg)', border: `1px solid ${i === 0 ? 'transparent' : 'var(--border)'}`, borderRadius: 'var(--r-lg)' }}>
+                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: i === 0 ? 'var(--green)' : 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {i === 0 && <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', animation: 'pulse 2s infinite' }} />}
                   {r.q}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {r.items.map(item => (
                     <div key={item} style={{ fontSize: 13, color: i === 0 ? 'rgba(255,255,255,0.85)' : 'var(--ink-2)', display: 'flex', alignItems: 'flex-start', gap: 8 }}>
-                      <span style={{ color: i === 0 ? '#22c55e' : 'var(--green)', flexShrink: 0, marginTop: 1 }}>✓</span>
+                      <span style={{ color: i === 0 ? 'var(--green)' : 'var(--green)', flexShrink: 0, marginTop: 1 }}>✓</span>
                       {item}
                     </div>
                   ))}
@@ -154,10 +154,10 @@ export default function AboutPage() {
             Três ferramentas gratuitas sem conta. Upgrade quando quiseres.
           </p>
           <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-            <Link href="/login" style={{ background: 'var(--ink)', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
+            <Link href="/login" style={{ background: 'var(--ink)', color: 'white', textDecoration: 'none', padding: '13px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 700 }}>
               Criar conta grátis →
             </Link>
-            <Link href="/pricing" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '13px 24px', borderRadius: 8, fontSize: 14, fontWeight: 700, border: '1px solid var(--border)' }}>
+            <Link href="/pricing" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '13px 24px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 700, border: '1px solid var(--border)' }}>
               Ver planos
             </Link>
           </div>

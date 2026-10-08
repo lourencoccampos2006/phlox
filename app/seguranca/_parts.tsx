@@ -7,7 +7,7 @@ export function SecuritySection({ title, intro, children }: { title: string; int
     <section style={{ marginBottom: 22 }}>
       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: '0 0 4px', letterSpacing: '-0.01em' }}>{title}</h2>
       {intro && <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '0 0 12px', lineHeight: 1.55 }}>{intro}</p>}
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>{children}</div>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>{children}</div>
     </section>
   )
 }

@@ -52,7 +52,7 @@ export default function RosterModule({ theme: t }: { theme: ModeTheme }) {
     return () => { cancel = true }
   }, [user, supabase])
 
-  if (people === null) return <div className="skeleton" style={{ height: 140, borderRadius: 10 }} />
+  if (people === null) return <div className="skeleton" style={{ height: 140, borderRadius: 'var(--r-lg)' }} />
 
   if (people.length === 0) {
     return (

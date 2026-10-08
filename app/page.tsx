@@ -56,7 +56,7 @@ const PASSOS = [
 
 const MUNDOS = [
   {
-    tag: 'Para lares e centros de dia', t: 'A instituição', accent: '#0f766e', href: '/centro-de-dia',
+    tag: 'Para lares e centros de dia', t: 'A instituição', accent: 'var(--green-3)', href: '/centro-de-dia',
     lead: 'O dia de cada utente, num painel.',
     items: ['Presenças e medicação', 'Portal das famílias', 'Equipa e stock'],
   },
@@ -66,12 +66,12 @@ const MUNDOS = [
     items: ['Foto à receita', 'Lembretes a tempo', 'Vê o que não se dá bem'],
   },
   {
-    tag: 'Para a família', t: 'Cuidar de alguém', accent: '#b9690e', href: '/login?mode=caregiver',
+    tag: 'Para a família', t: 'Cuidar de alguém', accent: 'var(--amber)', href: '/login?mode=caregiver',
     lead: 'A saúde de quem cuida, num lugar.',
     items: ['Um perfil por pessoa', 'Quem tomou o quê', 'Partilha com o médico'],
   },
   {
-    tag: 'Para estudar', t: 'Estudante de saúde', accent: '#7c3aed', href: '/login?mode=student',
+    tag: 'Para estudar', t: 'Estudante de saúde', accent: 'var(--roxo)', href: '/login?mode=student',
     lead: 'Treino a sério, todos os dias.',
     items: ['Casos clínicos com IA', 'OSCE e decisões', 'O seu progresso'],
   },

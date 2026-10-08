@@ -65,20 +65,20 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: 32, maxWidth: 460, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Convite</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#0b1120', fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 32, maxWidth: 460, width: '100%', boxShadow: '0 8px 32px rgba(0,0,0,0.06)' }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8 }}>Convite</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', fontWeight: 400, margin: '0 0 8px', letterSpacing: '-0.02em' }}>
           {org?.name || 'Uma organização'}
         </h1>
-        <p style={{ fontSize: 14, color: '#475569', lineHeight: 1.55, margin: '0 0 18px' }}>
+        <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.55, margin: '0 0 18px' }}>
           Convidaram-te para te juntares como <strong style={{ color: roleMeta.color }}>{roleMeta.label}</strong>
           {invite.department ? ` no departamento ${invite.department}` : ''}.
         </p>
-        <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 10, padding: 12, fontSize: 12.5, color: '#475569', lineHeight: 1.55, marginBottom: 18 }}>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12, fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55, marginBottom: 18 }}>
           {roleMeta.description}
         </div>
         <button onClick={accept} disabled={accepting || !user}
-          style={{ width: '100%', padding: '12px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: accepting || !user ? 'wait' : 'pointer' }}>
+          style={{ width: '100%', padding: '12px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 800, cursor: accepting || !user ? 'wait' : 'pointer' }}>
           {accepting ? 'A aceitar…' : user ? 'Aceitar e entrar' : 'A redirecionar para login…'}
         </button>
       </div>
@@ -89,9 +89,9 @@ export default function AcceptInvitePage({ params }: { params: Promise<{ token: 
 function Center({ title, desc }: { title?: string; desc?: string }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 32, maxWidth: 380, textAlign: 'center' }}>
-        {title && <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 8 }}>{title}</div>}
-        {desc && <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.55 }}>{desc}</div>}
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 32, maxWidth: 380, textAlign: 'center' }}>
+        {title && <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 8 }}>{title}</div>}
+        {desc && <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55 }}>{desc}</div>}
       </div>
     </div>
   )

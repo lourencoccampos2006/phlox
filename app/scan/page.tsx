@@ -49,11 +49,15 @@ import {
 import { nomeCurto } from '@/lib/sujeitos'
 import { categoriaDoKind } from '@/lib/cofre'
 import { type PerguntaPendente } from '@/lib/dossier'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 /** O nome da ferramenta, num sítio só — muda aqui e muda em todo o lado. */
 export const NOME_FERRAMENTA = 'Explicar'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 // Reduz a foto antes de enviar. As fotos da câmara (3–12 MB) em base64
 // estouravam o payload e o tempo da chamada de visão. ~1600px mantém o texto
@@ -125,7 +129,7 @@ const LE: { nome: string; exemplo: string }[] = [
   { nome: 'Folhetos informativos', exemplo: 'o papel que vem dentro da caixa' },
 ]
 
-const COR_ESTADO: Record<string, string> = { normal: '#0d6e42', baixo: '#b45309', alto: '#b91c1c' }
+const COR_ESTADO: Record<string, string> = { normal: 'var(--green)', baixo: 'var(--amber)', alto: 'var(--red)' }
 
 export default function ExplicarPage() {
   const { user, supabase } = useAuth() as any
@@ -443,21 +447,32 @@ export default function ExplicarPage() {
   const tipo = res ? (TIPOS[res.kind] || TIPOS.outro) : null
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2, #fbfaf8)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Explicar</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
 
         {/* ── Cabeçalho ──────────────────────────────────────────────────── */}
         <div style={{ marginBottom: res ? 20 : 26 }}>
           <div style={{
-            fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.2em',
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.2em',
             textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 9,
           }}>Phlox</div>
           <h1 style={{
-            fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,5.4vw,44px)', fontWeight: 400,
+            fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,5.4vw,44px)', fontWeight: 'var(--peso-normal)' as any,
             color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.08,
           }}>{NOME_FERRAMENTA}</h1>
           <p style={{
-            fontSize: 15.5, color: 'var(--ink-3)', margin: '10px 0 0',
+            fontSize: 'var(--t-destaque)', color: 'var(--ink-3)', margin: '10px 0 0',
             maxWidth: '44ch', lineHeight: 1.55, textWrap: 'pretty' as any,
           }}>
             Tire uma foto a um exame, receita ou relatório. Nós explicamos o que
@@ -469,29 +484,29 @@ export default function ExplicarPage() {
           <>
             {/* ── A captura ─────────────────────────────────────────────── */}
             <div style={{
-              background: 'white', border: `2px dashed ${ACCENT}44`, borderRadius: 16,
+              background: 'white', border: `2px dashed ${ACCENT}44`, borderRadius: 'var(--r-xl)',
               padding: 'clamp(24px,5vw,36px) 22px', textAlign: 'center',
             }}>
               <div style={{
                 width: 54, height: 54, borderRadius: '50%', background: `${ACCENT}12`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                margin: '0 auto 16px', fontSize: 25, color: ACCENT,
+                margin: '0 auto 16px', fontSize: 'var(--t-numero)', color: ACCENT,
               }} aria-hidden>◎</div>
 
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', justifyContent: 'center' }}>
                 <button onClick={() => camaraRef.current?.click()} style={{
                   padding: '14px 26px', background: ACCENT, color: 'white', border: 'none',
-                  borderRadius: 11, fontSize: 15.5, fontWeight: 700, cursor: 'pointer',
-                  fontFamily: 'inherit', minHeight: 52,
+                  borderRadius: 'var(--r-xl)', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
+                  fontFamily: 'inherit', minHeight: 'var(--alvo)',
                 }}>Tirar foto</button>
                 <button onClick={() => ficheiroRef.current?.click()} style={{
                   padding: '14px 22px', background: 'white', color: 'var(--ink-2)',
-                  border: '1.5px solid var(--border)', borderRadius: 11,
-                  fontSize: 15, fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit', minHeight: 52,
+                  border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)',
+                  fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'inherit', minHeight: 'var(--alvo)',
                 }}>Escolher ficheiro</button>
               </div>
 
-              <div style={{ fontSize: 12.5, color: 'var(--ink-5)', marginTop: 14, lineHeight: 1.55 }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 14, lineHeight: 1.55 }}>
                 Foto, PDF ou documento. Fica só na sua conta.
               </div>
 
@@ -506,23 +521,23 @@ export default function ExplicarPage() {
             {/* ── A promessa, antes de haver resultado ───────────────────── */}
             <div style={{ marginTop: 26 }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em',
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.16em',
                 textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 12,
               }}>O que consegue ler</div>
               <div style={{
                 display: 'flex', flexDirection: 'column', gap: 1,
                 background: 'var(--border)', border: '1px solid var(--border)',
-                borderRadius: 12, overflow: 'hidden',
+                borderRadius: 'var(--r-xl)', overflow: 'hidden',
               }}>
                 {LE.map(x => (
                   <div key={x.nome} style={{ background: 'white', padding: '13px 16px' }}>
-                    <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink)' }}>{x.nome}</div>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.5 }}>{x.exemplo}</div>
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{x.nome}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.5 }}>{x.exemplo}</div>
                   </div>
                 ))}
               </div>
               <p style={{
-                fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, marginTop: 16,
+                fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6, marginTop: 16,
                 maxWidth: '62ch', textWrap: 'pretty' as any,
               }}>
                 De cada documento tira o essencial em duas linhas, explica as palavras
@@ -538,15 +553,15 @@ export default function ExplicarPage() {
         {/* ── A trabalhar ───────────────────────────────────────────────── */}
         {busy && (
           <div style={{
-            background: 'white', border: '1px solid var(--border)', borderRadius: 14,
+            background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)',
             padding: '30px 22px', textAlign: 'center',
           }}>
             <div style={{
               width: 26, height: 26, border: '2.5px solid var(--bg-3)', borderTopColor: ACCENT,
               borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 0.8s linear infinite',
             }} />
-            <div style={{ fontSize: 14.5, color: 'var(--ink-2)', fontWeight: 600 }}>{busy}</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-5)', marginTop: 6, lineHeight: 1.5 }}>
+            <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', fontWeight: 'var(--peso-corpo)' as any }}>{busy}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 6, lineHeight: 1.5 }}>
               Pode demorar até meio minuto. Usamos o modelo mais cuidadoso — num documento
               de saúde vale a pena esperar.
             </div>
@@ -558,14 +573,14 @@ export default function ExplicarPage() {
         {err === 'limit' && <UpgradeNudge used={uso.used} limit={uso.limit} what="documentos decifrados" plan="pro" />}
         {err && err !== 'limit' && (
           <div style={{
-            background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 12,
-            padding: '14px 16px', fontSize: 13.5, color: '#c53030', lineHeight: 1.6, marginTop: 14,
+            background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)',
+            padding: '14px 16px', fontSize: 'var(--t-dado)', color: 'var(--red)', lineHeight: 1.6, marginTop: 14,
           }}>
             {err}
             <button onClick={limpar} style={{
               display: 'block', marginTop: 10, padding: '7px 14px', background: 'white',
-              border: '1px solid #fed7d7', borderRadius: 8, fontSize: 12.5, fontWeight: 700,
-              color: '#c53030', cursor: 'pointer', fontFamily: 'inherit',
+              border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+              color: 'var(--red)', cursor: 'pointer', fontFamily: 'inherit',
             }}>Tentar outra vez</button>
           </div>
         )}
@@ -576,27 +591,27 @@ export default function ExplicarPage() {
 
             {/* identificação */}
             <div style={{
-              background: 'white', border: '1px solid var(--border)', borderRadius: 14,
+              background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)',
               padding: '18px 20px',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, marginBottom: 12, flexWrap: 'wrap' }}>
                 <span aria-hidden style={{
-                  width: 34, height: 34, borderRadius: 9, background: `${ACCENT}12`, color: ACCENT,
+                  width: 34, height: 34, borderRadius: 'var(--r-lg)', background: `${ACCENT}12`, color: ACCENT,
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 17, fontFamily: 'var(--font-serif)', flexShrink: 0,
+                  fontSize: 'var(--t-destaque)', fontFamily: 'var(--font-serif)', flexShrink: 0,
                 }}>{tipo!.icon}</span>
                 <div style={{ minWidth: 0, flex: 1 }}>
                   <div style={{
-                    fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                    fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
                     textTransform: 'uppercase', color: 'var(--ink-5)',
                   }}>{tipo!.label}</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginTop: 1 }}>
+                  <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginTop: 1 }}>
                     {res.title || 'Documento'}
                   </div>
                 </div>
                 <button onClick={limpar} style={{
                   padding: '7px 13px', background: 'var(--bg-2)', border: '1px solid var(--border)',
-                  borderRadius: 8, fontSize: 12.5, fontWeight: 650, color: 'var(--ink-3)',
+                  borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)',
                   cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                 }}>Outro documento</button>
               </div>
@@ -604,11 +619,11 @@ export default function ExplicarPage() {
               {daMemoria && (
                 <div style={{
                   marginBottom: 12, padding: '9px 12px', background: 'var(--bg-2)',
-                  border: '1px solid var(--border)', borderRadius: 9,
-                  fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+                  fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.5,
                   display: 'flex', alignItems: 'baseline', gap: 8,
                 }}>
-                  <span aria-hidden style={{ fontSize: 11, color: 'var(--ink-5)' }}>↺</span>
+                  <span aria-hidden style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>↺</span>
                   <span>{daMemoria}</span>
                 </div>
               )}
@@ -631,20 +646,20 @@ export default function ExplicarPage() {
                   marginTop: 14, paddingTop: 13, borderTop: '1px solid var(--border)',
                   display: 'flex', alignItems: 'flex-start', gap: 9, flexWrap: 'wrap',
                 }}>
-                  <span aria-hidden style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 1 }}>◆</span>
+                  <span aria-hidden style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 1 }}>◆</span>
                   <div style={{ flex: 1, minWidth: 180 }}>
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
                       {explicarArrumacao(arrumacao)}
                     </div>
                     {res.pessoa?.nome && arrumacao.confirmar && (
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3 }}>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 3 }}>
                         O documento diz <strong style={{ color: 'var(--ink-4)' }}>{res.pessoa.nome}</strong>.
                       </div>
                     )}
                   </div>
                   <button onClick={() => setAMudarPessoa(v => !v)} style={{
                     padding: '5px 10px', background: 'transparent', border: '1px solid var(--border)',
-                    borderRadius: 7, fontSize: 11.5, fontWeight: 650, color: 'var(--ink-4)',
+                    borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)',
                     cursor: 'pointer', fontFamily: 'inherit', flexShrink: 0,
                   }}>{aMudarPessoa ? 'Fechar' : 'Mudar'}</button>
                 </div>
@@ -653,16 +668,16 @@ export default function ExplicarPage() {
               {aMudarPessoa && (
                 <div style={{
                   marginTop: 10, padding: '11px 13px', background: 'var(--bg-2)',
-                  border: '1px solid var(--border)', borderRadius: 9,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
                 }}>
-                  <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 9, lineHeight: 1.5 }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 9, lineHeight: 1.5 }}>
                     De quem é este documento? O que já se sabe de cada pessoa fica separado.
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {sujeitos.map(sj => (
                       <button key={sj.id} onClick={() => mudarPessoa(sj)} style={{
                         padding: '6px 11px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                        fontSize: 12, fontWeight: 650,
+                        fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any,
                         border: `1px solid ${arrumacao?.sujeito?.id === sj.id ? 'var(--ink)' : 'var(--border)'}`,
                         background: arrumacao?.sujeito?.id === sj.id ? 'var(--ink)' : 'white',
                         color: arrumacao?.sujeito?.id === sj.id ? 'white' : 'var(--ink-3)',
@@ -673,7 +688,7 @@ export default function ExplicarPage() {
                     ))}
                     <button onClick={() => mudarPessoa(null)} style={{
                       padding: '6px 11px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
-                      fontSize: 12, fontWeight: 650, border: '1px dashed var(--border)',
+                      fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, border: '1px dashed var(--border)',
                       background: 'white', color: 'var(--ink-5)',
                     }}>Não guardar em ninguém</button>
                   </div>
@@ -682,9 +697,9 @@ export default function ExplicarPage() {
 
               {(res.legibilidade || res.confidence === 'baixa') && (
                 <div style={{
-                  marginTop: 13, padding: '10px 13px', background: '#fffbeb',
-                  border: '1px solid #fde68a', borderRadius: 9, fontSize: 12.5,
-                  color: '#854d0e', lineHeight: 1.55,
+                  marginTop: 13, padding: '10px 13px', background: 'var(--badge-amber-bg)',
+                  border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)',
+                  color: 'var(--badge-amber-fg)', lineHeight: 1.55,
                 }}>
                   {res.legibilidade || 'Não consegui ler tudo com certeza — confirme o que aparece aqui com o documento original.'}
                 </div>
@@ -693,14 +708,14 @@ export default function ExplicarPage() {
 
             {res.warning && (
               <div style={{
-                background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12,
+                background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)',
                 padding: '14px 16px',
               }}>
                 <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
-                  textTransform: 'uppercase', color: '#b91c1c', marginBottom: 5,
+                  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
+                  textTransform: 'uppercase', color: 'var(--red)', marginBottom: 5,
                 }}>A ter em conta</div>
-                <div style={{ fontSize: 14, color: '#7f1d1d', lineHeight: 1.6 }}>{res.warning}</div>
+                <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--red)', lineHeight: 1.6 }}>{res.warning}</div>
               </div>
             )}
 
@@ -710,8 +725,8 @@ export default function ExplicarPage() {
             <Bloco titulo="Em relação ao que já sabia" quando={!!res.ligacoes?.length}>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {(res.ligacoes || []).map((x, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
-                    <span aria-hidden style={{ color: '#0d6e42', flexShrink: 0 }}>→</span>
+                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                    <span aria-hidden style={{ color: 'var(--green)', flexShrink: 0 }}>→</span>
                     <span>{x}</span>
                   </li>
                 ))}
@@ -721,8 +736,8 @@ export default function ExplicarPage() {
             <Bloco titulo="O que importa" quando={!!res.oQueImporta?.length}>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {(res.oQueImporta || []).map((x, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.55 }}>
-                    <span aria-hidden style={{ color: ACCENT, flexShrink: 0, fontWeight: 700 }}>—</span>
+                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                    <span aria-hidden style={{ color: ACCENT, flexShrink: 0, fontWeight: 'var(--peso-forte)' as any }}>—</span>
                     <span style={{ textWrap: 'pretty' as any }}>{x}</span>
                   </li>
                 ))}
@@ -734,8 +749,8 @@ export default function ExplicarPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                 {(res.secoes || []).map((s, i) => (
                   <div key={i}>
-                    <div style={{ fontSize: 13, fontWeight: 750, color: 'var(--ink)', marginBottom: 4 }}>{s.titulo}</div>
-                    <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{s.texto}</p>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>{s.titulo}</div>
+                    <p style={{ margin: 0, fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{s.texto}</p>
                   </div>
                 ))}
               </div>
@@ -743,28 +758,28 @@ export default function ExplicarPage() {
 
             {/* valores das análises */}
             <Bloco titulo="Valor a valor" quando={!!res.values?.length}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', borderRadius: 9, overflow: 'hidden', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
                 {(res.values || []).map((v, i) => {
                   const cor = COR_ESTADO[String(v.status || '').toLowerCase()] || 'var(--ink-4)'
                   return (
                     <div key={i} style={{ background: 'white', padding: '11px 13px' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 14, fontWeight: 650, color: 'var(--ink)' }}>{v.name}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 700, color: cor }}>
+                        <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{v.name}</span>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: cor }}>
                           {v.value}{v.unit ? ` ${v.unit}` : ''}
                         </span>
                         {v.status && (
                           <span style={{
-                            fontSize: 10.5, fontWeight: 700, color: cor, background: `${cor}14`,
-                            padding: '2px 7px', borderRadius: 5, textTransform: 'uppercase',
+                            fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: cor, background: `${cor}14`,
+                            padding: '2px 7px', borderRadius: 'var(--r)', textTransform: 'uppercase',
                             letterSpacing: '0.04em',
                           }}>{v.status}</span>
                         )}
                         {v.reference && (
-                          <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>ref. {v.reference}</span>
+                          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>ref. {v.reference}</span>
                         )}
                       </div>
-                      {v.note && <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.5 }}>{v.note}</div>}
+                      {v.note && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.5 }}>{v.note}</div>}
                     </div>
                   )
                 })}
@@ -782,18 +797,18 @@ export default function ExplicarPage() {
                   return (
                     <label key={i} style={{
                       display: 'flex', alignItems: 'flex-start', gap: 11, background: 'var(--bg-2)',
-                      borderRadius: 9, padding: '11px 13px', cursor: 'pointer',
+                      borderRadius: 'var(--r-lg)', padding: '11px 13px', cursor: 'pointer',
                     }}>
                       <input type="checkbox" checked={!!m._import} style={{ width: 17, height: 17, marginTop: 2, flexShrink: 0 }}
                         onChange={() => setMeds(p => p.map((x, j) => j === i ? { ...x, _import: !x._import } : x))} />
                       <div style={{ minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: 14.5, fontWeight: 650, color: 'var(--ink)' }}>
+                        <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>
                           {m.name}{m.dose ? ` · ${m.dose}` : ''}
                         </div>
-                        {m.frequency && <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 1 }}>{m.frequency}</div>}
-                        {m.paraQue && <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.5 }}>{m.paraQue}</div>}
+                        {m.frequency && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 1 }}>{m.frequency}</div>}
+                        {m.paraQue && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.5 }}>{m.paraQue}</div>}
                         {horas.length > 0 && (
-                          <div style={{ fontSize: 11.5, color: ACCENT, marginTop: 4, fontWeight: 600 }}>
+                          <div style={{ fontSize: 'var(--t-meta)', color: ACCENT, marginTop: 4, fontWeight: 'var(--peso-corpo)' as any }}>
                             lembrete às {horas.join(' e ')}
                           </div>
                         )}
@@ -804,24 +819,24 @@ export default function ExplicarPage() {
               </div>
               {importado ? (
                 <div style={{
-                  marginTop: 12, padding: '11px 14px', background: '#f0fdf4',
-                  border: '1px solid #86efac', borderRadius: 9, fontSize: 13, color: '#166534', lineHeight: 1.55,
+                  marginTop: 12, padding: '11px 14px', background: 'var(--badge-green-bg)',
+                  border: '1px solid var(--badge-green-border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', color: 'var(--green-3)', lineHeight: 1.55,
                 }}>
-                  Guardado. <Link href="/mymeds" style={{ color: '#166534', fontWeight: 700 }}>Ver os medicamentos →</Link>
+                  Guardado. <Link href="/mymeds" style={{ color: 'var(--green-3)', fontWeight: 'var(--peso-forte)' as any }}>Ver os medicamentos →</Link>
                 </div>
               ) : (
                 <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
                   <button onClick={guardarMedicamentos} disabled={!meds.some(m => m._import)} style={{
                     padding: '10px 18px', background: meds.some(m => m._import) ? ACCENT : 'var(--bg-3)',
-                    color: meds.some(m => m._import) ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 9,
-                    fontSize: 13.5, fontWeight: 700, cursor: meds.some(m => m._import) ? 'pointer' : 'not-allowed',
+                    color: meds.some(m => m._import) ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-lg)',
+                    fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: meds.some(m => m._import) ? 'pointer' : 'not-allowed',
                     fontFamily: 'inherit',
                   }}>Guardar nos meus medicamentos</button>
                   {meds.filter(m => m._import).length >= 2 && (
                     <Link href={`/interactions?drugs=${encodeURIComponent(meds.filter(m => m._import).map(m => m.name).join(','))}`} style={{
                       padding: '10px 16px', background: 'white', color: 'var(--ink-2)',
-                      border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13.5,
-                      fontWeight: 650, textDecoration: 'none', display: 'inline-block',
+                      border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)',
+                      fontWeight: 'var(--peso-corpo)' as any, textDecoration: 'none', display: 'inline-block',
                     }}>Ver interações</Link>
                   )}
                 </div>
@@ -833,8 +848,8 @@ export default function ExplicarPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
                 {(res.termos || []).map((t, i) => (
                   <div key={i}>
-                    <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.termo}</span>
-                    <span style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.55 }}> — {t.simples}</span>
+                    <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{t.termo}</span>
+                    <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.55 }}> — {t.simples}</span>
                   </div>
                 ))}
               </div>
@@ -843,7 +858,7 @@ export default function ExplicarPage() {
             <Bloco titulo="Para perguntar na consulta" quando={!!res.perguntasParaOMedico?.length}>
               <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {(res.perguntasParaOMedico || []).map((q, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                  <li key={i} style={{ display: 'flex', gap: 10, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
                     <span aria-hidden style={{ color: 'var(--ink-5)', flexShrink: 0 }}>{i + 1}.</span>
                     <span style={{ textWrap: 'pretty' as any }}>{q}</span>
                   </li>
@@ -861,14 +876,14 @@ export default function ExplicarPage() {
                 é mais atual, e foi ela que o disse. */}
             {!!perguntas.length && arrumacao?.sujeito && (
               <div style={{
-                background: 'white', border: '1px solid var(--border)', borderRadius: 14,
+                background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)',
                 padding: '18px 20px',
               }}>
                 <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
                   textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 6,
                 }}>Se quiser responder</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 14, maxWidth: '56ch' }}>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 14, maxWidth: '56ch' }}>
                   Não é obrigatório. O que responder fica a saber-se sobre
                   {' '}{nomeCurto(arrumacao.sujeito.nome)} e faz a próxima leitura ser melhor.
                 </div>
@@ -876,11 +891,11 @@ export default function ExplicarPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {perguntas.map(pg => (
                     <div key={pg.pergunta}>
-                      <div style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.5, fontWeight: 600 }}>
+                      <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', lineHeight: 1.5, fontWeight: 'var(--peso-corpo)' as any }}>
                         {pg.pergunta}
                       </div>
                       {pg.porque && (
-                        <div style={{ fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.5, marginTop: 3 }}>{pg.porque}</div>
+                        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.5, marginTop: 3 }}>{pg.porque}</div>
                       )}
 
                       {pg.tipo === 'sim_nao' || pg.tipo === 'escolha' ? (
@@ -889,13 +904,13 @@ export default function ExplicarPage() {
                             <button key={op} onClick={() => responder(pg.pergunta, op)} disabled={aResponder === pg.pergunta}
                               style={{
                                 padding: '8px 15px', background: 'white', border: '1px solid var(--border)',
-                                borderRadius: 999, fontSize: 13, fontWeight: 650, color: 'var(--ink-2)',
+                                borderRadius: 999, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-2)',
                                 cursor: 'pointer', fontFamily: 'inherit',
                               }}>{op}</button>
                           ))}
                           <button onClick={() => dispensar(pg.pergunta)} style={{
                             padding: '8px 12px', background: 'transparent', border: 'none',
-                            fontSize: 12.5, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: 'var(--t-meta)', color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit',
                           }}>Agora não</button>
                         </div>
                       ) : (
@@ -907,7 +922,7 @@ export default function ExplicarPage() {
                             placeholder="A sua resposta…"
                             style={{
                               flex: 1, minWidth: 180, padding: '9px 13px', border: '1px solid var(--border)',
-                              borderRadius: 9, fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'var(--bg-2)',
+                              borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontFamily: 'inherit', outline: 'none', background: 'var(--bg-2)',
                             }}
                           />
                           <button
@@ -916,12 +931,12 @@ export default function ExplicarPage() {
                             style={{
                               padding: '9px 16px', background: (respostas[pg.pergunta] || '').trim() ? ACCENT : 'var(--bg-3)',
                               color: (respostas[pg.pergunta] || '').trim() ? 'white' : 'var(--ink-4)',
-                              border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700,
+                              border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
                               cursor: (respostas[pg.pergunta] || '').trim() ? 'pointer' : 'not-allowed', fontFamily: 'inherit',
                             }}>Guardar</button>
                           <button onClick={() => dispensar(pg.pergunta)} style={{
                             padding: '9px 10px', background: 'transparent', border: 'none',
-                            fontSize: 12.5, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit',
+                            fontSize: 'var(--t-meta)', color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit',
                           }}>Agora não</button>
                         </div>
                       )}
@@ -934,7 +949,7 @@ export default function ExplicarPage() {
             <Bloco titulo="A seguir" quando={!!res.aSeguir?.length}>
               <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {(res.aSeguir || []).map((x, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>
+                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
                     <span aria-hidden style={{ color: ACCENT, flexShrink: 0 }}>→</span>
                     <span style={{ textWrap: 'pretty' as any }}>{x}</span>
                   </li>
@@ -944,13 +959,13 @@ export default function ExplicarPage() {
 
             {/* ── Continuar a perguntar ──────────────────────────────────── */}
             <div style={{
-              background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px',
+              background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '18px 20px',
             }}>
               <div style={{
-                fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
                 textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 4,
               }}>Ficou com dúvidas?</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 13, lineHeight: 1.55, maxWidth: '54ch' }}>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 13, lineHeight: 1.55, maxWidth: '54ch' }}>
                 Pergunte o que quiser sobre este documento. Respondo com o que ele diz —
                 se a resposta não estiver lá, digo-lhe isso.
               </div>
@@ -959,8 +974,8 @@ export default function ExplicarPage() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 14 }}>
                   {conversa.map((t, i) => (
                     <div key={i}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>{t.q}</div>
-                      <div style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{t.r}</div>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>{t.q}</div>
+                      <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.6, textWrap: 'pretty' as any }}>{t.r}</div>
                     </div>
                   ))}
                 </div>
@@ -975,13 +990,13 @@ export default function ExplicarPage() {
                   disabled={aPerguntar}
                   style={{
                     flex: '1 1 220px', minWidth: 0, border: '1.5px solid var(--border)',
-                    borderRadius: 9, padding: '11px 13px', fontSize: 14.5,
+                    borderRadius: 'var(--r-lg)', padding: '11px 13px', fontSize: 'var(--t-corpo)',
                     fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box',
                   }} />
                 <button onClick={perguntar} disabled={aPerguntar || !pergunta.trim()} style={{
                   padding: '11px 20px', background: aPerguntar || !pergunta.trim() ? 'var(--bg-3)' : 'var(--ink)',
                   color: aPerguntar || !pergunta.trim() ? 'var(--ink-4)' : 'white', border: 'none',
-                  borderRadius: 9, fontSize: 14, fontWeight: 700,
+                  borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
                   cursor: aPerguntar || !pergunta.trim() ? 'default' : 'pointer', fontFamily: 'inherit',
                 }}>{aPerguntar ? 'A pensar…' : 'Perguntar'}</button>
               </div>
@@ -991,16 +1006,16 @@ export default function ExplicarPage() {
             <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap' }}>
               {guardado ? (
                 <div style={{
-                  flex: 1, padding: '12px 15px', background: '#f0fdf4', border: '1px solid #86efac',
-                  borderRadius: 10, fontSize: 13.5, color: '#166534', lineHeight: 1.55,
+                  flex: 1, padding: '12px 15px', background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)',
+                  borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', color: 'var(--green-3)', lineHeight: 1.55,
                 }}>
-                  Guardado no cofre. <Link href="/vault" style={{ color: '#166534', fontWeight: 700 }}>Abrir o cofre →</Link>
+                  Guardado no cofre. <Link href="/vault" style={{ color: 'var(--green-3)', fontWeight: 'var(--peso-forte)' as any }}>Abrir o cofre →</Link>
                 </div>
               ) : (
                 <button onClick={() => { guardarNoCofre().catch(() => {}) }} style={{
                   padding: '12px 20px', background: 'white', color: 'var(--ink-2)',
-                  border: '1.5px solid var(--border)', borderRadius: 10, fontSize: 14,
-                  fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
+                  border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)',
+                  fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'inherit',
                 }}>Guardar no cofre</button>
               )}
             </div>
@@ -1009,7 +1024,7 @@ export default function ExplicarPage() {
           </div>
         )}
       </div>
-    </div>
+    </Mesa>
   )
 }
 
@@ -1026,9 +1041,9 @@ export default function ExplicarPage() {
 function Bloco({ titulo, quando, children }: { titulo: string; quando: boolean; children: React.ReactNode }) {
   if (!quando) return null
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '18px 20px' }}>
       <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
+        fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
         textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 12,
       }}>{titulo}</div>
       {children}

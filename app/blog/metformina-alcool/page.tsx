@@ -30,7 +30,7 @@ export default function PostMetforminaAlcool() {
         </div>
 
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: 'inline-block', background: '#f0fdf5', color: '#0d6e42', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>DIABETES</div>
+          <div style={{ display: 'inline-block', background: 'var(--green-light)', color: 'var(--green)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>DIABETES</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
             Metformina e álcool — o que realmente acontece
           </h1>
@@ -42,9 +42,9 @@ export default function PostMetforminaAlcool() {
           </div>
         </div>
 
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderLeft: '4px solid #d97706', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
-          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#92400e', letterSpacing: '0.08em', marginBottom: 6 }}>⚠ ATENÇÃO</div>
-          <p style={{ fontSize: 14, color: '#7c5a12', lineHeight: 1.7, margin: 0 }}>
+        <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderLeft: '4px solid var(--amber)', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
+          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--amber)', letterSpacing: '0.08em', marginBottom: 6 }}>⚠ ATENÇÃO</div>
+          <p style={{ fontSize: 14, color: 'var(--badge-amber-fg)', lineHeight: 1.7, margin: 0 }}>
             O risco mais grave (mas raro) é a <strong>acidose láctica</strong> — sobretudo com consumo excessivo de álcool. O risco mais comum é a <strong>hipoglicemia</strong>, especialmente se beberes sem comer.
           </p>
         </div>
@@ -59,7 +59,7 @@ export default function PostMetforminaAlcool() {
 
           <h2 style={H2}>Quanto é "demasiado"?</h2>
           <p style={P}>Não há um número mágico igual para todos, mas as orientações apontam para o mesmo: <strong>moderação e nunca em jejum</strong>. Um copo de vinho ou uma cerveja à refeição, de vez em quando, é geralmente tolerado por quem está estável. O problema é a bebedeira (vários copos de uma vez) e o consumo diário elevado — é aí que o risco dispara.</p>
-          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 8, padding: '14px 18px', marginBottom: 24 }}>
+          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '14px 18px', marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-2)', marginBottom: 4 }}>✓ Regra prática</div>
             <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6 }}>Se beberes, bebe <strong>com comida</strong>, em <strong>quantidade pequena</strong>, e não conduzas nem vás dormir sem comer alguma coisa. Tem sempre algo doce à mão caso sintas hipoglicemia.</div>
           </div>
@@ -76,13 +76,13 @@ export default function PostMetforminaAlcool() {
           </ul>
         </div>
 
-        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>O que não posso misturar com a minha medicação?</div>
           <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>O Phlox diz-te que alimentos, bebidas e álcool evitar com os medicamentos que tomas.</p>
-          <Link href="/food-drug" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Ver o que evitar →</Link>
+          <Link href="/food-drug" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Ver o que evitar →</Link>
         </div>
 
-        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
           <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento de um profissional de saúde. Confirma sempre a tua situação com o teu médico ou farmacêutico. Base: EMA, ADA, NIH.
           </p>

@@ -261,7 +261,7 @@ export default function PainelCockpit() {
 
   // ── estilos por tom ──
   const warm = bp.tone === 'warm'
-  const pageBg = warm ? '#fbfaf8' : '#f8fafc'
+  const pageBg = warm ? 'var(--bg-2)' : 'var(--bg-2)'
 
   if (!user) return null
 
@@ -273,31 +273,31 @@ export default function PainelCockpit() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, marginBottom: 22, flexWrap: 'wrap' }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: bp.accent, fontWeight: 700, marginBottom: 6 }}>{bp.productName}</div>
-            <h1 style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: warm ? 'clamp(26px,4vw,34px)' : 'clamp(22px,3vw,28px)', fontWeight: warm ? 500 : 800, color: '#0b1120', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
+            <h1 style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: warm ? 'clamp(26px,4vw,34px)' : 'clamp(22px,3vw,28px)', fontWeight: warm ? 500 : 800, color: 'var(--ink)', margin: 0, letterSpacing: '-0.02em', lineHeight: 1.1 }}>
               {bp.greetingLead(firstName)}
             </h1>
-            <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 520, lineHeight: 1.5 }}>{bp.tagline}</p>
+            <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: '6px 0 0', maxWidth: 520, lineHeight: 1.5 }}>{bp.tagline}</p>
           </div>
-          <button onClick={() => setEditing(e => !e)} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: editing ? bp.accent : 'white', color: editing ? 'white' : '#64748b', border: `1px solid ${editing ? bp.accent : 'var(--border)'}`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
-            <Icon name={editing ? 'check' : 'sliders'} size={15} color={editing ? 'white' : '#64748b'} />
+          <button onClick={() => setEditing(e => !e)} style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: editing ? bp.accent : 'white', color: editing ? 'white' : 'var(--ink-4)', border: `1px solid ${editing ? bp.accent : 'var(--border)'}`, borderRadius: 'var(--r-lg)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+            <Icon name={editing ? 'check' : 'sliders'} size={15} color={editing ? 'white' : 'var(--ink-4)'} />
             {editing ? 'Concluir' : 'Personalizar'}
           </button>
         </div>
 
         {err && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--red-light, #fef2f2)', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', marginBottom: 16 }}>
-            <Icon name="alert" size={18} color="#b91c1c" />
-            <span style={{ flex: 1, fontSize: 13.5, color: '#991b1b' }}>{err}</span>
-            <button onClick={() => load()} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Tentar novamente</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--red-light, var(--badge-red-bg))', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: '12px 16px', marginBottom: 16 }}>
+            <Icon name="alert" size={18} color="var(--red)" />
+            <span style={{ flex: 1, fontSize: 13.5, color: 'var(--red)' }}>{err}</span>
+            <button onClick={() => load()} style={{ background: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Tentar novamente</button>
           </div>
         )}
 
         {/* Primeiros passos — só no arranque (sem pessoas ainda). Tira a instituição
             do "painel vazio" e leva-a a ter valor em 2-3 toques. */}
         {!loading && patients.length === 0 && (
-          <div style={{ background: bp.accentSoft, border: `1px solid ${bp.accent}33`, borderRadius: 16, padding: '18px 20px', marginBottom: 16 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Bem-vindo{firstName ? `, ${firstName}` : ''} 👋 Vamos preparar {bp.productName.toLowerCase().replace('o seu ', 'o seu ').replace('a sua ', 'a sua ')}</div>
-            <div style={{ fontSize: 13, color: '#475569', marginBottom: 14 }}>Três passos rápidos e o painel ganha vida com os teus dados reais.</div>
+          <div style={{ background: bp.accentSoft, border: `1px solid ${bp.accent}33`, borderRadius: 'var(--r-xl)', padding: '18px 20px', marginBottom: 16 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>Bem-vindo{firstName ? `, ${firstName}` : ''} 👋 Vamos preparar {bp.productName.toLowerCase().replace('o seu ', 'o seu ').replace('a sua ', 'a sua ')}</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-3)', marginBottom: 14 }}>Três passos rápidos e o painel ganha vida com os teus dados reais.</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 10 }}>
               {[
                 { n: 1, icon: 'users', label: `Adicionar ${cfg.personNounPlural.toLowerCase()}`, sub: 'Um a um ou importar de uma folha (CSV)', href: '/patients' },
@@ -308,11 +308,11 @@ export default function PainelCockpit() {
                   ? { n: 3, icon: 'family', label: 'Convidar as famílias', sub: 'Mostra-lhes como corre o dia', href: '/family' }
                   : { n: 3, icon: 'users', label: 'Adicionar a equipa', sub: 'Quem trabalha contigo', href: '/equipa?tab=escalas' },
               ].map(s => (
-                <Link key={s.n} href={s.href} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '12px 14px', textDecoration: 'none' }}>
-                  <span style={{ flexShrink: 0, display: 'inline-flex', width: 34, height: 34, borderRadius: 9, alignItems: 'center', justifyContent: 'center', background: bp.accentSoft }}><Icon name={s.icon as any} size={18} color={bp.accent} /></span>
+                <Link key={s.n} href={s.href} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 14px', textDecoration: 'none' }}>
+                  <span style={{ flexShrink: 0, display: 'inline-flex', width: 34, height: 34, borderRadius: 'var(--r-lg)', alignItems: 'center', justifyContent: 'center', background: bp.accentSoft }}><Icon name={s.icon as any} size={18} color={bp.accent} /></span>
                   <span style={{ minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{s.label}</span>
-                    <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{s.sub}</span>
+                    <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{s.label}</span>
+                    <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-5)', marginTop: 2 }}>{s.sub}</span>
                   </span>
                 </Link>
               ))}
@@ -339,14 +339,14 @@ export default function PainelCockpit() {
             lateral + "Mais ferramentas", mas escondidas atrás de um menu; aqui
             ficam todas visíveis de uma vez, com a explicação de cada uma. */}
         <div style={{ marginTop: 28 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>Todas as ferramentas</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.09em', marginBottom: 13 }}>Todas as ferramentas</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 10 }}>
             {allTools.map(t => (
-              <Link key={t.href} href={t.href} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, textDecoration: 'none', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '12px 14px' }}>
-                <span style={{ flexShrink: 0, display: 'inline-flex', width: 32, height: 32, borderRadius: 9, alignItems: 'center', justifyContent: 'center', background: bp.accentSoft }}><Icon name={iconForHref(t.href)} size={16} color={bp.accent} /></span>
+              <Link key={t.href} href={t.href} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, textDecoration: 'none', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 14px' }}>
+                <span style={{ flexShrink: 0, display: 'inline-flex', width: 32, height: 32, borderRadius: 'var(--r-lg)', alignItems: 'center', justifyContent: 'center', background: bp.accentSoft }}><Icon name={iconForHref(t.href)} size={16} color={bp.accent} /></span>
                 <span style={{ minWidth: 0 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0b1120' }}>{t.label}</span>
-                  <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8', marginTop: 2, lineHeight: 1.4 }}>{t.hint}</span>
+                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{t.label}</span>
+                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-5)', marginTop: 2, lineHeight: 1.4 }}>{t.hint}</span>
                 </span>
               </Link>
             ))}
@@ -364,12 +364,12 @@ function BlockShell({ block, editing, hidden, onToggle, accent, children }: { bl
   return (
     <div style={{ gridColumn: `span ${span}`, position: 'relative', opacity: editing && hidden ? 0.45 : 1 }} className={`blk blk-${block.size}`}>
       {editing && !block.essential && (
-        <button onClick={onToggle} style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: hidden ? '#e2e8f0' : accent, color: hidden ? '#475569' : 'white', border: 'none', borderRadius: 7, padding: '3px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
+        <button onClick={onToggle} style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: hidden ? 'var(--border)' : accent, color: hidden ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 'var(--r-md)', padding: '3px 9px', fontSize: 11, fontWeight: 700, cursor: 'pointer' }}>
           {hidden ? 'Mostrar' : 'Esconder'}
         </button>
       )}
       {editing && block.essential && (
-        <span style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: '#f1f5f9', color: '#94a3b8', borderRadius: 7, padding: '3px 9px', fontSize: 11, fontWeight: 700 }}>fixo</span>
+        <span style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: 'var(--bg-3)', color: 'var(--ink-5)', borderRadius: 'var(--r-md)', padding: '3px 9px', fontSize: 11, fontWeight: 700 }}>fixo</span>
       )}
       {children}
       <style>{`@media (max-width: 760px){ .blk { grid-column: span 12 !important; } }`}</style>
@@ -380,7 +380,7 @@ function BlockShell({ block, editing, hidden, onToggle, accent, children }: { bl
 // ── Cartão base ──
 // Blend "calmo + operação" (R2): cartão branco, cantos moderados, sombra
 // sussurro. Títulos com ícone de linha (nunca emoji) via <BTitle>.
-const card: React.CSSProperties = { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px', height: '100%', boxSizing: 'border-box', boxShadow: 'var(--shadow-xs)' }
+const card: React.CSSProperties = { background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px', height: '100%', boxSizing: 'border-box', boxShadow: 'var(--shadow-xs)' }
 const blkTitle: React.CSSProperties = { fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }
 
 // Título de bloco: ícone de linha (accent) + rótulo + contagem/ação opcionais.
@@ -411,9 +411,9 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
   // Skeleton (não "A carregar…" em texto): parece intencional, não avariado.
   if (loading) return (
     <div style={{ ...card }}>
-      <div className="skeleton" style={{ height: 12, width: '45%', borderRadius: 6, marginBottom: 12 }} />
-      <div className="skeleton" style={{ height: 28, width: '65%', borderRadius: 8, marginBottom: 10 }} />
-      <div className="skeleton" style={{ height: 12, width: '85%', borderRadius: 6 }} />
+      <div className="skeleton" style={{ height: 12, width: '45%', borderRadius: 'var(--r)', marginBottom: 12 }} />
+      <div className="skeleton" style={{ height: 28, width: '65%', borderRadius: 'var(--r-md)', marginBottom: 10 }} />
+      <div className="skeleton" style={{ height: 12, width: '85%', borderRadius: 'var(--r)' }} />
     </div>
   )
 
@@ -433,7 +433,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px 36px' }}>
             {stats.map(s => (
               <div key={s.l}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, lineHeight: 1, letterSpacing: '-0.02em', color: s.tone === 'accent' ? bp.accent : s.tone === 'warn' ? '#c2410c' : 'var(--ink)' }}>{s.n}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, lineHeight: 1, letterSpacing: '-0.02em', color: s.tone === 'accent' ? bp.accent : s.tone === 'warn' ? 'var(--amber)' : 'var(--ink)' }}>{s.n}</div>
                 <div style={{ fontSize: 11.5, marginTop: 5, fontWeight: 600, color: 'var(--ink-4)' }}>{s.l}</div>
               </div>
             ))}
@@ -455,30 +455,30 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
               {/* Presentes — toca no × para marcar ausente */}
               {present.slice(0, 30).map(p => (
-                <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 20, padding: '3px 4px 3px 11px', fontSize: 12, fontWeight: 600 }}>
+                <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)', color: 'var(--green)', borderRadius: 'var(--r-xl)', padding: '3px 4px 3px 11px', fontSize: 12, fontWeight: 600 }}>
                   {p.name.split(' ')[0]}
-                  <button aria-label="Fechar" onClick={() => ctx.markAttendance(p.id, 'absent')} title="Marcar ausente" style={{ border: 'none', background: 'transparent', color: '#86c9a3', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 3px' }}>×</button>                </span>
+                  <button aria-label="Fechar" onClick={() => ctx.markAttendance(p.id, 'absent')} title="Marcar ausente" style={{ border: 'none', background: 'transparent', color: 'var(--green-mid)', cursor: 'pointer', fontSize: 14, lineHeight: 1, padding: '0 3px' }}>×</button>                </span>
               ))}
               {/* Por chegar — botão marca presença já (não é preciso abrir o registo) */}
               {pending.slice(0, 24).map(p => (
                 <button key={p.id} onClick={() => ctx.markAttendance(p.id, 'present')} title="Marcar presente"
-                  style={{ background: '#fff', border: '1px dashed #e2e8f0', color: '#64748b', borderRadius: 20, padding: '4px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  style={{ background: 'var(--bg)', border: '1px dashed var(--border)', color: 'var(--ink-4)', borderRadius: 'var(--r-xl)', padding: '4px 11px', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                   + {p.name.split(' ')[0]}
                 </button>
               ))}
             </div>
             {absent.length > 0 && (
               <div style={{ marginTop: 9, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                <span style={{ fontSize: 11, color: '#94a3b8' }}>Ausentes:</span>
+                <span style={{ fontSize: 11, color: 'var(--ink-5)' }}>Ausentes:</span>
                 {absent.slice(0, 16).map(p => (
                   <button key={p.id} onClick={() => ctx.markAttendance(p.id, 'present')} title="Marcar presente"
-                    style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#b91c1c', borderRadius: 20, padding: '3px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
+                    style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', color: 'var(--red)', borderRadius: 'var(--r-xl)', padding: '3px 10px', fontSize: 11.5, fontWeight: 600, cursor: 'pointer' }}>
                     {p.name.split(' ')[0]}
                   </button>
                 ))}
               </div>
             )}
-            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10 }}>
+            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 10 }}>
               {pending.length > 0 ? `${pending.length} por chegar · toca para marcar presente` : 'Todos marcados. ✓'}
               {' · '}<Link href="/care-log" style={{ color: bp.accent, textDecoration: 'none', fontWeight: 700 }}>registar o dia →</Link>
             </div>
@@ -494,7 +494,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 20, flexWrap: 'wrap' }}>
             <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, color: 'var(--ink)', lineHeight: 1, letterSpacing: '-0.02em' }}>{ctx.marTaken}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> dadas hoje</span></div>
             {ctx.expectedDoses > 0 && (
-              <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, color: pend > 0 ? '#c2410c' : '#16a34a', lineHeight: 1, letterSpacing: '-0.02em' }}>{pend}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> por dar</span></div>
+              <div><span style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 700, fontVariantNumeric: 'slashed-zero' as any, color: pend > 0 ? 'var(--amber)' : 'var(--green)', lineHeight: 1, letterSpacing: '-0.02em' }}>{pend}</span><span style={{ fontSize: 13, color: 'var(--ink-4)', fontWeight: 600 }}> por dar</span></div>
             )}
           </div>
           <Link href="/mar" style={{ display: 'inline-block', marginTop: 12, fontSize: 12.5, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>{pend > 0 ? `Dar as ${pend} que faltam →` : 'Abrir medicação →'}</Link>
@@ -512,37 +512,37 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       return (
         <div style={card}>
           <div style={{ ...blkTitle, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Icon name="clipboard" size={16} color={bp.accent} />O que há a fazer hoje {(nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)) > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)}</span>}</span>
-            <Link href="/radar" style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', textDecoration: 'none' }}>Ver tudo →</Link>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}><Icon name="clipboard" size={16} color={bp.accent} />O que há a fazer hoje {(nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)) > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--amber)', background: 'var(--badge-amber-bg)', padding: '2px 7px', borderRadius: 'var(--r)' }}>{nAttention + (ctx.medsPending > 0 ? 1 : 0) + (semRegisto.length > 0 ? 1 : 0)}</span>}</span>
+            <Link href="/radar" style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>Ver tudo →</Link>
           </div>
-          {nada ? <div style={{ fontSize: 13, color: '#16a34a' }}>Tudo em dia. Nada fora do padrão. ✓</div>
+          {nada ? <div style={{ fontSize: 13, color: 'var(--green)' }}>Tudo em dia. Nada fora do padrão. ✓</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {/* Tarefas operacionais primeiro (acionáveis já) */}
               {ctx.medsPending > 0 && (
                 <Link href="/mar" style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#fff7ed', border: '1.5px solid #fed7aa', color: '#c2410c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="pill" size={15} color="#c2410c" /></span>
-                  <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{ctx.medsPending} {ctx.medsPending === 1 ? 'toma por dar' : 'tomas por dar'}</span><span style={{ display: 'block', fontSize: 11, color: '#c2410c' }}>Abrir a folha de medicação</span></span>
+                  <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: 'var(--amber-light)', border: '1.5px solid var(--badge-amber-border)', color: 'var(--amber)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="pill" size={15} color="var(--amber)" /></span>
+                  <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{ctx.medsPending} {ctx.medsPending === 1 ? 'toma por dar' : 'tomas por dar'}</span><span style={{ display: 'block', fontSize: 11, color: 'var(--amber)' }}>Abrir a folha de medicação</span></span>
                 </Link>
               )}
               {semRegisto.length > 0 && (
                 <Link href={`/care-log?patient=${semRegisto[0].id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: '#eff6ff', border: '1.5px solid #bfdbfe', color: '#1d4ed8', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="note" size={15} color="#1d4ed8" /></span>
-                  <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{semRegisto.length} {semRegisto.length === 1 ? 'registo do dia por fazer' : 'registos do dia por fazer'}</span><span style={{ display: 'block', fontSize: 11, color: '#1d4ed8' }}>{semRegisto.slice(0, 3).map((p: any) => p.name.split(' ')[0]).join(', ')}{semRegisto.length > 3 ? '…' : ''}</span></span>
+                  <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: 'var(--bg-2)', border: '1.5px solid var(--border)', color: 'var(--ink-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="note" size={15} color="var(--ink-2)" /></span>
+                  <span><span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{semRegisto.length} {semRegisto.length === 1 ? 'registo do dia por fazer' : 'registos do dia por fazer'}</span><span style={{ display: 'block', fontSize: 11, color: 'var(--ink-2)' }}>{semRegisto.slice(0, 3).map((p: any) => p.name.split(' ')[0]).join(', ')}{semRegisto.length > 3 ? '…' : ''}</span></span>
                 </Link>
               )}
               {/* Depois os sinais clínicos */}
               {ctx.attention.slice(0, 5).map(({ p, score, level, summary }: any) => {
                 const st = SEVERITY_STYLE[level as keyof typeof SEVERITY_STYLE]
                 return <Link key={p.id} href={`/patients/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 10, textDecoration: 'none' }}>
-                  <span style={{ width: 30, height: 30, borderRadius: 8, background: st.bg, border: `1.5px solid ${st.border}`, color: st.color, fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{score}</span>
+                  <span style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', background: st.bg, border: `1.5px solid ${st.border}`, color: st.color, fontWeight: 800, fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{score}</span>
                   <span style={{ minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>{p.name}</span>
+                    <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{p.name}</span>
                     <span style={{ display: 'block', fontSize: 11, color: st.color }}>{summary}</span>
                   </span>
                 </Link>
               })}
             </div>}
-          <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 8, lineHeight: 1.4 }}>Reúne o trabalho por fazer e o que a equipa registou. A avaliação é do profissional.</div>
+          <div style={{ fontSize: 10, color: 'var(--ink-5)', marginTop: 8, lineHeight: 1.4 }}>Reúne o trabalho por fazer e o que a equipa registou. A avaliação é do profissional.</div>
         </div>
       )
     }
@@ -553,8 +553,8 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           {ctx.acts.length === 0 ? <Empty msg="Sem atividades marcadas para hoje." href="/activities" cta="Planear atividades" />
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {ctx.acts.slice(0, 5).map(a => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: '#94a3b8', minWidth: 38 }}>{a.start_time || '—'}</span>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-3)' }}>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-5)', minWidth: 38 }}>{a.start_time || '—'}</span>
                   <span style={{ fontWeight: 600 }}>{a.title}</span>
                 </div>
               ))}
@@ -569,8 +569,8 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           {ctx.family.length === 0 ? <Empty msg="Nenhuma mensagem ainda. Partilha como correu o dia." href="/family" cta="Abrir portal das famílias" />
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {ctx.family.slice(0, 4).map(m => (
-                <div key={m.id} style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.45 }}>
-                  <span style={{ fontWeight: 700, color: m.side === 'family' ? '#b45309' : bp.accent }}>
+                <div key={m.id} style={{ fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.45 }}>
+                  <span style={{ fontWeight: 700, color: m.side === 'family' ? 'var(--amber)' : bp.accent }}>
                     {m.side === 'family' ? 'Família' : (m.kind === 'announce' ? 'Aviso enviado' : 'Equipa')}:
                   </span> {(m.content || '').slice(0, 90)}
                 </div>
@@ -584,8 +584,8 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       return (
         <div style={card}>
           <div style={blkTitle}><Icon name="alert" size={16} color={bp.accent} /> Ocorrências</div>
-          {ctx.incidents.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Nenhuma em aberto. ✓</div>
-          : <div style={{ fontSize: 13, color: '#b91c1c', fontWeight: 700 }}>{ctx.incidents.length} em aberto · <Link href="/incidents" style={{ color: '#b91c1c' }}>ver</Link></div>}
+          {ctx.incidents.length === 0 ? <div style={{ fontSize: 13, color: 'var(--green)' }}>Nenhuma em aberto. ✓</div>
+          : <div style={{ fontSize: 13, color: 'var(--red)', fontWeight: 700 }}>{ctx.incidents.length} em aberto · <Link href="/incidents" style={{ color: 'var(--red)' }}>ver</Link></div>}
         </div>
       )
     }
@@ -595,7 +595,7 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           <div style={blkTitle}><Icon name="bolt" size={16} color={bp.accent} /> Ações rápidas</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 7 }}>
             {bp.coreTools.slice(0, 4).map((t: any) => (
-              <Link key={t.href} href={t.href} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: bp.accentSoft, borderRadius: 9, padding: '9px 11px', fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}><Icon name={iconForHref(t.href)} size={15} color={bp.accent} /> {t.label}</Link>
+              <Link key={t.href} href={t.href} style={{ display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', background: bp.accentSoft, borderRadius: 'var(--r-lg)', padding: '9px 11px', fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}><Icon name={iconForHref(t.href)} size={15} color={bp.accent} /> {t.label}</Link>
             ))}
           </div>
         </div>
@@ -626,10 +626,10 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           <div style={blkTitle}><Icon name="cart" size={16} color={bp.accent} /> Vendas de hoje</div>
           {count === 0 ? <Empty msg="Ainda não há vendas registadas hoje." />
           : <>
-              <div style={{ fontSize: 30, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>
-                {total.toFixed(2).replace('.', ',')}<span style={{ fontSize: 15, color: '#94a3b8', fontWeight: 700 }}> €</span>
+              <div style={{ fontSize: 30, fontWeight: 800, color: 'var(--ink)', lineHeight: 1 }}>
+                {total.toFixed(2).replace('.', ',')}<span style={{ fontSize: 15, color: 'var(--ink-5)', fontWeight: 700 }}> €</span>
               </div>
-              <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{count} {count === 1 ? 'venda' : 'vendas'} · ticket médio {(total / count).toFixed(2).replace('.', ',')} €</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 6 }}>{count} {count === 1 ? 'venda' : 'vendas'} · ticket médio {(total / count).toFixed(2).replace('.', ',')} €</div>
             </>}
         </div>
       )
@@ -638,9 +638,9 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const q = ctx.rxQueue
       return (
         <div style={card}>
-          <div style={blkTitle}><Icon name="inbox" size={16} color={bp.accent} /> Receitas a validar {q.pending > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#b45309', background: '#fffbeb', padding: '2px 7px', borderRadius: 6 }}>{q.pending}</span>}</div>
-          {q.pending === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Fila limpa — nada por validar. ✓</div>
-          : <div style={{ fontSize: 13, color: '#334155' }}><b style={{ color: '#b45309' }}>{q.pending}</b> à espera de validação</div>}
+          <div style={blkTitle}><Icon name="inbox" size={16} color={bp.accent} /> Receitas a validar {q.pending > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: 'var(--amber)', background: 'var(--badge-amber-bg)', padding: '2px 7px', borderRadius: 'var(--r)' }}>{q.pending}</span>}</div>
+          {q.pending === 0 ? <div style={{ fontSize: 13, color: 'var(--green)' }}>Fila limpa — nada por validar. ✓</div>
+          : <div style={{ fontSize: 13, color: 'var(--ink-3)' }}><b style={{ color: 'var(--amber)' }}>{q.pending}</b> à espera de validação</div>}
         </div>
       )
     }
@@ -655,12 +655,12 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
           {appts.length === 0 ? <Empty msg="Sem marcações para hoje." href="/agenda" cta="Abrir agenda" />
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
               {upcoming.slice(0, 6).map(a => (
-                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: '#334155' }}>
+                <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-3)' }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: bp.accent, fontWeight: 700, minWidth: 42 }}>{a.time?.slice(0, 5) || '—'}</span>
                   <span style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.title}</span>
                 </div>
               ))}
-              {upcoming.length === 0 && <div style={{ fontSize: 12.5, color: '#16a34a' }}>Tudo feito por hoje. ✓</div>}
+              {upcoming.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--green)' }}>Tudo feito por hoje. ✓</div>}
               <Link href="/agenda" style={{ marginTop: 4, fontSize: 12, fontWeight: 700, color: bp.accent, textDecoration: 'none' }}>Ver agenda →</Link>
             </div>}
         </div>
@@ -672,12 +672,12 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
       const urgent = open.filter(t => t.priority === 'high' || t.priority === 'urgent').length
       return (
         <div style={card}>
-          <div style={blkTitle}><Icon name="check" size={16} color={bp.accent} /> Tarefas {open.length > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: urgent ? '#b91c1c' : '#64748b', background: urgent ? '#fef2f2' : '#f1f5f9', padding: '2px 7px', borderRadius: 6 }}>{open.length}</span>}</div>
-          {open.length === 0 ? <div style={{ fontSize: 13, color: '#16a34a' }}>Sem tarefas pendentes. ✓</div>
+          <div style={blkTitle}><Icon name="check" size={16} color={bp.accent} /> Tarefas {open.length > 0 && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: urgent ? 'var(--red)' : 'var(--ink-4)', background: urgent ? 'var(--badge-red-bg)' : 'var(--bg-3)', padding: '2px 7px', borderRadius: 'var(--r)' }}>{open.length}</span>}</div>
+          {open.length === 0 ? <div style={{ fontSize: 13, color: 'var(--green)' }}>Sem tarefas pendentes. ✓</div>
           : <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {open.slice(0, 4).map(t => (
-                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: '#334155' }}>
-                  <span style={{ width: 6, height: 6, borderRadius: 99, background: (t.priority === 'high' || t.priority === 'urgent') ? '#dc2626' : '#cbd5e1', flexShrink: 0 }} />
+                <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5, color: 'var(--ink-3)' }}>
+                  <span style={{ width: 6, height: 6, borderRadius: 99, background: (t.priority === 'high' || t.priority === 'urgent') ? 'var(--red)' : 'var(--border-2)', flexShrink: 0 }} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.title}</span>
                 </div>
               ))}
@@ -692,16 +692,16 @@ function BlockBody({ id, bp, cfg, loading, ctx }: { id: BlockId; bp: any; cfg: a
 
 // ── peças pequenas ──
 function Stat({ n, l, light }: { n: number; l: string; light?: boolean }) {
-  return <div><div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1, color: light ? 'white' : '#0b1120' }}>{n}</div><div style={{ fontSize: 11.5, marginTop: 4, color: light ? 'rgba(255,255,255,0.8)' : '#94a3b8', fontWeight: 600 }}>{l}</div></div>
+  return <div><div style={{ fontSize: 30, fontWeight: 800, lineHeight: 1, color: light ? 'white' : 'var(--ink)' }}>{n}</div><div style={{ fontSize: 11.5, marginTop: 4, color: light ? 'rgba(255,255,255,0.8)' : 'var(--ink-5)', fontWeight: 600 }}>{l}</div></div>
 }
 function Chip({ label, tone }: { label: string; tone: 'ok' | 'pending' }) {
-  const s = tone === 'ok' ? { bg: '#f0fdf4', bd: '#bbf7d0', c: '#15803d' } : { bg: '#fffbeb', bd: '#fde68a', c: '#b45309' }
+  const s = tone === 'ok' ? { bg: 'var(--badge-green-bg)', bd: 'var(--badge-green-border)', c: 'var(--green)' } : { bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)', c: 'var(--amber)' }
   return <span style={{ fontSize: 12, fontWeight: 600, color: s.c, background: s.bg, border: `1px solid ${s.bd}`, padding: '3px 9px', borderRadius: 99 }}>{label}</span>
 }
 function Empty({ msg, href, cta }: { msg: string; href?: string; cta?: string }) {
-  return <div style={{ textAlign: 'center', padding: '14px 0' }}><div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 8 }}>{msg}</div>{href && cta && <Link href={href} style={{ fontSize: 12.5, fontWeight: 700, color: '#2563eb', textDecoration: 'none' }}>{cta} →</Link>}</div>
+  return <div style={{ textAlign: 'center', padding: '14px 0' }}><div style={{ fontSize: 13, color: 'var(--ink-5)', marginBottom: 8 }}>{msg}</div>{href && cta && <Link href={href} style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>{cta} →</Link>}</div>
 }
 // Botão claro sobre fundo de acento (usado no bloco "balcão" da farmácia).
 function CtaPill({ href, label }: { href: string; label: string }) {
-  return <Link href={href} style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 8, padding: '7px 13px', fontSize: 12.5, fontWeight: 700 }}>{label} →</Link>
+  return <Link href={href} style={{ textDecoration: 'none', background: 'rgba(255,255,255,0.18)', color: 'white', borderRadius: 'var(--r-md)', padding: '7px 13px', fontSize: 12.5, fontWeight: 700 }}>{label} →</Link>
 }

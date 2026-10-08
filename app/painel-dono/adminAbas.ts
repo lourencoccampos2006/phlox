@@ -187,7 +187,7 @@ export function abaCasa(b: BaseAdmin, c: CruCasa | null, casa: string, pessoas: 
     titulo: `Entraram em ${ano}`,
     contagem: `${entradas.length}`,
     itens: entradas.slice(0, 6).map(p => ({
-      id: p.id, icone: '🏠', titulo: p.name,
+      id: p.id, icone: 'home', titulo: p.name,
       sub: `Entrou a ${String(p.admission_date).slice(8, 10)}/${String(p.admission_date).slice(5, 7)}`,
       cta: 'Ficha', href: `/patients/${p.id}`,
     })),
@@ -531,7 +531,7 @@ export function abaConformidade(
     titulo: 'Caducam nos próximos 60 dias',
     contagem: `${docsEmBreve.length}`,
     itens: docsEmBreve.slice(0, 6).map((d: any) => ({
-      id: d.id, icone: '📄', titulo: d.name || 'Documento',
+      id: d.id, icone: 'note', titulo: d.name || 'Documento',
       sub: `Caduca a ${String(d.expiry_date).slice(0, 10)}`,
       cta: 'Abrir', href: '/documentos',
     })),

@@ -40,7 +40,7 @@ export default function IndicacaoPage() {
     printDoc({ docTitle: 'Indicação Farmacêutica', docSubtitle: complaint.slice(0, 80), institution: 'Farmácia Comunitária', sections, footerNote: 'Protocolo de indicação farmacêutica · Phlox' })
   }
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px' }
   const block = (title: string, items: string[], color: string, bg: string) => items?.length ? (
     <div style={{ ...card, borderColor: bg, background: bg + '0a' }}>
       <div style={{ fontSize: 11, fontWeight: 700, color, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{title}</div>
@@ -50,7 +50,7 @@ export default function IndicacaoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'linear-gradient(135deg,#1d4ed8,#3b82f6)', padding: '26px 24px 22px' }}>
+      <div style={{ background: 'linear-gradient(135deg,var(--ink-2),var(--ink-3))', padding: '26px 24px 22px' }}>
         <div className="page-container">
           <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Farmácia · Balcão</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Indicação Farmacêutica</h1>
@@ -61,19 +61,19 @@ export default function IndicacaoPage() {
       <div className="page-container page-body" style={{ maxWidth: 820 }}>
         <div style={{ ...card, marginBottom: 16 }}>
           <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Queixa do utente</label>
-          <textarea value={complaint} onChange={e => setComplaint(e.target.value)} rows={2} placeholder="Ex: dor de garganta há 2 dias, sem febre…" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '11px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
+          <textarea value={complaint} onChange={e => setComplaint(e.target.value)} rows={2} placeholder="Ex: dor de garganta há 2 dias, sem febre…" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', boxSizing: 'border-box', marginBottom: 10 }} />
           <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: 6 }}>Contexto (idade, gravidez, crónicos, medicação, alergias)</label>
-          <input value={context} onChange={e => setContext(e.target.value)} placeholder="Ex: 34a, grávida 2º trim, sem alergias" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 10, padding: '11px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
-          <button onClick={run} disabled={loading || !complaint.trim()} style={{ width: '100%', padding: 13, background: complaint.trim() && !loading ? '#1d4ed8' : 'var(--bg-3)', color: complaint.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: complaint.trim() && !loading ? 'pointer' : 'default', fontFamily: 'var(--font-sans)' }}>{loading ? 'A avaliar…' : 'Obter indicação'}</button>
-          {error && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{error}</div>}
+          <input value={context} onChange={e => setContext(e.target.value)} placeholder="Ex: 34a, grávida 2º trim, sem alergias" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', marginBottom: 12 }} />
+          <button onClick={run} disabled={loading || !complaint.trim()} style={{ width: '100%', padding: 13, background: complaint.trim() && !loading ? 'var(--ink-2)' : 'var(--bg-3)', color: complaint.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 15, fontWeight: 700, cursor: complaint.trim() && !loading ? 'pointer' : 'default', fontFamily: 'var(--font-sans)' }}>{loading ? 'A avaliar…' : 'Obter indicação'}</button>
+          {error && <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--red)' }}>{error}</div>}
         </div>
 
         {result && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ ...card, borderColor: result.suitable_for_self_care ? '#bbf7d0' : '#fca5a5', background: result.suitable_for_self_care ? '#f0fdf4' : '#fef2f2' }}>
+            <div style={{ ...card, borderColor: result.suitable_for_self_care ? 'var(--green-mid)' : 'var(--badge-red-border)', background: result.suitable_for_self_care ? 'var(--badge-green-bg)' : 'var(--badge-red-bg)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: result.suitable_for_self_care ? '#15803d' : '#b91c1c' }}>{result.suitable_for_self_care ? '✓ Adequado a automedicação' : '⚠ Referenciar ao médico'}</span>
-                <button onClick={print} style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', background: 'white', border: '1px solid #bfdbfe', borderRadius: 7, padding: '5px 11px', cursor: 'pointer' }}>Imprimir</button>
+                <span style={{ fontSize: 13, fontWeight: 800, color: result.suitable_for_self_care ? 'var(--green)' : 'var(--red)' }}>{result.suitable_for_self_care ? '✓ Adequado a automedicação' : '⚠ Referenciar ao médico'}</span>
+                <button onClick={print} style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '5px 11px', cursor: 'pointer' }}>Imprimir</button>
               </div>
               {result.assessment && <div style={{ fontSize: 14, color: 'var(--ink-2)', marginTop: 8, lineHeight: 1.6 }}>{result.assessment}</div>}
             </div>
@@ -83,9 +83,9 @@ export default function IndicacaoPage() {
                 <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 10 }}>Indicação</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {result.recommended.map((r, i) => (
-                    <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '11px 13px' }}>
+                    <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 13px' }}>
                       <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>{r.name} <span style={{ fontWeight: 400, color: 'var(--ink-4)', fontSize: 12.5 }}>{r.active}</span></div>
-                      <div style={{ fontSize: 13.5, color: '#1d4ed8', marginTop: 4, fontWeight: 600 }}>{r.dose}</div>
+                      <div style={{ fontSize: 13.5, color: 'var(--ink-2)', marginTop: 4, fontWeight: 600 }}>{r.dose}</div>
                       {r.duration && <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2 }}>Máx: {r.duration}</div>}
                       {r.notes && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 4 }}>{r.notes}</div>}
                     </div>
@@ -94,9 +94,9 @@ export default function IndicacaoPage() {
               </div>
             )}
 
-            {block('Medidas não farmacológicas', result.non_pharmacological, '#15803d', '#16a34a')}
-            {block('Referenciar ao médico se', result.refer_if, '#b91c1c', '#dc2626')}
-            {block('Aconselhamento ao utente', result.counseling, '#1d4ed8', '#2563eb')}
+            {block('Medidas não farmacológicas', result.non_pharmacological, 'var(--green)', 'var(--green)')}
+            {block('Referenciar ao médico se', result.refer_if, 'var(--red)', 'var(--red)')}
+            {block('Aconselhamento ao utente', result.counseling, 'var(--ink-2)', 'var(--ink-2)')}
             {result.follow_up && <div style={{ ...card, background: 'var(--bg-2)' }}><div style={{ fontSize: 13, color: 'var(--ink-3)' }}>🔁 Seguimento: {result.follow_up}</div></div>}
             <div style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center' }}>Apoio à decisão profissional — a responsabilidade clínica é do farmacêutico.</div>
           </div>

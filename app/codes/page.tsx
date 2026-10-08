@@ -5,18 +5,19 @@
 // Útil para profissionais, instituições e marketing.
 
 import { useState, useMemo } from 'react'
+import Icon from '@/components/Icon'
 
 type Kind = 'url' | 'text' | 'wifi' | 'vcard' | 'email'
 
 const KINDS: { id: Kind; label: string; icon: string }[] = [
-  { id: 'url', label: 'Link', icon: '🔗' },
+  { id: 'url', label: 'Link', icon: 'layers' },
   { id: 'text', label: 'Texto', icon: '✎' },
   { id: 'wifi', label: 'WiFi', icon: '📶' },
-  { id: 'vcard', label: 'Cartão de visita', icon: '👤' },
-  { id: 'email', label: 'Email', icon: '✉' },
+  { id: 'vcard', label: 'Cartão de visita', icon: 'user' },
+  { id: 'email', label: 'Email', icon: 'inbox' },
 ]
 
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', marginBottom: 5, display: 'block' }
 
 function esc(s: string) { return (s || '').replace(/[\\;,:"]/g, '\\$&') }
@@ -24,7 +25,7 @@ function esc(s: string) { return (s || '').replace(/[\\;,:"]/g, '\\$&') }
 export default function CodesPage() {
   const [kind, setKind] = useState<Kind>('url')
   const [size, setSize] = useState(280)
-  const [color, setColor] = useState('#0b1120')
+  const [color, setColor] = useState('var(--ink)')
   const [margin, setMargin] = useState(2)
 
   // por tipo
@@ -69,24 +70,24 @@ export default function CodesPage() {
   function copyData() { navigator.clipboard.writeText(data) }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 940 }}>
 
         <div style={{ marginBottom: 22 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Phlox · Codes</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Gerar QR Code</h1>
-          <p style={{ fontSize: 13.5, color: '#475569', margin: '6px 0 0', lineHeight: 1.55 }}>Link, texto, rede WiFi, cartão de visita ou email. Personaliza tamanho, cor e margem; descarrega como PNG.</p>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Phlox · Codes</div>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Gerar QR Code</h1>
+          <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '6px 0 0', lineHeight: 1.55 }}>Link, texto, rede WiFi, cartão de visita ou email. Personaliza tamanho, cor e margem; descarrega como PNG.</p>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 380px)', gap: 16, alignItems: 'start' }} className="codes-grid">
 
           {/* Form */}
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 20 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
               {KINDS.map(k => (
                 <button key={k.id} onClick={() => setKind(k.id)}
-                  style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${kind === k.id ? '#0d6e42' : '#e5e7eb'}`, background: kind === k.id ? '#f0fdf4' : 'white', color: kind === k.id ? '#0d6e42' : '#475569', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  {k.icon} {k.label}
+                  style={{ padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1.5px solid ${kind === k.id ? 'var(--green)' : 'var(--border)'}`, background: kind === k.id ? 'var(--badge-green-bg)' : 'white', color: kind === k.id ? 'var(--green)' : 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  <Icon name={k.icon} size={15} />  {k.label}
                 </button>
               ))}
             </div>
@@ -126,14 +127,14 @@ export default function CodesPage() {
             )}
 
             {/* Personalização */}
-            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid #f1f5f9', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+            <div style={{ marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--bg-3)', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
               <div>
                 <label style={lbl}>Tamanho ({size}px)</label>
                 <input type="range" min={128} max={600} step={16} value={size} onChange={e => setSize(Number(e.target.value))} style={{ width: '100%' }} />
               </div>
               <div>
                 <label style={lbl}>Cor</label>
-                <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: '100%', height: 38, border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', background: 'white' }} />
+                <input type="color" value={color} onChange={e => setColor(e.target.value)} style={{ width: '100%', height: 38, border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', background: 'white' }} />
               </div>
               <div>
                 <label style={lbl}>Margem</label>
@@ -143,16 +144,16 @@ export default function CodesPage() {
           </div>
 
           {/* Preview */}
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 22, position: 'sticky', top: 80 }}>
-            <div style={{ aspectRatio: '1', maxWidth: 320, margin: '0 auto', background: '#f8fafc', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 22, position: 'sticky', top: 80 }}>
+            <div style={{ aspectRatio: '1', maxWidth: 320, margin: '0 auto', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12 }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={qrUrl} width={size} height={size} alt="QR Code" style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
             </div>
             <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-              <button onClick={download} style={{ flex: 1, padding: 11, background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Descarregar PNG</button>
-              <button onClick={copyData} style={{ padding: '11px 14px', background: 'white', color: '#374151', border: '1px solid #e5e7eb', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Copiar</button>
+              <button onClick={download} style={{ flex: 1, padding: 11, background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Descarregar PNG</button>
+              <button onClick={copyData} style={{ padding: '11px 14px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Copiar</button>
             </div>
-            <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 10, textAlign: 'center', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>{data.slice(0, 80)}{data.length > 80 ? '…' : ''}</div>
+            <div style={{ fontSize: 10.5, color: 'var(--ink-5)', marginTop: 10, textAlign: 'center', fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>{data.slice(0, 80)}{data.length > 80 ? '…' : ''}</div>
           </div>
         </div>
       </div>

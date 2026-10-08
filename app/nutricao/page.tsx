@@ -96,12 +96,12 @@ export default function NutricaoPage() {
 
         <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
           {[
-            { n: atRisk, l: 'Perda significativa', c: '#dc2626', bg: '#fef2f2', bd: '#fca5a5' },
-            { n: watch, l: 'A vigiar', c: '#d97706', bg: '#fffbeb', bd: '#fde68a' },
-            { n: lowBmi, l: 'IMC baixo (<21)', c: '#b45309', bg: '#fffbeb', bd: '#fde68a' },
-            { n: noData, l: 'Sem dados de peso', c: '#64748b', bg: 'white', bd: 'var(--border)' },
+            { n: atRisk, l: 'Perda significativa', c: 'var(--red)', bg: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)' },
+            { n: watch, l: 'A vigiar', c: 'var(--amber)', bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)' },
+            { n: lowBmi, l: 'IMC baixo (<21)', c: 'var(--amber)', bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)' },
+            { n: noData, l: 'Sem dados de peso', c: 'var(--ink-4)', bg: 'white', bd: 'var(--border)' },
           ].map(s => (
-            <div key={s.l} style={{ flex: '1 1 130px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 12, padding: '13px 16px' }}>
+            <div key={s.l} style={{ flex: '1 1 130px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 'var(--r-xl)', padding: '13px 16px' }}>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.n}</div>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>{s.l}</div>
             </div>
@@ -109,14 +109,14 @@ export default function NutricaoPage() {
         </div>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 12 }} />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 'var(--r-xl)' }} />)}</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
             {rows.map(({ p, series, flag, latest, bmi }) => {
-              const fc = flag.level === 'high' ? '#dc2626' : flag.level === 'med' ? '#d97706' : '#16a34a'
+              const fc = flag.level === 'high' ? 'var(--red)' : flag.level === 'med' ? 'var(--amber)' : 'var(--green)'
               const open = selected === p.id
               return (
-                <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${flag.level ? fc : 'var(--border)'}`, borderRadius: 10, overflow: 'hidden' }}>
+                <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${flag.level ? fc : 'var(--border)'}`, borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
                   <div onClick={() => setSelected(open ? null : p.id)} style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 14, cursor: 'pointer' }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name} {p.room_number && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontWeight: 400 }}>Q{p.room_number}</span>}</div>
@@ -131,13 +131,13 @@ export default function NutricaoPage() {
                     <div style={{ borderTop: '1px solid var(--bg-3)', padding: '12px 16px', background: 'var(--bg-2)' }}>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                         {series.slice(-12).map((pt, i) => (
-                          <div key={i} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 7, padding: '6px 10px', textAlign: 'center' }}>
+                          <div key={i} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '6px 10px', textAlign: 'center' }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{pt.weight}</div>
                             <div style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{new Date(pt.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'numeric' })}</div>
                           </div>
                         ))}
                       </div>
-                      <Link href="/care-log" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Registar novo peso →</Link>
+                      <Link href="/care-log" style={{ display: 'inline-block', marginTop: 10, fontSize: 12, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Registar novo peso →</Link>
                     </div>
                   )}
                 </div>

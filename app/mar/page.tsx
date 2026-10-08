@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Vazio, Aviso,
+  Codigo, Bandeira, Segmentos, Botao, Seletor, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
@@ -15,11 +19,27 @@ import Link from 'next/link'
 import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
 import { registar, ACOES } from '@/lib/registo'
 
-// Centro de dia: badge de "onde se toma" cada medicamento (ponte casa↔centro).
+/* ONDE SE TOMA NAO E UM ESTADO (2026-10-07)
+   Estes tres selos diziam onde cada medicamento e tomado — a ponte casa↔centro
+   de um centro de dia. «Em casa» vinha a ambar e «no centro» a turquesa.
+
+   Duas coisas erradas numa so peca. O ambar, no resto da aplicacao, quer dizer
+   «a precisar de atencao»: num centro onde metade da medicacao e tomada em
+   casa, isso enchia a folha de avisos falsos. E a turquesa nao existe no
+   codigo de cores — era uma quinta cor que ninguem sabia ler.
+
+   Onde se toma e um FACTO da prescricao. Fica em mono, neutro, como todos os
+   outros factos: o que se le e a palavra, nao a cor. */
 function LocBadge({ loc }: { loc?: string | null }) {
-  if (loc === 'casa') return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 10, fontWeight: 700, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 7px', borderRadius: 99 }}><Icon name="home" size={11} color="#b45309" /> em casa</span>
-  if (loc === 'ambos') return <span style={{ fontSize: 10, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 7px', borderRadius: 99 }}>casa + centro</span>
-  return <span style={{ fontSize: 10, fontWeight: 700, color: '#0d9488', background: '#f0fdfa', border: '1px solid #99f6e4', padding: '1px 7px', borderRadius: 99 }}>no centro</span>
+  const texto = loc === 'casa' ? 'CASA' : loc === 'ambos' ? 'CASA+CENTRO' : 'CENTRO'
+  return (
+    <span style={{
+      fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)',
+      fontWeight: 'var(--peso-forte)' as any, letterSpacing: '.06em',
+      color: 'var(--ink-4)', border: '1px solid var(--border-2)',
+      borderRadius: 'var(--r-sm)', padding: '1px 5px', whiteSpace: 'nowrap',
+    }}>{texto}</span>
+  )
 }
 
 interface Patient {
@@ -34,15 +54,19 @@ interface AdminRecord {
   status: AdminStatus; notes: string; recorded_by: string; recorded_at: string
 }
 
+// -- OS TURNOS DEIXARAM DE TER COR PROPRIA (2026-10-07) ---------------------
+// Eram tres cores: ambar de manha, azul a tarde, roxo a noite. Com o ambar a
+// querer dizer «a precisar de atencao», metade dos ecras de uma casa ficavam
+// com um aviso falso das sete as duas da tarde, todos os dias.
 const SHIFTS: Record<Shift, { label: string; time: string; color: string; light: string; border: string }> = {
-  manha: { label: 'Manhã',  time: '07–14h', color: '#d97706', light: '#fffbeb', border: '#fde68a' },
-  tarde: { label: 'Tarde',  time: '14–21h', color: '#2563eb', light: '#eff6ff', border: '#bfdbfe' },
-  noite: { label: 'Noite',  time: '21–07h', color: '#7c3aed', light: '#faf5ff', border: '#ddd6fe' },
+  manha: { label: 'Manhã',  time: '07–14h', color: 'var(--ink-3)', light: 'var(--bg-2)', border: 'var(--border)' },
+  tarde: { label: 'Tarde',  time: '14–21h', color: 'var(--ink-3)', light: 'var(--bg-2)', border: 'var(--border)' },
+  noite: { label: 'Noite',  time: '21–07h', color: 'var(--ink-3)', light: 'var(--bg-2)', border: 'var(--border)' },
 }
 const STATUS_CFG = {
-  administered: { label: 'Administrado', short: '✓', color: '#166534', bg: '#f0fdf4', border: '#86efac' },
-  refused:      { label: 'Recusado',     short: '✗', color: '#991b1b', bg: '#fef2f2', border: '#fca5a5' },
-  held:         { label: 'Suspenso',     short: '⏸', color: '#92400e', bg: '#fff7ed', border: '#fed7aa' },
+  administered: { label: 'Administrado', short: '✓', color: 'var(--green)', bg: 'var(--badge-green-bg)', border: 'var(--badge-green-border)' },
+  refused:      { label: 'Recusado',     short: '✗', color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)' },
+  held:         { label: 'Suspenso',     short: '⏸', color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' },
 }
 
 const ANTICOAG = ['varfarina','acenocumarol','warfarin','rivaroxabano','apixabano','dabigatrano','heparina','enoxaparina']
@@ -90,67 +114,139 @@ function fmtTime(iso: string) {
   return new Date(iso).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
 }
 
-function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null; isSaving: boolean; onChange: (s: AdminStatus, notes: string) => void }) {
-  const [open, setOpen] = useState(false)
-  const [notes, setNotes] = useState(record?.notes || '')
+/* ══════════════════════════════════════════════════════════════════════════
+   O REGISTO DE UMA TOMA
+   ══════════════════════════════════════════════════════════════════════════
+   ── O QUE ESTAVA MAL ──────────────────────────────────────────────────────
+   Eram três botões com o nome por extenso — «Administrado», «Recusado»,
+   «Suspenso» — e, numa coluna estreita, empilhavam-se. Cada linha de
+   medicação passava a ter três andares, e catorze medicamentos enchiam dois
+   ecrãs com palavras que já estão na legenda do fundo.
 
-  if (record?.status) {
-    const cfg = STATUS_CFG[record.status]
+   ── O QUE FAZ AGORA ───────────────────────────────────────────────────────
+   Três quadrados de 30px lado a lado: ✓ ✗ ⏸. Os símbolos são os mesmos que a
+   barra de estado explica, e cada um tem o nome por extenso no `title` para
+   quem passar o rato ou usar um leitor de ecrã.
+
+   Depois de registado, encolhe para UM símbolo com a hora e o nome de quem
+   registou — que é a informação que interessa a seguir, e não os botões.
+   ══════════════════════════════════════════════════════════════════════════ */
+function AdminCell({ record, isSaving, onChange }: { record: AdminRecord | null; isSaving: boolean; onChange: (s: AdminStatus, notes: string) => void }) {
+  const [aberto, setAberto] = useState(false)
+  const [notas, setNotas] = useState(record?.notes || '')
+
+  const quadrado = (st: NonNullable<AdminStatus>, escolhido: boolean) => {
+    const c = STATUS_CFG[st]
     return (
-      <>
-        <button onClick={() => setOpen(true)} style={{ background: cfg.bg, border: `1px solid ${cfg.border}`, borderRadius: 7, padding: '6px 12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, opacity: isSaving ? 0.5 : 1 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: cfg.color }}>{cfg.short}</span>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: cfg.color, letterSpacing: '0.02em', display: 'flex', alignItems: 'center', gap: 5 }}>
-              {cfg.label}
-              {(record as any).source === 'home' && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: 8.5, fontWeight: 800, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 4, padding: '1px 5px' }}><Icon name="home" size={9} color="#b45309" /> CASA</span>}
-            </div>
-            {record.recorded_at && <div style={{ fontSize: 9, color: '#94a3b8' }}>{fmtTime(record.recorded_at)}{record.recorded_by ? ` · ${record.recorded_by.split(' ')[0]}` : ''}</div>}
-          </div>
-        </button>
-        {open && (
-          <div style={{ position: 'fixed', inset: 0, zIndex: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.45)', padding: 20 }}
-            onClick={() => setOpen(false)}>
-            <div style={{ background: 'white', borderRadius: 14, padding: 20, width: '100%', maxWidth: 300, boxShadow: '0 24px 64px rgba(0,0,0,0.18)' }}
-              onClick={e => e.stopPropagation()}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', marginBottom: 12 }}>Alterar registo</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
-                {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => {
-                  const c = STATUS_CFG[st]
-                  return (
-                    <button key={st} onClick={() => { onChange(st, notes); setOpen(false) }}
-                      style={{ padding: '10px 14px', background: c.bg, border: `1px solid ${c.border}`, borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontSize: 13, fontWeight: 700, color: c.color }}>
-                      {c.short} {c.label}
-                    </button>
-                  )
-                })}
-                <button onClick={() => { onChange(null, ''); setOpen(false) }}
-                  style={{ padding: '10px 14px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', textAlign: 'left', fontSize: 12, color: '#64748b' }}>
-                  Limpar registo
-                </button>
-              </div>
-              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
-                placeholder="Observação (opcional)"
-                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 7, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', resize: 'none', outline: 'none' }} />
-              {record.notes && <div style={{ fontSize: 11, color: '#64748b', marginTop: 6 }}>Nota actual: {record.notes}</div>}
-            </div>
-          </div>
-        )}
-      </>
+      <button key={st} type="button" title={c.label}
+        aria-label={c.label} aria-pressed={escolhido}
+        onClick={() => onChange(escolhido ? null : st, notas)}
+        style={{
+          width: 30, height: 30, flexShrink: 0, padding: 0,
+          borderRadius: 'var(--r-sm)', cursor: 'pointer',
+          border: escolhido ? 'none' : `1px solid var(--border-2)`,
+          background: escolhido ? c.color : 'transparent',
+          color: escolhido ? 'var(--sobre-acento)' : 'var(--ink-5)',
+          fontSize: 'var(--t-corpo)', lineHeight: 1,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>{c.short}</button>
     )
   }
 
+  // Já registado: um símbolo, a hora, quem foi.
+  if (record?.status) {
+    const c = STATUS_CFG[record.status]
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 7, opacity: isSaving ? 0.5 : 1 }}>
+        <button type="button" onClick={() => setAberto(true)} title="Alterar este registo"
+          style={{
+            width: 30, height: 30, flexShrink: 0, padding: 0, borderRadius: 'var(--r-sm)',
+            border: 'none', background: c.color, color: 'var(--sobre-acento)',
+            fontSize: 'var(--t-corpo)', lineHeight: 1, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>{c.short}</button>
+        <span style={{ minWidth: 0 }}>
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '.05em',
+            color: c.color, fontWeight: 'var(--peso-corpo)' as any, display: 'block',
+          }}>
+            {record.status === 'administered' ? 'DADO' : record.status === 'refused' ? 'RECUSOU' : 'SUSPENSO'}
+          </span>
+          {record.recorded_at && (
+            <span style={{
+              fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)',
+              fontVariantNumeric: 'tabular-nums',
+            }}>
+              {fmtTime(record.recorded_at)}{record.recorded_by ? ` ${record.recorded_by.split(' ')[0]}` : ''}
+            </span>
+          )}
+        </span>
+        {(record as any).source === 'home' && (
+          <span style={{
+            fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any,
+            color: 'var(--amber)', border: '1px solid var(--badge-amber-border)',
+            background: 'var(--badge-amber-bg)', borderRadius: 'var(--r-sm)', padding: '1px 4px',
+          }}>CASA</span>
+        )}
+
+        {aberto && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 300, display: 'flex',
+            alignItems: 'center', justifyContent: 'center',
+            background: 'rgba(16,20,24,0.45)', padding: 20,
+          }} onClick={() => setAberto(false)}>
+            <div onClick={e => e.stopPropagation()} style={{
+              background: 'var(--bg)', borderRadius: 'var(--r-md)', padding: 18,
+              width: '100%', maxWidth: 340, border: '1px solid var(--border-2)',
+            }}>
+              <div style={{
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '.12em',
+                textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 'var(--peso-forte)' as any, marginBottom: 10,
+              }}>Alterar o registo</div>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+                {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => (
+                  <button key={st} type="button" onClick={() => { onChange(st, notas); setAberto(false) }}
+                    style={{
+                      flex: 1, minHeight: 'var(--alvo)', borderRadius: 'var(--r-sm)', cursor: 'pointer',
+                      border: `1px solid ${st === record.status ? STATUS_CFG[st].color : 'var(--border-2)'}`,
+                      background: st === record.status ? STATUS_CFG[st].color : 'transparent',
+                      color: st === record.status ? 'var(--sobre-acento)' : 'var(--ink-3)',
+                      fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any,
+                    }}>{STATUS_CFG[st].short} {STATUS_CFG[st].label}</button>
+                ))}
+              </div>
+              <textarea value={notas} onChange={e => setNotas(e.target.value)} rows={2}
+                placeholder="Observação (opcional)"
+                style={{
+                  width: '100%', boxSizing: 'border-box', padding: '8px 10px',
+                  border: '1px solid var(--border-2)', borderRadius: 'var(--r-sm)',
+                  fontSize: 'var(--t-dado)', fontFamily: 'inherit', resize: 'vertical',
+                }} />
+              <div style={{ display: 'flex', gap: 6, marginTop: 12 }}>
+                <button type="button" onClick={() => { onChange(record.status, notas); setAberto(false) }}
+                  style={{
+                    flex: 1, minHeight: 'var(--alvo)', border: 'none', borderRadius: 'var(--r-sm)',
+                    background: 'var(--green)', color: 'var(--sobre-acento)',
+                    fontFamily: 'inherit', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
+                  }}>Guardar a nota</button>
+                <button type="button" onClick={() => { onChange(null, ''); setAberto(false) }}
+                  style={{
+                    minHeight: 'var(--alvo)', padding: '0 12px', borderRadius: 'var(--r-sm)',
+                    border: '1px solid var(--border-2)', background: 'transparent',
+                    color: 'var(--ink-4)', fontFamily: 'inherit', fontSize: 'var(--t-dado)', cursor: 'pointer',
+                  }}>Limpar</button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Por registar: os três quadrados.
   return (
-    <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', opacity: isSaving ? 0.5 : 1 }}>
-      {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => {
-        const c = STATUS_CFG[st]
-        return (
-          <button key={st} onClick={() => onChange(st, '')}
-            style={{ padding: '8px 12px', minHeight: 38, border: `1px solid ${c.border}`, borderRadius: 7, background: c.bg, cursor: 'pointer', fontSize: 12, fontWeight: 700, color: c.color, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-            {c.short} {c.label}
-          </button>
-        )
-      })}
+    <div style={{ display: 'flex', gap: 5, opacity: isSaving ? 0.5 : 1 }}>
+      {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => quadrado(st, false))}
     </div>
   )
 }
@@ -308,7 +404,7 @@ export default function MARPage() {
       return {
         title: p.name,
         meta: [cfg.hasBeds && p.room_number ? `${cfg.roomLabel} ${p.room_number}` : '', p.age ? `${p.age} anos` : ''].filter(Boolean).join(' · '),
-        tags: missing > 0 ? [{ label: `${missing} por dar`, color: '#b91c1c' }] : [{ label: 'Completo', color: '#16a34a' }],
+        tags: missing > 0 ? [{ label: `${missing} por dar`, color: 'var(--red)' }] : [{ label: 'Completo', color: 'var(--green)' }],
         bullets: bullets.length ? bullets : ['Sem medicação para este turno.'],
       }
     }).filter(r => r.bullets[0] !== 'Sem medicação para este turno.')
@@ -449,354 +545,326 @@ export default function MARPage() {
   const sl           = SHIFTS[shift]
 
   if (!isPro) {
-    return <ClinicalGate emoji="💊" accent="#2563eb"
+    return <ClinicalGate emoji="💊" accent="var(--ink-2)"
       title="Registo de Administração de Medicação"
       description="Regista cada administração e sinaliza omissões, recusas e alertas de segurança automaticamente." />
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════
+     O que estava aqui era um FORMULÁRIO: escolhe-se uma pessoa numa caixa de
+     seleção, e só depois é que o ecrã mostra alguma coisa. Até lá, metade da
+     janela era um estado vazio com um ícone ao meio.
+
+     Numa ronda de medicação isso é ao contrário do que se faz. Quem a dá não
+     escolhe UMA pessoa: percorre a casa inteira e quer ver, de uma vez, quem
+     já tomou, quem falta, e quem tem alergias — e só depois abre a pessoa.
+
+     Por isso agora são duas colunas: a casa à esquerda, a pessoa à direita. A
+     caixa de seleção desapareceu, e com ela o ecrã vazio.
+     ══════════════════════════════════════════════════════════════════════ */
+
+  // Quantas doses deste turno cada pessoa tem, e quantas estão decididas.
+  const largo = useLargo()
+
+  const linhasDaCasa = patients.map(p => {
+    const seus = (allMedsMap[p.id] || []).filter(m => dueInShift(m, shift))
+    const decididas = new Set(
+      allDayRecs.filter(r => r.patient_id === p.id && r.shift === shift && r.status).map(r => r.med_id),
+    )
+    const dadas = (allMedsMap[p.id] || []).filter(m => decididas.has(m.id)).length
+    return {
+      p, total: seus.length, dadas: Math.min(dadas, seus.length),
+      falta: Math.max(0, seus.length - decididas.size),
+    }
+  })
+  const totalDaCasa = linhasDaCasa.reduce((n, l) => n + l.total, 0)
+  const dadasDaCasa = linhasDaCasa.reduce((n, l) => n + l.dadas, 0)
+  const emFaltaDaCasa = linhasDaCasa.reduce((n, l) => n + l.falta, 0)
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'var(--font-sans)' }}>
-
-      {/* Top bar */}
-      <div style={{ background: 'white', borderBottom: '1px solid #e2e8f0', position: 'sticky', top: 54, zIndex: 40 }}>
-        <div className="page-container mar-top" style={{ paddingTop: 10, paddingBottom: 10 }}>
-          {/* Row 1: title + secondary actions */}
-          <div className="mar-top-row" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span className="mar-title" style={{ fontSize: 16, fontWeight: 800, color: '#0f172a', letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>Medicação a dar</span>
-            <span className="mar-badge" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#2563eb', background: '#dbeafe', padding: '2px 8px', borderRadius: 4 }}>MAR</span>
-            <div className="mar-spacer" style={{ flex: 1 }} />
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+            <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+              Medicação
+            </span>
             <input type="date" value={date} onChange={e => setDate(e.target.value)}
-              style={{ border: '1px solid #e2e8f0', borderRadius: 7, padding: '6px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', color: '#374151', minWidth: 0 }} />
-            <button onClick={printMARSheet} className="mar-print" title="Folha de todas as tomas deste turno (A4, para auditoria)"
-              style={{ padding: '6px 12px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: '#64748b', fontWeight: 600, whiteSpace: 'nowrap' }}>
-              Folha de MAR
-            </button>
-            <Link href="/passagem" className="mar-passagem"
-              title="Escrever notas de passagem para o turno seguinte"
-              style={{ padding: '6px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, fontSize: 12, color: '#2563eb', fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
-              Passagem →
+              aria-label="Dia" style={{ ...CAIXA, width: 150 }} />
+          </div>
+
+          {cfg.hasShifts
+            ? <Seletor opcoes={shiftsFor(institution).map(s => ({ id: s, rotulo: SHIFTS[s].label }))}
+                ativa={shift} aoMudar={pickShift} />
+            : <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {SHIFTS[shift].label} · {SHIFTS[shift].time}
+              </span>}
+
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: dadasDaCasa === totalDaCasa && totalDaCasa > 0 ? 'var(--green)' : 'var(--ink-2)' }}>
+              {dadasDaCasa}/{totalDaCasa}
+            </span>
+            <Segmentos feitos={dadasDaCasa} total={Math.max(totalDaCasa, 1)} />
+          </span>
+
+          {emFaltaDaCasa > 0 && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+              {emFaltaDaCasa} POR DAR
+            </span>
+          )}
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            <Botao onClick={printMARSheet} titulo="Folha de todas as tomas deste turno (A4, para auditoria)">
+              FOLHA DE MAR
+            </Botao>
+            <Link href="/passagem" style={{ textDecoration: 'none' }}>
+              <Botao>PASSAGEM →</Botao>
             </Link>
           </div>
-          {/* Row 2: seletor de turno — só em instituições COM turnos. Num centro de
-              dia não há "noite", por isso mostramos apenas o período atual. */}
-          {cfg.hasShifts ? (
-            <div className="mar-shifts" style={{ display: 'flex', background: '#f1f5f9', borderRadius: 8, padding: 2, gap: 2, marginTop: 8 }}>
-              {shiftsFor(institution).map(s => (
-                <button key={s} onClick={() => pickShift(s)}
-                  style={{ flex: 1, padding: '7px 14px', background: shift === s ? SHIFTS[s].color : 'transparent', color: shift === s ? 'white' : '#64748b', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 700, transition: 'all 0.1s' }}>
-                  {SHIFTS[s].label}
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="mar-shifts" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 12.5, color: '#64748b' }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', background: SHIFTS[shift].color, flexShrink: 0 }} />
-              <span>Medicação {shift === 'manha' ? 'da manhã' : 'da tarde'}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Aviso de dia retroativo — só aparece fora de hoje. */}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Codigo texto="✓" cor="var(--green)" /> dado
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Codigo texto="✗" cor="var(--red)" /> recusado
+          </span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            <Codigo texto="⏸" cor="var(--amber)" /> suspenso
+          </span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>ALERG = alergia registada na ficha</span>
+          {isDayCare && <span style={{ ...MONO }}>CASA = a família dá em casa</span>}
+          <span style={{ marginLeft: 'auto', ...MONO }}>
+            Cada registo fica assinado com o nome e a hora de quem o fez.
+          </span>
+        </BarraDeEstado>
+      }
+    >
       {!isToday && (
-        <div style={{ background: scope.isManager ? '#eff6ff' : '#fef2f2', borderBottom: `1px solid ${scope.isManager ? '#bfdbfe' : '#fecaca'}` }}>
-          <div className="page-container" style={{ paddingTop: 8, paddingBottom: 8, fontSize: 12.5, fontWeight: 600, color: scope.isManager ? '#1d4ed8' : '#991b1b' }}>
-            {scope.isManager
-              ? `A ver ${new Date(date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' })} — como administrador, o que registares aqui fica assinalado como retroativo.`
-              : `A ver ${new Date(date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' })} — só podes consultar. Para lançar uma toma deste dia, pede a um administrador da equipa.`}
-          </div>
-        </div>
+        <Aviso tom={scope.isManager ? 'neutro' : 'mau'}>
+          {scope.isManager
+            ? `A ver ${new Date(date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' })} — como administrador, o que registares aqui fica assinalado como retroativo.`
+            : `A ver ${new Date(date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'long' })} — só podes consultar. Para lançar uma toma deste dia, pede a um administrador da equipa.`}
+        </Aviso>
       )}
+      {loadErr && <Aviso tom="mau" titulo="Não consegui carregar">{loadErr}</Aviso>}
 
-      {/* Omissions banner */}
-      {omissions.length > 0 && (
-        <div style={{ background: omissions.length >= 3 ? '#fee2e2' : '#fffbeb', borderBottom: `1px solid ${omissions.length >= 3 ? '#fca5a5' : '#fde68a'}` }}>
-          <div className="page-container" style={{ paddingTop: 8, paddingBottom: 8 }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, fontWeight: 800, color: omissions.length >= 3 ? '#991b1b' : '#92400e' }}>
-                {(() => { const t = omissions.reduce((s, o) => s + o.missing, 0); return `${t} ${t === 1 ? 'dose' : 'doses'} em falta` })()} — {sl.label}
-              </span>
-              {omissions.slice(0, 5).map(o => (
-                <button key={o.id} onClick={() => setSelectedId(o.id)}
-                  style={{ padding: '2px 9px', background: 'white', border: `1px solid ${omissions.length >= 3 ? '#fca5a5' : '#fde68a'}`, borderRadius: 12, fontSize: 11, color: omissions.length >= 3 ? '#991b1b' : '#92400e', cursor: 'pointer', fontWeight: 600 }}>
-                  {o.name} ({o.missing})
-                </button>
-              ))}
-              <button onClick={() => setShowOmitDetail(x => !x)}
-                style={{ marginLeft: 'auto', fontSize: 11, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>
-                {showOmitDetail ? '▲ Fechar' : '▼ Detalhe'}
-              </button>
-            </div>
-            {showOmitDetail && (
-              <div style={{ marginTop: 8, background: 'white', border: '1px solid #fde68a', borderRadius: 8, overflow: 'hidden' }}>
-                {omissions.map(o => {
-                  const pMeds = (allMedsMap[o.id] || []).filter(m => dueInShift(m, shift))
-                  const missing = pMeds.filter(m => !allDayRecs.find(r => r.med_id === m.id && r.shift === shift))
-                  return (
-                    <div key={o.id} style={{ padding: '9px 14px', borderBottom: '1px solid #fef9c3', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                      <button onClick={() => setSelectedId(o.id)}
-                        style={{ fontSize: 13, fontWeight: 700, color: '#92400e', background: 'none', border: 'none', cursor: 'pointer', padding: 0, minWidth: 100, textAlign: 'left' }}>
-                        {o.name} →
-                      </button>
-                      <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
-                        {missing.map(m => (
-                          <span key={m.id} style={{ padding: '1px 7px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 4, fontSize: 11, color: '#92400e' }}>
-                            {m.name}{m.dose ? ` ${m.dose}` : ''}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      <div className="page-container page-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-
-        {/* Aviso recuperável: distinguir "falhou a carregar" de "sem doentes" —
-            crítico no MAR, onde um ecrã vazio nunca pode parecer "nada a dar". */}
-        {loadErr && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px' }}>
-            <Icon name="alert" size={18} color="#b91c1c" />
-            <span style={{ flex: 1, fontSize: 13.5, color: '#991b1b' }}>{loadErr}</span>
-            <button onClick={() => window.location.reload()} style={{ background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, padding: '7px 14px', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Recarregar</button>
-          </div>
-        )}
-
-        {/* Patient selector + info card */}
-        <div className="mar-selector" style={{ display: 'grid', gridTemplateColumns: selectedPatient ? '1fr auto' : '1fr', gap: 10, alignItems: 'start' }}>
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '12px 16px', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-            <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
-              style={{ flex: 1, minWidth: 200, border: '1.5px solid #e2e8f0', borderRadius: 8, padding: '9px 12px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', color: selectedId ? '#0f172a' : '#94a3b8', background: 'white' }}>
-              <option value="">Selecionar {cfg.personNoun.toLowerCase()}...</option>
-              {patients.map(p => (
-                <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` — Quarto ${p.room_number}` : ''}{p.age ? ` (${p.age}a)` : ''}</option>
-              ))}
-            </select>
-            {selectedPatient && (
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                {selectedPatient.room_number && <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', background: '#f8fafc', border: '1px solid #e2e8f0', padding: '3px 9px', borderRadius: 5 }}>Qt. {selectedPatient.room_number}</span>}
-                {selectedPatient.allergies && <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#faf5ff', border: '1px solid #ddd6fe', padding: '3px 9px', borderRadius: 5 }}><Icon name="alert" size={12} color="#7c3aed" /> {selectedPatient.allergies}</span>}
-                {selectedPatient.conditions && <span style={{ fontSize: 11, color: '#64748b', maxWidth: 240, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{selectedPatient.conditions}</span>}
-              </div>
-            )}
-          </div>
-          {selectedId && pendingCount > 0 && (
-            <button onClick={administerAllPending}
-              style={{ padding: '9px 16px', background: '#059669', color: 'white', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', height: '100%' }}>
-              ✓ Todos em falta ({pendingCount})
-            </button>
-          )}
-        </div>
-
-        {/* Co-piloto clínico — achados do motor de regras para TODA a medicação ativa, não só a que está a ser dada agora. Informativo, não bloqueia nada (o bloqueio pontual continua a acontecer no momento de administrar). */}
-        {regimenFindings.length > 0 && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {regimenFindings.filter(f => f.severity === 'critical' || f.severity === 'major').map(f => {
-              const meta = SEVERITY_META[f.severity]
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(340px, 400px) 1fr' : '1fr',
+      }}>
+        {/* ── A CASA ─────────────────────────────────────────────────── */}
+        {(largo || !selectedId) && (
+          <Painel cabeca={
+            <Cabecalho>
+              <span style={{ ...ROTULO, width: 30 }}>Qt</span>
+              <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural} · {patients.length}</span>
+              <span style={{ ...ROTULO }}>Doses</span>
+            </Cabecalho>
+          }>
+            {patients.length === 0 ? (
+              <Vazio titulo={`Ainda não há ${cfg.personNounPlural.toLowerCase()} nesta casa.`}
+                oQueFazer="Assim que houver fichas criadas, a medicação do turno aparece aqui." />
+            ) : linhasDaCasa.map(({ p, total, dadas, falta }) => {
+              const on = p.id === selectedId
               return (
-                <div key={f.id} style={{ background: meta.bg, border: `1px solid ${meta.color}33`, borderRadius: 9, padding: '9px 12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 3 }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 800, color: meta.color, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{meta.label}</span>
-                    <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0f172a' }}>{f.title}</span>
-                  </div>
-                  <div style={{ fontSize: 12, color: '#475569', lineHeight: 1.5 }}>{f.detail}</div>
-                  {f.action && <div style={{ fontSize: 11.5, color: meta.color, fontWeight: 600, marginTop: 4 }}>→ {f.action}</div>}
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* MAR content */}
-        {!selectedId ? (
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '56px 24px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', marginBottom: 14, color: '#cbd5e1' }}><Icon name="pill" size={38} color="#cbd5e1" /></div>
-            <div style={{ fontSize: 16, fontWeight: 600, color: '#374151', marginBottom: 6 }}>Seleciona um {cfg.personNoun.toLowerCase()}</div>
-            <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, maxWidth: 360, margin: '0 auto' }}>
-              O MAR regista cada administração de medicação por turno. Cada registo fica assinado com o teu nome e hora.
-            </p>
-          </div>
-        ) : meds.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, padding: '48px 24px', textAlign: 'center' }}>
-            <div style={{ fontSize: 14, color: '#64748b', marginBottom: 16 }}>Sem medicamentos ativos para este {cfg.personNoun.toLowerCase()}</div>
-            <Link href={`/patients/${selectedId}`} style={{ fontSize: 13, color: '#2563eb', textDecoration: 'none', fontWeight: 700 }}>
-              Adicionar medicamentos →
-            </Link>
-          </div>
-        ) : (
-          <>
-          {/* Tomas dadas EM CASA hoje (pela família) — em qualquer turno */}
-          {(() => {
-            const home = dayRecords.filter(r => (r as any).source === 'home')
-            if (!home.length) return null
-            return (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 15px', marginBottom: 12, fontSize: 13, color: '#92400e' }}>
-                <Icon name="home" size={15} color="#b45309" /> <span><strong>{home.length}</strong> {home.length === 1 ? 'toma dada em casa' : 'tomas dadas em casa'} hoje pela família{home.some((h: any) => h.home_by) ? ` (${[...new Set(home.map((h: any) => h.home_by).filter(Boolean))].join(', ')})` : ''}.</span>
-              </div>
-            )
-          })()}
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
-            {/* Shift header */}
-            <div className="mar-turn-head" style={{ background: sl.light, borderBottom: `1px solid ${sl.border}`, padding: '10px 16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-                <span style={{ fontSize: 13, fontWeight: 800, color: sl.color }}>Turno da {sl.label} · {sl.time}</span>
-                <span style={{ fontSize: 12, color: sl.color, opacity: 0.7 }}>
-                  {new Date(date).toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}
-                </span>
-              </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <span style={{ fontSize: 12, fontWeight: 700, color: administered === totalMeds ? '#059669' : sl.color }}>
-                  {administered}/{totalMeds}
-                </span>
-                <div style={{ width: 80, height: 6, background: '#e2e8f0', borderRadius: 3, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${totalMeds > 0 ? (administered / totalMeds) * 100 : 0}%`, background: administered === totalMeds ? '#059669' : sl.color, borderRadius: 3, transition: 'width 0.3s' }} />
-                </div>
-              </div>
-            </div>
-
-            {/* Column headers */}
-            <div className="mar-header-row" style={{ display: 'grid', gridTemplateColumns: '1fr 90px 110px 260px', gap: 0, background: '#f8fafc', borderBottom: '1px solid #e2e8f0', padding: '8px 16px' }}>
-              {['Medicamento', 'Dose', 'Frequência', 'Registo'].map(h => (
-                <div key={h} style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.08em', textTransform: 'uppercase' }}>{h}</div>
-              ))}
-            </div>
-
-            {/* Rows — só medicação devida neste turno */}
-            {shiftMeds.length === 0 ? (
-              <div style={{ padding: '32px 16px', textAlign: 'center', fontSize: 13, color: '#94a3b8' }}>
-                Sem medicação prescrita para o turno da {sl.label}.
-              </div>
-            ) : shiftMeds.map((med, i) => {
-              const rec = getRecord(med.id)
-              const isSaving = saving === med.id
-              const isAdministered = rec?.status === 'administered'
-              return (
-                <div key={med.id} className="mar-med-row" style={{
-                  display: 'grid', gridTemplateColumns: '1fr 90px 110px 260px', gap: 0,
-                  padding: '13px 16px',
-                  borderBottom: i < shiftMeds.length - 1 ? '1px solid #f1f5f9' : 'none',
-                  alignItems: 'center',
-                  background: isAdministered ? '#fafffe' : 'white',
-                  opacity: isSaving ? 0.6 : 1,
-                  transition: 'opacity 0.15s, background 0.2s',
+                <button key={p.id} onClick={() => setSelectedId(p.id)} style={{
+                  display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+                  padding: '9px 12px', border: 'none', borderBottom: '1px solid var(--border)',
+                  borderLeft: `3px solid ${on ? 'var(--green)' : falta > 0 ? 'var(--red)' : 'transparent'}`,
+                  background: on ? 'var(--green-light)' : 'transparent', fontFamily: 'inherit',
                 }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: isAdministered ? '#16a34a' : '#0f172a', letterSpacing: '-0.01em', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                      {med.name}
-                      {isDayCare && <LocBadge loc={med.take_location} />}
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
+                    <span style={{ ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, width: 30, flexShrink: 0, color: p.room_number ? 'var(--ink-3)' : 'var(--ink-5)' }}>
+                      {p.room_number || '—'}
+                    </span>
+                    <span style={{
+                      fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, flex: 1, minWidth: 0, overflow: 'hidden',
+                      textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                      color: total > 0 && falta === 0 ? 'var(--ink-4)' : 'var(--ink)',
+                    }}>{p.name}</span>
+                    <span style={{
+                      ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0,
+                      color: total === 0 ? 'var(--ink-5)' : falta === 0 ? 'var(--green)' : 'var(--red)',
+                    }}>{total === 0 ? '—' : falta === 0 ? '✓' : `${dadas}/${total}`}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap', marginTop: 4, paddingLeft: 40 }}>
+                    {p.age != null && <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{p.age}a</span>}
+                    {p.allergies && <Bandeira texto={`ALERG ${p.allergies}`} tom="mau" />}
+                    {total > 0 && <Segmentos feitos={dadas} total={total} />}
+                  </div>
+                </button>
+              )
+            })}
+          </Painel>
+        )}
+
+        {/* ── A PESSOA ───────────────────────────────────────────────── */}
+        {selectedPatient && (
+          <Painel
+            cabeca={<>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)' }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+                  {!largo && <Botao onClick={() => setSelectedId('')}>← {cfg.personNounPlural.toUpperCase()}</Botao>}
+                  <span style={{ ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)' }}>
+                    {selectedPatient.room_number ? `QT ${selectedPatient.room_number}` : 'SEM QUARTO'}
+                  </span>
+                  <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-corpo)' as any, letterSpacing: '-0.01em' }}>{selectedPatient.name}</span>
+                  <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                    {selectedPatient.age != null ? `${selectedPatient.age} anos` : 'idade por registar'}
+                  </span>
+                  {pendingCount > 0 && (
+                    <span style={{ marginLeft: 'auto' }}>
+                      <Botao feitio="principal" onClick={administerAllPending}>
+                        ✓ DAR AS {pendingCount} QUE FALTAM
+                      </Botao>
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
+                  {selectedPatient.allergies
+                    ? <Bandeira texto={`ALERGIAS: ${selectedPatient.allergies}`} tom="mau" />
+                    : <Bandeira texto="ALERGIAS POR REGISTAR" tom="atencao" />}
+                  {selectedPatient.conditions && <Bandeira texto={selectedPatient.conditions} />}
+                </div>
+              </div>
+
+              {/* O que o motor de regras encontrou em TODA a medicação ativa. */}
+              {regimenFindings.filter(f => f.severity === 'critical' || f.severity === 'major').map(f => (
+                <div key={f.id} style={{
+                  padding: '8px 16px', borderBottom: '1px solid var(--border)',
+                  background: f.severity === 'critical' ? 'var(--badge-red-bg)' : 'var(--badge-amber-bg)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
+                    <Codigo texto={f.severity === 'critical' ? 'CRÍTICO' : 'MAIOR'}
+                      cor={f.severity === 'critical' ? 'var(--red)' : 'var(--amber)'} />
+                    <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any }}>{f.title}</span>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>{f.detail}</span>
+                  </div>
+                  {f.action && (
+                    <div style={{ ...MONO, fontSize: 'var(--t-meta)', marginTop: 3, color: f.severity === 'critical' ? 'var(--red)' : 'var(--amber)' }}>
+                      → {f.action}
                     </div>
-                    {med.indication && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{med.indication}</div>}
-                    {isDayCare && med.take_location === 'casa' && <div style={{ fontSize: 11, color: '#b45309', marginTop: 2 }}>A família dá em casa — não administrar no centro.</div>}
+                  )}
+                </div>
+              ))}
+
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 110 }}>Estado</span>
+                <span style={{ ...ROTULO, flex: 1 }}>Medicamento</span>
+                <span style={{ ...ROTULO, width: 80 }}>Dose</span>
+                <span style={{ ...ROTULO, width: 110 }}>Frequência</span>
+              </Cabecalho>
+            </>}
+            rodape={<>
+              <span style={MONO}>{administered}/{totalMeds} DADAS</span>
+              {pendingCount > 0 && <span style={{ ...MONO, color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>{pendingCount} POR DAR</span>}
+              {otherShiftMeds.length > 0 && (
+                <span style={MONO}>{otherShiftMeds.length} noutros turnos</span>
+              )}
+            </>}
+          >
+            {(() => {
+              const emCasa = dayRecords.filter(r => (r as any).source === 'home')
+              if (!emCasa.length) return null
+              return (
+                <div style={{ padding: '8px 16px', borderBottom: '1px solid var(--border)', background: 'var(--badge-amber-bg)', fontSize: 'var(--t-dado)', color: 'var(--amber)' }}>
+                  <strong>{emCasa.length}</strong> {emCasa.length === 1 ? 'toma dada em casa' : 'tomas dadas em casa'} hoje pela família
+                  {emCasa.some((h: any) => h.home_by) ? ` (${[...new Set(emCasa.map((h: any) => h.home_by).filter(Boolean))].join(', ')})` : ''}.
+                </div>
+              )
+            })()}
+
+            {meds.length === 0 ? (
+              <Vazio titulo={`Sem medicamentos ativos para ${selectedPatient.name}.`}
+                oQueFazer={<Link href={`/patients/${selectedId}`} style={{ color: 'var(--green)' }}>Abrir a ficha para os acrescentar →</Link>} />
+            ) : shiftMeds.length === 0 ? (
+              <Vazio titulo={`Nada prescrito para o turno da ${SHIFTS[shift].label.toLowerCase()}.`}
+                oQueFazer={otherShiftMeds.length > 0
+                  ? `Esta pessoa tem ${otherShiftMeds.length} ${otherShiftMeds.length === 1 ? 'medicamento' : 'medicamentos'} noutros turnos.`
+                  : undefined} />
+            ) : shiftMeds.map(med => {
+              const rec = getRecord(med.id)
+              const aGravar = saving === med.id
+              const dado = rec?.status === 'administered'
+              return (
+                <div key={med.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, padding: '8px 16px',
+                  borderBottom: '1px solid var(--border)', opacity: aGravar ? 0.5 : 1,
+                  background: rec?.status === 'refused' ? 'var(--badge-red-bg)' : 'transparent',
+                }}>
+                  <div style={{ width: 110, flexShrink: 0 }}>
+                    <AdminCell record={rec} isSaving={aGravar} onChange={(s, n) => handleAdmin(med.id, s, n)} />
                   </div>
-                  <div style={{ fontSize: 13, color: '#374151' }}>{med.dose || '—'}</div>
-                  <div style={{ fontSize: 12, color: '#64748b' }}>{med.frequency || '—'}</div>
-                  <div>
-                    <AdminCell record={rec} isSaving={isSaving} onChange={(s, n) => handleAdmin(med.id, s, n)} />
-                    {rec?.notes && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 4 }}>{rec.notes}</div>}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any,
+                      color: dado ? 'var(--ink-4)' : 'var(--ink)',
+                      textDecoration: dado ? 'line-through' : undefined,
+                    }}>{med.name}</span>
+                    {isDayCare && med.take_location === 'casa' && (
+                      <span style={{ marginLeft: 8 }}><Bandeira texto="CASA" tom="atencao" /></span>
+                    )}
+                    {med.indication && (
+                      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginLeft: 8 }}>{med.indication}</span>
+                    )}
+                    {rec?.notes && (
+                      <div style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>{rec.notes}</div>
+                    )}
                   </div>
+                  <span style={{ ...MONO, fontSize: 'var(--t-dado)', width: 80, flexShrink: 0, color: 'var(--ink-3)' }}>{med.dose || '—'}</span>
+                  <span style={{ fontSize: 'var(--t-meta)', width: 110, flexShrink: 0, color: 'var(--ink-4)' }}>{med.frequency || '—'}</span>
                 </div>
               )
             })}
+          </Painel>
+        )}
 
-            {/* Medicação de outros turnos (informativo, não conta para omissões) */}
-            {otherShiftMeds.length > 0 && (
-              <details style={{ borderTop: '1px solid #f1f5f9' }}>
-                <summary style={{ padding: '10px 16px', fontSize: 12, color: '#94a3b8', cursor: 'pointer', listStyle: 'none', fontWeight: 600 }}>
-                  + {otherShiftMeds.length} med. de outros turnos (não devida agora)
-                </summary>
-                {otherShiftMeds.map(med => (
-                  <div key={med.id} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '8px 16px', borderTop: '1px solid #f8fafc', opacity: 0.7 }}>
-                    <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600, flex: 1 }}>{med.name}{med.dose ? ` · ${med.dose}` : ''}</span>
-                    <span style={{ fontSize: 10.5, color: '#94a3b8' }}>{(med.shifts || []).map(s => SHIFTS[s as Shift]?.label || s).join(', ')}</span>
-                  </div>
-                ))}
-              </details>
-            )}
-
-            {/* Footer summary */}
-            <div style={{ padding: '10px 16px', background: '#f8fafc', borderTop: '1px solid #e2e8f0', display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-              {(Object.keys(STATUS_CFG) as NonNullable<AdminStatus>[]).map(st => {
-                const count = records.filter(r => r.shift === shift && r.status === st).length
-                const c = STATUS_CFG[st]
-                return (
-                  <div key={st} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <div style={{ width: 7, height: 7, borderRadius: '50%', background: c.color }} />
-                    <span style={{ fontSize: 11, color: '#64748b' }}>{c.label}: <strong style={{ color: '#374151' }}>{count}</strong></span>
-                  </div>
-                )
-              })}
-              <div style={{ marginLeft: 'auto', fontSize: 10, color: '#94a3b8' }}>
-                {user?.email}
-              </div>
-            </div>
-          </div>
-          </>
+        {largo && !selectedPatient && (
+          <Painel>
+            <Vazio titulo={`Escolha alguém à esquerda.`}
+              oQueFazer="A coluna mostra quem já tem o turno tratado e quem ainda tem doses por dar." />
+          </Painel>
         )}
       </div>
-
+    </Mesa>
       {/* Safety modal */}
-      {pendingWarn && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 14, padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 32px 80px rgba(0,0,0,0.2)' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-              <div style={{ width: 40, height: 40, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="alert" size={20} color="#dc2626" /></div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: '#991b1b' }}>Alerta de segurança</div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-              {pendingWarn.messages.map((msg, i) => (
-                <div key={i} style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b', lineHeight: 1.5, fontWeight: 600 }}>
-                  {msg}
-                </div>
-              ))}
-            </div>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, marginBottom: 20 }}>
-              Confirma que verificaste esta situação com o clínico responsável antes de administrar.
-            </p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={async () => { const pw = pendingWarn; setPendingWarn(null); await doAdmin(pw.medId, pw.status, pw.notes) }}
-                style={{ flex: 1, padding: 11, background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700 }}>
-                Confirmar mesmo assim
-              </button>
-              <button onClick={() => setPendingWarn(null)}
-                style={{ padding: '11px 16px', background: 'white', color: '#64748b', border: '1px solid #e2e8f0', borderRadius: 8, cursor: 'pointer', fontSize: 13 }}>
-                Cancelar
-              </button>
-            </div>
+    {pendingWarn && (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.5)', padding: 20 }}>
+        <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 420, boxShadow: '0 32px 80px rgba(0,0,0,0.2)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
+            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--badge-red-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><Icon name="alert" size={20} color="var(--red)" /></div>
+            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)' }}>Alerta de segurança</div>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
+            {pendingWarn.messages.map((msg, i) => (
+              <div key={i} style={{ padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', color: 'var(--red)', lineHeight: 1.5, fontWeight: 'var(--peso-corpo)' as any }}>
+                {msg}
+              </div>
+            ))}
+          </div>
+          <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.6, marginBottom: 20 }}>
+            Confirma que verificaste esta situação com o clínico responsável antes de administrar.
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button onClick={async () => { const pw = pendingWarn; setPendingWarn(null); await doAdmin(pw.medId, pw.status, pw.notes) }}
+              style={{ flex: 1, padding: 11, background: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
+              Confirmar mesmo assim
+            </button>
+            <button onClick={() => setPendingWarn(null)}
+              style={{ padding: '11px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)' }}>
+              Cancelar
+            </button>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
-      <style>{`
-        @media (max-width: 640px) {
-          .mar-header-row { display: none !important; }
-          .mar-med-row {
-            display: flex !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-            padding: 14px 16px !important;
-          }
-          .mar-badge { display: none !important; }
-          .mar-print { display: none !important; }
-          .mar-selector { grid-template-columns: 1fr !important; }
-          /* Cabeçalho: título na sua própria linha, controlos por baixo — sem
-             espremer "Medicação a dar" nem cortar a data. */
-          .mar-top-row { flex-wrap: wrap; row-gap: 10px; }
-          .mar-title { flex: 1 0 100%; font-size: 20px; }
-          .mar-spacer { display: none !important; }
-          .mar-top-row input[type="date"] { flex: 1; }
-          .mar-passagem { margin-left: auto; }
-          .mar-turn-head { flex-direction: column; align-items: flex-start !important; }
-        }
-        @media print {
-          @page { size: A4 landscape; margin: 12mm; }
-          body { background: white !important; }
-          .page-container { max-width: none !important; padding: 0 !important; }
-        }
-      `}</style>
-    </div>
+    </>
   )
 }

@@ -80,9 +80,9 @@ export default function QuickCheckPage() {
   }
 
   const TRAFFIC_LIGHT: Record<string, { bg: string; border: string; color: string; dot: string }> = {
-    green:  { bg: '#f0fff4', border: '#9ae6b4', color: '#1a4731', dot: '#10b981' },
-    yellow: { bg: '#fffbeb', border: '#fde68a', color: '#78350f', dot: '#f59e0b' },
-    red:    { bg: '#fff5f5', border: '#fecaca', color: '#7f1d1d', dot: '#ef4444' },
+    green:  { bg: 'var(--green-light)', border: 'var(--green-mid)', color: 'var(--green-3)', dot: 'var(--green)' },
+    yellow: { bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', color: 'var(--amber)', dot: 'var(--amber)' },
+    red:    { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', dot: 'var(--red)' },
   }
 
   return (
@@ -101,13 +101,13 @@ export default function QuickCheckPage() {
             </p>
 
             {/* Mode toggle */}
-            <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: 4, gap: 4 }}>
+            <div style={{ display: 'inline-flex', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 4, gap: 4 }}>
               {([
                 { id: 'simple', label: '🧑 Linguagem simples', desc: 'Para doentes e familiares' },
                 { id: 'technical', label: 'Técnico', desc: 'Para profissionais de saúde' },
               ] as const).map(({ id, label, desc }) => (
                 <button key={id} onClick={() => setMode(id)}
-                  style={{ background: mode === id ? 'var(--green)' : 'transparent', color: mode === id ? 'white' : 'var(--ink-3)', border: 'none', borderRadius: 6, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                  style={{ background: mode === id ? 'var(--green)' : 'transparent', color: mode === id ? 'white' : 'var(--ink-3)', border: 'none', borderRadius: 'var(--r)', padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                   <span>{label}</span>
                   <span style={{ fontSize: 10, opacity: 0.7, fontWeight: 400 }}>{desc}</span>
                 </button>
@@ -116,7 +116,7 @@ export default function QuickCheckPage() {
           </div>
 
           {/* Input */}
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', marginBottom: 16 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '20px', marginBottom: 16 }}>
             <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>
               Lista de medicamentos (um por linha, com ou sem doses)
             </label>
@@ -125,14 +125,14 @@ export default function QuickCheckPage() {
               onChange={e => setInput(e.target.value)}
               placeholder={'Brufen 400mg 2x/dia (ou ibuprofeno)\nZocor 20mg (ou sinvastatina)\nRamipril 5mg\nOmeprazol 20mg\n\nPodes usar nomes de caixas ou nomes científicos.'}
               rows={6}
-              style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 6, padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, color: 'var(--ink)' }}
+              style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 'var(--r)', padding: '12px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, color: 'var(--ink)' }}
             />
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, flexWrap: 'wrap', gap: 8 }}>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', alignSelf: 'center' }}>Exemplos:</span>
                 {EXAMPLES.map(ex => (
                   <button key={ex.label} onClick={() => { setInput(ex.meds); setResult(null) }}
-                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 10px', fontSize: 11, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                    style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
                     {ex.label}
                   </button>
                 ))}
@@ -140,7 +140,7 @@ export default function QuickCheckPage() {
               <button
                 onClick={() => analyse()}
                 disabled={!input.trim() || loading}
-                style={{ background: input.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: input.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                style={{ background: input.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: input.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r)', padding: '10px 24px', fontSize: 14, fontWeight: 600, cursor: input.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
                 {loading ? 'A analisar...' : 'Analisar →'}
               </button>
             </div>
@@ -148,13 +148,13 @@ export default function QuickCheckPage() {
 
           {/* Loading skeleton */}
           {loading && (
-            <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '24px' }}>
+            <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '24px' }}>
               <div className="skeleton" style={{ height: 14, width: '60%', marginBottom: 20 }} />
               {[0,1,2].map(i => (
-                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 6, padding: '16px', marginBottom: 10 }}>
+                <div key={i} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '16px', marginBottom: 10 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                     <div className="skeleton" style={{ height: 12, width: 120 }} />
-                    <div className="skeleton" style={{ height: 20, width: 80, borderRadius: 20 }} />
+                    <div className="skeleton" style={{ height: 20, width: 80, borderRadius: 'var(--r-xl)' }} />
                   </div>
                   <div className="skeleton" style={{ height: 12, width: '85%', marginBottom: 6 }} />
                   <div className="skeleton" style={{ height: 12, width: '65%' }} />
@@ -165,8 +165,8 @@ export default function QuickCheckPage() {
 
           {/* Error */}
           {error && (
-            <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '16px 20px', marginBottom: 16 }}>
-              <p style={{ fontSize: 14, color: '#742a2a', margin: 0 }}>{error}</p>
+            <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding: '16px 20px', marginBottom: 16 }}>
+              <p style={{ fontSize: 14, color: 'var(--badge-red-fg)', margin: 0 }}>{error}</p>
             </div>
           )}
 
@@ -178,7 +178,7 @@ export default function QuickCheckPage() {
               {result.overall && (() => {
                 const tl = TRAFFIC_LIGHT[result.overall.level] || TRAFFIC_LIGHT.yellow
                 return (
-                  <div style={{ background: tl.bg, border: `2px solid ${tl.border}`, borderRadius: 8, padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
+                  <div style={{ background: tl.bg, border: `2px solid ${tl.border}`, borderRadius: 'var(--r-md)', padding: '20px 24px', marginBottom: 16, display: 'flex', alignItems: 'flex-start', gap: 14 }}>
                     <div style={{ width: 14, height: 14, borderRadius: '50%', background: tl.dot, flexShrink: 0, marginTop: 3 }} />
                     <div>
                       <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: tl.color, fontWeight: 700, marginBottom: 6 }}>{result.overall.title}</div>
@@ -197,13 +197,13 @@ export default function QuickCheckPage() {
                       <div key={i} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `4px solid ${tl.dot}`, borderRadius: '0 8px 8px 0', padding: '16px 18px', marginBottom: 8 }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10, marginBottom: 6, flexWrap: 'wrap' }}>
                           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{finding.title}</div>
-                          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, background: tl.bg, color: tl.color, border: `1px solid ${tl.border}`, borderRadius: 4, padding: '2px 8px', flexShrink: 0, letterSpacing: '0.06em' }}>
+                          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, background: tl.bg, color: tl.color, border: `1px solid ${tl.border}`, borderRadius: 'var(--r)', padding: '2px 8px', flexShrink: 0, letterSpacing: '0.06em' }}>
                             {finding.level === 'red' ? '⚠ ATENÇÃO' : finding.level === 'yellow' ? '! PRECAUÇÃO' : '✓ OK'}
                           </span>
                         </div>
                         <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>{finding.explanation}</p>
                         {finding.action && (
-                          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 4, fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5 }}>
+                          <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--bg-2)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.5 }}>
                             <strong>O que fazer:</strong> {finding.action}
                           </div>
                         )}
@@ -215,12 +215,12 @@ export default function QuickCheckPage() {
 
               {/* Good things */}
               {result.positives?.length > 0 && (
-                <div style={{ background: '#f0fff4', border: '1px solid #9ae6b4', borderRadius: 8, padding: '14px 18px', marginBottom: 16 }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1a4731', letterSpacing: '0.1em', marginBottom: 8 }}>✓ PONTOS POSITIVOS</div>
+                <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '14px 18px', marginBottom: 16 }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-3)', letterSpacing: '0.1em', marginBottom: 8 }}>✓ PONTOS POSITIVOS</div>
                   {result.positives.map((p: string, i: number) => (
                     <div key={i} style={{ display: 'flex', gap: 8, marginBottom: 4 }}>
-                      <span style={{ color: '#10b981', flexShrink: 0 }}>✓</span>
-                      <span style={{ fontSize: 13, color: '#1a4731', lineHeight: 1.6 }}>{p}</span>
+                      <span style={{ color: 'var(--green)', flexShrink: 0 }}>✓</span>
+                      <span style={{ fontSize: 13, color: 'var(--green-3)', lineHeight: 1.6 }}>{p}</span>
                     </div>
                   ))}
                 </div>
@@ -228,23 +228,23 @@ export default function QuickCheckPage() {
 
               {/* Upsell for logged in users */}
               {!user && (
-                <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 8, padding: '20px 24px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 'var(--r-md)', padding: '20px 24px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--ink)', marginBottom: 4 }}>Guarda esta análise e volta a verificar</div>
                     <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Cria uma conta para guardar os teus medicamentos e receber alertas automáticos de interações.</div>
                   </div>
-                  <Link href="/login" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  <Link href="/login" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '10px 20px', borderRadius: 'var(--r)', fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
                     Criar conta grátis →
                   </Link>
                 </div>
               )}
 
               {user && user.plan === 'free' && (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '16px 20px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '16px 20px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                   <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>
                     💬 <strong>Faz perguntas</strong> sobre esta medicação com o Phlox AI — o teu farmacologista clínico pessoal.
                   </div>
-                  <Link href="/ai" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '8px 16px', borderRadius: 4, fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
+                  <Link href="/ai" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '8px 16px', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, whiteSpace: 'nowrap' }}>
                     Phlox AI — Plus →
                   </Link>
                 </div>
@@ -274,12 +274,12 @@ export default function QuickCheckPage() {
                     }
                     navigator.clipboard.writeText(lines.join('\n'))
                   }}
-                  style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                  style={{ padding: '10px 16px', borderRadius: 'var(--r-md)', background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                   📋 Copiar resumo (para médico)
                 </button>
                 <button
                   onClick={() => window.print()}
-                  style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                  style={{ padding: '10px 16px', borderRadius: 'var(--r-md)', background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                   🖨 Imprimir / PDF
                 </button>
                 <SaveButton kind="med_check"
@@ -288,12 +288,12 @@ export default function QuickCheckPage() {
                   data={{ input, result }} href="/quickcheck" />
                 <button
                   onClick={() => { setResult(null); window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-                  style={{ padding: '10px 16px', borderRadius: 8, background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
+                  style={{ padding: '10px 16px', borderRadius: 'var(--r-md)', background: 'white', border: '1.5px solid var(--border)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                   Nova análise
                 </button>
               </div>
 
-              <div style={{ padding: '12px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
+              <div style={{ padding: '12px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
                 Análise gerada por IA com base em dados RxNorm/NIH. Informação educacional — confirma sempre com o teu médico ou farmacêutico.
               </div>
             </div>

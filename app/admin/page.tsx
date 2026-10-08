@@ -4,6 +4,10 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -54,7 +58,7 @@ interface Costs {
 const ADMIN_EMAILS = ['lourencoccampos2006@gmail.com']
 
 const PLAN_COLOR: Record<string, string> = {
-  free: 'var(--ink-4)', student: '#7c3aed', pro: '#1e40af', clinic: '#065f46',
+  free: 'var(--ink-4)', student: 'var(--roxo)', pro: 'var(--ink-2)', clinic: 'var(--green)',
 }
 
 export default function AdminPage() {
@@ -310,7 +314,7 @@ export default function AdminPage() {
 
   if (!user || !isAdmin) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ fontSize: 14, color: 'var(--ink-4)' }}>Acesso restrito.</div>
+      <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)' }}>Acesso restrito.</div>
     </div>
   )
 
@@ -322,29 +326,47 @@ export default function AdminPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        /* A barra preta de 52px dizia «isto é outro sítio», e isso é
+           verdade — este painel é do Fernando, não do cliente. Mas dizia-o
+           com uma barra inteira a preto, o que faz o resto da aplicação
+           parecer de outra pessoa. Diz-se com a cor do acento. */
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Admin</span>
 
-      {/* Header */}
-      <div style={{ background: 'var(--ink)', padding: '0' }}>
-        <div className="page-container" style={{ height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <Link href="/" style={{ fontFamily: 'var(--font-sans)', fontSize: 15, fontWeight: 700, color: 'white', textDecoration: 'none', letterSpacing: '-0.03em' }}>Phlox</Link>
-            <span style={{ color: 'rgba(255,255,255,0.2)' }}>·</span>
-            <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.06em' }}>ADMIN</span>
-          </div>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {(['overview', 'users', 'instituicoes', 'instalacao', 'financeiro', 'searches', 'ia'] as const).map(t => (
-              <button key={t} onClick={() => setTab(t)}
-                style={{ padding: '6px 12px', background: tab === t ? 'rgba(255,255,255,0.1)' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, color: tab === t ? 'white' : 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
-                {t === 'overview' ? 'Overview' : t === 'users' ? 'Utilizadores' : t === 'instituicoes' ? 'Instituições' : t === 'instalacao' ? 'Instalação' : t === 'financeiro' ? 'Financeiro' : t === 'searches' ? 'Pesquisas' : 'IA'}
-              </button>
-            ))}
-            <button onClick={loadData} style={{ padding: '6px 12px', background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>↻ Refresh</button>
-          </div>
-        </div>
-      </div>
+          <Seletor
+            opcoes={[
+              { id: 'overview', rotulo: 'Resumo' },
+              { id: 'users', rotulo: 'Utilizadores' },
+              { id: 'instituicoes', rotulo: 'Instituições' },
+              { id: 'instalacao', rotulo: 'Instalação' },
+              { id: 'financeiro', rotulo: 'Financeiro' },
+              { id: 'searches', rotulo: 'Pesquisas' },
+              { id: 'ia', rotulo: 'IA' },
+            ]}
+            ativa={tab} aoMudar={v => setTab(v as typeof tab)} />
 
-      <div className="page-container page-body">
+          <span style={{ marginLeft: 'auto' }}>
+            <Botao onClick={loadData}>ATUALIZAR</Botao>
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>
+            Este painel vê os dados de todas as contas — não é um ecrã de cliente
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {/* A barra preta de 52px com os sete separadores subiu para a barra
+          de trabalho. */}
+      <div>
 
         {/* ── OVERVIEW ──────────────────────────────────────── */}
         {tab === 'overview' && stats && (
@@ -355,34 +377,34 @@ export default function AdminPage() {
                 { label: 'MRR estimado', value: `${stats.mrr_estimate.toFixed(0)}€`, sub: 'receita mensal recorrente', color: 'var(--green)' },
                 { label: 'Utilizadores totais', value: stats.total_users, sub: `+${stats.users_student + stats.users_pro} pagantes`, color: 'var(--ink)' },
                 { label: 'Pesquisas esta semana', value: stats.searches_week, sub: `${stats.searches_today} hoje`, color: 'var(--ink)' },
-                { label: 'Conversões este mês', value: stats.conversions_this_month, sub: 'novos pagantes', color: '#7c3aed' },
+                { label: 'Conversões este mês', value: stats.conversions_this_month, sub: 'novos pagantes', color: 'var(--roxo)' },
               ].map(({ label, value, sub, color }) => (
-                <div key={label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color, letterSpacing: '-0.02em', marginBottom: 4 }}>{value}</div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
+                <div key={label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color, letterSpacing: '-0.02em', marginBottom: 4 }}>{value}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{sub}</div>
                 </div>
               ))}
             </div>
 
             {/* Plan breakdown */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 24 }}>
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Distribuição de planos</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Distribuição de planos</div>
                 {[
                   { plan: 'free', n: stats.users_free, color: 'var(--ink-4)' },
-                  { plan: 'student', n: stats.users_student, color: '#7c3aed' },
-                  { plan: 'pro/clinic', n: stats.users_pro, color: '#1e40af' },
+                  { plan: 'student', n: stats.users_student, color: 'var(--roxo)' },
+                  { plan: 'pro/clinic', n: stats.users_pro, color: 'var(--ink-2)' },
                 ].map(({ plan, n, color }) => {
                   const pct = stats.total_users > 0 ? Math.round((n / stats.total_users) * 100) : 0
                   return (
                     <div key={plan} style={{ marginBottom: 10 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                        <span style={{ fontSize: 13, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{plan}</span>
-                        <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color }}>{n} ({pct}%)</span>
+                        <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{plan}</span>
+                        <span style={{ fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', color }}>{n} ({pct}%)</span>
                       </div>
-                      <div style={{ height: 5, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3 }} />
+                      <div style={{ height: 5, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--r-sm)' }} />
                       </div>
                     </div>
                   )
@@ -390,15 +412,15 @@ export default function AdminPage() {
               </div>
 
               {/* Top drugs */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Medicamentos mais pesquisados</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Medicamentos mais pesquisados</div>
                 {stats.top_drugs.slice(0, 8).map(({ name, count }, i) => (
                   <div key={name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '5px 0', borderBottom: '1px solid var(--bg-3)' }}>
                     <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', minWidth: 16 }}>{i+1}</span>
-                      <span style={{ fontSize: 13, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{name}</span>
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', minWidth: 16 }}>{i+1}</span>
+                      <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{name}</span>
                     </div>
-                    <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
+                    <span style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
                   </div>
                 ))}
               </div>
@@ -406,13 +428,13 @@ export default function AdminPage() {
 
             {/* Countries */}
             {stats.countries.length > 0 && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Tráfego por país</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Tráfego por país</div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   {stats.countries.map(({ code, count }) => (
-                    <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 20 }}>
-                      <span style={{ fontSize: 13 }}>{code}</span>
-                      <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
+                    <div key={code} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)' }}>
+                      <span style={{ fontSize: 'var(--t-dado)' }}>{code}</span>
+                      <span style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
                     </div>
                   ))}
                 </div>
@@ -425,50 +447,50 @@ export default function AdminPage() {
         {tab === 'users' && (
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Utilizadores ({users.length})</h2>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>Utilizadores ({users.length})</h2>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                 {users.filter(u => u.plan !== 'free').length} pagantes · {users.filter(u => u.plan === 'free').length} free
               </div>
             </div>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 120px 160px 140px', padding: '10px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
                 {['Utilizador', 'Plano', 'Registado', 'Acção'].map(h => (
-                  <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>
+                  <div key={h} style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>
                 ))}
               </div>
               {users.map((u, i) => (
                 <div key={u.id} style={{ display: 'grid', gridTemplateColumns: '1fr 120px 160px 140px', padding: '12px 16px', borderBottom: i < users.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{u.name || '—'}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{u.email}</div>
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{u.name || '—'}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{u.email}</div>
                   </div>
                   <div>
-                    <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: PLAN_COLOR[u.plan || 'free'], background: (u.plan || 'free') === 'free' ? 'var(--bg-3)' : (u.plan === 'student' ? '#ede9fe' : '#dbeafe'), padding: '2px 8px', borderRadius: 10, letterSpacing: '0.04em' }}>
+                    <span style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: PLAN_COLOR[u.plan || 'free'], background: (u.plan || 'free') === 'free' ? 'var(--bg-3)' : (u.plan === 'student' ? 'var(--roxo-claro)' : 'var(--bg-3)'), padding: '2px 8px', borderRadius: 'var(--r-lg)', letterSpacing: '0.04em' }}>
                       {(u.plan || 'free').toUpperCase()}
                     </span>
                   </div>
-                  <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                     {new Date(u.created_at).toLocaleDateString('pt-PT')}
                   </div>
                   <div style={{ display: 'flex', gap: 4, alignItems: 'center', flexWrap: 'wrap' }}>
-                    {u.blocked && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#b91c1c', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 4, padding: '2px 5px' }}>BLOQUEADA</span>}
+                    {u.blocked && <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r)', padding: '2px 5px' }}>BLOQUEADA</span>}
                     <button
                       onClick={() => executarAcao(
                         { acao: u.blocked ? 'desbloquear' : 'bloquear', userId: u.id },
                         u.blocked ? undefined : `Bloquear ${u.email}?\n\nA sessão cai e a conta deixa de poder entrar. Reversível.`)}
                       disabled={acaoBusy === u.id}
                       title={u.blocked ? 'Desbloquear' : 'Bloquear o acesso'}
-                      style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, color: u.blocked ? '#15803d' : '#b45309', fontFamily: 'var(--font-mono)' }}>
+                      style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-meta)', color: u.blocked ? 'var(--green)' : 'var(--amber)', fontFamily: 'var(--font-mono)' }}>
                       {u.blocked ? 'reabrir' : 'bloquear'}
                     </button>
                     <button onClick={() => apagarConta(u)} disabled={acaoBusy === u.id}
                       title="Apagar definitivamente"
-                      style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, color: '#b91c1c', fontFamily: 'var(--font-mono)' }}>
+                      style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--red)', fontFamily: 'var(--font-mono)' }}>
                       apagar
                     </button>
                     {['free', 'student', 'pro'].filter(p => p !== (u.plan || 'free')).map(p => (
                       <button key={p} onClick={() => upgradeUser(u.id, p)}
-                        style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', transition: 'all 0.12s' }}
+                        style={{ padding: '4px 8px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', transition: 'all 0.12s' }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'var(--green)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'var(--green)' }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-2)'; e.currentTarget.style.color = 'var(--ink-3)'; e.currentTarget.style.borderColor = 'var(--border)' }}>
                         → {p}
@@ -485,23 +507,23 @@ export default function AdminPage() {
         {tab === 'instalacao' && (
           <div>
             <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 6 }}>
-              <h2 style={{ fontSize: 17, fontWeight: 600, color: 'var(--ink)', margin: 0 }}>Estado da instalação</h2>
+              <h2 style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', margin: 0 }}>Estado da instalação</h2>
               <button onClick={carregarInstalacao} disabled={instalacaoBusy}
-                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border-2)', borderRadius: 6, cursor: 'pointer', fontSize: 12, color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '6px 12px', background: 'transparent', border: '1px solid var(--border-2)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
                 {instalacaoBusy ? 'a verificar…' : 'verificar de novo'}
               </button>
             </div>
-            <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: '0 0 18px', lineHeight: 1.55, maxWidth: '62ch' }}>
+            <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', margin: '0 0 18px', lineHeight: 1.55, maxWidth: '62ch' }}>
               Quando um cliente enviar um código <code style={{ color: 'var(--ink-2)' }}>PHX-…</code>, procura-o aqui.
               Só verifica se cada tabela existe — não lê dados de instituição nenhuma.
             </p>
 
             {instalacao?.error && (
-              <div style={{ fontSize: 13, color: '#b91c1c', marginBottom: 14 }}>{instalacao.error}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--red)', marginBottom: 14 }}>{instalacao.error}</div>
             )}
             {instalacao?.codigos?.length > 0 && (
               <>
-                <div style={{ fontSize: 13, color: instalacao.porAplicar ? '#b45309' : '#15803d', marginBottom: 14, fontWeight: 600 }}>
+                <div style={{ fontSize: 'var(--t-dado)', color: instalacao.porAplicar ? 'var(--amber)' : 'var(--green)', marginBottom: 14, fontWeight: 'var(--peso-corpo)' as any }}>
                   {instalacao.porAplicar
                     ? `${instalacao.porAplicar} por aplicar.`
                     : 'Tudo aplicado.'}
@@ -510,12 +532,12 @@ export default function AdminPage() {
                   {instalacao.codigos.map((c: any) => (
                     <div key={c.codigo} style={{
                       display: 'grid', gridTemplateColumns: '78px 1fr auto', gap: 12, alignItems: 'baseline',
-                      padding: '10px 12px', background: c.ok ? 'transparent' : '#fffbeb',
-                      borderRadius: 6, borderLeft: `2px solid ${c.ok ? '#86efac' : '#b45309'}`,
+                      padding: '10px 12px', background: c.ok ? 'transparent' : 'var(--badge-amber-bg)',
+                      borderRadius: 'var(--r)', borderLeft: `2px solid ${c.ok ? 'var(--badge-green-border)' : 'var(--amber)'}`,
                     }}>
-                      <code style={{ fontSize: 12, color: c.ok ? 'var(--ink-4)' : '#b45309', fontWeight: 700 }}>{c.codigo}</code>
-                      <span style={{ fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.45, minWidth: 0 }}>{c.detalhe}</span>
-                      <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                      <code style={{ fontSize: 'var(--t-meta)', color: c.ok ? 'var(--ink-4)' : 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>{c.codigo}</code>
+                      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', lineHeight: 1.45, minWidth: 0 }}>{c.detalhe}</span>
+                      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
                         {c.ok ? '✓' : c.sobre}
                       </span>
                     </div>
@@ -524,9 +546,9 @@ export default function AdminPage() {
               </>
             )}
 
-            <div style={{ marginTop: 26, padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 8 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6 }}>O que fica de fora daqui</div>
-              <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: 0, lineHeight: 1.6, maxWidth: '64ch' }}>
+            <div style={{ marginTop: 26, padding: '14px 16px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginBottom: 6 }}>O que fica de fora daqui</div>
+              <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', margin: 0, lineHeight: 1.6, maxWidth: '64ch' }}>
                 O livro de registos de cada instituição — quem cuidou de quem, quando — não é visível nesta
                 página nem em nenhuma outra do Phlox. Pertence à casa que o gerou. Esta secção só confirma
                 que a tabela existe, nunca o que lá está dentro.
@@ -537,53 +559,53 @@ export default function AdminPage() {
 
         {tab === 'instituicoes' && (
           <div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Dar acesso a uma instituição</h2>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 18, maxWidth: 560 }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Dar acesso a uma instituição</h2>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 18, maxWidth: 560 }}>
               A pessoa precisa de ter conta grátis primeiro. Aprovas o acesso (para ela criar a instituição em /comecar-instituicao), ou crias já a instituição por ela.
             </p>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20, marginBottom: 24, maxWidth: 480 }}>
-              <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Email da pessoa</label>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20, marginBottom: 24, maxWidth: 480 }}>
+              <label style={{ display: 'block', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Email da pessoa</label>
               <input value={accessEmail} onChange={e => setAccessEmail(e.target.value)} placeholder="dono@lar-exemplo.pt"
-                style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 14 }} />
+                style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 14 }} />
 
               <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
                 <button onClick={approveAccess} disabled={accessBusy || !accessEmail.trim()}
-                  style={{ flex: 1, padding: '10px', background: 'var(--bg-2)', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', cursor: accessBusy ? 'wait' : 'pointer' }}>
+                  style={{ flex: 1, padding: '10px', background: 'var(--bg-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', cursor: accessBusy ? 'wait' : 'pointer' }}>
                   Só aprovar acesso
                 </button>
               </div>
 
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-                <label style={{ display: 'block', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ou criar já a instituição</label>
+                <label style={{ display: 'block', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Ou criar já a instituição</label>
                 <input value={newOrgName} onChange={e => setNewOrgName(e.target.value)} placeholder="Nome da instituição"
-                  style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 8 }} />
+                  style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 8 }} />
                 <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                   {([['nursing_home', 'Lar / ERPI'], ['day_care', 'Centro de Dia']] as const).map(([id, label]) => (
                     <button key={id} onClick={() => setNewOrgKind(id)}
-                      style={{ flex: 1, padding: '9px', borderRadius: 8, border: `1.5px solid ${newOrgKind === id ? 'var(--green)' : 'var(--border)'}`, background: newOrgKind === id ? '#f0fdf5' : 'white', color: newOrgKind === id ? 'var(--green)' : 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                      style={{ flex: 1, padding: '9px', borderRadius: 'var(--r-md)', border: `1.5px solid ${newOrgKind === id ? 'var(--green)' : 'var(--border)'}`, background: newOrgKind === id ? 'var(--green-light)' : 'white', color: newOrgKind === id ? 'var(--green)' : 'var(--ink-3)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>
                       {label}
                     </button>
                   ))}
                 </div>
                 <button onClick={createInstitution} disabled={accessBusy || !accessEmail.trim() || !newOrgName.trim()}
-                  style={{ width: '100%', padding: '11px', background: 'var(--green)', border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 700, color: 'white', cursor: accessBusy ? 'wait' : 'pointer' }}>
+                  style={{ width: '100%', padding: '11px', background: 'var(--green)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'white', cursor: accessBusy ? 'wait' : 'pointer' }}>
                   {accessBusy ? 'A processar…' : 'Criar instituição e dar acesso'}
                 </button>
               </div>
-              {accessMsg && <div style={{ marginTop: 12, fontSize: 12.5, color: accessMsg.startsWith('✓') ? '#15803d' : '#dc2626' }}>{accessMsg}</div>}
+              {accessMsg && <div style={{ marginTop: 12, fontSize: 'var(--t-meta)', color: accessMsg.startsWith('✓') ? 'var(--green)' : 'var(--red)' }}>{accessMsg}</div>}
             </div>
 
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 14, letterSpacing: '-0.01em' }}>Instituições existentes {orgs ? `(${orgs.length})` : ''}</h2>
-            {orgsLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>A carregar…</div>}
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 14, letterSpacing: '-0.01em' }}>Instituições existentes {orgs ? `(${orgs.length})` : ''}</h2>
+            {orgsLoading && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>A carregar…</div>}
             {orgs && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 150px', padding: '10px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
-                  {['Instituição', 'Tipo', 'Equipa', 'Dono'].map(h => <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>)}
+                  {['Instituição', 'Tipo', 'Equipa', 'Dono'].map(h => <div key={h} style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>)}
                 </div>
-                {orgs.length === 0 && <div style={{ padding: 20, fontSize: 13, color: 'var(--ink-4)', textAlign: 'center' }}>Ainda sem instituições.</div>}
+                {orgs.length === 0 && <div style={{ padding: 20, fontSize: 'var(--t-dado)', color: 'var(--ink-4)', textAlign: 'center' }}>Ainda sem instituições.</div>}
                 {orgs.map((o, i) => (
                   <div key={o.id} style={{ display: 'grid', gridTemplateColumns: '1fr 130px 90px 150px', padding: '12px 16px', borderBottom: i < orgs.length - 1 ? '1px solid var(--border)' : 'none', alignItems: 'center' }}>
-                    <div style={{ fontSize: 14, fontWeight: 500, color: 'var(--ink)' }}>{o.name}</div>
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{o.name}</div>
                     {/* O tipo só se muda aqui — saiu das /settings porque
                         muda o produto para a equipa toda da casa. */}
                     <div>
@@ -592,8 +614,8 @@ export default function AdminPage() {
                         disabled={tipoBusy === o.id}
                         onChange={e => e.target.value && mudarTipo(o.id, e.target.value)}
                         style={{
-                          background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 6,
-                          padding: '4px 7px', fontSize: 12, color: 'rgba(255,255,255,0.8)',
+                          background: 'transparent', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 'var(--r)',
+                          padding: '4px 7px', fontSize: 'var(--t-meta)', color: 'rgba(255,255,255,0.8)',
                           fontFamily: 'var(--font-sans)', cursor: tipoBusy === o.id ? 'wait' : 'pointer', maxWidth: 122,
                         }}>
                         {!['day_care', 'nursing_home'].includes(o.kind) && <option value="">{o.kind || '—'}</option>}
@@ -601,18 +623,18 @@ export default function AdminPage() {
                         <option value="nursing_home">Lar / ERPI</option>
                       </select>
                     </div>
-                    <div style={{ fontSize: 12.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', display: 'flex', alignItems: 'center', gap: 8 }}>
                       {o.member_count}
                       <button
                         onClick={() => executarAcao(
                           { acao: o.suspended ? 'reativar-org' : 'suspender-org', orgId: o.id },
                           o.suspended ? undefined : `Suspender ${o.name}?\n\nToda a equipa desce a plano free e perde o acesso institucional. Ninguém é apagado e é reversível.`)}
                         disabled={acaoBusy === o.id}
-                        style={{ padding: '3px 7px', background: 'transparent', border: '1px solid var(--border-2)', borderRadius: 5, cursor: 'pointer', fontSize: 10.5, color: o.suspended ? '#15803d' : '#b45309', fontFamily: 'var(--font-mono)' }}>
+                        style={{ padding: '3px 7px', background: 'transparent', border: '1px solid var(--border-2)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-micro)', color: o.suspended ? 'var(--green)' : 'var(--amber)', fontFamily: 'var(--font-mono)' }}>
                         {o.suspended ? 'reativar' : 'suspender'}
                       </button>
                     </div>
-                    <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.owner_email || '—'}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.owner_email || '—'}</div>
                   </div>
                 ))}
               </div>
@@ -623,31 +645,31 @@ export default function AdminPage() {
         {/* ── FINANCEIRO ────────────────────────────────────── */}
         {tab === 'financeiro' && (
           <div>
-            {financeLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>A carregar…</div>}
+            {financeLoading && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 16 }}>A carregar…</div>}
 
             {revenue && (
               <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Receita — real, do Stripe</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Receita — real, do Stripe</div>
                 {!revenue.configured ? (
-                  <div style={{ fontSize: 13, color: 'var(--ink-4)', background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 16 }}>STRIPE_SECRET_KEY não está configurada — sem dados de receita real.</div>
+                  <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 16 }}>STRIPE_SECRET_KEY não está configurada — sem dados de receita real.</div>
                 ) : (
                   <>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
-                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>MRR real</div>
-                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--green)', letterSpacing: '-0.02em' }}>{revenue.mrr_total.toFixed(2)}€</div>
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+                        <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>MRR real</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', letterSpacing: '-0.02em' }}>{revenue.mrr_total.toFixed(2)}€</div>
                       </div>
-                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
-                        <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Subscrições ativas</div>
-                        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{revenue.subscriber_count}</div>
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+                        <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Subscrições ativas</div>
+                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{revenue.subscriber_count}</div>
                       </div>
                     </div>
                     {Object.keys(revenue.by_plan).length > 0 && (
-                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px 20px' }}>
+                      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '14px 20px' }}>
                         {Object.entries(revenue.by_plan).map(([plan, v]) => (
                           <div key={plan} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px solid var(--bg-3)' }}>
-                            <span style={{ fontSize: 13, color: 'var(--ink)' }}>{plan} · {v.subscribers} assinante{v.subscribers !== 1 ? 's' : ''}</span>
-                            <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{v.mrr.toFixed(2)}€/mês</span>
+                            <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)' }}>{plan} · {v.subscribers} assinante{v.subscribers !== 1 ? 's' : ''}</span>
+                            <span style={{ fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{v.mrr.toFixed(2)}€/mês</span>
                           </div>
                         ))}
                       </div>
@@ -659,32 +681,32 @@ export default function AdminPage() {
 
             {costs && (
               <div style={{ marginBottom: 24 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Custos</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Custos</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Twilio — real, este mês</div>
-                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', letterSpacing: '-0.02em' }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+                    <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Twilio — real, este mês</div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>
                       {costs.twilio.configured ? `${costs.twilio.spend_month.toFixed(2)}${costs.twilio.currency === 'usd' ? '$' : costs.twilio.currency}` : '—'}
                     </div>
-                    {!costs.twilio.configured && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 4 }}>Não configurado</div>}
+                    {!costs.twilio.configured && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 4 }}>Não configurado</div>}
                   </div>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 20 }}>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Custos fixos — introduzidos à mão</div>
-                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{costs.fixed_total.toFixed(2)}€</div>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 20 }}>
+                    <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Custos fixos — introduzidos à mão</div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', letterSpacing: '-0.02em' }}>{costs.fixed_total.toFixed(2)}€</div>
                   </div>
                 </div>
 
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 14 }}>
-                  {costs.fixed_costs.length === 0 && <div style={{ padding: 16, fontSize: 13, color: 'var(--ink-4)', textAlign: 'center' }}>Sem custos fixos registados (hosting, Supabase, domínio…).</div>}
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', marginBottom: 14 }}>
+                  {costs.fixed_costs.length === 0 && <div style={{ padding: 16, fontSize: 'var(--t-dado)', color: 'var(--ink-4)', textAlign: 'center' }}>Sem custos fixos registados (hosting, Supabase, domínio…).</div>}
                   {costs.fixed_costs.map((c, i) => (
                     <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 16px', borderBottom: i < costs.fixed_costs.length - 1 ? '1px solid var(--border)' : 'none' }}>
                       <div>
-                        <div style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)' }}>{c.label}</div>
-                        {c.note && <div style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>{c.note}</div>}
+                        <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{c.label}</div>
+                        {c.note && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{c.note}</div>}
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{Number(c.amount_monthly).toFixed(2)}€/mês</span>
-                        <button onClick={() => deleteCost(c.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 12 }}>Remover</button>
+                        <span style={{ fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{Number(c.amount_monthly).toFixed(2)}€/mês</span>
+                        <button onClick={() => deleteCost(c.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 'var(--t-meta)' }}>Remover</button>
                       </div>
                     </div>
                   ))}
@@ -692,12 +714,12 @@ export default function AdminPage() {
 
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                   <input value={costLabel} onChange={e => setCostLabel(e.target.value)} placeholder="Ex: Vercel, Supabase Pro, domínio…"
-                    style={{ flex: '1 1 200px', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                    style={{ flex: '1 1 200px', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', outline: 'none' }} />
                   <input value={costAmount} onChange={e => setCostAmount(e.target.value)} placeholder="€/mês" type="number" step="0.01"
-                    style={{ width: 100, padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, outline: 'none' }} />
+                    style={{ width: 100, padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', outline: 'none' }} />
                   <input value={costNote} onChange={e => setCostNote(e.target.value)} placeholder="Nota (opcional)"
-                    style={{ flex: '1 1 160px', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, outline: 'none' }} />
-                  <button onClick={saveCost} disabled={costBusy || !costLabel.trim() || !costAmount} style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: costBusy ? 'wait' : 'pointer' }}>
+                    style={{ flex: '1 1 160px', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', outline: 'none' }} />
+                  <button onClick={saveCost} disabled={costBusy || !costLabel.trim() || !costAmount} style={{ padding: '9px 16px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: costBusy ? 'wait' : 'pointer' }}>
                     Adicionar
                   </button>
                 </div>
@@ -705,12 +727,12 @@ export default function AdminPage() {
             )}
 
             {revenue && costs && revenue.configured && (
-              <div style={{ background: 'var(--ink)', borderRadius: 10, padding: '20px 24px', color: 'white' }}>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Margem estimada / mês</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 34, letterSpacing: '-0.02em' }}>
+              <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-lg)', padding: '20px 24px', color: 'white' }}>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 8 }}>Margem estimada / mês</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', letterSpacing: '-0.02em' }}>
                   {(revenue.mrr_total - costs.total_estimated).toFixed(2)}€
                 </div>
-                <div style={{ fontSize: 11.5, color: 'rgba(255,255,255,0.5)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'rgba(255,255,255,0.5)', marginTop: 6, fontFamily: 'var(--font-mono)' }}>
                   {revenue.mrr_total.toFixed(2)}€ receita − {costs.total_estimated.toFixed(2)}€ custos (Twilio real + fixos à mão — IA não incluída, ver separador IA para volume de chamadas)
                 </div>
               </div>
@@ -721,15 +743,15 @@ export default function AdminPage() {
         {/* ── SEARCHES ──────────────────────────────────────── */}
         {tab === 'searches' && (
           <div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.01em' }}>Pesquisas recentes</h2>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.01em' }}>Pesquisas recentes</h2>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 16 }}>
               Útil para perceber o que os utilizadores procuram e melhorar a plataforma.
             </div>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px', padding: '10px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
-                {['Pesquisa', 'Tipo', 'Resultado'].map(h => <div key={h} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>)}
+                {['Pesquisa', 'Tipo', 'Resultado'].map(h => <div key={h} style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>{h}</div>)}
               </div>
-              <p style={{ padding: '20px', fontSize: 13, color: 'var(--ink-4)', textAlign: 'center' }}>
+              <p style={{ padding: '20px', fontSize: 'var(--t-dado)', color: 'var(--ink-4)', textAlign: 'center' }}>
                 As pesquisas são carregadas da tabela <code>search_history</code> no Supabase. Abre o painel de utilizadores para ver por utilizador.
               </p>
             </div>
@@ -739,36 +761,36 @@ export default function AdminPage() {
         {/* ── IA (visibilidade de custo, sugestão 7 da auditoria) ───────────── */}
         {tab === 'ia' && (
           <div>
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Uso de IA este mês{aiUsage ? ` · ${aiUsage.month}` : ''}</h2>
+            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 6, letterSpacing: '-0.01em' }}>Uso de IA este mês{aiUsage ? ` · ${aiUsage.month}` : ''}</h2>
 
             {/* Custo real. Antes isto não existia e a página dava a entender
                 que a IA era grátis: das 101 rotas que a chamam, só quatro
                 registavam. Agora regista-se em lib/ai.ts, no sítio por onde
                 todas passam. */}
             {aiUsage?.custo && (
-              <div style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px', marginBottom: 18 }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 18 }}>
                 <div style={{ display: 'flex', gap: 26, flexWrap: 'wrap', alignItems: 'baseline' }}>
                   <div>
-                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', lineHeight: 1 }}>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', lineHeight: 1 }}>
                       {aiUsage.custo.eur.toFixed(2).replace('.', ',')} €
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>este mês · {aiUsage.custo.usd.toFixed(2)} USD</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>este mês · {aiUsage.custo.usd.toFixed(2)} USD</div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', lineHeight: 1 }}>{aiUsage.custo.chamadas}</div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>chamadas registadas</div>
+                    <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', lineHeight: 1 }}>{aiUsage.custo.chamadas}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>chamadas registadas</div>
                   </div>
                   {aiUsage.custo.falhas > 0 && (
                     <div>
-                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: '#b91c1c', lineHeight: 1 }}>{aiUsage.custo.falhas}</div>
-                      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>falhadas</div>
+                      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--red)', lineHeight: 1 }}>{aiUsage.custo.falhas}</div>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 6 }}>falhadas</div>
                     </div>
                   )}
                 </div>
                 {aiUsage.custo.porModelo?.length > 0 && (
                   <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
                     {aiUsage.custo.porModelo.map((m: any) => (
-                      <div key={m.modelo} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', fontSize: 12.5 }}>
+                      <div key={m.modelo} style={{ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '5px 0', fontSize: 'var(--t-meta)' }}>
                         <span style={{ color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.modelo}</span>
                         <span style={{ color: 'var(--ink-4)', whiteSpace: 'nowrap' }}>
                           {m.chamadas}× · {(m.tokens / 1000).toFixed(0)}k tokens · {m.semPreco ? 'preço por definir' : `${(m.usd * 0.92).toFixed(3)} €`}
@@ -777,44 +799,44 @@ export default function AdminPage() {
                     ))}
                   </div>
                 )}
-                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>
                   Tokens estimados por caracteres (os fornecedores não os devolvem todos da mesma forma) e câmbio fixo a 0,92.
                   É ordem de grandeza para decidir, não contabilidade — o valor exato vem da fatura de cada fornecedor.
                 </div>
               </div>
             )}
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 18 }}>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 18 }}>
               Não bloqueia ninguém — é só visibilidade de quanto está a ser usado, antes de doer.
             </div>
-            {aiUsageLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>A carregar…</div>}
+            {aiUsageLoading && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>A carregar…</div>}
             {aiUsage && (
               <>
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px', marginBottom: 20, maxWidth: 260 }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Total de chamadas de IA</div>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{aiUsage.total_calls}</div>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px', marginBottom: 20, maxWidth: 260 }}>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>Total de chamadas de IA</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '-0.02em' }}>{aiUsage.total_calls}</div>
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas gratuitas/Plus (com limite diário)</div>
-                    {aiUsage.free_tier.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Sem uso registado.</div> : aiUsage.free_tier.map(({ key, count }, i) => (
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                    <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Ferramentas gratuitas/Plus (com limite diário)</div>
+                    {aiUsage.free_tier.length === 0 ? <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>Sem uso registado.</div> : aiUsage.free_tier.map(({ key, count }, i) => (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--bg-3)' }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', minWidth: 16 }}>{i + 1}</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{key}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', minWidth: 16 }}>{i + 1}</span>
+                          <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{key}</span>
                         </div>
-                        <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
+                        <span style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
                       </div>
                     ))}
                   </div>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '20px' }}>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Rotas Pro com orçamento próprio</div>
-                    {aiUsage.pro_tier.length === 0 ? <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Sem uso registado.</div> : aiUsage.pro_tier.map(({ key, count }, i) => (
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '20px' }}>
+                    <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 14 }}>Rotas Pro com orçamento próprio</div>
+                    {aiUsage.pro_tier.length === 0 ? <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>Sem uso registado.</div> : aiUsage.pro_tier.map(({ key, count }, i) => (
                       <div key={key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--bg-3)' }}>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', minWidth: 16 }}>{i + 1}</span>
-                          <span style={{ fontSize: 13, color: 'var(--ink)', letterSpacing: '-0.01em' }}>{key}</span>
+                          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', minWidth: 16 }}>{i + 1}</span>
+                          <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', letterSpacing: '-0.01em' }}>{key}</span>
                         </div>
-                        <span style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
+                        <span style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{count}</span>
                       </div>
                     ))}
                   </div>
@@ -824,6 +846,6 @@ export default function AdminPage() {
           </div>
         )}
       </div>
-    </div>
+    </Mesa>
   )
 }

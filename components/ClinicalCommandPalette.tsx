@@ -58,7 +58,7 @@ interface PatientHit { id: string; name: string; room_number?: string | null }
 interface Row { key: string; label: string; hint?: string; href: string; group: string }
 
 function RowIcon({ group }: { group: string }) {
-  const p = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: '#94a3b8', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, style: { flexShrink: 0 } }
+  const p = { width: 15, height: 15, viewBox: '0 0 24 24', fill: 'none', stroke: 'var(--ink-5)', strokeWidth: 1.8, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const, style: { flexShrink: 0 } }
   if (group === 'Residente') return <svg {...p}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
   if (group === 'Ações')     return <svg {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
   return <svg {...p}><path d="M9 18l6-6-6-6"/></svg>
@@ -139,35 +139,35 @@ export default function ClinicalCommandPalette() {
     <div onMouseDown={e => { if (e.target === e.currentTarget) setOpen(false) }}
       style={{ position: 'fixed', inset: 0, zIndex: 1000, background: 'rgba(8,12,24,0.4)', backdropFilter: 'blur(3px)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '12vh 16px 16px' }}>
       <div onKeyDown={onListKey}
-        style={{ width: 'min(560px, 100%)', background: 'white', borderRadius: 14, boxShadow: '0 24px 70px rgba(0,0,0,0.3)', overflow: 'hidden', border: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        style={{ width: 'min(560px, 100%)', background: 'white', borderRadius: 'var(--r-xl)', boxShadow: '0 24px 70px rgba(0,0,0,0.3)', overflow: 'hidden', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', maxHeight: '70vh' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 18px', borderBottom: '1px solid var(--bg-3)' }}>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
           <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} placeholder="Pesquisar residente ou navegar..."
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, fontFamily: 'var(--font-sans)', color: '#0b1120', background: 'transparent' }} />
-          <kbd style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#94a3b8', background: '#f1f5f9', borderRadius: 5, padding: '3px 7px', flexShrink: 0 }}>ESC</kbd>
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 15, fontFamily: 'var(--font-sans)', color: 'var(--ink)', background: 'transparent' }} />
+          <kbd style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', background: 'var(--bg-3)', borderRadius: 'var(--r)', padding: '3px 7px', flexShrink: 0 }}>ESC</kbd>
         </div>
         <div ref={listRef} style={{ overflowY: 'auto', padding: '6px 0' }}>
           {rows.length === 0 ? (
-            <div style={{ padding: '32px 18px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Sem resultados para “{query}”.</div>
+            <div style={{ padding: '32px 18px', textAlign: 'center', color: 'var(--ink-5)', fontSize: 13 }}>Sem resultados para “{query}”.</div>
           ) : rows.map((r, i) => {
             const showHeader = r.group !== lastGroup
             lastGroup = r.group
             const isActive = i === active
             return (
               <div key={r.key}>
-                {showHeader && <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 18px 4px' }}>{r.group}</div>}
+                {showHeader && <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', padding: '8px 18px 4px' }}>{r.group}</div>}
                 <div data-idx={i} onMouseEnter={() => setActive(i)} onMouseDown={e => { e.preventDefault(); go(r.href) }}
-                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 18px', cursor: 'pointer', background: isActive ? '#eff6ff' : 'transparent' }}>
+                  style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '9px 18px', cursor: 'pointer', background: isActive ? 'var(--bg-2)' : 'transparent' }}>
                   <RowIcon group={r.group} />
-                  <span style={{ flex: 1, fontSize: 14, color: '#0b1120', fontWeight: isActive ? 600 : 400 }}>{r.label}</span>
-                  {r.hint && <span style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{r.hint}</span>}
-                  {isActive && <kbd style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1d4ed8', flexShrink: 0 }}>↵</kbd>}
+                  <span style={{ flex: 1, fontSize: 14, color: 'var(--ink)', fontWeight: isActive ? 600 : 400 }}>{r.label}</span>
+                  {r.hint && <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{r.hint}</span>}
+                  {isActive && <kbd style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', flexShrink: 0 }}>↵</kbd>}
                 </div>
               </div>
             )
           })}
         </div>
-        <div style={{ borderTop: '1px solid #f1f5f9', padding: '8px 18px', display: 'flex', gap: 16, fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>
+        <div style={{ borderTop: '1px solid var(--bg-3)', padding: '8px 18px', display: 'flex', gap: 16, fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
           <span>↑↓ navegar</span><span>↵ abrir</span><span style={{ marginLeft: 'auto' }}>⌘K / Ctrl+K</span>
         </div>
       </div>

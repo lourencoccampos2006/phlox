@@ -20,7 +20,7 @@ interface Sale {
 
 const euro = (v: number) => `${(Math.round(v * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}€`
 const net = (s: Sale) => Math.max(0, (Number(s.gross) || 0) - (Number(s.discount) || 0))
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 const METHODS = ['dinheiro', 'multibanco', 'mbway', 'transferencia', 'comparticipado', 'isento']
@@ -28,16 +28,16 @@ const METHOD_LABEL: Record<string, string> = { dinheiro: 'Dinheiro', multibanco:
 
 // Tipos de linha por modelo de receita
 const KINDS_POS = [
-  { k: 'venda', label: 'Venda', color: '#2563eb' },
-  { k: 'dispensa', label: 'Dispensa', color: '#0d9488' },
-  { k: 'rastreio', label: 'Rastreio/serviço', color: '#7c3aed' },
-  { k: 'outro', label: 'Outro', color: '#64748b' },
+  { k: 'venda', label: 'Venda', color: 'var(--ink-2)' },
+  { k: 'dispensa', label: 'Dispensa', color: 'var(--green-3)' },
+  { k: 'rastreio', label: 'Rastreio/serviço', color: 'var(--ink-3)' },
+  { k: 'outro', label: 'Outro', color: 'var(--ink-4)' },
 ]
 const KINDS_FFS = [
-  { k: 'consulta', label: 'Consulta', color: '#dc2626' },
-  { k: 'ato', label: 'Ato/exame', color: '#2563eb' },
-  { k: 'rastreio', label: 'Rastreio', color: '#7c3aed' },
-  { k: 'outro', label: 'Outro', color: '#64748b' },
+  { k: 'consulta', label: 'Consulta', color: 'var(--red)' },
+  { k: 'ato', label: 'Ato/exame', color: 'var(--ink-2)' },
+  { k: 'rastreio', label: 'Rastreio', color: 'var(--ink-3)' },
+  { k: 'outro', label: 'Outro', color: 'var(--ink-4)' },
 ]
 
 export default function SalesBilling({ revenue, unitNoun, personNoun }: {
@@ -127,7 +127,7 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
     const records: PrintRecord[] = sales.map(s => ({
       title: `${KINDS.find(k => k.k === s.kind)?.label || s.kind}${s.description ? ` — ${s.description}` : ''}`,
       meta: `${new Date(s.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}${s.person_name ? ` · ${s.person_name}` : ''}`,
-      tags: [{ label: s.paid ? 'Pago' : 'Pendente', color: s.paid ? '#16a34a' : '#d97706' }, { label: METHOD_LABEL[s.method] || s.method, color: '#64748b' }],
+      tags: [{ label: s.paid ? 'Pago' : 'Pendente', color: s.paid ? 'var(--green)' : 'var(--amber)' }, { label: METHOD_LABEL[s.method] || s.method, color: 'var(--ink-4)' }],
       fields: [{ label: 'Valor', value: euro(net(s)) }],
     }))
     printDoc({
@@ -172,7 +172,7 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
     })
   }
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
@@ -185,26 +185,26 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <input type="date" value={day} onChange={e => setDay(e.target.value)} style={{ ...inp, width: 'auto' }} />
-            <button onClick={closeRegister} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: '#374151' }}>{isPOS ? 'Fecho de caixa' : 'Imprimir dia'}</button>
-            <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '9px 16px', background: isPOS ? '#2563eb' : '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ {isPOS ? 'Venda' : 'Ato'}</button>
+            <button onClick={closeRegister} style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>{isPOS ? 'Fecho de caixa' : 'Imprimir dia'}</button>
+            <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '9px 16px', background: isPOS ? 'var(--ink-2)' : 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ {isPOS ? 'Venda' : 'Ato'}</button>
           </div>
         </div>
 
         {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Vendas / caixa ainda por ativar</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos — tudo o resto continua a funcionar normalmente.</div>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--amber)', marginBottom: 6 }}>Vendas / caixa ainda por ativar</div>
+            <div style={{ fontSize: 13, color: 'var(--amber)', lineHeight: 1.6 }}>Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos — tudo o resto continua a funcionar normalmente.</div>
           </div>
         ) : (
           <>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
               {[
-                { v: euro(total), l: isPOS ? 'Total do dia' : 'Faturado', c: '#0b1120' },
-                { v: euro(received), l: 'Recebido', c: '#16a34a' },
-                ...(pending > 0 ? [{ v: euro(pending), l: 'Pendente', c: '#d97706' }] : []),
-                { v: String(count), l: 'Movimentos', c: '#2563eb' },
+                { v: euro(total), l: isPOS ? 'Total do dia' : 'Faturado', c: 'var(--ink)' },
+                { v: euro(received), l: 'Recebido', c: 'var(--green)' },
+                ...(pending > 0 ? [{ v: euro(pending), l: 'Pendente', c: 'var(--amber)' }] : []),
+                { v: String(count), l: 'Movimentos', c: 'var(--ink-2)' },
               ].map(s => (
-                <div key={s.l} style={{ flex: '1 1 140px', background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '13px 16px' }}>
+                <div key={s.l} style={{ flex: '1 1 140px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '13px 16px' }}>
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.v}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 5 }}>{s.l}</div>
                 </div>
@@ -219,10 +219,10 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
                 ))}
               </div>
             )}
-            {err && <div style={{ marginBottom: 12, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, color: '#991b1b', fontSize: 13, padding: '12px 16px' }}>{err}</div>}
+            {err && <div style={{ marginBottom: 12, background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)', color: 'var(--red)', fontSize: 13, padding: '12px 16px' }}>{err}</div>}
 
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 52, borderRadius: 10 }} />)}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 52, borderRadius: 'var(--r-lg)' }} />)}</div>
             ) : sales.length === 0 ? (
               <div style={{ ...card, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13, padding: 36 }}>
                 {isToday ? `Sem movimentos hoje. Regista o primeiro com “+ ${isPOS ? 'Venda' : 'Ato'}”.` : 'Sem movimentos neste dia.'}
@@ -235,32 +235,32 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
                   const annulled = s.doc_status === 'anulado'
                   const isNC = s.doc_status === 'nota_credito'
                   return (
-                    <div key={s.id} style={{ background: annulled ? '#fafafa' : 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${isNC ? '#dc2626' : kind.color}`, borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', opacity: annulled ? 0.7 : 1 }}>
+                    <div key={s.id} style={{ background: annulled ? 'var(--bg-2)' : 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${isNC ? 'var(--red)' : kind.color}`, borderRadius: 'var(--r-lg)', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', opacity: annulled ? 0.7 : 1 }}>
                       <div style={{ flex: 1, minWidth: 140 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 10.5, fontWeight: 700, color: isNC ? '#dc2626' : kind.color, background: (isNC ? '#dc2626' : kind.color) + '14', padding: '2px 8px', borderRadius: 5 }}>{isNC ? 'Nota de crédito' : kind.label}</span>
+                          <span style={{ fontSize: 10.5, fontWeight: 700, color: isNC ? 'var(--red)' : kind.color, background: (isNC ? 'var(--red)' : kind.color) + '14', padding: '2px 8px', borderRadius: 'var(--r)' }}>{isNC ? 'Nota de crédito' : kind.label}</span>
                           <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', textDecoration: annulled ? 'line-through' : 'none' }}>{s.description || s.person_name || '—'}</span>
                           {s.qty > 1 && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>×{s.qty}</span>}
-                          {annulled && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>ANULADO</span>}
+                          {annulled && <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--red)', background: 'var(--badge-red-bg)', padding: '1px 6px', borderRadius: 'var(--r)' }}>ANULADO</span>}
                         </div>
                         <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 2 }}>
                           {s.doc_no ? <strong>{s.doc_no} · </strong> : ''}{new Date(s.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })} · {METHOD_LABEL[s.method] || s.method}{s.person_name && s.description ? ` · ${s.person_name}` : ''}
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: 16, fontWeight: 800, color: isNC ? '#dc2626' : 'var(--ink)' }}>{isNC ? '−' : ''}{euro(net(s))}</div>
+                        <div style={{ fontSize: 16, fontWeight: 800, color: isNC ? 'var(--red)' : 'var(--ink)' }}>{isNC ? '−' : ''}{euro(net(s))}</div>
                         {s.discount > 0 && <div style={{ fontSize: 10, color: 'var(--ink-5)' }}>desc. {euro(s.discount)}</div>}
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
-                        {!s.paid && <button onClick={() => togglePaid(s)} style={{ padding: '6px 12px', borderRadius: 8, border: '1px solid #fde68a', background: '#fffbeb', color: '#d97706', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>Marcar pago</button>}
-                        {s.paid && !isNC && <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 700 }}>✓ pago</span>}
-                        <button onClick={() => printReceipt(s)} title="Imprimir recibo" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        {!s.paid && <button onClick={() => togglePaid(s)} style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', border: '1px solid var(--badge-amber-border)', background: 'var(--badge-amber-bg)', color: 'var(--amber)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>Marcar pago</button>}
+                        {s.paid && !isNC && <span style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700 }}>✓ pago</span>}
+                        <button onClick={() => printReceipt(s)} title="Imprimir recibo" style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                         </button>
                         {finalized && !annulled && !isNC && (
-                          <button onClick={() => creditNote(s)} title="Emitir nota de crédito (anula o documento)" style={{ padding: '6px 10px', borderRadius: 7, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>NC</button>
+                          <button onClick={() => creditNote(s)} title="Emitir nota de crédito (anula o documento)" style={{ padding: '6px 10px', borderRadius: 'var(--r-md)', border: '1px solid var(--badge-red-border)', background: 'var(--badge-red-bg)', color: 'var(--red)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>NC</button>
                         )}
-                        {!finalized && <button aria-label="Eliminar" onClick={() => del(s.id)} title="Eliminar (rascunho não finalizado)" style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 17 }}>×</button>}                      </div>
+                        {!finalized && <button aria-label="Eliminar" onClick={() => del(s.id)} title="Eliminar (rascunho não finalizado)" style={{ width: 30, height: 30, borderRadius: 'var(--r-md)', border: 'none', background: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 17 }}>×</button>}                      </div>
                     </div>
                   )
                 })}
@@ -280,7 +280,7 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
               <div>
                 <span style={lbl}>Tipo</span>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {KINDS.map(k => <button key={k.k} onClick={() => setForm({ ...form, kind: k.k })} style={{ padding: '6px 11px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.kind === k.k ? k.color : 'var(--border)'}`, background: form.kind === k.k ? k.color + '12' : 'white', color: form.kind === k.k ? k.color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{k.label}</button>)}
+                  {KINDS.map(k => <button key={k.k} onClick={() => setForm({ ...form, kind: k.k })} style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.kind === k.k ? k.color : 'var(--border)'}`, background: form.kind === k.k ? k.color + '12' : 'white', color: form.kind === k.k ? k.color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{k.label}</button>)}
                 </div>
               </div>
               <div><span style={lbl}>Descrição</span><input value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder={isPOS ? 'Ex: Paracetamol 1g, medição de TA…' : 'Ex: Consulta de seguimento, penso…'} style={inp} autoFocus /></div>
@@ -296,13 +296,13 @@ export default function SalesBilling({ revenue, unitNoun, personNoun }: {
               <div>
                 <span style={lbl}>Método</span>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {METHODS.map(m => <button key={m} onClick={() => setForm({ ...form, method: m, paid: m === 'comparticipado' ? form.paid : true })} style={{ padding: '6px 11px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.method === m ? '#2563eb' : 'var(--border)'}`, background: form.method === m ? '#eff6ff' : 'white', color: form.method === m ? '#2563eb' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{METHOD_LABEL[m]}</button>)}
+                  {METHODS.map(m => <button key={m} onClick={() => setForm({ ...form, method: m, paid: m === 'comparticipado' ? form.paid : true })} style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.method === m ? 'var(--ink-2)' : 'var(--border)'}`, background: form.method === m ? 'var(--bg-2)' : 'white', color: form.method === m ? 'var(--ink-2)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{METHOD_LABEL[m]}</button>)}
                 </div>
               </div>
               <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: 'var(--ink-3)', cursor: 'pointer' }}>
                 <input type="checkbox" checked={!!form.paid} onChange={e => setForm({ ...form, paid: e.target.checked })} /> Pago
               </label>
-              <button onClick={add} disabled={saving} style={{ padding: 12, background: isPOS ? '#2563eb' : '#dc2626', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : `Registar ${isPOS ? 'venda' : 'ato'}`}</button>
+              <button onClick={add} disabled={saving} style={{ padding: 12, background: isPOS ? 'var(--ink-2)' : 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : `Registar ${isPOS ? 'venda' : 'ato'}`}</button>
             </div>
           </div>
         </div>

@@ -65,7 +65,7 @@ export async function GET(req: NextRequest) {
     // Aparecem no registo (é um facto relevante para a auditoria), mas
     // marcadas como família, nunca contadas como atividade de funcionário.
     ...(mar.data || []).map((m: any) => ({
-      kind: 'med', icon: '💊', at: m.recorded_at,
+      kind: 'med', icon: 'pill', at: m.recorded_at,
       who: m.source === 'home' ? `${m.home_by || 'Família'} (em casa)` : who(m.recorded_by_id, m.recorded_by),
       isFamily: m.source === 'home',
       patient: patName[m.patient_id] || '—',
@@ -73,7 +73,7 @@ export async function GET(req: NextRequest) {
       shift: m.shift,
     })),
     ...(care.data || []).map((c: any) => ({
-      kind: 'care', icon: '📝', at: c.created_at, isFamily: false,
+      kind: 'care', icon: 'note', at: c.created_at, isFamily: false,
       who: who(c.recorded_by_id, c.recorded_by), patient: patName[c.patient_id] || '—',
       detail: 'registou o dia', shift: c.shift,
     })),

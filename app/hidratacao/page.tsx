@@ -117,40 +117,40 @@ export function HidratacaoTool() {
             (a moldura já dá o título e a aba). */}
 
         {tableMissing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--amber)', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: 'var(--amber)' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : (
           <>
             <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
               {[
-                { n: stats.lowFluid, l: 'Atrasados na hidratação', c: '#d97706', bg: '#fffbeb', bd: '#fde68a' },
-                { n: stats.constip, l: 'Sem dejeção ≥3 dias', c: '#dc2626', bg: '#fef2f2', bd: '#fca5a5' },
-                { n: stats.noBowelData, l: 'Sem registo de dejeção', c: '#64748b', bg: 'white', bd: 'var(--border)' },
+                { n: stats.lowFluid, l: 'Atrasados na hidratação', c: 'var(--amber)', bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)' },
+                { n: stats.constip, l: 'Sem dejeção ≥3 dias', c: 'var(--red)', bg: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)' },
+                { n: stats.noBowelData, l: 'Sem registo de dejeção', c: 'var(--ink-4)', bg: 'white', bd: 'var(--border)' },
               ].map(s => (
-                <div key={s.l} style={{ flex: '1 1 140px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 12, padding: '13px 16px' }}>
+                <div key={s.l} style={{ flex: '1 1 140px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 'var(--r-xl)', padding: '13px 16px' }}>
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.n}</div>
                   <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>{s.l}</div>
                 </div>
               ))}
             </div>
 
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${cfg.personNoun.toLowerCase()}...`} style={{ width: '100%', maxWidth: 280, marginBottom: 14, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${cfg.personNoun.toLowerCase()}...`} style={{ width: '100%', maxWidth: 280, marginBottom: 14, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
 
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 12 }} />)}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 'var(--r-xl)' }} />)}</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {filtered.map(({ p, fluid, lb, constipation, dehydration }) => {
                   const pct = Math.min(100, Math.round((fluid / FLUID_GOAL) * 100))
-                  const fluidColor = fluid >= FLUID_GOAL ? '#16a34a' : dehydration ? '#d97706' : '#2563eb'
+                  const fluidColor = fluid >= FLUID_GOAL ? 'var(--green)' : dehydration ? 'var(--amber)' : 'var(--ink-2)'
                   return (
-                    <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${constipation ? '#dc2626' : dehydration ? '#d97706' : 'var(--border)'}`, borderRadius: 10, padding: '12px 16px' }}>
+                    <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${constipation ? 'var(--red)' : dehydration ? 'var(--amber)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '12px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 140 }}>
                           <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name} {p.room_number && <span style={{ fontSize: 12, color: 'var(--ink-4)', fontWeight: 400 }}>Q{p.room_number}</span>}</div>
-                          <div style={{ fontSize: 12, color: constipation ? '#dc2626' : 'var(--ink-4)', marginTop: 2, fontWeight: constipation ? 700 : 400 }}>
+                          <div style={{ fontSize: 12, color: constipation ? 'var(--red)' : 'var(--ink-4)', marginTop: 2, fontWeight: constipation ? 700 : 400 }}>
                             {lb.days === null ? 'Sem registo de dejeção' : lb.days === 0 ? 'Dejeção hoje' : `Última dejeção há ${lb.days} dia${lb.days !== 1 ? 's' : ''}`}
                           </div>
                         </div>
@@ -160,16 +160,16 @@ export function HidratacaoTool() {
                             <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>hidratação hoje</span>
                             <span style={{ fontSize: 12, fontWeight: 700, color: fluidColor }}>{fluid} / {FLUID_GOAL} ml</span>
                           </div>
-                          <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
-                            <div style={{ height: '100%', width: `${pct}%`, background: fluidColor, borderRadius: 3, transition: 'width 0.3s' }} />
+                          <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                            <div style={{ height: '100%', width: `${pct}%`, background: fluidColor, borderRadius: 'var(--r-sm)', transition: 'width 0.3s' }} />
                           </div>
                         </div>
                         {/* Quick actions */}
                         <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                           {[150, 250, 500].map(ml => (
-                            <button key={ml} onClick={() => addFluid(p.id, ml)} style={{ padding: '7px 9px', borderRadius: 8, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+{ml}</button>
+                            <button key={ml} onClick={() => addFluid(p.id, ml)} style={{ padding: '7px 9px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'var(--bg-2)', color: 'var(--ink-2)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+{ml}</button>
                           ))}
-                          <button onClick={() => setBowelFor(bowelFor === p.id ? null : p.id)} style={{ padding: '7px 11px', borderRadius: 8, border: `1px solid ${bowelFor === p.id ? '#0d6e42' : 'var(--border)'}`, background: bowelFor === p.id ? '#eef6f1' : 'white', color: bowelFor === p.id ? '#0d6e42' : 'var(--ink-3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Dejeção</button>
+                          <button onClick={() => setBowelFor(bowelFor === p.id ? null : p.id)} style={{ padding: '7px 11px', borderRadius: 'var(--r-md)', border: `1px solid ${bowelFor === p.id ? 'var(--green)' : 'var(--border)'}`, background: bowelFor === p.id ? 'var(--green-light)' : 'white', color: bowelFor === p.id ? 'var(--green)' : 'var(--ink-3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Dejeção</button>
                         </div>
                       </div>
                       {bowelFor === p.id && (
@@ -177,7 +177,7 @@ export function HidratacaoTool() {
                           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7 }}>Escala de Bristol — tipo de fezes</div>
                           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                             {BRISTOL.map(b => (
-                              <button key={b} onClick={() => addBowel(p.id, b)} disabled={saving} style={{ width: 38, height: 38, borderRadius: 8, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: b <= 2 ? '#d97706' : b >= 6 ? '#dc2626' : '#16a34a', fontFamily: 'var(--font-mono)' }}>{b}</button>
+                              <button key={b} onClick={() => addBowel(p.id, b)} disabled={saving} style={{ width: 38, height: 38, borderRadius: 'var(--r-md)', border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 14, fontWeight: 700, color: b <= 2 ? 'var(--amber)' : b >= 6 ? 'var(--red)' : 'var(--green)', fontFamily: 'var(--font-mono)' }}>{b}</button>
                             ))}
                           </div>
                           <div style={{ fontSize: 10, color: 'var(--ink-5)', marginTop: 6 }}>1-2 obstipação · 3-5 normal · 6-7 diarreia</div>

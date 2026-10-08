@@ -31,7 +31,7 @@ export default function PostIbuprofenWarfarin() {
 
         {/* Header */}
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: 'inline-block', background: '#fff5f5', color: '#dc2626', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>INTERAÇÕES</div>
+          <div style={{ display: 'inline-block', background: 'var(--badge-red-bg)', color: 'var(--red)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>INTERAÇÕES</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
             Posso tomar ibuprofeno com varfarina?
           </h1>
@@ -48,9 +48,9 @@ export default function PostIbuprofenWarfarin() {
         </div>
 
         {/* Alert box */}
-        <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderLeft: '4px solid #dc2626', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
-          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7f1d1d', letterSpacing: '0.08em', marginBottom: 6 }}>⚠ INTERAÇÃO GRAVE</div>
-          <p style={{ fontSize: 14, color: '#742a2a', lineHeight: 1.7, margin: 0 }}>
+        <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderLeft: '4px solid var(--red)', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
+          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--red)', letterSpacing: '0.08em', marginBottom: 6 }}>⚠ INTERAÇÃO GRAVE</div>
+          <p style={{ fontSize: 14, color: 'var(--badge-red-fg)', lineHeight: 1.7, margin: 0 }}>
             Ibuprofeno + varfarina é uma interação classificada como <strong>grave</strong> pela FDA e pelo RxNorm. Pode aumentar significativamente o risco de hemorragia gastrointestinal e outros sangramentos.
           </p>
         </div>
@@ -89,7 +89,7 @@ export default function PostIbuprofenWarfarin() {
           <p style={{ marginBottom: 16 }}>
             Para dor e febre, a alternativa segura é o <strong>paracetamol</strong>. Não inibe plaquetas, não irrita a mucosa gástrica, e não tem interação clinicamente significativa com a varfarina nas doses normais (até 2g/dia). É a opção recomendada pela maioria das guidelines internacionais para doentes anticoagulados.
           </p>
-          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 8, padding: '14px 18px', marginBottom: 24 }}>
+          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '14px 18px', marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-2)', marginBottom: 4 }}>✓ Alternativa recomendada</div>
             <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6 }}>
               <strong>Paracetamol</strong> até 2g/dia — seguro com varfarina nas doses habituais. Para doses mais altas ou uso prolongado, confirma sempre com o teu médico ou farmacêutico.
@@ -113,7 +113,7 @@ export default function PostIbuprofenWarfarin() {
         </div>
 
         {/* CTA to tool */}
-        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>
             Verifica as tuas interações em segundos
           </div>
@@ -121,13 +121,13 @@ export default function PostIbuprofenWarfarin() {
             O verificador da Phlox analisa todos os teus medicamentos ao mesmo tempo e identifica interações com mecanismo e recomendação.
           </p>
           <Link href="/interactions"
-            style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+            style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
             Verificar interações grátis →
           </Link>
         </div>
 
         {/* Disclaimer */}
-        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
           <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento de um profissional de saúde. Confirma sempre a tua medicação com o teu médico ou farmacêutico. Dados baseados em FDA, RxNorm e NIH.
           </p>

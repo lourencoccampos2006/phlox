@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthContext'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 interface ECG {
   id: string; title: string; description: string|null; image_url: string|null
@@ -94,7 +94,7 @@ export default function ECGPage() {
     setSelected(e); setRevealed(false); setInterp(''); setFeedback(null)
   }
 
-  if (loading) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
+  if (loading) return <main style={{ padding: 24 }}><p style={{ color: 'var(--ink-4)' }}>A carregar…</p></main>
 
   if (selected) {
     return (
@@ -104,27 +104,27 @@ export default function ECGPage() {
         {/* Antes do reveal: etiqueta NEUTRA + apresentação clínica. NUNCA o título/diagnóstico. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
           <h1 style={{ margin: 0, fontSize: 20 }}>{revealed ? selected.title : caseLabel(selected)}</h1>
-          <span style={{ padding: '2px 10px', borderRadius: 999, background: selected.difficulty === 'easy' ? '#dcfce7' : selected.difficulty === 'medium' ? '#fef3c7' : '#fee2e2', color: selected.difficulty === 'easy' ? '#065f46' : selected.difficulty === 'medium' ? '#92400e' : '#991b1b', fontSize: 11, fontWeight: 700 }}>
+          <span style={{ padding: '2px 10px', borderRadius: 999, background: selected.difficulty === 'easy' ? 'var(--badge-green-bg)' : selected.difficulty === 'medium' ? 'var(--badge-amber-bg)' : 'var(--badge-red-bg)', color: selected.difficulty === 'easy' ? 'var(--green)' : selected.difficulty === 'medium' ? 'var(--amber)' : 'var(--red)', fontSize: 11, fontWeight: 700 }}>
             {DIFF_LABEL[selected.difficulty] || selected.difficulty}
           </span>
         </div>
 
         {/* Apresentação clínica — dá contexto sem revelar o diagnóstico */}
-        <div style={{ background: '#f8fafc', border: '1px solid #e5e7eb', borderLeft: `3px solid ${ACCENT}`, borderRadius: 8, padding: '10px 14px', margin: '10px 0 16px' }}>
-          <div style={{ fontSize: 10, color: '#6b7280', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 }}>Apresentação clínica</div>
-          <p style={{ margin: 0, fontSize: 14, color: '#374151', lineHeight: 1.5 }}>{selected.context}</p>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderLeft: `3px solid ${ACCENT}`, borderRadius: 'var(--r-md)', padding: '10px 14px', margin: '10px 0 16px' }}>
+          <div style={{ fontSize: 10, color: 'var(--ink-4)', fontWeight: 700, letterSpacing: 0.6, textTransform: 'uppercase', marginBottom: 3 }}>Apresentação clínica</div>
+          <p style={{ margin: 0, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.5 }}>{selected.context}</p>
         </div>
 
         {selected.image_url ? (
-          <img src={selected.image_url} alt="ECG" style={{ width: '100%', borderRadius: 8, marginBottom: 16, border: '1px solid #e5e7eb' }} />
+          <img src={selected.image_url} alt="ECG" style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: 16, border: '1px solid var(--border)' }} />
         ) : (
           <ECGRenderer ecg={selected} />
         )}
 
         {!revealed && (
           <>
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginBottom: 14 }}>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Medições do traçado</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, marginBottom: 14 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 700, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 }}>Medições do traçado</div>
               {/* Mostramos as MEDIÇÕES (o que se lê do ECG), não o "ritmo" — esse é parte da resposta. */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 10, fontSize: 13 }}>
                 <div><b>Frequência:</b> {selected.rate_bpm} bpm</div>
@@ -136,10 +136,10 @@ export default function ECGPage() {
             </div>
 
             <div style={{ marginBottom: 14 }}>
-              <label style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>A tua interpretação</label>
+              <label style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', marginBottom: 6, display: 'block' }}>A tua interpretação</label>
               <textarea value={interp} onChange={e => setInterp(e.target.value)} rows={5}
                 placeholder="Descreve achados, diagnóstico provável e o que farias de seguida."
-                style={{ width: '100%', padding: 12, border: '1px solid #d1d5db', borderRadius: 8, fontFamily: 'inherit', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }} />
+                style={{ width: '100%', padding: 12, border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', fontFamily: 'inherit', fontSize: 14, boxSizing: 'border-box', resize: 'vertical' }} />
             </div>
 
             <div style={{ display: 'flex', gap: 8 }}>
@@ -148,26 +148,26 @@ export default function ECGPage() {
             </div>
 
             {feedback && (
-              <div style={{ marginTop: 16, background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+              <div style={{ marginTop: 16, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
                   <span style={{ fontSize: 14, fontWeight: 700 }}>Avaliação</span>
-                  <span style={{ padding: '4px 12px', borderRadius: 999, background: feedback.score >= 70 ? '#dcfce7' : feedback.score >= 40 ? '#fef3c7' : '#fee2e2', color: feedback.score >= 70 ? '#065f46' : feedback.score >= 40 ? '#92400e' : '#991b1b', fontWeight: 700, fontSize: 13 }}>
+                  <span style={{ padding: '4px 12px', borderRadius: 999, background: feedback.score >= 70 ? 'var(--badge-green-bg)' : feedback.score >= 40 ? 'var(--badge-amber-bg)' : 'var(--badge-red-bg)', color: feedback.score >= 70 ? 'var(--green)' : feedback.score >= 40 ? 'var(--amber)' : 'var(--red)', fontWeight: 700, fontSize: 13 }}>
                     {feedback.score}/100
                   </span>
                 </div>
-                <p style={{ fontSize: 14, color: '#374151', margin: '0 0 10px', lineHeight: 1.5 }}>{feedback.feedback}</p>
+                <p style={{ fontSize: 14, color: 'var(--ink-3)', margin: '0 0 10px', lineHeight: 1.5 }}>{feedback.feedback}</p>
                 {feedback.correct?.length > 0 && (
                   <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 11, color: '#065f46', fontWeight: 700, marginBottom: 4 }}>✓ ACERTASTE</div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151' }}>
+                    <div style={{ fontSize: 11, color: 'var(--green)', fontWeight: 700, marginBottom: 4 }}>✓ ACERTASTE</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--ink-3)' }}>
                       {feedback.correct.map((c: string, i: number) => <li key={i}>{c}</li>)}
                     </ul>
                   </div>
                 )}
                 {feedback.missed?.length > 0 && (
                   <div>
-                    <div style={{ fontSize: 11, color: '#991b1b', fontWeight: 700, marginBottom: 4 }}>✗ FALHASTE</div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151' }}>
+                    <div style={{ fontSize: 11, color: 'var(--red)', fontWeight: 700, marginBottom: 4 }}>✗ FALHASTE</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--ink-3)' }}>
                       {feedback.missed.map((c: string, i: number) => <li key={i}>{c}</li>)}
                     </ul>
                   </div>
@@ -178,16 +178,16 @@ export default function ECGPage() {
         )}
 
         {revealed && (
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
             <h2 style={{ margin: '0 0 10px', fontSize: 16, color: ACCENT }}>Diagnóstico: {selected.diagnosis}</h2>
-            <p style={{ fontSize: 14, color: '#374151', lineHeight: 1.5 }}>{selected.description}</p>
+            <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.5 }}>{selected.description}</p>
             <div style={{ marginTop: 12 }}>
-              <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, marginBottom: 4 }}>ACHADOS-CHAVE</div>
-              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 11, color: 'var(--ink-4)', fontWeight: 700, marginBottom: 4 }}>ACHADOS-CHAVE</div>
+              <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
                 {selected.findings.map((f, i) => <li key={i}>{f}</li>)}
               </ul>
             </div>
-            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: 8, fontSize: 12, color: '#6b7280' }}>
+            <div style={{ marginTop: 12, display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px,1fr))', gap: 8, fontSize: 12, color: 'var(--ink-4)' }}>
               <div><b>Ritmo:</b> {selected.rhythm}</div>
               <div><b>FC:</b> {selected.rate_bpm} bpm</div>
               <div><b>QTc:</b> {selected.qtc_ms} ms</div>
@@ -201,7 +201,7 @@ export default function ECGPage() {
   return (
     <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: 26 }}>Biblioteca de ECGs</h1>
-      <p style={{ color: '#6b7280', margin: '4px 0 16px', fontSize: 14 }}>
+      <p style={{ color: 'var(--ink-4)', margin: '4px 0 16px', fontSize: 14 }}>
         Treina interpretação de ECGs. A IA avalia a tua resposta livre.
       </p>
 
@@ -209,29 +209,29 @@ export default function ECGPage() {
         {CATEGORIES.map(c => (
           <button key={c.v} onClick={() => setCategory(c.v)} style={{
             padding: '5px 12px', border: 'none', borderRadius: 999, fontSize: 12, fontWeight: 700, cursor: 'pointer',
-            background: category === c.v ? ACCENT : '#f3f4f6',
-            color: category === c.v ? 'white' : '#374151',
+            background: category === c.v ? ACCENT : 'var(--bg-3)',
+            color: category === c.v ? 'white' : 'var(--ink-3)',
           }}>{c.label}</button>
         ))}
       </div>
 
       {ecgs.length === 0 ? (
-        <p style={{ color: '#6b7280', fontSize: 14 }}>Ainda não há ECGs disponíveis.</p>
+        <p style={{ color: 'var(--ink-4)', fontSize: 14 }}>Ainda não há ECGs disponíveis.</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
           {ecgs.map((e, idx) => (
             <button key={e.id} onClick={() => pickEcg(e)} style={{
-              textAlign: 'left', background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14, cursor: 'pointer',
+              textAlign: 'left', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14, cursor: 'pointer',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
                 {/* Etiqueta NEUTRA — não revela o diagnóstico */}
-                <span style={{ fontWeight: 700, fontSize: 13, color: '#111827' }}>{caseLabel(e, idx)}</span>
-                <span style={{ padding: '2px 8px', borderRadius: 999, background: e.difficulty === 'easy' ? '#dcfce7' : e.difficulty === 'medium' ? '#fef3c7' : '#fee2e2', color: e.difficulty === 'easy' ? '#065f46' : e.difficulty === 'medium' ? '#92400e' : '#991b1b', fontSize: 10, fontWeight: 700 }}>
+                <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{caseLabel(e, idx)}</span>
+                <span style={{ padding: '2px 8px', borderRadius: 999, background: e.difficulty === 'easy' ? 'var(--badge-green-bg)' : e.difficulty === 'medium' ? 'var(--badge-amber-bg)' : 'var(--badge-red-bg)', color: e.difficulty === 'easy' ? 'var(--green)' : e.difficulty === 'medium' ? 'var(--amber)' : 'var(--red)', fontSize: 10, fontWeight: 700 }}>
                   {DIFF_LABEL[e.difficulty] || e.difficulty}
                 </span>
               </div>
               {/* Só a apresentação clínica — o "porquê estás a ver este ECG" */}
-              <p style={{ margin: 0, fontSize: 12.5, color: '#374151', lineHeight: 1.5 }}>{e.context}</p>
+              <p style={{ margin: 0, fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.5 }}>{e.context}</p>
               <div style={{ marginTop: 10, fontSize: 11, color: ACCENT, fontWeight: 700 }}>Interpretar →</div>
             </button>
           ))}
@@ -344,31 +344,31 @@ function ECGRenderer({ ecg }: { ecg: ECG }) {
   const measur = `${rate} bpm · PR ${ecg.pr_ms || '—'} ms · QRS ${ecg.qrs_ms || '—'} ms · QTc ${ecg.qtc_ms || '—'} ms`
 
   return (
-    <div style={{ border: '1px solid #f3d2d6', borderRadius: 12, marginBottom: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#fff', borderBottom: '1px solid #f3d2d6' }}>
-        <span style={{ fontSize: 11, color: '#9f1239', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 }}>Tira · derivação II · 25 mm/s · 10 mm/mV</span>
-        <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--font-mono, monospace)' }}>{measur}</span>
+    <div style={{ border: '1px solid var(--red-light)', borderRadius: 'var(--r-xl)', marginBottom: 16, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg)', borderBottom: '1px solid var(--red-light)' }}>
+        <span style={{ fontSize: 11, color: 'var(--red)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 }}>Tira · derivação II · 25 mm/s · 10 mm/mV</span>
+        <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono, monospace)' }}>{measur}</span>
       </div>
-      <div style={{ overflowX: 'auto', background: '#fff5f6' }}>
+      <div style={{ overflowX: 'auto', background: 'var(--red-light)' }}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 640, height: 'auto', display: 'block' }}>
           <defs>
             <pattern id="ecg-sm" width={PX_PER_MM} height={PX_PER_MM} patternUnits="userSpaceOnUse">
-              <path d={`M ${PX_PER_MM} 0 L 0 0 0 ${PX_PER_MM}`} fill="none" stroke="#f7c6cd" strokeWidth={0.4} />
+              <path d={`M ${PX_PER_MM} 0 L 0 0 0 ${PX_PER_MM}`} fill="none" stroke="var(--red-light)" strokeWidth={0.4} />
             </pattern>
             <pattern id="ecg-lg" width={5 * PX_PER_MM} height={5 * PX_PER_MM} patternUnits="userSpaceOnUse">
               <rect width={5 * PX_PER_MM} height={5 * PX_PER_MM} fill="url(#ecg-sm)" />
-              <path d={`M ${5 * PX_PER_MM} 0 L 0 0 0 ${5 * PX_PER_MM}`} fill="none" stroke="#ec9aa6" strokeWidth={0.9} />
+              <path d={`M ${5 * PX_PER_MM} 0 L 0 0 0 ${5 * PX_PER_MM}`} fill="none" stroke="var(--badge-red-border)" strokeWidth={0.9} />
             </pattern>
           </defs>
           <rect width={W} height={H} fill="url(#ecg-lg)" />
           {/* calibração 1 mV (10 mm) */}
           <path d={`M ${mm(3)} ${baseline} L ${mm(5)} ${baseline} L ${mm(5)} ${baseline - mm(10)} L ${mm(9)} ${baseline - mm(10)} L ${mm(9)} ${baseline} L ${mm(11)} ${baseline}`}
-            stroke="#111" strokeWidth={1.4} fill="none" strokeLinejoin="round" />
+            stroke="var(--ink)" strokeWidth={1.4} fill="none" strokeLinejoin="round" />
           {/* traçado */}
-          <path d={path} stroke="#0b0b0b" strokeWidth={1.6} fill="none" strokeLinejoin="round" strokeLinecap="round" />
+          <path d={path} stroke="var(--ink)" strokeWidth={1.6} fill="none" strokeLinejoin="round" strokeLinecap="round" />
         </svg>
       </div>
-      <div style={{ fontSize: 10.5, color: '#9ca3af', padding: '6px 12px', background: '#fff' }}>
+      <div style={{ fontSize: 10.5, color: 'var(--ink-5)', padding: '6px 12px', background: 'var(--bg)' }}>
         Traçado gerado a partir dos parâmetros do caso (ilustrativo, derivação única) — treina o padrão; o ECG de 12 derivações está na literatura citada.
       </div>
     </div>
@@ -376,6 +376,6 @@ function ECGRenderer({ ecg }: { ecg: ECG }) {
 }
 
 function btn(kind: 'primary' | 'ghost'): React.CSSProperties {
-  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 8, cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 14 }
-  return { padding: '8px 14px', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', background: 'white', color: '#374151', fontWeight: 600, fontSize: 14 }
+  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 14 }
+  return { padding: '8px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', background: 'white', color: 'var(--ink-3)', fontWeight: 600, fontSize: 14 }
 }

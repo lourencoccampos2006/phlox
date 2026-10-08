@@ -21,7 +21,7 @@ import { seccoesPara, completude, type Campo } from '@/lib/inscricao'
 import { ptDate } from '@/lib/ptTime'
 
 export default function FichaDeInscricao({
-  ficha, onChange, onde, accent = '#2563eb', autoFocus = true, rotulos,
+  ficha, onChange, onde, accent = 'var(--ink-2)', autoFocus = true, rotulos,
 }: {
   ficha: Record<string, string>
   onChange: (id: string, valor: string) => void
@@ -54,10 +54,10 @@ export default function FichaDeInscricao({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       {/* Quanto está feito. Um formulário longo sem isto não tem fim à vista. */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 6 }}>
-        <div style={{ flex: 1, height: 4, background: '#eef2f7', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ flex: 1, height: 4, background: 'var(--blue-light)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
           <div style={{ width: `${cheia}%`, height: '100%', background: accent, transition: 'width .25s' }} />
         </div>
-        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: '#94a3b8', lineHeight: 1.1 }}>
+        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10.5, color: 'var(--ink-5)', lineHeight: 1.1 }}>
           {cheia}%
         </span>
       </div>
@@ -66,8 +66,8 @@ export default function FichaDeInscricao({
         const aberta = abertas.includes(s.id)
         return (
           <section key={s.id} style={{
-            border: '1px solid #eef2f7', borderRadius: 10, overflow: 'hidden',
-            background: aberta ? 'white' : '#fcfdfe',
+            border: '1px solid var(--blue-light)', borderRadius: 'var(--r-lg)', overflow: 'hidden',
+            background: aberta ? 'white' : 'var(--bg)',
           }}>
             <button type="button" onClick={() => setAbertas(a =>
               a.includes(s.id) ? a.filter(x => x !== s.id) : [...a, s.id])}
@@ -87,13 +87,13 @@ export default function FichaDeInscricao({
                 width: 0, height: 0, flexShrink: 0,
                 borderLeft: '4.5px solid transparent',
                 borderRight: '4.5px solid transparent',
-                borderTop: '5.5px solid #94a3b8',
+                borderTop: '5.5px solid var(--ink-5)',
                 transform: aberta ? 'none' : 'rotate(-90deg)',
                 transition: 'transform .15s',
               }} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: '#334155' }}>{s.titulo}</span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)' }}>{s.titulo}</span>
               {!aberta && (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#cbd5e1', lineHeight: 1.1 }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--border-2)', lineHeight: 1.1 }}>
                   {s.campos.filter(c => ficha[c.id]).length}/{s.campos.length}
                 </span>
               )}
@@ -102,7 +102,7 @@ export default function FichaDeInscricao({
             {aberta && (
               <div style={{ padding: '0 13px 14px' }}>
                 {s.porque && (
-                  <p style={{ margin: '0 0 11px', fontSize: 12, color: '#94a3b8', lineHeight: 1.5 }}>
+                  <p style={{ margin: '0 0 11px', fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.5 }}>
                     {s.porque}
                   </p>
                 )}
@@ -135,8 +135,8 @@ export default function FichaDeInscricao({
 }
 
 const base: React.CSSProperties = {
-  width: '100%', padding: '9px 11px', border: '1px solid #e2e8f0', borderRadius: 8,
-  fontSize: 13.5, fontFamily: 'inherit', color: '#0b1120', background: 'white',
+  width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
+  fontSize: 13.5, fontFamily: 'inherit', color: 'var(--ink)', background: 'white',
   boxSizing: 'border-box',
 }
 
@@ -148,14 +148,14 @@ function CampoDaFicha({ campo, valor, onChange, accent, hoje, rotulo, autoFocus 
   return (
     <div className={`ficha-campo ficha-l${largura}`} style={{ gridColumn: `span ${largura}` }}>
       <label style={{
-        display: 'block', fontSize: 11.5, fontWeight: 600, color: '#64748b', marginBottom: 4,
+        display: 'block', fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)', marginBottom: 4,
       }}>
         {rotulo || campo.rotulo}{campo.obrigatorio && <span style={{ color: accent }}> *</span>}
       </label>
 
       {campo.tipo === 'escolha' ? (
         <select value={valor} onChange={e => onChange(e.target.value)}
-          style={{ ...base, color: valor ? '#0b1120' : '#94a3b8' }}>
+          style={{ ...base, color: valor ? 'var(--ink)' : 'var(--ink-5)' }}>
           <option value="">—</option>
           {/* `|| []` e nao `!`: um campo de escolha sem opcoes escritas e um
               erro de configuracao, e com a assercao levava a ficha de
@@ -181,7 +181,7 @@ function CampoDaFicha({ campo, valor, onChange, accent, hoje, rotulo, autoFocus 
       )}
 
       {campo.dica && (
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#a3aec0', lineHeight: 1.45 }}>
+        <p style={{ margin: '4px 0 0', fontSize: 11, color: 'var(--badge-blue-border)', lineHeight: 1.45 }}>
           {campo.dica}
         </p>
       )}

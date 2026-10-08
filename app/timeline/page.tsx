@@ -16,6 +16,11 @@ import { printDoc } from '@/lib/print'
 import Link from 'next/link'
 import RiskIndexCard from '@/components/RiskIndexCard'
 import PushNudge from '@/components/PushNudge'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 // ─── Event types ──────────────────────────────────────────────────────────────
 
@@ -57,18 +62,18 @@ interface LabSeries {
 // ─── Style maps ───────────────────────────────────────────────────────────────
 
 const EVENT_STYLE: Record<EventType, { color: string; bg: string; border: string; icon: string; label: string }> = {
-  med_added:    { color:'#0d6e42', bg:'#f0fdf5', border:'#bbf7d0', icon:'💊', label:'Medicamento adicionado' },
-  med_removed:  { color:'#dc2626', bg:'#fef2f2', border:'#fecaca', icon:'🗑',  label:'Medicamento removido' },
-  symptom:      { color:'#b45309', bg:'#fffbeb', border:'#fde68a', icon:'🩺', label:'Sintoma registado' },
-  wellbeing:    { color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff', icon:'💜', label:'Bem-estar' },
-  lab_result:   { color:'#1d4ed8', bg:'#eff6ff', border:'#bfdbfe', icon:'🔬', label:'Análise' },
-  alert:        { color:'#991b1b', bg:'#fee2e2', border:'#fca5a5', icon:'🚨', label:'Alerta' },
-  interaction:  { color:'#854d0e', bg:'#fef9c3', border:'#fde68a', icon:'⚡', label:'Interação detectada' },
-  note:         { color:'#374151', bg:'var(--bg-2)', border:'var(--border)', icon:'📝', label:'Nota' },
+  med_added:    { color:'var(--green)', bg:'var(--green-light)', border:'var(--green-mid)', icon:'pill', label:'Medicamento adicionado' },
+  med_removed:  { color:'var(--red)', bg:'var(--badge-red-bg)', border:'var(--badge-red-border)', icon:'🗑',  label:'Medicamento removido' },
+  symptom:      { color:'var(--amber)', bg:'var(--badge-amber-bg)', border:'var(--badge-amber-border)', icon:'stethoscope', label:'Sintoma registado' },
+  wellbeing:    { color:'var(--roxo)', bg:'var(--roxo-claro)', border:'var(--roxo-borda)', icon:'💜', label:'Bem-estar' },
+  lab_result:   { color:'var(--ink-2)', bg:'var(--bg-2)', border:'var(--border)', icon:'flask', label:'Análise' },
+  alert:        { color:'var(--red)', bg:'var(--badge-red-bg)', border:'var(--badge-red-border)', icon:'alert', label:'Alerta' },
+  interaction:  { color:'var(--badge-amber-fg)', bg:'var(--amber-light)', border:'var(--badge-amber-border)', icon:'bolt', label:'Interação detectada' },
+  note:         { color:'var(--ink-3)', bg:'var(--bg-2)', border:'var(--border)', icon:'note', label:'Nota' },
 }
 
 const SEV_DOT: Record<string, string> = {
-  critical: '#dc2626', high: '#d97706', moderate: '#3b82f6', info: '#9ca3af', positive: '#0d6e42'
+  critical: 'var(--red)', high: 'var(--amber)', moderate: 'var(--ink-3)', info: 'var(--ink-5)', positive: 'var(--green)'
 }
 
 const WELLBEING_EMOJI = ['', '😞', '😕', '😐', '🙂', '😊']
@@ -93,20 +98,20 @@ function LabChart({ series }: { series: LabSeries }) {
 
   return (
     <div style={{ marginTop: 10 }}>
-      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+      <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
         Evolução de {series.name} ({series.unit}) · ref: {series.reference_range}
       </div>
       <svg width={w} height={h} style={{ display: 'block' }}>
-        <path d={path} fill="none" stroke="#1d4ed8" strokeWidth="1.5" strokeLinecap="round" />
+        <path d={path} fill="none" stroke="var(--ink-2)" strokeWidth="1.5" strokeLinecap="round" />
         {points.map((p, i) => (
           <g key={i}>
             <circle cx={p.x} cy={p.y} r={4}
-              fill={p.status === 'normal' ? '#0d6e42' : p.status === 'critical' ? '#dc2626' : '#d97706'}
+              fill={p.status === 'normal' ? 'var(--green)' : p.status === 'critical' ? 'var(--red)' : 'var(--amber)'}
               stroke="white" strokeWidth="1.5" />
-            <text x={p.x} y={h} textAnchor="middle" fontSize="7" fill="#9ca3af" fontFamily="monospace">
+            <text x={p.x} y={h} textAnchor="middle" fontSize="7" fill="var(--ink-5)" fontFamily="monospace">
               {p.date.slice(5)}
             </text>
-            <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="8" fill="#374151" fontFamily="monospace">
+            <text x={p.x} y={p.y - 8} textAnchor="middle" fontSize="8" fill="var(--ink-3)" fontFamily="monospace">
               {p.value}
             </text>
           </g>
@@ -118,25 +123,25 @@ function LabChart({ series }: { series: LabSeries }) {
 
 function CorrelationCard({ corr }: { corr: Correlation }) {
   const styles = {
-    alta:     { bg: '#fee2e2', border: '#fca5a5', color: '#991b1b', icon: '🔴', label: 'Alta confiança' },
-    moderada: { bg: '#fef9c3', border: '#fde68a', color: '#854d0e', icon: '🟡', label: 'Confiança moderada' },
-    baixa:    { bg: '#eff6ff', border: '#bfdbfe', color: '#1d4ed8', icon: '🔵', label: 'Baixa confiança' },
+    alta:     { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', icon: '🔴', label: 'Alta confiança' },
+    moderada: { bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', color: 'var(--badge-amber-fg)', icon: '🟡', label: 'Confiança moderada' },
+    baixa:    { bg: 'var(--bg-2)', border: 'var(--border)', color: 'var(--ink-2)', icon: '🔵', label: 'Baixa confiança' },
   }[corr.confidence]
 
   const typeIcon = { temporal: '⏱', causal: '🔗', trend: '📈', warning: '⚠️' }[corr.type]
 
   return (
-    <div style={{ padding: '14px 16px', background: styles.bg, border: `1px solid ${styles.border}`, borderRadius: 10, marginBottom: 8 }}>
+    <div style={{ padding: '14px 16px', background: styles.bg, border: `1px solid ${styles.border}`, borderRadius: 'var(--r-lg)', marginBottom: 8 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-        <span style={{ fontSize: 14 }}>{typeIcon}</span>
+        <span style={{ fontSize: 'var(--t-corpo)' }}>{typeIcon}</span>
         <div style={{ flex: 1 }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: styles.color, lineHeight: 1.4 }}>{corr.finding}</span>
+          <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: styles.color, lineHeight: 1.4 }}>{corr.finding}</span>
         </div>
-        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: styles.color, background: 'white', border: `1px solid ${styles.border}`, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
+        <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: styles.color, background: 'white', border: `1px solid ${styles.border}`, padding: '2px 6px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em', textTransform: 'uppercase', flexShrink: 0 }}>
           {styles.label}
         </span>
       </div>
-      <div style={{ fontSize: 12, color: styles.color, opacity: 0.85, lineHeight: 1.6, paddingLeft: 22 }}>
+      <div style={{ fontSize: 'var(--t-meta)', color: styles.color, opacity: 0.85, lineHeight: 1.6, paddingLeft: 22 }}>
         → {corr.recommendation}
       </div>
     </div>
@@ -162,21 +167,21 @@ function TimelineEventCard({ event, isLast }: { event: TimelineEvent; isLast: bo
           role={event.detail ? 'button' : undefined}
           tabIndex={event.detail ? 0 : undefined}
           aria-expanded={event.detail ? expanded : undefined}
-          style={{ background: 'white', border: `1px solid ${expanded ? s.border : 'var(--border)'}`, borderRadius: 8, padding: '10px 14px', cursor: event.detail ? 'pointer' : 'default', transition: 'border-color 0.15s', marginBottom: 0 }}>
+          style={{ background: 'white', border: `1px solid ${expanded ? s.border : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: '10px 14px', cursor: event.detail ? 'pointer' : 'default', transition: 'border-color 0.15s', marginBottom: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: event.detail && expanded ? 8 : 0 }}>
-            <span style={{ fontSize: 14, flexShrink: 0 }}>{s.icon}</span>
+            <Icon name={s.icon} size={14} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expanded ? 'normal' : 'nowrap' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', lineHeight: 1.4, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: expanded ? 'normal' : 'nowrap' }}>
                 {event.title}
               </div>
-              <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <span>{new Date(event.date).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 {event.profileName && <span>· {event.profileName}</span>}
                 <span style={{ color: s.color }}>· {s.label}</span>
               </div>
             </div>
             {event.value !== undefined && event.type === 'wellbeing' && (
-              <span style={{ fontSize: 20, flexShrink: 0 }}>{WELLBEING_EMOJI[event.value]}</span>
+              <span style={{ fontSize: 'var(--t-destaque)', flexShrink: 0 }}>{WELLBEING_EMOJI[event.value]}</span>
             )}
             {event.detail && (
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2" strokeLinecap="round" style={{ transform: expanded ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}>
@@ -185,7 +190,7 @@ function TimelineEventCard({ event, isLast }: { event: TimelineEvent; isLast: bo
             )}
           </div>
           {expanded && event.detail && (
-            <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, paddingLeft: 22, paddingTop: 4, borderTop: '1px solid var(--bg-3)', marginTop: 6 }}>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.7, paddingLeft: 22, paddingTop: 4, borderTop: '1px solid var(--bg-3)', marginTop: 6 }}>
               {event.detail}
             </div>
           )}
@@ -468,7 +473,7 @@ export default function TimelinePage() {
   const tabStyle = (t: string) => ({
     padding: '9px 16px', background: 'none', border: 'none',
     borderBottom: `2px solid ${tab === t ? 'var(--green)' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 11, fontWeight: 700,
+    cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
     color: tab === t ? 'var(--green)' : 'var(--ink-4)',
     fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
     textTransform: 'uppercase' as const, marginBottom: -1, whiteSpace: 'nowrap' as const,
@@ -480,21 +485,32 @@ export default function TimelinePage() {
   const canAnalyse = plan !== 'free'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Linha do tempo</span>
+        </BarraDeTrabalho>
+      }
+    >
 
 
       {/* Hero header */}
-      <div style={{ background: 'var(--ink)', borderBottom: '1px solid #1e293b' }}>
+      <div style={{ background: 'var(--ink)', borderBottom: '1px solid var(--ink-2)' }}>
         <div className="page-container" style={{ paddingTop: 28, paddingBottom: 0 }}>
           <div style={{ marginBottom: 16 }}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 2, background: 'var(--green)', borderRadius: 1 }} />
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div style={{ width: 10, height: 2, background: 'var(--green)', borderRadius: 'var(--r-sm)' }} />
               A minha história de saúde
             </div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#f8fafc', fontWeight: 400, marginBottom: 4 }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--bg-2)', fontWeight: 'var(--peso-normal)' as any, marginBottom: 4 }}>
               {profileName ? `Linha do tempo de ${profileName}` : 'A minha linha do tempo'}
             </div>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.6, maxWidth: 520 }}>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 520 }}>
               A tua medicação, análises, sintomas e sinais vitais reunidos numa linha do tempo — pronta para mostrares ao teu médico.
             </p>
           </div>
@@ -518,7 +534,7 @@ export default function TimelinePage() {
                       if (pt) handleProfileChange(pt.id, pt.name, 'patient')
                     }
                   }}
-                  style={{ background: '#1e293b', color: '#f1f5f9', border: '1px solid #334155', borderRadius: 7, padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-mono)', outline: 'none', cursor: 'pointer', minWidth: 200 }}>
+                  style={{ background: 'var(--ink-2)', color: 'var(--bg-3)', border: '1px solid var(--ink-3)', borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', outline: 'none', cursor: 'pointer', minWidth: 200 }}>
                   <option value="self">{user.name || 'Eu'} (pessoal)</option>
                   {familyProfiles.length > 0 && (
                     <optgroup label="Família">
@@ -534,44 +550,44 @@ export default function TimelinePage() {
               </div>
             )}
             {/* Date range */}
-            <div style={{ display: 'flex', gap: 4, background: '#1e293b', borderRadius: 8, padding: 3 }}>
+            <div style={{ display: 'flex', gap: 4, background: 'var(--ink-2)', borderRadius: 'var(--r-md)', padding: 3 }}>
               {([['1m','1 mês'], ['3m','3 meses'], ['6m','6 meses'], ['1y','1 ano'], ['all','Tudo']] as const).map(([v, l]) => (
                 <button key={v} onClick={() => setDateRange(v)}
-                  style={{ padding: '5px 10px', background: dateRange === v ? '#334155' : 'transparent', border: 'none', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontWeight: 700, color: dateRange === v ? 'white' : '#64748b', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
+                  style={{ padding: '5px 10px', background: dateRange === v ? 'var(--ink-3)' : 'transparent', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: dateRange === v ? 'white' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', whiteSpace: 'nowrap' }}>
                   {l}
                 </button>
               ))}
             </div>
             {canAnalyse && events.length >= 3 && (
               <button onClick={analyseCorrelations} disabled={analysing}
-                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: analysing ? '#1e293b' : 'var(--green)', color: 'white', border: 'none', borderRadius: 8, cursor: analysing ? 'wait' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
-                {analysing ? <><div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A organizar...</> : '📋 Preparar para o médico'}
+                style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: analysing ? 'var(--ink-2)' : 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: analysing ? 'wait' : 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                {analysing ? <><div style={{ width: 12, height: 12, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A organizar...</> : 'Preparar para o médico'}
               </button>
             )}
             {/* Fechar o ciclo do registo: mostrar tudo ao médico por QR seguro. */}
-            <Link href="/passport" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap' }}>
+            <Link href="/passport" style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--ink-2)', color: 'var(--border)', border: '1px solid var(--ink-3)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none', whiteSpace: 'nowrap' }}>
               📲 Mostrar ao médico (QR)
             </Link>
             {events.length > 0 && (
-              <button onClick={exportPDF} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: '#1e293b', color: '#e2e8f0', border: '1px solid #334155', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>
+              <button onClick={exportPDF} style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', background: 'var(--ink-2)', color: 'var(--border)', border: '1px solid var(--ink-3)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>
                 🖨 Exportar PDF
               </button>
             )}
           </div>
 
           {/* Tabs */}
-          <div style={{ display: 'flex', borderTop: '1px solid #1e293b', overflowX: 'auto' }}>
+          <div style={{ display: 'flex', borderTop: '1px solid var(--ink-2)', overflowX: 'auto' }}>
             <button onClick={() => setTab('timeline')}
-              style={{ ...tabStyle('timeline'), color: tab === 'timeline' ? '#f8fafc' : '#475569', borderBottomColor: tab === 'timeline' ? 'var(--green)' : 'transparent' }}>
+              style={{ ...tabStyle('timeline'), color: tab === 'timeline' ? 'var(--bg-2)' : 'var(--ink-3)', borderBottomColor: tab === 'timeline' ? 'var(--green)' : 'transparent' }}>
               Linha do tempo {events.length > 0 && `(${events.length})`}
             </button>
             <button onClick={() => setTab('labs')}
-              style={{ ...tabStyle('labs'), color: tab === 'labs' ? '#f8fafc' : '#475569', borderBottomColor: tab === 'labs' ? 'var(--green)' : 'transparent' }}>
+              style={{ ...tabStyle('labs'), color: tab === 'labs' ? 'var(--bg-2)' : 'var(--ink-3)', borderBottomColor: tab === 'labs' ? 'var(--green)' : 'transparent' }}>
               Análises {labSeries.length > 0 && `(${labSeries.length})`}
             </button>
             <button onClick={() => setTab('correlations')}
-              style={{ ...tabStyle('correlations'), color: tab === 'correlations' ? '#f8fafc' : '#475569', borderBottomColor: tab === 'correlations' ? 'var(--green)' : 'transparent' }}>
-              Para o médico {correlations.length > 0 && <span style={{ background: 'var(--green)', color: 'white', fontSize: 9, padding: '1px 5px', borderRadius: 10, marginLeft: 4 }}>{correlations.length}</span>}
+              style={{ ...tabStyle('correlations'), color: tab === 'correlations' ? 'var(--bg-2)' : 'var(--ink-3)', borderBottomColor: tab === 'correlations' ? 'var(--green)' : 'transparent' }}>
+              Para o médico {correlations.length > 0 && <span style={{ background: 'var(--green)', color: 'white', fontSize: 'var(--t-micro)', padding: '1px 5px', borderRadius: 'var(--r-lg)', marginLeft: 4 }}>{correlations.length}</span>}
             </button>
           </div>
         </div>
@@ -594,7 +610,7 @@ export default function TimelinePage() {
             {/* Filter chips */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
               <button onClick={() => setFilterType('all')}
-                style={{ padding: '5px 12px', border: `1.5px solid ${filterType === 'all' ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 20, background: filterType === 'all' ? 'var(--ink)' : 'white', color: filterType === 'all' ? 'white' : 'var(--ink-3)', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '5px 12px', border: `1.5px solid ${filterType === 'all' ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)', background: filterType === 'all' ? 'var(--ink)' : 'white', color: filterType === 'all' ? 'white' : 'var(--ink-3)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
                 Todos
               </button>
               {(Object.keys(EVENT_STYLE) as EventType[]).map(type => {
@@ -603,8 +619,8 @@ export default function TimelinePage() {
                 if (count === 0) return null
                 return (
                   <button key={type} onClick={() => setFilterType(filterType === type ? 'all' : type)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', border: `1.5px solid ${filterType === type ? s.color : 'var(--border)'}`, borderRadius: 20, background: filterType === type ? s.bg : 'white', color: filterType === type ? s.color : 'var(--ink-3)', cursor: 'pointer', fontSize: 11, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
-                    <span>{s.icon}</span> {s.label} <span style={{ opacity: 0.6 }}>({count})</span>
+                    style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', border: `1.5px solid ${filterType === type ? s.color : 'var(--border)'}`, borderRadius: 'var(--r-xl)', background: filterType === type ? s.bg : 'white', color: filterType === type ? s.color : 'var(--ink-3)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
+                    <span><Icon name={s.icon} size={16} /></span> {s.label} <span style={{ opacity: 0.6 }}>({count})</span>
                   </button>
                 )
               })}
@@ -612,20 +628,19 @@ export default function TimelinePage() {
 
             {loading ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 8 }} />)}
+                {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 'var(--r-md)' }} />)}
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 12, padding: '56px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>📋</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Sem eventos neste período</div>
-                <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 380, margin: '0 auto 20px' }}>
+              <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-xl)', padding: '56px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginBottom: 8 }}>Sem eventos neste período</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 380, margin: '0 auto 20px' }}>
                   A linha do tempo agrega medicamentos, sintomas do diário, análises e alertas. Começa por adicionar medicamentos ou registar sintomas.
                 </div>
                 <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-                  <Link href="/mymeds" style={{ padding: '10px 18px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+                  <Link href="/mymeds" style={{ padding: '10px 18px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
                     Adicionar medicamentos →
                   </Link>
-                  <Link href="/diary" style={{ padding: '10px 18px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, border: '1px solid var(--border)' }}>
+                  <Link href="/diary" style={{ padding: '10px 18px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, border: '1px solid var(--border)' }}>
                     Registar sintomas →
                   </Link>
                 </div>
@@ -636,11 +651,11 @@ export default function TimelinePage() {
                   <div key={month} style={{ marginBottom: 24 }}>
                     {/* Month header */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
+                      <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
                         {monthLabel(month)}
                       </div>
                       <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                      <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{monthEvents.length} evento{monthEvents.length !== 1 ? 's' : ''}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{monthEvents.length} evento{monthEvents.length !== 1 ? 's' : ''}</div>
                     </div>
                     {/* Events */}
                     <div style={{ paddingLeft: 8 }}>
@@ -659,25 +674,24 @@ export default function TimelinePage() {
         {tab === 'labs' && (
           <div>
             {labSeries.length === 0 ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🔬</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Sem análises registadas</div>
-                <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 380, margin: '0 auto 20px' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '48px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginBottom: 8 }}>Sem análises registadas</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 380, margin: '0 auto 20px' }}>
                   Quando adicionares resultados de análises via "/labs", a evolução temporal aparece aqui em gráficos de tendência.
                 </div>
-                <Link href="/labs" style={{ display: 'inline-block', padding: '10px 22px', background: '#1d4ed8', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+                <Link href="/labs" style={{ display: 'inline-block', padding: '10px 22px', background: 'var(--ink-2)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
                   Adicionar análises →
                 </Link>
               </div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 12 }}>
                 {labSeries.map(series => (
-                  <div key={series.name} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px' }}>
+                  <div key={series.name} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{series.name}</div>
-                      <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{series.unit}</div>
+                      <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{series.name}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{series.unit}</div>
                     </div>
-                    <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>Ref: {series.reference_range}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 6 }}>Ref: {series.reference_range}</div>
                     <LabChart series={series} />
                   </div>
                 ))}
@@ -690,35 +704,34 @@ export default function TimelinePage() {
         {tab === 'correlations' && (
           <div>
             {correlations.length === 0 ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 36, marginBottom: 12 }}>🧠</div>
-                <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginBottom: 8 }}>Análise de correlações</div>
-                <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 420, margin: '0 auto 20px' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '48px 24px', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginBottom: 8 }}>Análise de correlações</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 420, margin: '0 auto 20px' }}>
                   Com dados suficientes, o Phlox aponta <b>coincidências no tempo</b> nos teus registos — para levares à conversa com o médico. Não é diagnóstico nem interpretação clínica; é só uma forma de organizares a tua história.
                 </div>
                 {!canAnalyse ? (
-                  <Link href="/pricing" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+                  <Link href="/pricing" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
                     Activar Plus para análise IA →
                   </Link>
                 ) : events.length < 3 ? (
-                  <div style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
                     Precisa de pelo menos 3 eventos para analisar correlações.
                   </div>
                 ) : (
                   <button onClick={analyseCorrelations} disabled={analysing}
-                    style={{ padding: '11px 24px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
-                    {analysing ? 'A analisar...' : '🧠 Analisar correlações agora'}
+                    style={{ padding: '11px 24px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
+                    {analysing ? 'A analisar...' : 'Analisar correlações agora'}
                   </button>
                 )}
               </div>
             ) : (
               <div>
-                <div style={{ padding: '12px 16px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, marginBottom: 16, fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
+                <div style={{ padding: '12px 16px', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', marginBottom: 16, fontSize: 'var(--t-meta)', color: 'var(--amber)', lineHeight: 1.6 }}>
                   ⚠️ <b>Isto não é um diagnóstico.</b> São apenas <b>coincidências no tempo</b> que reparámos nos teus registos, para levares à conversa com o teu médico. O Phlox não é software médico, não interpreta nem substitui a avaliação de um profissional. <b>Nunca pares ou mudes medicação</b> com base nisto — fala primeiro com o teu médico ou farmacêutico.
                 </div>
                 {correlations.map((corr, i) => <CorrelationCard key={i} corr={corr} />)}
                 <button onClick={analyseCorrelations} disabled={analysing}
-                  style={{ marginTop: 8, padding: '10px 20px', background: 'white', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+                  style={{ marginTop: 8, padding: '10px 20px', background: 'white', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
                   Re-analisar
                 </button>
               </div>
@@ -728,6 +741,6 @@ export default function TimelinePage() {
 
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
+    </Mesa>
   )
 }

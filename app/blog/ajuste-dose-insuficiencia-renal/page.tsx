@@ -30,7 +30,7 @@ export default function PostAjusteRenal() {
         </div>
 
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: 'inline-block', background: '#ecfeff', color: '#0891b2', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>RENAL</div>
+          <div style={{ display: 'inline-block', background: 'var(--green-light)', color: 'var(--green)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>RENAL</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
             Ajustar a dose na insuficiência renal — guia prático
           </h1>
@@ -42,9 +42,9 @@ export default function PostAjusteRenal() {
           </div>
         </div>
 
-        <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderLeft: '4px solid #0891b2', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
-          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#155e75', letterSpacing: '0.08em', marginBottom: 6 }}>ℹ REGRA DE OURO</div>
-          <p style={{ fontSize: 14, color: '#164e63', lineHeight: 1.7, margin: 0 }}>
+        <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderLeft: '4px solid var(--green)', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
+          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--green-3)', letterSpacing: '0.08em', marginBottom: 6 }}>ℹ REGRA DE OURO</div>
+          <p style={{ fontSize: 14, color: 'var(--green-3)', lineHeight: 1.7, margin: 0 }}>
             Para <strong>dosear fármacos</strong>, a referência clássica é a <strong>Cockcroft-Gault</strong> (clearance de creatinina). Para <strong>estadiar a doença renal</strong>, usa-se a <strong>CKD-EPI</strong> (eGFR). Não são a mesma coisa.
           </p>
         </div>
@@ -65,7 +65,7 @@ export default function PostAjusteRenal() {
 
           <h2 style={H2}>Como ajustar, na prática</h2>
           <p style={P}>O ajuste faz-se de duas formas: <strong>reduzir a dose</strong> de cada toma, ou <strong>espaçar</strong> os intervalos entre tomas — consoante o fármaco. Alguns precisam de dose de carga normal seguida de manutenção reduzida. A fonte de verdade é sempre o RCM do medicamento (INFARMED) ou um guia de referência renal.</p>
-          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 8, padding: '14px 18px', marginBottom: 24 }}>
+          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '14px 18px', marginBottom: 24 }}>
             <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--green-2)', marginBottom: 4 }}>✓ Fluxo rápido</div>
             <div style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6 }}>1) Calcula a função renal · 2) Vê o corte no RCM do fármaco · 3) Aplica a dose/intervalo ajustado · 4) Reavalia se a função renal mudar.</div>
           </div>
@@ -74,13 +74,13 @@ export default function PostAjusteRenal() {
           <p style={P}>A creatinina sozinha engana em pessoas com pouca massa muscular (idosos, caquéticos) — pode parecer "normal" com rins maus. A função renal também muda com desidratação e doença aguda, por isso uma estimativa de há meses pode já não valer. E nem todos os fármacos precisam de ajuste — vale confirmar antes de reduzir por reflexo.</p>
         </div>
 
-        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Calcula a função renal em segundos</div>
           <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>As calculadoras clínicas do Phlox incluem Cockcroft-Gault e CKD-EPI, com interpretação por estádio.</p>
-          <Link href="/calculos" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Abrir calculadoras clínicas →</Link>
+          <Link href="/calculos" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Abrir calculadoras clínicas →</Link>
         </div>
 
-        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
           <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
             Conteúdo educativo para profissionais e estudantes. O doseamento final deve seguir o RCM do medicamento (INFARMED) e o julgamento clínico. Base: KDIGO, INFARMED, literatura de referência renal.
           </p>

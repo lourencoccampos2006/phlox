@@ -1,44 +1,88 @@
 'use client'
 
-// /radar — "O que pode merecer a vossa atenção hoje" (briefing matinal da equipa).
-// FERRAMENTA ORGANIZACIONAL: reúne TUDO o que a equipa registou sobre cada utente
-// e destaca o que saiu do padrão habitual ou ficou por fazer — para a equipa não
-// deixar escapar nada. NÃO é um dispositivo médico: não prevê, não diagnostica,
-// não estratifica risco clínico. A avaliação e a decisão são do profissional.
-// Ronda 5, 2026-06-30.
+// app/radar/page.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// O QUE PODE MERECER ATENÇÃO HOJE — refeito de raiz na linguagem da mesa.
+//
+// FERRAMENTA ORGANIZACIONAL: reúne tudo o que a equipa registou sobre cada
+// pessoa e destaca o que saiu do padrão habitual ou ficou por fazer, para a
+// equipa não deixar escapar nada. NÃO é um dispositivo médico: não prevê, não
+// diagnostica, não estratifica risco clínico. A avaliação e a decisão são do
+// profissional.
+//
+// ── O QUE ESTAVA ERRADO NA FORMA ───────────────────────────────────────────
+//  1. ERA UM ACORDEÃO. Cada pessoa era um cartão fechado; para comparar duas
+//     era preciso abrir uma, ler, fechar, abrir a outra — e o que se leu na
+//     primeira já não está no ecrã. Num briefing matinal de oito pessoas isso
+//     são oito aberturas e nenhuma vista do conjunto.
+//
+//     Passa a MESTRE/DETALHE: a tabela de quem precisa de atenção à esquerda,
+//     sempre inteira; o detalhe de quem está escolhido à direita.
+//
+//  2. O NÚMERO ESTAVA DENTRO DE UM QUADRADO DE 38px COM FUNDO DE COR, e o
+//     resto da linha repetia a cor. Quando tudo numa linha é âmbar, o âmbar
+//     deixa de querer dizer «atenção» e passa a querer dizer «linha».
+//
+//  3. NÃO HAVIA MANEIRA DE ORDENAR OU PROCURAR. Num lar de sessenta pessoas o
+//     briefing tem trinta linhas; sem pesquisa, encontra-se alguém por sorte.
+//
+//  4. A ADVERTÊNCIA REGULATÓRIA ERA UMA CAIXA CINZENTA DE TRÊS LINHAS no topo,
+//     com um ⓘ. Passa à barra de estado do fundo, onde está sempre visível e
+//     não empurra o trabalho para baixo — continua a ler-se, e deixa de ser a
+//     primeira coisa que se salta.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useMemo, useState, useCallback } from 'react'
 import Link from 'next/link'
-import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig, currentShiftFor } from '@/lib/institutionConfig'
 import { useLiveData } from '@/lib/useLiveData'
-import { SEVERITY_STYLE } from '@/lib/residentSignals'
 import { CARE_DISCLAIMER, type CareResult } from '@/lib/careSignals'
 import type { ResidentTrend } from '@/lib/trendSignals'
 import { loadSentinel, combinedLevel, combinedScore, SEV_ORDER, SENTINEL_LIVE_TABLES } from '@/lib/sentinel'
 import { printDoc } from '@/lib/print'
 import { usePhloxContext } from '@/lib/copilotContext'
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo, Bandeira,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Grupo, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
-// Consolidação do Sentinel (Fase 2, 2026-08-16): /radar (hoje) e /tendencias
-// (2-3 semanas) eram dois motores e duas páginas separadas — um utente com
-// uma quebra lenta (só visível em tendência) nunca aparecia aqui, no sítio
-// que a equipa vê todos os dias. Agora ambos vêm de lib/sentinel (a mesma
-// fonte que o /guardiao usa); /tendencias continua a existir para quem quiser
-// o detalhe (sparklines por métrica), sem alterações.
+/* ── A COR DE UM NÍVEL ──────────────────────────────────────────────────────
+   O `SEVERITY_STYLE` do lib/residentSignals traz fundo, borda e cor por nível
+   — e usá-lo em cada caixa de cada secção punha cor em tudo. Aqui a cor vive
+   só no NÚMERO e no filete da esquerda; o resto da linha é tinta normal. */
+const COR_NIVEL: Record<string, string> = {
+  critical: 'var(--red)',
+  warning: 'var(--amber)',
+  info: 'var(--ink-4)',
+  ok: 'var(--green)',
+}
+
+/** De que secção vem cada ponto. Um código, não um fundo de cor. */
+const CODIGO_SECCAO = {
+  padrao: 'PADRÃO',
+  confirmar: 'CONFIRMAR',
+  tendencia: 'TENDÊNCIA',
+} as const
+
+type Ordem = 'gravidade' | 'nome' | 'quarto'
 
 export default function RadarPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
+  const largo = useLargo()
+
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [results, setResults] = useState<CareResult[]>([])
   const [trends, setTrends] = useState<Record<string, ResidentTrend>>({})
-  const [open, setOpen] = useState<Set<string>>(new Set())
+  const [escolhido, setEscolhido] = useState<string | null>(null)
+  const [procura, setProcura] = useState('')
+  const [ordem, setOrdem] = useState<Ordem>('gravidade')
 
   const load = useCallback(async () => {
     if (!user) return
@@ -52,26 +96,49 @@ export default function RadarPage() {
   }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
-  useLiveData({ supabase, userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, onChange: load, table: SENTINEL_LIVE_TABLES })
+  useLiveData({
+    supabase, userId: user?.id,
+    filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue,
+    onChange: load, table: SENTINEL_LIVE_TABLES,
+  })
 
-  // Combina hoje (careSignals) + tendência (trendSignals): um utente com só
-  // uma quebra lenta (sem nada fora do padrão hoje) também tem de aparecer —
-  // era exatamente o que se perdia com as duas páginas separadas.
-  const needAttention = useMemo(() => {
-    const withTrend = results.filter(r => r.outOfPattern.length > 0 || r.openItems.length > 0 || !!trends[r.patientId])
-    return [...withTrend].sort((a, b) => {
+  // Combina hoje (careSignals) + tendência (trendSignals): quem tem só uma
+  // quebra lenta, sem nada fora do padrão hoje, também tem de aparecer — era
+  // exactamente o que se perdia com as duas páginas separadas.
+  const comSinais = useMemo(() => {
+    return results.filter(r => r.outOfPattern.length > 0 || r.openItems.length > 0 || !!trends[r.patientId])
+  }, [results, trends])
+
+  const visiveis = useMemo(() => {
+    const t = procura.trim().toLowerCase()
+    const lista = comSinais.filter(r =>
+      !t || r.name.toLowerCase().includes(t) || (r.room || '').toLowerCase().includes(t))
+    return [...lista].sort((a, b) => {
+      if (ordem === 'nome') return a.name.localeCompare(b.name, 'pt')
+      if (ordem === 'quarto') return (a.room || 'zzz').localeCompare(b.room || 'zzz', 'pt', { numeric: true })
       const la = combinedLevel(a, trends[a.patientId])
       const lb = combinedLevel(b, trends[b.patientId])
       if (SEV_ORDER[la] !== SEV_ORDER[lb]) return SEV_ORDER[la] - SEV_ORDER[lb]
       return combinedScore(b, trends[b.patientId]) - combinedScore(a, trends[a.patientId])
     })
-  }, [results, trends])
-  const calm = results.length - needAttention.length
+  }, [comSinais, trends, procura, ordem])
+
+  const calmos = results.length - comSinais.length
+  const graves = useMemo(
+    () => comSinais.filter(r => combinedLevel(r, trends[r.patientId]) === 'critical').length,
+    [comSinais, trends])
+
+  const aberto = useMemo(
+    () => visiveis.find(r => r.patientId === escolhido) || null,
+    [visiveis, escolhido])
 
   // Dá contexto ao Phlox Copilot: o que a equipa registou que pode merecer atenção.
   usePhloxContext(
     results.length ? 'Briefing do que pode merecer atenção' : '',
-    results.length ? { com_sinais: needAttention.slice(0, 8).map(r => `${r.name}: ${[...r.outOfPattern, ...r.openItems, ...(trends[r.patientId]?.flags || [])].map(i => i.title).join(', ')}`) } : null as any
+    results.length ? {
+      com_sinais: comSinais.slice(0, 8).map(r =>
+        `${r.name}: ${[...r.outOfPattern, ...r.openItems, ...(trends[r.patientId]?.flags || [])].map(i => i.title).join(', ')}`),
+    } : null as any
   )
 
   // Fim de semana / turno da noite — o contexto em que o Guardião é útil.
@@ -85,10 +152,8 @@ export default function RadarPage() {
     return null
   }, [institution])
 
-  function toggle(id: string) { setOpen(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }) }
-
   function printBriefing() {
-    const records = needAttention.map(r => ({
+    const records = visiveis.map(r => ({
       title: `${r.name}${r.room ? ` · ${cfg.roomLabel} ${r.room}` : ''}`,
       meta: `Pontos: ${r.outOfPattern.length + r.openItems.length}`,
       bullets: [
@@ -104,132 +169,258 @@ export default function RadarPage() {
     })
   }
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 70px' }}>
+  /* ── O DETALHE DE UMA PESSOA ────────────────────────────────────────────────
+     Três secções, e a ordem é a da urgência: o que saiu do padrão HOJE, o que
+     ficou por confirmar, e o que tem vindo a piorar aos poucos. Cada ponto é
+     uma linha com um código — não uma caixa com fundo de cor, que era o que
+     fazia um ecrã inteiro âmbar. */
+  const detalhe = aberto ? (() => {
+    const trend = trends[aberto.patientId]
+    const nivel = combinedLevel(aberto, trend)
+    const score = combinedScore(aberto, trend)
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#b45309', fontWeight: 700, marginBottom: 6 }}>Briefing da equipa · {cfg.unitNoun}</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>O que pode merecer atenção hoje</h1>
-        <p style={{ fontSize: 14.5, color: '#475569', margin: '0 0 14px', lineHeight: 1.55 }}>
-          Reúne tudo o que a equipa registou — hoje e nas últimas 2-3 semanas — e destaca o que saiu do padrão habitual, ficou por confirmar, ou tem vindo a piorar aos poucos. Para a equipa não deixar escapar nada.
-        </p>
+    const ponto = (seccao: keyof typeof CODIGO_SECCAO, titulo: string, detalhe: string, grave?: string) => (
+      <div key={`${seccao}-${titulo}`} style={{
+        display: 'flex', gap: 10, alignItems: 'flex-start',
+        padding: '8px 0', borderBottom: '1px solid var(--border)',
+      }}>
+        <span style={{ width: 82, flexShrink: 0, paddingTop: 1 }}>
+          <Codigo texto={CODIGO_SECCAO[seccao]}
+            cor={grave === 'critical' ? 'var(--red)' : grave === 'warning' ? 'var(--amber)' : undefined} />
+        </span>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{
+            display: 'block', fontSize: 'var(--t-dado)',
+            fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+          }}>{titulo}</span>
+          <span style={{
+            display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-3)',
+            lineHeight: 1.5, marginTop: 2,
+          }}>{detalhe}</span>
+        </span>
+      </div>
+    )
 
-        {/* Ponte para o Modo Guardião — é ao fim de semana e à noite que ele
-            serve, e é exatamente quando ninguém tem tempo de o ir procurar no
-            menu. Só no lar: um centro de dia não tem turno da noite. */}
-        {institution === 'nursing_home' && guardiaoContext && needAttention.length > 0 && (
-          <Link href="/guardiao" style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '11px 14px', marginBottom: 14, textDecoration: 'none' }}>
-            <Icon name="shield" size={16} color="#b45309" />
-            <span style={{ flex: 1, fontSize: 13, color: '#78350f', lineHeight: 1.45 }}>
-              <strong>{guardiaoContext}.</strong> O Modo Guardião mostra só quem precisa de atenção agora.
+    return (
+      <>
+        <div style={{
+          padding: '10px 14px', borderBottom: '1px solid var(--border-2)',
+          display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+        }}>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-numero)', lineHeight: 1,
+            fontWeight: 'var(--peso-forte)' as any, color: COR_NIVEL[nivel] || 'var(--ink-4)',
+          }}>{score}</span>
+          <span style={{ minWidth: 0, flex: 1 }}>
+            <span style={{
+              display: 'block', fontSize: 'var(--t-destaque)',
+              fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+            }}>{aberto.name}</span>
+            <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              {aberto.room ? `${cfg.roomLabel?.toUpperCase() || 'QUARTO'} ${aberto.room} · ` : ''}
+              {aberto.outOfPattern.length + aberto.openItems.length + (trend?.flags.length || 0)} PONTO
+              {aberto.outOfPattern.length + aberto.openItems.length + (trend?.flags.length || 0) === 1 ? '' : 'S'}
             </span>
-            <span style={{ fontSize: 13, fontWeight: 700, color: '#b45309', flexShrink: 0 }}>Abrir →</span>
-          </Link>
-        )}
-
-        {/* Disclaimer regulatório bem visível */}
-        <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#475569', lineHeight: 1.5, marginBottom: 18 }}>
-          ⓘ {CARE_DISCLAIMER}
+          </span>
+          <Botao onClick={() => setEscolhido(null)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
         </div>
 
-        {/* Resumo + ações */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 18 }}>
-          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '10px 16px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: needAttention.length ? '#b45309' : '#16a34a' }}>{needAttention.length}</span>
-            <span style={{ fontSize: 12.5, color: '#64748b', marginLeft: 8 }}>{cfg.personNounPlural?.toLowerCase() || 'pessoas'} com algo a confirmar</span>
-          </div>
-          {calm > 0 && <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '10px 16px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: '#16a34a' }}>{calm}</span>
-            <span style={{ fontSize: 12.5, color: '#64748b', marginLeft: 8 }}>sem nada fora do padrão</span>
-          </div>}
-          {needAttention.length > 0 && <button onClick={printBriefing} style={{ marginLeft: 'auto', padding: '9px 16px', background: 'white', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>Imprimir para a passagem</button>}
-        </div>
+        <div style={{ padding: '0 14px 14px' }}>
+          {aberto.outOfPattern.length > 0 && (
+            <Grupo titulo="Saiu do padrão habitual">
+              {aberto.outOfPattern.map(s => ponto('padrao', s.title, s.detail, s.severity))}
+            </Grupo>
+          )}
+          {aberto.openItems.length > 0 && (
+            <Grupo titulo="Por confirmar ou completar">
+              {aberto.openItems.map(s => ponto('confirmar', s.title, s.detail))}
+            </Grupo>
+          )}
+          {trend && trend.flags.length > 0 && (
+            <Grupo titulo="A piorar aos poucos · 2 a 3 semanas">
+              {trend.flags.map(s => ponto('tendencia', s.title, s.detail, s.severity))}
+            </Grupo>
+          )}
 
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 90, borderRadius: 14 }} />)}</div>
-        ) : err ? (
-          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, padding: 18, color: '#991b1b', fontSize: 14 }}>{err}</div>
-        ) : results.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="users" size={36} color="#cbd5e1" /></div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#0b1120', marginBottom: 8 }}>Ainda sem {cfg.personNounPlural?.toLowerCase() || 'utentes'}</div>
-            <Link href="/patients" style={{ display: 'inline-block', padding: '12px 24px', background: '#b45309', color: 'white', borderRadius: 10, fontWeight: 700, textDecoration: 'none' }}>Adicionar {cfg.personNoun?.toLowerCase()}</Link>
+          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+            <Link href={`/patients/${aberto.patientId}`} style={{ textDecoration: 'none' }}>
+              <Botao feitio="principal">ABRIR A FICHA →</Botao>
+            </Link>
+            <Link href="/care-log" style={{ textDecoration: 'none' }}>
+              <Botao>REGISTAR O DIA</Botao>
+            </Link>
+            {trend && (
+              <Link href="/tendencias" style={{ textDecoration: 'none' }}>
+                <Botao>VER AS TENDÊNCIAS →</Botao>
+              </Link>
+            )}
           </div>
-        ) : needAttention.length === 0 ? (
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 16, padding: '28px 22px', textAlign: 'center' }}>
-            <div style={{ fontSize: 30, marginBottom: 8 }}>✓</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: '#15803d' }}>Nada fora do padrão com o que foi registado.</div>
-            <div style={{ fontSize: 13, color: '#16a34a', marginTop: 4 }}>Continuem a registar os cuidados ao longo do dia.</div>
+        </div>
+      </>
+    )
+  })() : null
+
+  return (
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Pode merecer atenção</span>
+
+          <input value={procura} onChange={e => setProcura(e.target.value)}
+            placeholder={`Procurar ${cfg.personNoun?.toLowerCase() || 'pessoa'} ou ${cfg.roomLabel?.toLowerCase() || 'quarto'}…`}
+            aria-label="Procurar" style={{ ...CAIXA, width: 240 }} />
+
+          <Seletor
+            opcoes={[
+              { id: 'gravidade', rotulo: 'Por gravidade' },
+              { id: 'nome', rotulo: 'Por nome' },
+              { id: 'quarto', rotulo: `Por ${cfg.roomLabel?.toLowerCase() || 'quarto'}` },
+            ]}
+            ativa={ordem} aoMudar={o => setOrdem(o as Ordem)} />
+
+          <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+            {graves > 0 && (
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                {graves} A CONFIRMAR HOJE
+              </span>
+            )}
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: comSinais.length ? 'var(--amber)' : 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+              {comSinais.length} COM PONTOS
+            </span>
+            {calmos > 0 && (
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--green)' }}>
+                {calmos} SEM NADA FORA DO PADRÃO
+              </span>
+            )}
+          </span>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            {/* Ponte para o Modo Guardião — é ao fim de semana e à noite que
+                ele serve, e é exactamente quando ninguém tem tempo de o ir
+                procurar no menu. Só no lar: um centro de dia não tem noite. */}
+            {institution === 'nursing_home' && guardiaoContext && comSinais.length > 0 && (
+              <Link href="/guardiao" style={{ textDecoration: 'none' }}>
+                <Botao titulo={`${guardiaoContext}. O Modo Guardião mostra só quem precisa de atenção agora.`}>
+                  MODO GUARDIÃO →
+                </Botao>
+              </Link>
+            )}
+            {visiveis.length > 0 && (
+              <Botao onClick={printBriefing}>IMPRIMIR PARA A PASSAGEM</Botao>
+            )}
           </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {needAttention.map(r => {
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>PADRÃO = saiu do habitual hoje</span>
+          <span style={{ ...MONO, color: 'var(--ink-4)' }}>CONFIRMAR = ficou por completar</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>TENDÊNCIA = a piorar aos poucos</span>
+          {/* A advertência regulatória. Não cabe numa linha de legenda — e a
+              barra de estado é uma linha. Fica a frase curta, com o texto
+              inteiro no `title`, e o texto inteiro também sai impresso no
+              rodapé do briefing (ver `printBriefing`), que é onde alguém o
+              lê mesmo. */}
+          <span title={CARE_DISCLAIMER} style={{ ...MONO, color: 'var(--ink-5)', marginLeft: 'auto' }}>
+            APOIO AO TRABALHO — NÃO É DIAGNÓSTICO
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && <Aviso tom="mau">{err}</Aviso>}
+
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(380px, 1fr) minmax(380px, 520px)' : '1fr',
+      }}>
+        {(largo || !aberto) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 42, textAlign: 'right' }}>Nº</span>
+                <span style={{ ...ROTULO, flex: 1 }}>
+                  {cfg.personNounPlural || 'Pessoas'} · o que está em cima da mesa
+                </span>
+                <span style={{ ...ROTULO, width: 44, textAlign: 'right' }}>Hoje</span>
+                <span style={{ ...ROTULO, width: 52, textAlign: 'right' }}>Falta</span>
+                <span style={{ ...ROTULO, width: 56, textAlign: 'right' }}>Lenta</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{visiveis.length} de {results.length} {(cfg.personNounPlural || 'pessoas').toLowerCase()}</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A juntar o que a equipa registou…" />
+            ) : results.length === 0 ? (
+              <Vazio titulo={`Ainda não há ${(cfg.personNounPlural || 'utentes').toLowerCase()} nesta casa.`}
+                oQueFazer="Este briefing sai do que a equipa registou. Sem fichas não há nada para reunir."
+                acao={<Link href="/patients" style={{ textDecoration: 'none' }}>
+                  <Botao feitio="principal">ADICIONAR {(cfg.personNoun || 'pessoa').toUpperCase()} →</Botao>
+                </Link>} />
+            ) : visiveis.length === 0 ? (
+              procura ? (
+                <Vazio titulo="Ninguém com esse nome tem pontos a confirmar."
+                  acao={<Botao onClick={() => setProcura('')}>LIMPAR</Botao>} />
+              ) : (
+                <Vazio titulo="Nada fora do padrão com o que foi registado."
+                  oQueFazer="As pessoas todas sem pontos a confirmar. Continuem a registar os cuidados ao longo do dia — é disso que este briefing se faz." />
+              )
+            ) : visiveis.map(r => {
               const trend = trends[r.patientId]
-              const level = combinedLevel(r, trend)
+              const nivel = combinedLevel(r, trend)
               const score = combinedScore(r, trend)
-              const st = SEVERITY_STYLE[level]
-              const isOpen = open.has(r.patientId)
-              const allItems = [...r.outOfPattern, ...r.openItems, ...(trend?.flags || [])]
+              const cor = COR_NIVEL[nivel] || 'var(--ink-4)'
+              const on = escolhido === r.patientId
+              const pontos = [...r.outOfPattern, ...r.openItems, ...(trend?.flags || [])]
               return (
-                <div key={r.patientId} style={{ background: 'white', border: `1px solid ${level === 'critical' ? '#fca5a5' : level === 'warning' ? '#fde68a' : '#e9eaec'}`, borderRadius: 16, overflow: 'hidden' }}>
-                  <button onClick={() => toggle(r.patientId)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 10, background: st.bg, border: `1.5px solid ${st.border}`, color: st.color, fontWeight: 800, fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{score}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 15.5, fontWeight: 800, color: '#0b1120' }}>{r.name}{r.room ? ` · ${cfg.roomLabel?.[0] || ''}${r.room}` : ''}</span>
-                      <span style={{ display: 'block', fontSize: 12.5, color: st.color, marginTop: 1 }}>{allItems.slice(0, 2).map(i => i.title).join(' · ')}{allItems.length > 2 ? ` · +${allItems.length - 2}` : ''}</span>
-                    </span>
-                    <span style={{ fontSize: 18, color: '#94a3b8', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>⌄</span>
-                  </button>
-                  {isOpen && (
-                    <div style={{ padding: '0 18px 16px', borderTop: '1px solid #f1f5f9' }}>
-                      {r.outOfPattern.length > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#b45309', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Saiu do padrão habitual</div>
-                          {r.outOfPattern.map((s, i) => {
-                            const ss = SEVERITY_STYLE[s.severity]
-                            return <div key={i} style={{ background: ss.bg, border: `1px solid ${ss.border}`, borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
-                              <div style={{ fontSize: 13.5, fontWeight: 700, color: ss.color }}>{s.title}</div>
-                              <div style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.5, marginTop: 2 }}>{s.detail}</div>
-                            </div>
-                          })}
-                        </div>
+                <LinhaTabela key={r.patientId}
+                  aoTocar={() => setEscolhido(on ? null : r.patientId)}
+                  ativa={on}
+                  filete={nivel === 'critical' || nivel === 'warning' ? cor : undefined}
+                  antes={{
+                    largura: 42,
+                    conteudo: (
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
+                        color: cor,
+                      }}>{score}</span>
+                    ),
+                  }}
+                  principal={
+                    <>
+                      {r.name}
+                      {r.room && (
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                          {' '}· {r.room}
+                        </span>
                       )}
-                      {r.openItems.length > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Por confirmar / completar</div>
-                          {r.openItems.map((s, i) => (
-                            <div key={i} style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
-                              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#334155' }}>{s.title}</div>
-                              <div style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.5, marginTop: 2 }}>{s.detail}</div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                      {trend && trend.flags.length > 0 && (
-                        <div style={{ marginTop: 12 }}>
-                          <div style={{ fontSize: 11, fontWeight: 800, color: '#7c3aed', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Tendência (2-3 semanas)</div>
-                          {trend.flags.map((s, i) => {
-                            const ss = SEVERITY_STYLE[s.severity]
-                            return <div key={i} style={{ background: ss.bg, border: `1px solid ${ss.border}`, borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
-                              <div style={{ fontSize: 13.5, fontWeight: 700, color: ss.color }}>{s.title}</div>
-                              <div style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.5, marginTop: 2 }}>{s.detail}</div>
-                            </div>
-                          })}
-                        </div>
-                      )}
-                      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-                        <Link href={`/patients/${r.patientId}`} style={{ fontSize: 12.5, fontWeight: 700, color: 'white', background: '#b45309', borderRadius: 9, padding: '8px 14px', textDecoration: 'none' }}>Abrir ficha</Link>
-                        <Link href="/care-log" style={{ fontSize: 12.5, fontWeight: 700, color: '#b45309', background: 'white', border: '1.5px solid #b45309', borderRadius: 9, padding: '8px 14px', textDecoration: 'none' }}>Registar o dia</Link>
-                        {trend && <Link href="/tendencias" style={{ fontSize: 12.5, fontWeight: 700, color: '#7c3aed', background: 'white', border: '1.5px solid #ddd6fe', borderRadius: 9, padding: '8px 14px', textDecoration: 'none' }}>Ver tendências completas →</Link>}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                    </>
+                  }
+                  secundaria={
+                    pontos.slice(0, 2).map(i2 => i2.title).join(' · ')
+                    + (pontos.length > 2 ? ` · +${pontos.length - 2}` : '')
+                  }
+                  celulas={[
+                    { rotulo: 'Hoje', valor: r.outOfPattern.length || '—', largura: 44, direita: true, forte: !!r.outOfPattern.length, cor: r.outOfPattern.length ? 'var(--red)' : 'var(--ink-5)' },
+                    { rotulo: 'Falta', valor: r.openItems.length || '—', largura: 52, direita: true, cor: r.openItems.length ? 'var(--ink-3)' : 'var(--ink-5)' },
+                    { rotulo: 'Lenta', valor: trend?.flags.length || '—', largura: 56, direita: true, forte: !!trend?.flags.length, cor: trend?.flags.length ? 'var(--amber)' : 'var(--ink-5)' },
+                  ]} />
               )
             })}
-          </div>
+          </Painel>
         )}
+
+        {aberto ? (
+          <Painel>{detalhe}</Painel>
+        ) : largo ? (
+          <Painel>
+            <Vazio titulo="Escolha uma pessoa."
+              oQueFazer="Abre aqui ao lado, com a lista sempre à vista — para se poderem ver duas seguidas sem perder o sítio." />
+          </Painel>
+        ) : null}
       </div>
-    </div>
+    </Mesa>
   )
 }

@@ -25,6 +25,7 @@ import { vitalTrendSignals, type TrendVital } from '@/lib/healthTrends'
 import { printDoc, type PrintRecord } from '@/lib/print'
 import { ptDate } from '@/lib/ptTime'
 import { useToast } from '@/components/Toast'
+import { Botao, ROTULO } from '@/components/ui/mesa'
 
 interface LifeStory { profession?: string; family?: string; hobbies?: string; music?: string; notes?: string; sensitivities?: string }
 interface Patient {
@@ -57,8 +58,8 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   const noun = cfg.personNoun.toLowerCase()
   const isDayCare = institution === 'day_care'
   const warm = institution === 'day_care' || institution === 'nursing_home'
-  const accent = warm ? '#0d9488' : '#1d4ed8'
-  const accentSoft = warm ? '#f0fdfa' : '#eff6ff'
+  const accent = warm ? 'var(--green-3)' : 'var(--ink-2)'
+  const accentSoft = warm ? 'var(--green-light)' : 'var(--bg-2)'
 
   const [pid, setPid] = useState<string | null>(null)
   // A ficha nova diz-nos como recarregar os SEUS dados. Os formularios desta
@@ -341,14 +342,14 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       <style>body{font-family:Arial,sans-serif;padding:32px;color:#111;font-size:13px}h1{font-size:20px;font-family:Georgia,serif}
       .meta{color:#555;margin:4px 0 16px}table{width:100%;border-collapse:collapse;margin-top:6px}th,td{border:1px solid #ddd;padding:7px 9px;text-align:left}
       th{background:#f5f5f5;font-size:11px;text-transform:uppercase}.box{border:1px solid #ddd;border-radius:6px;padding:12px;margin:10px 0}
-      .warn{color:#b91c1c;font-weight:700}</style></head><body>
+      .warn{color:var(--red);font-weight:700}</style></head><body>
       <h1>${esc(patient.name)}</h1>
       <div class="meta">${[patient.age ? patient.age + ' anos' : '', patient.sex === 'F' ? 'Feminino' : patient.sex === 'M' ? 'Masculino' : '', patient.room_number ? cfg.roomLabel + ' ' + patient.room_number : ''].filter(Boolean).join(' · ')}</div>
       ${patient.allergies ? `<div class="box warn">⚠ Alergias: ${esc(patient.allergies)}</div>` : ''}
       ${patient.conditions ? `<div class="box"><strong>Diagnósticos:</strong> ${esc(patient.conditions)}</div>` : ''}
       <h3>Medicação (${meds.length})</h3>
       <table><thead><tr><th>Medicamento</th><th>Dose</th><th>Frequência</th><th>Indicação</th></tr></thead><tbody>${medRows || '<tr><td colspan=4>Sem medicação registada</td></tr>'}</tbody></table>
-      <p style="margin-top:24px;color:#999;font-size:11px">Phlox Clinical · ${new Date().toLocaleDateString('pt-PT')}</p>
+      <p style="margin-top:24px;color:var(--ink-5);font-size:11px">Phlox Clinical · ${new Date().toLocaleDateString('pt-PT')}</p>
       </body></html>`)
     w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
   }
@@ -369,9 +370,9 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       <style>body{font-family:Arial,sans-serif;padding:32px;color:#111;font-size:15px}
       h1{font-size:26px;font-family:Georgia,serif;margin:0 0 4px}
       .meta{color:#555;margin:0 0 18px;font-size:14px}
-      .warn{background:#fef2f2;border:2px solid #dc2626;border-radius:8px;padding:16px;margin:0 0 16px}
-      .warn .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:#991b1b;font-weight:700;margin-bottom:4px}
-      .warn .val{font-size:20px;font-weight:700;color:#991b1b}
+      .warn{background:var(--badge-red-bg);border:2px solid var(--red);border-radius:8px;padding:16px;margin:0 0 16px}
+      .warn .lbl{font-size:12px;text-transform:uppercase;letter-spacing:.08em;color:var(--red);font-weight:700;margin-bottom:4px}
+      .warn .val{font-size:20px;font-weight:700;color:var(--red)}
       .box{border:1px solid #ddd;border-radius:8px;padding:14px 16px;margin:0 0 14px}
       .box .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#666;margin-bottom:6px}
       ul{margin:0;padding-left:20px}li{margin-bottom:3px}</style></head><body>
@@ -381,7 +382,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       ${patient.conditions ? `<div class="box"><div class="lbl">Diagnósticos</div>${esc(patient.conditions)}</div>` : ''}
       <div class="box"><div class="lbl">Medicação atual (${meds.length})</div><ul>${medRows || '<li>Sem medicação registada</li>'}</ul></div>
       ${contactLine ? `<div class="box"><div class="lbl">Contacto de emergência</div>${contactLine}</div>` : ''}
-      <p style="margin-top:24px;color:#999;font-size:11px">Phlox Clinical · Gerado em ${new Date().toLocaleString('pt-PT')} · ${esc(cfg.unitNoun)}</p>
+      <p style="margin-top:24px;color:var(--ink-5);font-size:11px">Phlox Clinical · Gerado em ${new Date().toLocaleString('pt-PT')} · ${esc(cfg.unitNoun)}</p>
       </body></html>`)
     w.document.close(); setTimeout(() => { w.focus(); w.print() }, 300)
   }
@@ -422,8 +423,8 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       const esc = (s: any) => String(s ?? '').replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c] as string))
       w.document.write(`<!doctype html><html lang="pt-PT"><head><meta charset="utf-8"><title>Relatório de ${esc(patient.name)} — ${esc(monthName)}</title>
         <style>body{font-family:Georgia,'Times New Roman',serif;padding:40px;color:#1a1a1a;line-height:1.7;max-width:680px;margin:0 auto}
-        h1{font-size:24px;font-weight:400}.kicker{font-family:Arial;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#0d6e42;font-weight:700}
-        .stats{display:flex;gap:24px;margin:20px 0;flex-wrap:wrap}.stat{}.num{font-size:30px;color:#0d6e42}.lbl{font-family:Arial;font-size:11px;color:#777}
+        h1{font-size:24px;font-weight:400}.kicker{font-family:Arial;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--green);font-weight:700}
+        .stats{display:flex;gap:24px;margin:20px 0;flex-wrap:wrap}.stat{}.num{font-size:30px;color:var(--green)}.lbl{font-family:Arial;font-size:11px;color:#777}
         .box{background:#f6f9f7;border-radius:10px;padding:18px 20px;margin:16px 0;font-size:15px}
         .foot{font-family:Arial;font-size:11px;color:#999;margin-top:30px;border-top:1px solid #eee;padding-top:12px}</style></head><body>
         <div class="kicker">Relatório mensal · ${esc(monthName)}</div>
@@ -585,10 +586,10 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
   }
 
   if (!user) return null
-  if (loading) return <Shell warm={warm}><div style={{ color: '#94a3b8', padding: 40, textAlign: 'center' }}>A carregar…</div></Shell>
+  if (loading) return <Shell warm={warm}><div style={{ color: 'var(--ink-5)', padding: 40, textAlign: 'center' }}>A carregar…</div></Shell>
   if (!patient) return null
 
-  const SEV: Record<string, { c: string; b: string }> = { alta: { c: '#991b1b', b: '#fee2e2' }, 'média': { c: '#b45309', b: '#fef3c7' }, baixa: { c: '#475569', b: '#f1f5f9' } }
+  const SEV: Record<string, { c: string; b: string }> = { alta: { c: 'var(--red)', b: 'var(--badge-red-bg)' }, 'média': { c: 'var(--amber)', b: 'var(--badge-amber-bg)' }, baixa: { c: 'var(--ink-3)', b: 'var(--bg-3)' } }
   const homeMeds = meds.filter(m => m.take_location === 'casa' || m.take_location === 'ambos')
   const centreMeds = meds.filter(m => m.take_location !== 'casa')
 
@@ -597,14 +598,35 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       pid={pid!}
       aoMudar={fn => { recarregarFicha.current = fn }}
 
+      /* SEIS BOTÕES IGUAIS, UM DELES DESTRUTIVO.
+         «Editar», quatro impressões e «Arquivar» tinham o mesmo tamanho, a
+         mesma cor e a mesma fila — e o «Arquivar», o único que tira a pessoa
+         da casa, ficava encostado ao «Editar», que é o mais usado de todos.
+
+         Agora são três grupos com rótulo. O «Arquivar» fica sozinho no fim,
+         em cinzento, separado por uma linha. */
       acoes={<>
-        <button onClick={() => setEditing(true)} style={btnGhost(accent)}>Editar</button>
-        <button onClick={printChart} style={btnGhost(accent)} title="Imprimir ficha clínica">Ficha clínica</button>
-        <button onClick={printEmergencyCard} style={{ ...btnGhost(accent), borderColor: '#dc2626', color: '#dc2626' }} title="Resumo de 1 página para levar às urgências">Cartão de emergência</button>
-        <button onClick={printMonthlyReport} disabled={reportBusy} style={btnGhost(accent)} title="Relatório do mês para a família">{reportBusy ? '\…' : 'Relatório do mês'}</button>
-        <button onClick={printPatientDossier} disabled={dossierBusy} style={btnGhost(accent)} title="Dossier mensal">{dossierBusy ? '\…' : 'Dossier mensal'}</button>
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={ROTULO}>Ficha</span>
+          <Botao onClick={() => setEditing(true)}>EDITAR</Botao>
+        </span>
+
+        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span style={ROTULO}>Imprimir</span>
+          <Botao onClick={printChart} titulo="A ficha clínica completa">FICHA CLÍNICA</Botao>
+          <Botao onClick={printEmergencyCard} titulo="Resumo de uma página para levar às urgências">CARTÃO DE EMERGÊNCIA</Botao>
+          <Botao onClick={printMonthlyReport} esperando={reportBusy} titulo="O mês contado à família">RELATÓRIO DO MÊS</Botao>
+          <Botao onClick={printPatientDossier} esperando={dossierBusy} titulo="Tudo o que ficou registado no mês">DOSSIER MENSAL</Botao>
+        </span>
+
         {podeEditar && (
-          <button onClick={archiveThisPatient} style={{ ...btnGhost(accent), borderColor: '#e2e8f0', color: '#94a3b8' }}>Arquivar</button>
+          <span style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            marginLeft: 'auto', paddingLeft: 12, borderLeft: '1px solid var(--border)',
+          }}>
+            <Botao feitio="calmo" onClick={archiveThisPatient}
+              titulo="Tira a pessoa das listas do dia a dia. A ficha e os registos ficam.">ARQUIVAR</Botao>
+          </span>
         )}
       </>}
 
@@ -612,31 +634,31 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
         {!summary && !sumLoading && (
           meds.length > 0 || patient.conditions
             ? <button onClick={genSummary} style={btnGhost(accent)}>Analisar a medicação</button>
-            : <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Adiciona medicação ou diagnósticos para poder analisar.</div>
+            : <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>Adiciona medicação ou diagnósticos para poder analisar.</div>
         )}
-        {sumLoading && <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>A analisar…</div>}
-        {sumErr && <div style={{ fontSize: 13, color: '#b91c1c' }}>{sumErr}</div>}
+        {sumLoading && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>A analisar…</div>}
+        {sumErr && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--red)' }}>{sumErr}</div>}
         {summary && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-7)' }}>
-            {summary.overview && <p style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{summary.overview}</p>}
+            {summary.overview && <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{summary.overview}</p>}
             {(summary.watch_for || []).length > 0 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
                 {(summary.watch_for || []).map((w, i) => (
                   <div key={i} style={{ display: 'flex', gap: 'var(--space-5)', alignItems: 'flex-start' }}>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, textTransform: 'uppercase', color: '#92400e', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-sm)', padding: '2px 7px', flexShrink: 0 }}>{w.level}</span>
-                    <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{w.text}</span>
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', color: 'var(--amber)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-sm)', padding: '2px 7px', flexShrink: 0 }}>{w.level}</span>
+                    <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.55 }}>{w.text}</span>
                   </div>
                 ))}
               </div>
             )}
             {(summary.interactions || []).length > 0 && (
               <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: 'var(--space-7)' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700, color: '#92400e', marginBottom: 'var(--space-4)' }}>Interações a confirmar</div>
-                {(summary.interactions || []).map((it, i) => <div key={i} style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.55 }}>{it}</div>)}
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)', marginBottom: 'var(--space-4)' }}>Interações a confirmar</div>
+                {(summary.interactions || []).map((it, i) => <div key={i} style={{ fontSize: 'var(--t-dado)', color: 'var(--amber)', lineHeight: 1.55 }}>{it}</div>)}
               </div>
             )}
-            <div style={{ fontSize: 11.5, color: 'var(--ink-4)' }}>
-              Orientação de apoio — confirma sempre clinicamente. <button onClick={genSummary} style={{ background: 'none', border: 'none', color: accent, fontWeight: 700, cursor: 'pointer', fontSize: 11.5, fontFamily: 'inherit', padding: 0 }}>Atualizar</button>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              Orientação de apoio — confirma sempre clinicamente. <button onClick={genSummary} style={{ background: 'none', border: 'none', color: accent, fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontSize: 'var(--t-meta)', fontFamily: 'inherit', padding: 0 }}>Atualizar</button>
             </div>
           </div>
         )}
@@ -648,13 +670,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <button onClick={() => setShowAddMed(s => !s)} style={btnSolid(accent)}>+ Medicamento</button>
         </div>
         {showAddMed && (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14, marginBottom: 12 }}>
             <div style={{ position: 'relative' }}>
               <input value={newMed.name} autoFocus placeholder="Nome do medicamento" style={inp}
                 onChange={e => { const v = e.target.value; setNewMed(p => ({ ...p, name: v })); setSug(v.length >= 2 ? suggestDrugs(v).slice(0, 5) : []) }} />
               {sug.length > 0 && (
-                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid #e2e8f0', borderRadius: 8, zIndex: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
-                  {sug.map((s, i) => <button key={i} onClick={() => { setNewMed(p => ({ ...p, name: s.dci })); setSug([]) }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit' }}>{s.display}</button>)}
+                <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', zIndex: 10, overflow: 'hidden', boxShadow: '0 8px 24px rgba(0,0,0,0.08)' }}>
+                  {sug.map((s, i) => <button key={i} onClick={() => { setNewMed(p => ({ ...p, name: s.dci })); setSug([]) }} style={{ display: 'block', width: '100%', textAlign: 'left', padding: '9px 12px', background: 'none', border: 'none', borderBottom: '1px solid var(--bg-3)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontFamily: 'inherit' }}>{s.display}</button>)}
                 </div>
               )}
             </div>
@@ -694,12 +716,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                     vai ser usada. */}
                 {newMed.shifts.length > 0 && (
                   <div style={{ marginTop: 10 }}>
-                    <div style={{ fontSize: 11.5, color: '#64748b', marginBottom: 6, lineHeight: 1.5 }}>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 6, lineHeight: 1.5 }}>
                       A que horas, se houver hora certa. Em branco = durante o turno.
                     </div>
                     <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                       {SHIFTS.filter(x => newMed.shifts.includes(x.v)).map(x => (
-                        <label key={x.v} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#475569', fontWeight: 600 }}>
+                        <label key={x.v} style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any }}>
                           <span style={{ minWidth: 42 }}>{x.l}</span>
                           <input
                             type="time" value={newMed.horas[x.v] || ''}
@@ -724,7 +746,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                     onChange={e => setNewMed(p => ({ ...p, sos_intervalo_horas: e.target.value.replace(/\D/g, '') }))}
                     placeholder="Horas entre tomas" style={inp} />
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5, lineHeight: 1.5 }}>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.5 }}>
                   Os dois são opcionais. Escritos, a ficha diz «foi dado 2 vezes hoje, a última há 3 horas»
                   antes de alguém dar outro — e nunca bloqueia, só informa.
                 </div>
@@ -736,7 +758,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {LOC.map(l => <button key={l.v} onClick={() => setNewMed(p => ({ ...p, take_location: l.v }))} style={chip(newMed.take_location === l.v, accent)}>{l.l}</button>)}
                 </div>
-                <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 5 }}>“Em casa” → a família marca a toma e ela aparece aqui.</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5 }}>“Em casa” → a família marca a toma e ela aparece aqui.</div>
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -753,13 +775,13 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           <button onClick={() => setShowAddContact(s => !s)} style={btnSolid(accent)}>+ Contacto</button>
         </div>
         {showAddContact && (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14, marginBottom: 12 }}>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14, marginBottom: 12 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
               <input value={contactForm.name} onChange={e => setContactForm(p => ({ ...p, name: e.target.value }))} placeholder="Nome" style={inp} autoFocus />
               <input value={contactForm.relationship} onChange={e => setContactForm(p => ({ ...p, relationship: e.target.value }))} placeholder="Relação (filho/a…)" style={inp} />
             </div>
             <input value={contactForm.phone} onChange={e => setContactForm(p => ({ ...p, phone: e.target.value }))} placeholder="Telefone" style={{ ...inp, marginTop: 8 }} />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 13, color: '#475569', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', cursor: 'pointer' }}>
               <input type="checkbox" checked={contactForm.is_emergency} onChange={e => setContactForm(p => ({ ...p, is_emergency: e.target.checked }))} /> Contacto de emergência
             </label>
             <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
@@ -776,27 +798,27 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     >
       {inviteOpen && (
         <div onClick={e => { if (e.target === e.currentTarget) setInviteOpen(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 440 }}>
+          <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 440 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Convidar a família de {patient.name.split(' ')[0]}</div>
-              <button aria-label="Fechar" onClick={() => setInviteOpen(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>            </div>
-            {inviteErr ? <div style={{ fontSize: 13, color: '#dc2626', lineHeight: 1.5 }}>{inviteErr}</div>
-            : inviteBusy || !familyCode ? <div style={{ color: '#94a3b8', fontSize: 13, padding: 12 }}>A gerar código…</div>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Convidar a família de {patient.name.split(' ')[0]}</div>
+              <button aria-label="Fechar" onClick={() => setInviteOpen(false)} style={{ background: 'none', border: 'none', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)', cursor: 'pointer' }}>×</button>            </div>
+            {inviteErr ? <div style={{ fontSize: 'var(--t-dado)', color: 'var(--red)', lineHeight: 1.5 }}>{inviteErr}</div>
+            : inviteBusy || !familyCode ? <div style={{ color: 'var(--ink-5)', fontSize: 'var(--t-dado)', padding: 12 }}>A gerar código…</div>
             : (
               <>
-                <p style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.6, margin: '0 0 14px' }}>
+                <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 14px' }}>
                   Partilhe este código com a família. Ela acompanha o dia, recebe fotos e marca a medicação de casa — sem instalar nada.
                 </p>
-                <div style={{ background: accentSoft, border: `1.5px solid ${accent}`, borderRadius: 12, padding: '14px 16px', textAlign: 'center', marginBottom: 14 }}>
-                  <div style={{ fontSize: 10.5, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Código de acesso</div>
-                  <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 24, fontWeight: 800, color: accent, letterSpacing: '0.08em' }}>{familyCode}</div>
+                <div style={{ background: accentSoft, border: `1.5px solid ${accent}`, borderRadius: 'var(--r-xl)', padding: '14px 16px', textAlign: 'center', marginBottom: 14 }}>
+                  <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Código de acesso</div>
+                  <div style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: accent, letterSpacing: '0.08em' }}>{familyCode}</div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <a href={`https://wa.me/?text=${encodeURIComponent(inviteText())}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSolid('#25D366'), flex: '1 1 130px', textAlign: 'center', textDecoration: 'none' }}>WhatsApp</a>
+                  <a href={`https://wa.me/?text=${encodeURIComponent(inviteText())}`} target="_blank" rel="noopener noreferrer" style={{ ...btnSolid('var(--green)'), flex: '1 1 130px', textAlign: 'center', textDecoration: 'none' }}>WhatsApp</a>
                   <a href={`sms:?&body=${encodeURIComponent(inviteText())}`} style={{ ...btnGhost(accent), flex: '1 1 90px', textAlign: 'center', textDecoration: 'none' }}>SMS</a>
                   <button onClick={() => { navigator.clipboard?.writeText(inviteText()); setCopied(true); setTimeout(() => setCopied(false), 2000) }} style={{ ...btnGhost(accent), flex: '1 1 90px' }}>{copied ? '✓ Copiado' : 'Copiar'}</button>
                 </div>
-                <p style={{ fontSize: 11, color: '#94a3b8', margin: '12px 0 0', lineHeight: 1.5 }}>A família confirma com os últimos 4 dígitos do telemóvel registado nos contactos — por isso adicione primeiro o contacto com telefone.</p>
+                <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', margin: '12px 0 0', lineHeight: 1.5 }}>A família confirma com os últimos 4 dígitos do telemóvel registado nos contactos — por isso adicione primeiro o contacto com telefone.</p>
               </>
             )}
           </div>
@@ -804,15 +826,15 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
       )}
       {editing && (
         <div onClick={e => { if (e.target === e.currentTarget) setEditing(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-          <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 520, maxHeight: '88vh', overflow: 'auto' }}>
+          <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 520, maxHeight: '88vh', overflow: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Editar ficha</div>
-              <button aria-label="Fechar" onClick={() => setEditing(false)} style={{ background: 'none', border: 'none', fontSize: 20, color: '#94a3b8', cursor: 'pointer' }}>×</button>            </div>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Editar ficha</div>
+              <button aria-label="Fechar" onClick={() => setEditing(false)} style={{ background: 'none', border: 'none', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)', cursor: 'pointer' }}>×</button>            </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 14 }}>
               {patient.photo_url ? (
                 <img src={patient.photo_url} alt={patient.name} style={{ width: 60, height: 60, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
               ) : (
-                <div style={{ width: 60, height: 60, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, fontWeight: 700, flexShrink: 0 }}>{patient.name.charAt(0).toUpperCase()}</div>
+                <div style={{ width: 60, height: 60, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>{patient.name.charAt(0).toUpperCase()}</div>
               )}
               <label style={{ ...btnGhost(accent), cursor: uploadingPhoto ? 'default' : 'pointer', opacity: uploadingPhoto ? 0.6 : 1 }}>
                 {uploadingPhoto ? 'A enviar…' : patient.photo_url ? 'Trocar foto' : '+ Foto de perfil'}
@@ -833,7 +855,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               <input value={edit.conditions || ''} onChange={e => setEdit(p => ({ ...p, conditions: e.target.value }))} placeholder="Diagnósticos" style={inp} />
               <input value={edit.allergies || ''} onChange={e => setEdit(p => ({ ...p, allergies: e.target.value }))} placeholder="Alergias" style={inp} />
               <input value={edit.address || ''} onChange={e => setEdit(p => ({ ...p, address: e.target.value }))} placeholder={isDayCare ? 'Morada (recolha de transporte)' : 'Morada'} style={inp} />
-              <div style={{ fontSize: 11.5, lineHeight: 1.45, marginTop: -6, marginBottom: 6, color: geoEstado === 'nao_localizada' ? '#b45309' : geoEstado === 'localizada' ? '#15803d' : 'var(--ink-4)' }}>
+              <div style={{ fontSize: 'var(--t-meta)', lineHeight: 1.45, marginTop: -6, marginBottom: 6, color: geoEstado === 'nao_localizada' ? 'var(--amber)' : geoEstado === 'localizada' ? 'var(--green)' : 'var(--ink-4)' }}>
                 {geoEstado === 'a localizar' ? 'A localizar a morada no mapa…'
                   : geoEstado === 'localizada' ? '✓ Morada localizada — já aparece no mapa dos transportes.'
                   : geoEstado === 'nao_localizada' ? 'Não foi possível localizar. Acrescenta o código postal e a localidade (ex.: 2745-123 Queluz) — é isso que o mapa usa.'
@@ -845,7 +867,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
               </div>
               <textarea value={edit.notes || ''} onChange={e => setEdit(p => ({ ...p, notes: e.target.value }))} placeholder="Notas" rows={2} style={{ ...inp, resize: 'vertical' }} />
             </div>
-            {editErr && <div style={{ marginTop: 10, fontSize: 12.5, color: '#dc2626' }}>{editErr}</div>}
+            {editErr && <div style={{ marginTop: 10, fontSize: 'var(--t-meta)', color: 'var(--red)' }}>{editErr}</div>}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button onClick={saveEdit} disabled={savingEdit} style={{ ...btnSolid(accent), flex: 1 }}>{savingEdit ? 'A guardar…' : 'Guardar'}</button>
               <button onClick={() => { setEditing(false); setEditErr('') }} style={btnGhost(accent)}>Cancelar</button>
@@ -859,27 +881,27 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
 // ── peças ──
 function Shell({ children, warm }: { children: React.ReactNode; warm: boolean }) {
-  return <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f8fafc', fontFamily: 'var(--font-sans)' }}><div style={{ maxWidth: 720, margin: '0 auto', padding: '22px clamp(14px,3vw,28px) 70px' }}>{children}</div></div>
+  return <div style={{ minHeight: '100vh', background: warm ? 'var(--bg-2)' : 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}><div style={{ maxWidth: 720, margin: '0 auto', padding: '22px clamp(14px,3vw,28px) 70px' }}>{children}</div></div>
 }
 function Card({ children }: { children: React.ReactNode }) {
-  return <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>{children}</div>
+  return <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px', marginBottom: 14 }}>{children}</div>
 }
 function CardTitle({ children, noMargin }: { children: React.ReactNode; noMargin?: boolean }) {
-  return <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: noMargin ? 0 : 12 }}>{children}</div>
+  return <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: noMargin ? 0 : 12 }}>{children}</div>
 }
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{children}</div>
+  return <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }}>{children}</div>
 }
 function Mini({ label, value, accent, alert, warn }: { label: string; value: string; accent?: string; alert?: boolean; warn?: boolean }) {
-  const c = alert ? '#991b1b' : warn ? '#b45309' : accent || '#0b1120'
-  return <div><div style={{ fontSize: 19, fontWeight: 800, color: c, lineHeight: 1 }}>{value}</div><div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>{label}</div></div>
+  const c = alert ? 'var(--red)' : warn ? 'var(--amber)' : accent || 'var(--ink)'
+  return <div><div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: c, lineHeight: 1 }}>{value}</div><div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 4 }}>{label}</div></div>
 }
 function Tag({ children, color, bg }: { children: React.ReactNode; color: string; bg: string }) {
-  return <span style={{ fontSize: 10.5, fontWeight: 700, color, background: bg, borderRadius: 5, padding: '2px 8px' }}>{children}</span>
+  return <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color, background: bg, borderRadius: 'var(--r)', padding: '2px 8px' }}>{children}</span>
 }
-function Empty({ msg }: { msg: string }) { return <div style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', padding: '14px 0' }}>{msg}</div> }
+function Empty({ msg }: { msg: string }) { return <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', textAlign: 'center', padding: '14px 0' }}>{msg}</div> }
 
-const inp: React.CSSProperties = { border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '10px 12px', fontSize: 14, fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }
-const btnSolid = (a: string): React.CSSProperties => ({ padding: '9px 16px', background: a, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' })
-const btnGhost = (a: string): React.CSSProperties => ({ padding: '9px 14px', background: 'white', color: a, border: `1.5px solid ${a}`, borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' })
-const chip = (on: boolean, a: string): React.CSSProperties => ({ padding: '7px 12px', borderRadius: 999, border: `1.5px solid ${on ? a : '#e2e8f0'}`, background: on ? '#f0fdfa' : 'white', color: on ? a : '#475569', fontSize: 12.5, fontWeight: on ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' })
+const inp: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px', fontSize: 'var(--t-corpo)', fontFamily: 'inherit', outline: 'none', width: '100%', boxSizing: 'border-box' }
+const btnSolid = (a: string): React.CSSProperties => ({ padding: '9px 16px', background: a, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'inherit' })
+const btnGhost = (a: string): React.CSSProperties => ({ padding: '9px 14px', background: 'white', color: a, border: `1.5px solid ${a}`, borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'inherit' })
+const chip = (on: boolean, a: string): React.CSSProperties => ({ padding: '7px 12px', borderRadius: 999, border: `1.5px solid ${on ? a : 'var(--border)'}`, background: on ? 'var(--green-light)' : 'white', color: on ? a : 'var(--ink-3)', fontSize: 'var(--t-meta)', fontWeight: on ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' })

@@ -15,18 +15,18 @@ export default function OG() {
         style={{
           width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
           justifyContent: 'center', padding: '80px',
-          background: 'linear-gradient(135deg, #0b1120 0%, #0d4f3c 100%)',
+          background: 'linear-gradient(135deg, var(--ink) 0%, var(--green-3) 100%)',
           color: 'white', fontFamily: 'sans-serif',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 28 }}>
-          <div style={{ width: 18, height: 18, borderRadius: 5, background: '#10b981' }} />
-          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: '#5eead4' }}>Phlox Clinical</div>
+          <div style={{ width: 18, height: 18, borderRadius: 'var(--r)', background: 'var(--green)' }} />
+          <div style={{ fontSize: 26, fontWeight: 700, letterSpacing: 2, textTransform: 'uppercase', color: 'var(--green-mid)' }}>Phlox Clinical</div>
         </div>
         <div style={{ fontSize: 64, fontWeight: 800, lineHeight: 1.1, letterSpacing: -1.5, maxWidth: 900 }}>
           Farmacologia clínica, em português.
         </div>
-        <div style={{ fontSize: 30, color: '#94a3b8', marginTop: 28, maxWidth: 880, lineHeight: 1.35 }}>
+        <div style={{ fontSize: 30, color: 'var(--ink-5)', marginTop: 28, maxWidth: 880, lineHeight: 1.35 }}>
           Interações, registo de saúde, e ferramentas para instituições, profissionais e famílias.
         </div>
       </div>

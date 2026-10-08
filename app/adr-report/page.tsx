@@ -23,11 +23,11 @@ interface ADRResult {
 }
 
 const CAUSALITY_COLOR: Record<string, string> = {
-  'Definida': '#059669',
-  'Provável': '#d97706',
-  'Possível': '#2563eb',
-  'Improvável': '#6b7280',
-  'Inclassificável': '#6b7280',
+  'Definida': 'var(--green)',
+  'Provável': 'var(--amber)',
+  'Possível': 'var(--ink-2)',
+  'Improvável': 'var(--ink-4)',
+  'Inclassificável': 'var(--ink-4)',
 }
 
 // Fundido em "Conformidade" (/documentos) como aba "Notificação RAM" (ADRReportTool).
@@ -152,7 +152,7 @@ ${result.disclaimer}`
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
               {history.length > 0 && (
-                <button onClick={() => setShowHistory(h => !h)} style={{ padding: '8px 14px', background: showHistory ? '#0f172a' : 'var(--bg-2)', color: showHistory ? 'white' : 'var(--ink)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => setShowHistory(h => !h)} style={{ padding: '8px 14px', background: showHistory ? 'var(--ink)' : 'var(--bg-2)', color: showHistory ? 'white' : 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   📋 Histórico ({history.length})
                 </button>
               )}
@@ -169,7 +169,7 @@ ${result.disclaimer}`
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
           {/* Form */}
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 16 }}>📋 Dados da notificação</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
@@ -177,12 +177,12 @@ ${result.disclaimer}`
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Medicamento suspeito *</div>
                   <input value={form.suspected_drug} onChange={e => setForm(p => ({ ...p, suspected_drug: e.target.value }))}
-                    placeholder="Ex: Lisinopril 10mg" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                    placeholder="Ex: Lisinopril 10mg" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Data de início da reação</div>
                   <input type="date" value={form.onset_date} onChange={e => setForm(p => ({ ...p, onset_date: e.target.value }))}
-                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
                 </div>
               </div>
 
@@ -190,19 +190,19 @@ ${result.disclaimer}`
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Descrição da reação adversa *</div>
                 <textarea value={form.reaction} onChange={e => setForm(p => ({ ...p, reaction: e.target.value }))}
                   placeholder="Descreve a reação: sintomas, intensidade, duração, impacto na vida diária..."
-                  rows={4} style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', resize: 'vertical', lineHeight: 1.6 }} />
+                  rows={4} style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', resize: 'vertical', lineHeight: 1.6 }} />
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Idade do doente</div>
                   <input type="number" value={form.patient_age} onChange={e => setForm(p => ({ ...p, patient_age: e.target.value }))}
-                    placeholder="Ex: 67" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                    placeholder="Ex: 67" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
                 </div>
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Sexo</div>
                   <select value={form.patient_sex} onChange={e => setForm(p => ({ ...p, patient_sex: e.target.value }))}
-                    style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', background: 'white' }}>
+                    style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', background: 'white' }}>
                     <option value="">—</option>
                     <option value="Masculino">Masculino</option>
                     <option value="Feminino">Feminino</option>
@@ -211,7 +211,7 @@ ${result.disclaimer}`
                 <div>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Resultado</div>
                   <select value={form.outcome} onChange={e => setForm(p => ({ ...p, outcome: e.target.value }))}
-                    style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', background: 'white' }}>
+                    style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', background: 'white' }}>
                     <option value="">—</option>
                     <option value="Recuperado">Recuperado</option>
                     <option value="A recuperar">A recuperar</option>
@@ -226,25 +226,25 @@ ${result.disclaimer}`
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Ação tomada</div>
                 <input value={form.action_taken} onChange={e => setForm(p => ({ ...p, action_taken: e.target.value }))}
                   placeholder="Ex: Medicamento suspenso, dose reduzida, internamento..."
-                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
               </div>
 
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 5 }}>Outros medicamentos concomitantes</div>
                 <input value={form.other_drugs} onChange={e => setForm(p => ({ ...p, other_drugs: e.target.value }))}
                   placeholder="Ex: Metformina, Atorvastatina, Aspirina..."
-                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
               </div>
 
               {error && (
-                <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>
+                <div style={{ padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--red)' }}>
                   ⚠️ {error}
                 </div>
               )}
 
               <button onClick={analyze} disabled={loading || !form.suspected_drug.trim() || !form.reaction.trim()} style={{
-                padding: '13px', background: (loading || !form.suspected_drug.trim() || !form.reaction.trim()) ? '#9ca3af' : '#0f172a',
-                color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700,
+                padding: '13px', background: (loading || !form.suspected_drug.trim() || !form.reaction.trim()) ? 'var(--ink-5)' : 'var(--ink)',
+                color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 15, fontWeight: 700,
                 cursor: (loading || !form.suspected_drug.trim() || !form.reaction.trim()) ? 'default' : 'pointer',
               }}>
                 {loading ? '⏳ A analisar...' : '🔬 Analisar RAM · Classificação WHO-UMC'}
@@ -254,11 +254,11 @@ ${result.disclaimer}`
 
           {/* History panel */}
           {showHistory && history.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
               <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>📋 Histórico de análises</div>
                 <button onClick={() => { if (confirm('Limpar histórico?')) { setHistory([]); localStorage.removeItem('phlox_adr_history') } }}
-                  style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Limpar</button>
+                  style={{ fontSize: 11, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Limpar</button>
               </div>
               <div style={{ maxHeight: 280, overflowY: 'auto' }}>
                 {history.map((h, i) => (
@@ -269,7 +269,7 @@ ${result.disclaimer}`
                       <div style={{ fontSize: 11, color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.form.reaction}</div>
                     </div>
                     <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: CAUSALITY_COLOR[h.result.who_umc_causality] || '#6b7280' }}>{h.result.who_umc_causality}</div>
+                      <div style={{ fontSize: 12, fontWeight: 700, color: CAUSALITY_COLOR[h.result.who_umc_causality] || 'var(--ink-4)' }}>{h.result.who_umc_causality}</div>
                       <div style={{ fontSize: 10, color: 'var(--ink-5)', marginTop: 2 }}>{new Date(h.date).toLocaleDateString('pt-PT')}</div>
                     </div>
                   </button>
@@ -284,24 +284,24 @@ ${result.disclaimer}`
 
               {/* INFARMED alert */}
               {result.infarmed_report_required && (
-                <div style={{ background: '#fef2f2', border: '2px solid #dc2626', borderRadius: 12, padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+                <div style={{ background: 'var(--badge-red-bg)', border: '2px solid var(--red)', borderRadius: 'var(--r-xl)', padding: '14px 18px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <span style={{ fontSize: 24 }}>🚨</span>
                   <div>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#991b1b' }}>Notificação INFARMED obrigatória</div>
-                    <div style={{ fontSize: 12, color: '#b91c1c', marginTop: 2 }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>Notificação INFARMED obrigatória</div>
+                    <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 2 }}>
                       Esta RAM grave deve ser notificada ao INFARMED em {result.infarmed_deadline_days} dias.
-                      {' '}<a href="https://extranet.infarmed.pt/INFARMEWEB" target="_blank" rel="noopener noreferrer" style={{ color: '#991b1b', fontWeight: 700 }}>Portal RAM →</a>
+                      {' '}<a href="https://extranet.infarmed.pt/INFARMEWEB" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--red)', fontWeight: 700 }}>Portal RAM →</a>
                     </div>
                   </div>
                 </div>
               )}
 
               {/* Causality card */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden' }}>
-                <div style={{ background: '#0f172a', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
+                <div style={{ background: 'var(--ink)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 16 }}>
                   <div>
                     <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'var(--font-mono)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Causalidade WHO-UMC</div>
-                    <div style={{ fontSize: 22, fontWeight: 700, color: CAUSALITY_COLOR[result.who_umc_causality] || '#10b981' }}>{result.who_umc_causality}</div>
+                    <div style={{ fontSize: 22, fontWeight: 700, color: CAUSALITY_COLOR[result.who_umc_causality] || 'var(--green)' }}>{result.who_umc_causality}</div>
                   </div>
                   {result.who_umc_score && (
                     <div style={{ textAlign: 'center', borderLeft: '1px solid rgba(255,255,255,0.2)', paddingLeft: 16 }}>
@@ -310,7 +310,7 @@ ${result.disclaimer}`
                     </div>
                   )}
                   <div style={{ marginLeft: 'auto', textAlign: 'right' }}>
-                    <div style={{ fontSize: 12, color: result.seriousness === 'Grave' ? '#f87171' : '#6ee7b7', fontWeight: 700 }}>{result.seriousness}</div>
+                    <div style={{ fontSize: 12, color: result.seriousness === 'Grave' ? 'var(--badge-red-border)' : 'var(--green-mid)', fontWeight: 700 }}>{result.seriousness}</div>
                     {result.seriousness_criteria.length > 0 && (
                       <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>{result.seriousness_criteria.slice(0, 2).join(' · ')}</div>
                     )}
@@ -318,11 +318,11 @@ ${result.disclaimer}`
                 </div>
                 <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 12 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
                       <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Termo MedDRA (PT)</div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{result.meddra_term || '—'}</div>
                     </div>
-                    <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '10px 14px' }}>
+                    <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '10px 14px' }}>
                       <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>System Organ Class</div>
                       <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink-3)' }}>{result.soc || '—'}</div>
                     </div>
@@ -348,14 +348,14 @@ ${result.disclaimer}`
               </div>
 
               {/* Narrative */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>📄 Narrativa para notificação</div>
-                  <button onClick={copyReport} style={{ padding: '7px 14px', background: copied ? '#10b981' : 'var(--bg-2)', color: copied ? 'white' : 'var(--ink)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                  <button onClick={copyReport} style={{ padding: '7px 14px', background: copied ? 'var(--green)' : 'var(--bg-2)', color: copied ? 'white' : 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                     {copied ? '✓ Copiado' : '📋 Copiar tudo'}
                   </button>
                 </div>
-                <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, background: 'var(--bg-2)', padding: '12px 16px', borderRadius: 8, fontFamily: 'var(--font-mono)' }}>
+                <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, background: 'var(--bg-2)', padding: '12px 16px', borderRadius: 'var(--r-md)', fontFamily: 'var(--font-mono)' }}>
                   {result.summary}
                 </div>
                 <div style={{ marginTop: 10, fontSize: 11, color: 'var(--ink-5)', fontStyle: 'italic' }}>

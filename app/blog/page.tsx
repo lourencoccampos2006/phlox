@@ -13,107 +13,107 @@ const ARTICLES = [
     title: 'As 10 Interações Medicamentosas Mais Comuns em Portugal (e como as evitar)',
     desc: 'Varfarina + AINEs, estatinas + antibióticos, metformina + contraste — as combinações que todo o profissional precisa de saber.',
     tag: 'Interações', date: '2026-01-15', readTime: '8 min',
-    color: '#dc2626',
+    color: 'var(--red)',
   },
   {
     slug: 'dose-paracetamol-crianca',
     title: 'Dose de Paracetamol para Crianças — Tabela por Peso 2026',
     desc: 'Tabela completa por peso e idade, calculadora gratuita, e quando ir ao médico urgentemente.',
     tag: 'Pediatria', date: '2025-12-10', readTime: '5 min',
-    color: '#b45309',
+    color: 'var(--amber)',
   },
   {
     slug: 'ibuprofeno-varfarina',
     title: 'Posso Tomar Ibuprofeno com Varfarina?',
     desc: 'A combinação mais perigosa dos domicílios portugueses. Mecanismo, risco real e alternativas seguras.',
     tag: 'Interações', date: '2025-11-22', readTime: '6 min',
-    color: '#dc2626',
+    color: 'var(--red)',
   },
   {
     slug: 'metformina-alcool',
     title: 'Metformina e Álcool — O Que Realmente Acontece',
     desc: 'Risco de acidose láctica, quanto é demasiado, e o que dizer ao doente diabético que quer beber socialmente.',
     tag: 'Diabetes', date: '2026-02-01', readTime: '7 min',
-    color: '#0d6e42',
+    color: 'var(--green)',
   },
   {
     slug: 'antibioticos-em-gravidez',
     title: 'Antibióticos na Gravidez — Guia Completo por Categoria',
     desc: 'Quais são seguros, quais são proibidos, e quando o benefício supera o risco. Com tabela por classe e trimestre.',
     tag: 'Gravidez', date: '2026-02-15', readTime: '10 min',
-    color: '#7c3aed',
+    color: 'var(--roxo)',
   },
   {
     slug: 'hipericao-medicamentos',
     title: 'Hipericão (Erva de São João) — As Interações que Ninguém Conta',
     desc: 'O suplemento natural mais perigoso em Portugal. Anticonceptivos, antidepressivos, anticoagulantes — tudo interagiria.',
     tag: 'Suplementos', date: '2026-01-28', readTime: '6 min',
-    color: '#d97706',
+    color: 'var(--amber)',
   },
   {
     slug: 'medicamentos-idosos-lista-beers',
     title: 'Medicamentos a Evitar em Idosos — Critérios Beers 2024',
     desc: 'A lista actualizada dos medicamentos potencialmente inapropriados em pessoas com mais de 65 anos. Com alternativas.',
     tag: 'Geriatria', date: '2026-03-01', readTime: '9 min',
-    color: '#1d4ed8',
+    color: 'var(--ink-2)',
   },
   {
     slug: 'ajuste-dose-insuficiencia-renal',
     title: 'Como Ajustar a Dose na Insuficiência Renal — Guia Prático',
     desc: 'Fórmulas de Cockcroft-Gault e CKD-EPI, os fármacos que mais requerem ajuste, e como calcular rapidamente.',
     tag: 'Renal', date: '2026-02-20', readTime: '8 min',
-    color: '#0891b2',
+    color: 'var(--green)',
   },
   {
     slug: 'organizar-medicacao-idoso',
     title: 'Como Organizar a Medicação de um Idoso em Casa',
     desc: 'Guia prático para cuidadores: um sistema simples para nunca trocar, falhar ou repetir tomas. Caixa semanal, gatilhos e lembretes.',
     tag: 'Cuidadores', date: '2026-06-15', readTime: '7 min',
-    color: '#b45309',
+    color: 'var(--amber)',
   },
   {
     slug: 'sinais-desidratacao-idosos',
     title: 'Sinais de Desidratação em Idosos — O Que Vigiar',
     desc: 'Sinais precoces e de alarme, quanto deve beber por dia, quando há mais risco e quando é urgente. Para cuidadores e famílias.',
     tag: 'Cuidar de idosos', date: '2026-06-15', readTime: '6 min',
-    color: '#0e7490',
+    color: 'var(--green-3)',
   },
   {
     slug: 'como-ler-receita-medica',
     title: 'Como Ler uma Receita Médica em Portugal',
     desc: 'DCI, posologia "1+0+1", a receita eletrónica do SNS, o código de dispensa e a comparticipação — tudo explicado em linguagem simples.',
     tag: 'Guia prático', date: '2026-06-20', readTime: '7 min',
-    color: '#1d4ed8',
+    color: 'var(--ink-2)',
   },
   {
     slug: 'medicamentos-sem-receita-cuidados',
     title: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar',
     desc: 'Paracetamol com ibuprofeno, antiácidos, xaropes para a tosse, álcool — o que é seguro em casa e quando a automedicação se torna perigosa.',
     tag: 'Segurança', date: '2026-06-18', readTime: '8 min',
-    color: '#0d6e42',
+    color: 'var(--green)',
   },
   {
     slug: 'como-guardar-medicamentos-casa',
     title: 'Como Guardar Medicamentos em Casa (e Quando Deitar Fora)',
     desc: 'O erro de os ter na casa de banho, o que precisa de frigorífico, a validade depois de aberto e como deitar fora com segurança (VALORMED).',
     tag: 'Em casa', date: '2026-06-16', readTime: '6 min',
-    color: '#0e7490',
+    color: 'var(--green-3)',
   },
 ]
 
 const TAG_COLORS: Record<string, { bg: string; color: string }> = {
-  'Interações':  { bg: '#fee2e2', color: '#dc2626' },
-  'Pediatria':   { bg: '#fffbeb', color: '#b45309' },
-  'Diabetes':    { bg: '#f0fdf5', color: '#0d6e42' },
-  'Gravidez':    { bg: '#faf5ff', color: '#7c3aed' },
-  'Suplementos': { bg: '#fefce8', color: '#d97706' },
-  'Geriatria':   { bg: '#eff6ff', color: '#1d4ed8' },
-  'Renal':       { bg: '#ecfeff', color: '#0891b2' },
-  'Cuidadores':  { bg: '#fffbeb', color: '#b45309' },
-  'Cuidar de idosos': { bg: '#ecfeff', color: '#0e7490' },
-  'Guia prático': { bg: '#eff6ff', color: '#1d4ed8' },
-  'Segurança':   { bg: '#f0fdf5', color: '#0d6e42' },
-  'Em casa':     { bg: '#ecfeff', color: '#0e7490' },
+  'Interações':  { bg: 'var(--badge-red-bg)', color: 'var(--red)' },
+  'Pediatria':   { bg: 'var(--badge-amber-bg)', color: 'var(--amber)' },
+  'Diabetes':    { bg: 'var(--green-light)', color: 'var(--green)' },
+  'Gravidez':    { bg: 'var(--roxo-claro)', color: 'var(--roxo)' },
+  'Suplementos': { bg: 'var(--badge-amber-bg)', color: 'var(--amber)' },
+  'Geriatria':   { bg: 'var(--bg-2)', color: 'var(--ink-2)' },
+  'Renal':       { bg: 'var(--green-light)', color: 'var(--green)' },
+  'Cuidadores':  { bg: 'var(--badge-amber-bg)', color: 'var(--amber)' },
+  'Cuidar de idosos': { bg: 'var(--green-light)', color: 'var(--green-3)' },
+  'Guia prático': { bg: 'var(--bg-2)', color: 'var(--ink-2)' },
+  'Segurança':   { bg: 'var(--green-light)', color: 'var(--green)' },
+  'Em casa':     { bg: 'var(--green-light)', color: 'var(--green-3)' },
 }
 
 export default function BlogIndexPage() {
@@ -130,11 +130,11 @@ export default function BlogIndexPage() {
           const tc = TAG_COLORS[a.tag] || { bg: 'var(--bg-2)', color: 'var(--ink-3)' }
           return (
             <Link key={a.slug} href={`/blog/${a.slug}`}
-              style={{ display: 'flex', flexDirection: 'column', background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', textDecoration: 'none', transition: 'transform 0.12s, box-shadow 0.12s', borderTop: `3px solid ${a.color}` }}
+              style={{ display: 'flex', flexDirection: 'column', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', textDecoration: 'none', transition: 'transform 0.12s, box-shadow 0.12s', borderTop: `3px solid ${a.color}` }}
               className="blog-card">
               <div style={{ padding: '22px 22px 18px', flex: 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: tc.color, background: tc.bg, padding: '2px 8px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{a.tag}</span>
+                  <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: tc.color, background: tc.bg, padding: '2px 8px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>{a.tag}</span>
                   <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>{a.readTime}</span>
                 </div>
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, lineHeight: 1.35, marginBottom: 10, letterSpacing: '-0.01em' }}>{a.title}</h2>

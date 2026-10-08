@@ -39,10 +39,10 @@ export function computeRiskScore(findings: Finding[], trendSignals: TrendSignal[
 }
 
 export const RISK_LEVEL_META: Record<RiskLevel, { label: string; color: string; bg: string; border: string }> = {
-  critical: { label: 'Precisa de atenção', color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
-  warning:  { label: 'A acompanhar',       color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-  info:     { label: 'Tudo sob controlo',  color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
-  ok:       { label: 'Tudo bem',           color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  critical: { label: 'Precisa de atenção', color: 'var(--red)', bg: 'var(--red-light)', border: 'var(--badge-red-border)' },
+  warning:  { label: 'A acompanhar',       color: 'var(--amber)', bg: 'var(--amber-light)', border: 'var(--badge-amber-border)' },
+  info:     { label: 'Tudo sob controlo',  color: 'var(--blue)', bg: 'var(--blue-light)', border: 'var(--blue-light)' },
+  ok:       { label: 'Tudo bem',           color: 'var(--green-3)', bg: 'var(--green-light)', border: 'var(--green-mid)' },
 }
 
 export interface RiskSnapshotRow { snapshot_date: string; score: number; level: RiskLevel }

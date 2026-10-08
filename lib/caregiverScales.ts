@@ -39,10 +39,10 @@ export function zarit12Band(total: number): 'sem_sobrecarga' | 'sobrecarga_leve'
 }
 
 export const ZARIT12_BAND_META = {
-  sem_sobrecarga:        { label: 'Sem sobrecarga',         color: '#16a34a', advice: 'O nível atual é sustentável. Continue a cuidar de si — sono, exercício e tempo pessoal.' },
-  sobrecarga_leve:       { label: 'Sobrecarga ligeira',     color: '#d97706', advice: 'Sinais iniciais. Procurar pequenas pausas regulares e identificar tarefas que possa delegar.' },
-  sobrecarga_moderada:   { label: 'Sobrecarga moderada',    color: '#ea580c', advice: 'Importa pedir ajuda formal ou informal. Grupos de apoio e respite care fazem diferença real.' },
-  sobrecarga_grave:      { label: 'Sobrecarga grave',       color: '#dc2626', advice: 'Risco para a sua saúde e a do familiar. Falar com o médico de família, assistente social ou serviço de cuidados paliativos. Apoio profissional não é luxo.' },
+  sem_sobrecarga:        { label: 'Sem sobrecarga',         color: 'var(--green)', advice: 'O nível atual é sustentável. Continue a cuidar de si — sono, exercício e tempo pessoal.' },
+  sobrecarga_leve:       { label: 'Sobrecarga ligeira',     color: 'var(--amber)', advice: 'Sinais iniciais. Procurar pequenas pausas regulares e identificar tarefas que possa delegar.' },
+  sobrecarga_moderada:   { label: 'Sobrecarga moderada',    color: 'var(--amber)', advice: 'Importa pedir ajuda formal ou informal. Grupos de apoio e respite care fazem diferença real.' },
+  sobrecarga_grave:      { label: 'Sobrecarga grave',       color: 'var(--red)', advice: 'Risco para a sua saúde e a do familiar. Falar com o médico de família, assistente social ou serviço de cuidados paliativos. Apoio profissional não é luxo.' },
 }
 
 // ── Reconciliation diff ──────────────────────────────────────────────────────

@@ -11,13 +11,14 @@ import { useEffect, useState, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
+import Icon from '@/components/Icon'
 
 interface Req { id: string; patient_id: string; kind: string; content: string; status: string; created_at: string }
 
 const KIND_META: Record<string, { label: string; icon: string; c: string }> = {
-  pedido: { label: 'Pedido', icon: '🙋', c: '#1d4ed8' },
-  observacao: { label: 'Observação', icon: '👁', c: '#475569' },
-  queixa: { label: 'Queixa', icon: '⚠', c: '#b45309' },
+  pedido: { label: 'Pedido', icon: 'user', c: 'var(--ink-2)' },
+  observacao: { label: 'Observação', icon: 'search', c: 'var(--ink-3)' },
+  queixa: { label: 'Queixa', icon: '⚠', c: 'var(--amber)' },
 }
 
 export default function MuralPedidos() {
@@ -68,33 +69,33 @@ export default function MuralPedidos() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 12, color: '#94a3b8' }}>Pedidos e observações de todos os utentes — regista-se na ficha de cada um, aparece aqui para a equipa toda ver.</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Pedidos e observações de todos os utentes — regista-se na ficha de cada um, aparece aqui para a equipa toda ver.</div>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setShowResolved(false)} style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${!showResolved ? '#0d9488' : '#e5e7eb'}`, background: !showResolved ? '#f0fdfa' : 'white', color: !showResolved ? '#0d9488' : '#64748b', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Em aberto {openCount > 0 ? `(${openCount})` : ''}</button>
-          <button onClick={() => setShowResolved(true)} style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${showResolved ? '#0d9488' : '#e5e7eb'}`, background: showResolved ? '#f0fdfa' : 'white', color: showResolved ? '#0d9488' : '#64748b', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Resolvidos</button>
+          <button onClick={() => setShowResolved(false)} style={{ padding: '6px 12px', borderRadius: 'var(--r-xl)', border: `1.5px solid ${!showResolved ? 'var(--green-3)' : 'var(--border)'}`, background: !showResolved ? 'var(--green-light)' : 'white', color: !showResolved ? 'var(--green-3)' : 'var(--ink-4)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Em aberto {openCount > 0 ? `(${openCount})` : ''}</button>
+          <button onClick={() => setShowResolved(true)} style={{ padding: '6px 12px', borderRadius: 'var(--r-xl)', border: `1.5px solid ${showResolved ? 'var(--green-3)' : 'var(--border)'}`, background: showResolved ? 'var(--green-light)' : 'white', color: showResolved ? 'var(--green-3)' : 'var(--ink-4)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Resolvidos</button>
         </div>
       </div>
 
       {loading ? (
-        <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 30 }}>A carregar…</div>
+        <div style={{ color: 'var(--ink-5)', fontSize: 13, textAlign: 'center', padding: 30 }}>A carregar…</div>
       ) : shown.length === 0 ? (
-        <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: 40 }}>{showResolved ? 'Sem pedidos resolvidos ainda.' : 'Sem pedidos ou observações em aberto.'}</div>
+        <div style={{ color: 'var(--ink-5)', fontSize: 13, textAlign: 'center', padding: 40 }}>{showResolved ? 'Sem pedidos resolvidos ainda.' : 'Sem pedidos ou observações em aberto.'}</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {shown.map(it => {
             const m = KIND_META[it.kind] || KIND_META.pedido
             return (
-              <div key={it.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderLeft: `3px solid ${m.c}`, borderRadius: 10, padding: '10px 13px', opacity: it.status === 'resolvido' ? 0.6 : 1 }}>
+              <div key={it.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${m.c}`, borderRadius: 'var(--r-lg)', padding: '10px 13px', opacity: it.status === 'resolvido' ? 0.6 : 1 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: m.c }}>{m.icon} {m.label}{it.status === 'em_curso' ? ' · em curso' : ''}</span>
-                  <span style={{ fontSize: 10.5, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{new Date(it.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: m.c }}><Icon name={m.icon} size={15} />  {m.label}{it.status === 'em_curso' ? ' · em curso' : ''}</span>
+                  <span style={{ fontSize: 10.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{new Date(it.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#0b1120', marginTop: 4 }}>{names[it.patient_id] || 'Utente'}</div>
-                <div style={{ fontSize: 13.5, color: '#1e293b', lineHeight: 1.5, marginTop: 2 }}>{it.content}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginTop: 4 }}>{names[it.patient_id] || 'Utente'}</div>
+                <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.5, marginTop: 2 }}>{it.content}</div>
                 {it.status !== 'resolvido' && (
                   <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                    {it.status === 'aberto' && <button onClick={() => setStatus(it, 'em_curso')} style={{ fontSize: 12, fontWeight: 600, color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Marcar em curso</button>}
-                    <button onClick={() => setStatus(it, 'resolvido')} style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resolver ✓</button>
+                    {it.status === 'aberto' && <button onClick={() => setStatus(it, 'em_curso')} style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Marcar em curso</button>}
+                    <button onClick={() => setStatus(it, 'resolvido')} style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resolver ✓</button>
                   </div>
                 )}
               </div>

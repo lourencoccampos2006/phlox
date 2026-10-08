@@ -124,7 +124,7 @@ export default function VisualizadorPDF({ dados, url, nome }: Props) {
 
   if (erro) {
     return (
-      <div style={{ padding: '28px 20px', textAlign: 'center', color: '#cbd5e1', fontSize: 13, lineHeight: 1.6 }}>
+      <div style={{ padding: '28px 20px', textAlign: 'center', color: 'var(--border-2)', fontSize: 13, lineHeight: 1.6 }}>
         Não consegui mostrar este PDF aqui.
         {url && (
           <>
@@ -143,7 +143,7 @@ export default function VisualizadorPDF({ dados, url, nome }: Props) {
       {paginas > 1 && (
         <div style={{
           position: 'sticky', top: 0, zIndex: 1,
-          background: 'rgba(11,17,32,0.92)', color: '#cbd5e1',
+          background: 'rgba(11,17,32,0.92)', color: 'var(--border-2)',
           fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.1em',
           textTransform: 'uppercase', padding: '6px 12px', textAlign: 'center',
         }}>
@@ -152,7 +152,7 @@ export default function VisualizadorPDF({ dados, url, nome }: Props) {
       )}
       <div ref={caixa} style={{ padding: 10 }} />
       {aCarregar && (
-        <div style={{ padding: '24px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+        <div style={{ padding: '24px 20px', textAlign: 'center', color: 'var(--ink-5)', fontSize: 13 }}>
           A abrir o documento…
         </div>
       )}

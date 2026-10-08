@@ -32,7 +32,7 @@ export default function ArtigoCredibilidade({
         marginTop: 48,
         padding: '22px 24px',
         border: '1px solid var(--border)',
-        borderRadius: 3,
+        borderRadius: 'var(--r-sm)',
         background: 'var(--bg-2)',
         fontFamily: 'var(--font-sans)',
         fontSize: 13.5,

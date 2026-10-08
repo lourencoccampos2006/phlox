@@ -58,6 +58,15 @@ import {
 } from '@/lib/oDia'
 import { carregarODia, progressoDoDia } from '@/lib/carregarODia'
 import { resumoDeQuemEstaFora, type AusenciaDoUtente } from '@/lib/ausenciasDoUtente'
+// ── O DESENHO ESCOLHIDO (2026-10-07) ──────────────────────────────────────
+// Houve quatro em prova, por `?desenho=a|b|c|d`. O Fernando escolheu o D — «a
+// mesa de trabalho» — e os outros tres foram apagados, com o interruptor.
+//
+// Um interruptor de desenho no produto e uma coisa que fica la para sempre:
+// alguem acaba por abrir a variante errada, reportar um defeito que so existe
+// nela, e perde-se uma tarde.
+import DesenhoD from '@/components/o-dia/DesenhoD'
+import type { DadosDoDia } from '@/components/o-dia/tipos'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -106,6 +115,7 @@ export default function ODia() {
   const [indisponivel, setIndisponivel] = useState(false)
   const [aMarcar, setAMarcar] = useState<Set<string>>(new Set())
   const [aExplicar, setAExplicar] = useState<Tarefa | null>(null)
+
 
   // ── O relógio ─────────────────────────────────────────────────────────────
   // A linha de «agora» tem de andar, senão ao fim de meia hora está a apontar
@@ -374,6 +384,40 @@ export default function ODia() {
   // nenhum, «por hora» é uma pilha só com outro nome — e mais vale dizê-lo.
   const comHora = useMemo(() => visiveis.filter(t => t.hora).length, [visiveis])
 
+  // ── Os dois desenhos em prova ───────────────────────────────────────────
+  const dados: DadosDoDia = {
+    pessoasPlural: cfg.personNounPlural,
+    data: dataPorExtenso(),
+    agora,
+    turnos, turno, aoMudarTurno: (t) => { setTurno(t); setTurnoTocado(true) },
+    vista, aoMudarVista: setVista,
+    soMeu, aoMudarSoMeu: setSoMeu, meuTotal,
+    grupos, visiveis, comHora,
+    progresso, linhaResumo, linhaDeQuemEstaFora,
+    carregando, erro,
+    marcar, aMarcar, aoExplicar: setAExplicar,
+    podeEditar: scope.canEdit,
+  }
+
+  // A caixa do «nao foi feito» e a mesma nos tres desenhos: e um modal, nao
+  // faz parte do layout, e duplica-la era arranjar maneira de as duas versoes
+  // divergirem naquilo que nao esta em prova.
+  const caixaDoNaoPrestado = aExplicar ? (
+    <RegistarNaoPrestado
+      patientId={aExplicar.patientId}
+      nome={aExplicar.nome}
+      area={aExplicar.area}
+      oQue={aExplicar.oQue}
+      origem="o-dia"
+      turno={aExplicar.turno}
+      aoFechar={() => setAExplicar(null)}
+      aoGravar={(_frase, motivo) => {
+        const chave = aExplicar.chave
+        setTarefas(p => p.map(x => x.chave === chave ? { ...x, naoPrestado: { motivo, nota: null } } : x))
+      }}
+    />
+  ) : null
+
   if (indisponivel) {
     return (
       <div style={{ padding: 'var(--space-14)', maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
@@ -388,196 +432,10 @@ export default function ODia() {
   }
 
   return (
-    <div style={{ padding: 'var(--space-11) clamp(16px,3vw,32px) var(--space-18)', maxWidth: 880, margin: '0 auto' }}>
-
-      {/* ── O cabeçalho ──────────────────────────────────────────────────── */}
-      <header style={{ marginBottom: 'var(--space-9)' }}>
-        <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-          <span style={{ ...MONO, color: cor }}>O dia</span>
-          <span style={{ ...MONO, fontSize: 10 }}>{dataPorExtenso()}</span>
-        </div>
-
-        <div style={{
-          display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between',
-          gap: 'var(--space-7)', flexWrap: 'wrap', marginTop: 'var(--space-4)',
-        }}>
-          <div style={{ minWidth: 0 }}>
-            <h1 style={{
-              fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,38px)', fontWeight: 500,
-              color: 'var(--ink)', letterSpacing: '-0.025em', margin: 0, lineHeight: 1.1,
-            }}>{ROTULO_TURNO[turno] || 'Agora'}</h1>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: 'var(--space-5) 0 0', lineHeight: 1.55 }}>
-              {carregando ? 'A juntar o que há para fazer…' : linhaResumo}
-            </p>
-          </div>
-
-          {/* O anel. É a mesma percentagem que aparece no /inicio — o número
-              vem do mesmo sítio, e por isso não há forma de discordarem. Passou
-              a anel porque a barra ocupava uma linha inteira só para dizer um
-              número, e aqui ao lado do título diz o mesmo sem roubar altura. */}
-          {progresso && <Anel pct={progresso.pct} cor={cor} />}
-        </div>
-      </header>
-
-      {erro && (
-        <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
-          fontSize: 13, fontWeight: 600,
-        }}>{erro}</div>
-      )}
-
-      {/* Quem está fora. Por cima da lista e nunca escondido: as tarefas
-          destas pessoas não estão em baixo, e isso tem de se ver. */}
-      {!carregando && linhaDeQuemEstaFora && (
-        <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: 'var(--bg-2)', border: '1px solid var(--border)',
-          fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5,
-        }}>
-          {linhaDeQuemEstaFora}{' '}
-          <span style={{ color: 'var(--ink-5)' }}>
-            O que fosse para lhes fazer não aparece em baixo.
-          </span>
-        </div>
-      )}
-
-      {/* ── Turno, vista, e o que é meu ──────────────────────────────────── */}
-      <div style={{
-        display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap',
-        justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-8)',
-      }}>
-        <div style={{ display: 'flex', gap: 5 }}>
-          {turnos.map(s => {
-            const on = turno === s
-            return (
-              <button key={s} onClick={() => { setTurnoTocado(true); setTurno(s) }} style={{
-                minHeight: 40, padding: '0 15px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-                border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
-                background: on ? cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-              }}>{ROTULO_TURNO[s] || s}</button>
-            )
-          })}
-        </div>
-
-        {/* «Só o que é meu» — a lista de quem está de turno, e não a da casa.
-            Um auxiliar com quinze coisas suas numa página de setenta passa o
-            turno a procurar as suas. Só aparece quando há alguma coisa
-            atribuída: um botão que filtra para zero não ajuda ninguém. */}
-        {meuTotal > 0 && (
-          <button
-            onClick={() => setSoMeu(v => !v)}
-            aria-pressed={soMeu}
-            style={{
-              minHeight: 40, padding: '0 14px', borderRadius: 999, cursor: 'pointer',
-              border: `1.5px solid ${soMeu ? 'var(--ink)' : 'var(--border-2)'}`,
-              background: soMeu ? 'var(--ink)' : 'transparent',
-              color: soMeu ? '#fff' : 'var(--ink-3)',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-              display: 'flex', alignItems: 'center', gap: 7,
-            }}>
-            Só o que é meu
-            <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-              padding: '2px 6px', borderRadius: 999,
-              background: soMeu ? 'rgba(255,255,255,.22)' : 'var(--bg-3)',
-              color: soMeu ? '#fff' : 'var(--ink-3)',
-            }}>{meuTotal}</span>
-          </button>
-        )}
-      </div>
-
-      <div style={{
-        display: 'flex', borderRadius: 'var(--r-md)', overflow: 'hidden',
-        border: '1.5px solid var(--border-2)', width: 'fit-content',
-        maxWidth: '100%', marginBottom: 'var(--space-9)',
-      }}>
-        {([['hora', 'Por hora'], ['pessoa', `Por ${cfg.personNoun.toLowerCase()}`], ['tarefa', 'Por tarefa']] as [Vista, string][]).map(([v, rot]) => {
-          const on = vista === v
-          return (
-            <button key={v} onClick={() => setVista(v)} style={{
-              minHeight: 40, padding: '0 14px', border: 'none', cursor: 'pointer',
-              background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-            }}>{rot}</button>
-          )
-        })}
-      </div>
-
-      {/* ── A lista ──────────────────────────────────────────────────────── */}
-      {carregando ? (
-        <div style={{ padding: 'var(--space-12) 0', color: 'var(--ink-4)', fontSize: 14 }}>A carregar…</div>
-      ) : grupos.length === 0 ? (
-        soMeu ? (
-          <Vazio titulo="Nada seu neste turno">
-            Não há nada atribuído a si em {(ROTULO_TURNO[turno] || '').toLowerCase()}.
-            Desligue «Só o que é meu» para ver o turno todo.
-          </Vazio>
-        ) : (
-          <Vazio titulo={`Nada marcado para ${(ROTULO_TURNO[turno] || '').toLowerCase()}`}>
-            O dia enche-se sozinho a partir da medicação, das atividades, dos cuidados de
-            rotina, dos pedidos de apoio e das ações do plano de cada pessoa. Se está vazio,
-            é porque ainda não há nada escrito em nenhum desses sítios para agora.
-          </Vazio>
-        )
-      ) : (
-        <>
-          {/* Quando ninguém marcou horas, «por hora» é uma pilha com outro
-              nome. Mais vale dizê-lo, e dizer onde se marca — senão a vista
-              nova parece avariada e ninguém volta a abri-la. */}
-          {vista === 'hora' && comHora === 0 && (
-            <div style={{
-              marginBottom: 'var(--space-7)', padding: '12px 14px',
-              borderRadius: 'var(--r-md)', background: 'var(--bg-2)',
-              border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55,
-            }}>
-              Ainda não há horas marcadas. Numa toma em{' '}
-              <Link href="/mar" style={{ color: cor, fontWeight: 700 }}>Medicação</Link>
-              {' '}ou num cuidado de rotina na ficha da pessoa, marque a hora — e ele passa a
-              aparecer aqui no sítio certo. O que não tiver hora continua a aparecer no turno.
-            </div>
-          )}
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
-            {vista === 'hora'
-              ? <LinhaDoTempo
-                  grupos={grupos} agora={agora} cor={cor}
-                  aMarcar={aMarcar} marcar={marcar} explicar={t => setAExplicar(t)}
-                  supabase={supabase} orgId={scope.orgId} euId={user?.id}
-                  podeEditar={scope.canEdit} atribuir={atribuir}
-                />
-              : grupos.map(g => (
-                  <CartaoGrupo
-                    key={g.chave} g={g} cor={cor} vista={vista}
-                    aMarcar={aMarcar} marcar={marcar} explicar={t => setAExplicar(t)}
-                    supabase={supabase} orgId={scope.orgId} euId={user?.id}
-                    podeEditar={scope.canEdit} atribuir={atribuir}
-                  />
-                ))}
-          </div>
-        </>
-      )}
-
-      {/* Porque é que não foi feito. A mesma folha do registo do dia e das
-          atividades — é o que permite perguntar depois «o que é que esta
-          pessoa tem recusado» e receber uma resposta que atravessa as áreas. */}
-      {aExplicar && (
-        <RegistarNaoPrestado
-          patientId={aExplicar.patientId}
-          nome={aExplicar.nome}
-          area={aExplicar.area}
-          oQue={aExplicar.oQue}
-          origem="o-dia"
-          turno={aExplicar.turno}
-          aoFechar={() => setAExplicar(null)}
-          aoGravar={(_frase, motivo) => {
-            const chave = aExplicar.chave
-            setTarefas(p => p.map(x => x.chave === chave ? { ...x, naoPrestado: { motivo, nota: null } } : x))
-          }}
-        />
-      )}
-    </div>
+    <>
+      <DesenhoD d={dados} />
+      {caixaDoNaoPrestado}
+    </>
   )
 }
 
@@ -790,10 +648,10 @@ function LinhaTarefa({
         disabled={ocupada || !!t.naoPrestado}
         aria-label={t.feito ? `Desmarcar ${t.oQue}` : `Marcar ${t.oQue} como feito`}
         style={{
-          width: 30, height: 30, flexShrink: 0, borderRadius: 9, cursor: t.naoPrestado ? 'default' : 'pointer',
+          width: 30, height: 30, flexShrink: 0, borderRadius: 'var(--r-lg)', cursor: t.naoPrestado ? 'default' : 'pointer',
           border: `1.5px solid ${t.feito ? cor : 'var(--border-2)'}`,
           background: t.feito ? cor : 'transparent',
-          color: '#fff', fontSize: 15, lineHeight: 1, fontFamily: 'inherit',
+          color: 'var(--bg)', fontSize: 15, lineHeight: 1, fontFamily: 'inherit',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           opacity: ocupada ? 0.5 : 1,
         }}>{t.feito ? '✓' : ''}</button>

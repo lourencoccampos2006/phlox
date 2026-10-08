@@ -17,6 +17,19 @@
 import type { InstitutionType } from './useClinicPrefs'
 
 // Cada bloco do cockpit é uma peça com dados reais. O id liga a um renderer.
+/**
+ * O verde do Phlox, em hexadecimal.
+ *
+ * A fonte normal da cor e o token `--green` do globals.css. Isto existe para
+ * os sitios onde um token NAO SERVE, e sao dois, ambos reais:
+ *  - um `<input type="color">`, que so aceita um hexadecimal literal;
+ *  - o HTML de um email ou de uma folha de impressao, que correm fora da
+ *    folha de estilos do site e por isso nao conhecem variavel nenhuma.
+ *
+ * Escrito uma vez aqui, para a cor nao ter duas versoes no dia em que mudar.
+ */
+export const VERDE_DA_CASA = 'var(--green-3)'
+
 export type BlockId =
   | 'day_overview'      // "o dia de hoje" — resumo vivo (centro de dia / lar)
   | 'attendance'        // presenças do dia (quem veio / falta)
@@ -90,12 +103,12 @@ export interface InstitutionBlueprint {
 
 // Helpers de ferramentas (nomes CLAROS, reutilizáveis) ────────────────────────
 const T = {
-  people: (label: string, hint: string): ToolEntry => ({ href: '/patients', label, hint, icon: '🧑‍🤝‍🧑' }),
+  people: (label: string, hint: string): ToolEntry => ({ href: '/patients', label, hint, icon: 'users' }),
   // O Dia junta num ecrã o que estava em cinco: a medicação, as atividades, os
   // pedidos de apoio, os reforços alimentares e as ações do plano de cada
   // pessoa. As cinco continuam a existir — esta não as substitui, dá-lhes uma
   // porta comum. Fica à frente de todas porque é por onde um turno começa.
-  oDia:    { href: '/o-dia', label: 'O dia', hint: 'O que há para fazer agora — por pessoa ou por tarefa', icon: '🕐' },
+  oDia:    { href: '/o-dia', label: 'O dia', hint: 'O que há para fazer agora — por pessoa ou por tarefa', icon: 'clock' },
   // A peca que faz a informacao atravessar a porta quando a equipa muda. Fica
   // ao lado d'O Dia porque e o outro extremo do mesmo turno: um diz o que ha
   // para fazer, o outro diz o que ficou por dizer.
@@ -103,58 +116,58 @@ const T = {
   // Tudo o resto no Phlox pendura-se numa pessoa; isto nao se pendura em
   // ninguem, e e metade do dia de trabalho de um lar. (Da pesquisa ao Ankira:
   // era o unico dos doze modulos deles sem nada do nosso lado.)
-  casa: { href: '/casa', label: 'Serviços gerais', hint: 'Limpeza, lavandaria e as temperaturas que a ASAE pede', icon: '🧹' },
-  passagem: { href: '/passagem', label: 'Passagem de turno', hint: 'O que o turno que sai deixa ao que entra — monta-se sozinha', icon: '🔁' },
-  meds:    { href: '/mar', label: 'Medicação a dar', hint: 'Marca o que foi tomado, por pessoa e horário', icon: '💊' },
-  activities: { href: '/activities', label: 'Atividades', hint: 'Plano do dia e quem participou', icon: '🎯' },
-  family:  { href: '/family', label: 'Famílias', hint: 'Mostra às famílias como correu o dia', icon: '👨‍👩‍👧' },
-  incidents: { href: '/incidents', label: 'Ocorrências', hint: 'Regista quedas, recusas e outros eventos', icon: '⚠️' },
-  careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: '📝' },
-  assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: '📐' },
-  team:    { href: '/equipa?tab=escalas', label: 'Escalas', hint: 'Quem está e turnos', icon: '🗓️' },
-  staff:   { href: '/painel-dono', label: 'Painel administrativo', hint: 'A casa inteira: quem cá está, o cuidado, a equipa, o dinheiro e o que a inspeção pede', icon: '🏛️' },
-  radar:   { href: '/radar', label: 'O que merece atenção', hint: 'O que a equipa registou que saiu do padrão + pedidos dos utentes', icon: '📋' },
-  historico: { href: '/historico', label: 'Registos', hint: 'Quem fez o quê, sobre quem e quando — enche-se sozinho', icon: '📓' },
-  documents: { href: '/documentos', label: 'Documentos', hint: 'Cofre de documentos da instituição', icon: '📄' },
-  quality: { href: '/painel-dono?tab=qualidade', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: '📊' },
+  casa: { href: '/casa', label: 'Serviços gerais', hint: 'Limpeza, lavandaria e as temperaturas que a ASAE pede', icon: 'package' },
+  passagem: { href: '/passagem', label: 'Passagem de turno', hint: 'O que o turno que sai deixa ao que entra — monta-se sozinha', icon: 'refresh' },
+  meds:    { href: '/mar', label: 'Medicação a dar', hint: 'Marca o que foi tomado, por pessoa e horário', icon: 'pill' },
+  activities: { href: '/activities', label: 'Atividades', hint: 'Plano do dia e quem participou', icon: 'target' },
+  family:  { href: '/family', label: 'Famílias', hint: 'Mostra às famílias como correu o dia', icon: 'family' },
+  incidents: { href: '/incidents', label: 'Ocorrências', hint: 'Regista quedas, recusas e outros eventos', icon: 'alert' },
+  careLog: { href: '/care-log', label: 'Registo do dia', hint: 'Refeições, humor, hidratação, atividades — por pessoa', icon: 'note' },
+  assessments: { href: '/assessments', label: 'Avaliações', hint: 'Escalas (Barthel, MNA…) e seguimento', icon: 'calculator' },
+  team:    { href: '/equipa?tab=escalas', label: 'Escalas', hint: 'Quem está e turnos', icon: 'calendar' },
+  staff:   { href: '/painel-dono', label: 'Painel administrativo', hint: 'A casa inteira: quem cá está, o cuidado, a equipa, o dinheiro e o que a inspeção pede', icon: 'building' },
+  radar:   { href: '/radar', label: 'O que merece atenção', hint: 'O que a equipa registou que saiu do padrão + pedidos dos utentes', icon: 'clipboard' },
+  historico: { href: '/historico', label: 'Registos', hint: 'Quem fez o quê, sobre quem e quando — enche-se sozinho', icon: 'book' },
+  documents: { href: '/documentos', label: 'Documentos', hint: 'Cofre de documentos da instituição', icon: 'note' },
+  quality: { href: '/painel-dono?tab=qualidade', label: 'Qualidade', hint: 'Indicadores e conformidade do serviço', icon: 'chart' },
   // A Segurança Social pede que a satisfação dos utentes e das famílias seja
   // medida uma vez por ano, analisada, e que daí saiam ações de melhoria. As
   // respostas são anónimas por construção — ver o cabeçalho do sprint178.
-  inqueritos: { href: '/inqueritos', label: 'Inquéritos de satisfação', hint: 'A utentes, famílias e equipa — em papel ou no ecrã, sempre anónimos', icon: '🗳️' },
-  meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: '🔍' },
-  calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: '🧮' },
-  reconcile: { href: '/reconciliacao', label: 'Conferir medicação', hint: 'Compara a medicação de casa com a do centro', icon: '🔄' },
-  stock:   { href: '/stock', label: 'Stock e validades', hint: 'Existências, lotes e prazos', icon: '📦' },
+  inqueritos: { href: '/inqueritos', label: 'Inquéritos de satisfação', hint: 'A utentes, famílias e equipa — em papel ou no ecrã, sempre anónimos', icon: 'inbox' },
+  meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: 'search' },
+  calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: 'calculator' },
+  reconcile: { href: '/reconciliacao', label: 'Conferir medicação', hint: 'Compara a medicação de casa com a do centro', icon: 'refresh' },
+  stock:   { href: '/stock', label: 'Stock e validades', hint: 'Existências, lotes e prazos', icon: 'package' },
   // Ficaram de fora do blueprint até 2026-09-16 — existiam, eram mantidas, e
   // não apareciam em lado nenhum do lado institucional. Ver scripts/check-escondidas.mjs.
-  ruturas: { href: '/vigia-ruturas', label: 'Ruturas de medicamentos', hint: 'Cruza a medicação da casa com a lista do INFARMED', icon: '⚠️' },
-  migrar:  { href: '/migrar', label: 'Trazer dados de outro sistema', hint: 'Importa utentes e medicação de uma folha de cálculo', icon: '📥' },
+  ruturas: { href: '/vigia-ruturas', label: 'Ruturas de medicamentos', hint: 'Cruza a medicação da casa com a lista do INFARMED', icon: 'alert' },
+  migrar:  { href: '/migrar', label: 'Trazer dados de outro sistema', hint: 'Importa utentes e medicação de uma folha de cálculo', icon: 'inbox' },
   // Inscrição não é admissão: entre uma e outra passam meses. Isto é onde
   // ficam as pessoas nesse intervalo, e por que ordem entram (sprint165).
-  inscricoes: { href: '/inscricoes', label: 'Inscrições e lista de espera', hint: 'Quem está à espera de vaga, por ordem dos critérios do regulamento', icon: '📋' },
+  inscricoes: { href: '/inscricoes', label: 'Inscrições e lista de espera', hint: 'Quem está à espera de vaga, por ordem dos critérios do regulamento', icon: 'clipboard' },
   // O ano inteiro num ecrã. Enche-se do que já está registado — aniversários,
   // atividades, visitas, consultas, prazos, validades — mais os feriados
   // portugueses, que se movem com a Páscoa (sprint166).
-  anoTodo: { href: '/calendario-do-ano', label: 'Calendário do ano', hint: 'Doze meses de uma vez: aniversários, atividades, visitas, prazos e feriados', icon: '🗓️' },
+  anoTodo: { href: '/calendario-do-ano', label: 'Calendário do ano', hint: 'Doze meses de uma vez: aniversários, atividades, visitas, prazos e feriados', icon: 'calendar' },
   // Doze meses em números, com a IA a dizer o que merece atenção. O painel
   // administrativo responde «como está hoje»; isto responde «o que mudou».
-  estatisticas: { href: '/estatisticas', label: 'Estatísticas', hint: 'Doze meses da casa em números — para a reunião, o relatório e a inspeção', icon: '📊' },
-  appts:   { href: '/agenda', label: 'Agenda', hint: 'Marcações e consultas', icon: '📅' },
-  screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: '🧪' },
-  wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: '🩹' },
-  billing: { href: '/faturacao', label: 'Faturação', hint: 'Mensalidades, comparticipações e recibos', icon: '💶' },
-  vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: '🛡️' },
-  mural:   { href: '/equipa?tab=mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: '📣' },
-  ronda:   { href: '/ronda-guiada', label: 'Ronda coordenada', hint: 'Ronda a vários, sem repetir utentes, tudo registado', icon: '🚶' },
-  trends:  { href: '/tendencias', label: 'Tendências', hint: 'Humor, alimentação e adesão ao longo de 2-3 semanas, por pessoa', icon: '📈' },
-  refeicoes: { href: '/refeicoes', label: 'Refeições', hint: 'O que cada pessoa comeu, por refeição — toque rápido', icon: '🍽️' },
-  apoio:    { href: '/apoio-servicos', label: 'Serviços de apoio', hint: 'Roupa, transporte e outros pedidos', icon: '🧺' },
+  estatisticas: { href: '/estatisticas', label: 'Estatísticas', hint: 'Doze meses da casa em números — para a reunião, o relatório e a inspeção', icon: 'chart' },
+  appts:   { href: '/agenda', label: 'Agenda', hint: 'Marcações e consultas', icon: 'calendar' },
+  screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: 'flask' },
+  wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: 'bandage' },
+  billing: { href: '/faturacao', label: 'Faturação', hint: 'Mensalidades, comparticipações e recibos', icon: 'euro' },
+  vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: 'shield' },
+  mural:   { href: '/equipa?tab=mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: 'megaphone' },
+  ronda:   { href: '/ronda-guiada', label: 'Ronda coordenada', hint: 'Ronda a vários, sem repetir utentes, tudo registado', icon: 'route' },
+  trends:  { href: '/tendencias', label: 'Tendências', hint: 'Humor, alimentação e adesão ao longo de 2-3 semanas, por pessoa', icon: 'chart' },
+  refeicoes: { href: '/refeicoes', label: 'Refeições', hint: 'O que cada pessoa comeu, por refeição — toque rápido', icon: 'meal' },
+  apoio:    { href: '/apoio-servicos', label: 'Serviços de apoio', hint: 'Roupa, transporte e outros pedidos', icon: 'shirt' },
   // Novos 2026-08-11 — auditoria contra a lista de serviços de um centro de dia real.
-  prep:     { href: '/preparacao-medicacao', label: 'Preparação da medicação', hint: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', icon: '🗂️' },
-  psicossocial: { href: '/apoio-psicossocial', label: 'Apoio psico-social', hint: 'Notas de acompanhamento e encaminhamento a especialistas', icon: '🫂' },
-  guardiao: { href: '/guardiao', label: 'Modo Guardião', hint: 'Turnos com pouca gente: só quem precisa de atenção, por ordem de urgência', icon: '🌙' },
-  carga:    { href: '/carga', label: 'Pessoal e carga', hint: 'Onde a escala pode apertar: turnos sem gente ou abaixo do habitual desta casa', icon: '⚖️' },
-  autonomia: { href: '/autonomia', label: 'Autonomia', hint: 'Três perguntas rápidas, de vez em quando — nota quem está a precisar de mais ajuda', icon: '🚶' },
+  prep:     { href: '/preparacao-medicacao', label: 'Preparação da medicação', hint: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', icon: 'layers' },
+  psicossocial: { href: '/apoio-psicossocial', label: 'Apoio psico-social', hint: 'Notas de acompanhamento e encaminhamento a especialistas', icon: 'users' },
+  guardiao: { href: '/guardiao', label: 'Modo Guardião', hint: 'Turnos com pouca gente: só quem precisa de atenção, por ordem de urgência', icon: 'clock' },
+  carga:    { href: '/carga', label: 'Pessoal e carga', hint: 'Onde a escala pode apertar: turnos sem gente ou abaixo do habitual desta casa', icon: 'scale' },
+  autonomia: { href: '/autonomia', label: 'Autonomia', hint: 'Três perguntas rápidas, de vez em quando — nota quem está a precisar de mais ajuda', icon: 'route' },
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -166,7 +179,17 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     productName: 'O seu Centro de Dia',
     tagline: 'O dia dos utentes, as famílias tranquilas, tudo num sítio.',
     tone: 'warm',
-    accent: '#0d9488', accentSoft: '#f0fdfa',
+    // ── O ACENTO DAS RESPOSTAS SOCIAIS E O VERDE DA CASA (2026-10-07) ──────
+    // Era turquesa aqui e cor de telha no lar. Nao e uma questao de gosto: o
+    // `var(--amber)` do lar e EXATAMENTE o ambar que o sistema usa para dizer «a
+    // precisar de atencao». Num lar, a cor da marca e a cor do aviso eram a
+    // mesma — e com isso o codigo de tres estados deixava de querer dizer
+    // alguma coisa.
+    //
+    // O verde `var(--green-3)` e a cor do Phlox, nao colide com nenhum estado, e e a
+    // que o desenho aprovado usa. A farmacia, a clinica e o centro de saude
+    // ficam com as deles: sao produtos diferentes.
+    accent: 'var(--green-3)', accentSoft: 'var(--bg-3)',
     greetingLead: (n) => `Vamos a mais um dia${n ? `, ${n}` : ''}.`,
     cockpit: [
       { id: 'day_overview', size: 'hero', essential: true },
@@ -209,7 +232,9 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     productName: 'O seu Lar',
     tagline: 'Cuidar dos residentes e dar paz às famílias, com tudo registado.',
     tone: 'warm',
-    accent: '#b45309', accentSoft: '#fffbeb',
+    // Ver a nota no `day_care`: este `var(--amber)` era o mesmo valor do ambar de
+    // «a precisar de atencao».
+    accent: 'var(--green-3)', accentSoft: 'var(--bg-3)',
     greetingLead: (n) => `Bom trabalho${n ? `, ${n}` : ''}.`,
     cockpit: [
       { id: 'day_overview', size: 'hero', essential: true },
@@ -258,7 +283,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     productName: 'A sua Farmácia',
     tagline: 'O balcão, o stock e o aconselhamento, sem perder ninguém.',
     tone: 'sober',
-    accent: '#0e7490', accentSoft: '#ecfeff',
+    accent: 'var(--green-3)', accentSoft: 'var(--green-light)',
     greetingLead: (n) => `Bom dia${n ? `, ${n}` : ''}.`,
     cockpit: [
       { id: 'counter',     size: 'hero', essential: true },
@@ -279,7 +304,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     productName: 'A sua Clínica',
     tagline: 'Doentes, agenda e segurança da medicação, num fluxo limpo.',
     tone: 'sober',
-    accent: '#1d4ed8', accentSoft: '#eff6ff',
+    accent: 'var(--blue)', accentSoft: 'var(--blue-light)',
     greetingLead: (n) => `Bom dia${n ? `, ${n}` : ''}.`,
     cockpit: [
       { id: 'appointments', size: 'hero', essential: true },
@@ -300,7 +325,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     productName: 'a sua Unidade',
     tagline: 'Utentes, rastreios e agenda, com a clínica sempre à mão.',
     tone: 'sober',
-    accent: '#15803d', accentSoft: '#f0fdf4',
+    accent: 'var(--green-3)', accentSoft: 'var(--green-light)',
     greetingLead: (n) => `Bom dia${n ? `, ${n}` : ''}.`,
     cockpit: [
       { id: 'appointments', size: 'hero', essential: true },

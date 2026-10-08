@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Vazio, Aviso, ACarregar,
+  Codigo, Bandeira, Botao, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 import { TIPOS, POR_TIPO, seguimento, repeticoes, ordenarPorAtencao, type Ocorrencia,
   exigePessoa, aceitaPessoa, eDaCasa, problemaNaOcorrencia, sobreQuem, POR_GRUPO,
 } from '@/lib/ocorrencias'
@@ -52,17 +56,29 @@ interface Incident {
 const TYPE_LABELS: Record<string, string> = Object.fromEntries(TIPOS.map(t => [t.id, t.label]))
 const TYPE_ICONS: Record<string, string> = Object.fromEntries(TIPOS.map(t => [t.id, t.icone]))
 
-const SEV_STYLE: Record<string, { color: string; bg: string; border: string; label: string }> = {
-  minor:    { color: '#374151', bg: '#f9fafb', border: '#e5e7eb', label: 'Ligeiro' },
-  moderate: { color: '#92400e', bg: '#fffbeb', border: '#fde68a', label: 'Moderado' },
-  major:    { color: '#c2410c', bg: '#fff7ed', border: '#fed7aa', label: 'Grave' },
-  critical: { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5', label: 'Crítico' },
+/* ─────────────────────────────────────────────────────────────────────────
+   A GRAVIDADE SÃO QUATRO DEGRAUS, MAS NÃO QUATRO CORES
+   ─────────────────────────────────────────────────────────────────────────
+   A mesa tem três cores com significado — verde, âmbar, vermelho — e o
+   cinzento de «nada a dizer». Mais nenhuma. O «Grave» andava com um laranja
+   próprio (var(--amber)), que é uma quinta cor: quem aprendeu que o âmbar pede
+   atenção e o vermelho pede ação não sabe o que fazer com um laranja.
+
+   Os quatro degraus continuam quatro. O que os separa no fim da escala não é
+   o tom, é o PESO: «Grave» é vermelho a traço, «Crítico» é vermelho cheio.
+   Cheio só o último — e é por isso que o último se vê de longe.
+   ───────────────────────────────────────────────────────────────────────── */
+const SEV_STYLE: Record<string, { color: string; bg: string; border: string; label: string; cheio?: boolean }> = {
+  minor:    { color: 'var(--ink-3)', bg: 'var(--bg-2)', border: 'var(--border)', label: 'Ligeiro' },
+  moderate: { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', label: 'Moderado' },
+  major:    { color: 'var(--red)', bg: 'transparent', border: 'var(--red)', label: 'Grave' },
+  critical: { color: 'var(--sobre-acento)', bg: 'var(--red)', border: 'var(--red)', label: 'Crítico', cheio: true },
 }
 
 const STATUS_STYLE: Record<string, { color: string; bg: string; label: string }> = {
-  open:         { color: '#dc2626', bg: '#fee2e2', label: 'Aberto' },
-  under_review: { color: '#d97706', bg: '#fffbeb', label: 'Em revisão' },
-  closed:       { color: '#16a34a', bg: '#f0fdf4', label: 'Fechado' },
+  open:         { color: 'var(--red)', bg: 'var(--badge-red-bg)', label: 'Aberto' },
+  under_review: { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', label: 'Em revisão' },
+  closed:       { color: 'var(--green)', bg: 'var(--badge-green-bg)', label: 'Fechado' },
 }
 
 const EMPTY_FORM = {
@@ -349,21 +365,25 @@ export default function IncidentsPage() {
     return Object.values(groups).filter(g => g.length >= 2).sort((a, b) => b.length - a.length)
   })()
 
-  if (selected) {
+  /* O detalhe de uma ocorrencia. Era uma PAGINA a parte (`if (selected)
+     return`); passa a ser a coluna da direita, para nao se perder o sitio na
+     lista cada vez que se abre uma. */
+  const largo = useLargo()
+
+  const detalheDaOcorrencia = selected ? (() => {
     const ss = SEV_STYLE[selected.severity]
     const st = STATUS_STYLE[selected.status]
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-        <div className="page-container page-body" style={{ maxWidth: 720 }}>
+      <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, gap: 12, flexWrap: 'wrap' }}>
             <button onClick={() => setSelected(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-dado)', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               Voltar à lista
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => openEdit(selected)}
-              style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: '#374151', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
               Editar
             </button>
@@ -399,30 +419,30 @@ export default function IncidentsPage() {
                 footerNote: 'Relatório de ocorrência · Phlox',
               })
             }}
-              style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, color: '#374151', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+              style={{ padding: '8px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
               Imprimir relatório
             </button>
             </div>
           </div>
 
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', marginBottom: 16 }}>
             <div style={{ height: 4, background: ss.color }} />
             <div style={{ padding: '20px 24px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12, marginBottom: 16 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                    <span style={{ fontSize: 20 }}>{TYPE_ICONS[selected.type]}</span>
-                    <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{TYPE_LABELS[selected.type]}</h2>
+                    <span style={{ fontSize: 'var(--t-destaque)' }}>{TYPE_ICONS[selected.type]}</span>
+                    <h2 style={{ fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any, margin: 0 }}>{TYPE_LABELS[selected.type]}</h2>
                   </div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)' }}>
                     {selected.patient_name} · {selected.date} {selected.time && `às ${selected.time}`}
                     {selected.location && ` · ${selected.location}`}
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: ss.color, background: ss.bg, border: `1px solid ${ss.border}`, padding: '3px 10px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{ss.label}</span>
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: st.color, background: st.bg, padding: '3px 10px', borderRadius: 5, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{st.label}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: ss.color, background: ss.bg, border: `1px solid ${ss.border}`, padding: '3px 10px', borderRadius: 'var(--r)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{ss.label}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: st.color, background: st.bg, padding: '3px 10px', borderRadius: 'var(--r)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{st.label}</span>
                 </div>
               </div>
 
@@ -438,198 +458,209 @@ export default function IncidentsPage() {
             </div>
 
             <div style={{ padding: '14px 24px', borderTop: '1px solid var(--border)', background: 'var(--bg-2)', display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 12, color: 'var(--ink-4)', alignSelf: 'center', marginRight: 4 }}>Alterar estado:</span>
+              <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', alignSelf: 'center', marginRight: 4 }}>Alterar estado:</span>
               {Object.entries(STATUS_STYLE).map(([k, v]) => (
                 <button key={k} onClick={() => updateStatus(selected.id, k)}
-                  style={{ padding: '6px 14px', background: selected.status === k ? v.bg : 'white', color: selected.status === k ? v.color : 'var(--ink-4)', border: `1.5px solid ${selected.status === k ? v.color : 'var(--border)'}`, borderRadius: 6, fontSize: 12, fontWeight: selected.status === k ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.1s' }}>
+                  style={{ padding: '6px 14px', background: selected.status === k ? v.bg : 'white', color: selected.status === k ? v.color : 'var(--ink-4)', border: `1.5px solid ${selected.status === k ? v.color : 'var(--border)'}`, borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', fontWeight: selected.status === k ? 700 : 400, cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.1s' }}>
                   {v.label}
                 </button>
               ))}
             </div>
           </div>
-        </div>
-      </div>
+      </>
     )
-  }
+  })() : null
+
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body">
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+            Ocorrências
+          </span>
 
-        {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>{cfg.unitNoun} · Ocorrências</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Registo de Ocorrências</h1>
-          </div>
-          <button onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM, created_by: (user as any)?.name || '' }); setShowForm(true); setSaveError('') }}
-            style={{ padding: '10px 20px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 7 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-            Nova Ocorrência
-          </button>
-        </div>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Procurar ${personLower} ou descrição…`} aria-label="Procurar"
+            style={{ ...CAIXA, width: 240 }} />
 
-        {/* KPIs */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10, marginBottom: 24 }}>
-          {[
-            { label: 'Total', value: stats.total, color: 'var(--ink)', bg: 'white' },
-            { label: 'Em aberto', value: stats.open, color: '#dc2626', bg: '#fee2e2' },
-            { label: 'Graves/Críticos', value: stats.critical, color: '#c2410c', bg: '#fff7ed' },
-            { label: 'Quedas', value: stats.falls, color: '#1e40af', bg: '#eff6ff' },
-            { label: 'Este mês', value: stats.thisMonth, color: '#374151', bg: 'var(--bg-2)' },
-          ].map(s => (
-            <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: s.color, lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* Padrões — mesmo utente, mesmo tipo, repetido em 30 dias. */}
-        {patterns.length > 0 && (
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-            <div style={{ fontSize: 12.5, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>⚠ Padrões nos últimos 30 dias</div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {patterns.map((g, i) => (
-                <div key={i} style={{ fontSize: 13, color: '#78350f' }}>
-                  <b>{g[0].patient_name}</b> — {g.length}× {TYPE_LABELS[g[0].type]?.toLowerCase() || g[0].type} nos últimos 30 dias
-                  <button onClick={() => { setSearch(g[0].patient_name || ''); setFilterType(g[0].type) }}
-                    style={{ marginLeft: 8, fontSize: 11.5, fontWeight: 700, color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline' }}>ver todas</button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Filters */}
-        <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Pesquisar ${personLower} ou descrição...`}
-            style={{ flex: 1, minWidth: 180, border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
           <select value={filterType} onChange={e => setFilterType(e.target.value)}
-            style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', background: 'white', color: 'var(--ink-2)', cursor: 'pointer' }}>
+            aria-label="Tipo" style={{ ...CAIXA, width: 170 }}>
             <option value="all">Todos os tipos</option>
             {Object.entries(TYPE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <select value={filterSeverity} onChange={e => setFilterSeverity(e.target.value)}
-            style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', background: 'white', color: 'var(--ink-2)', cursor: 'pointer' }}>
+            aria-label="Gravidade" style={{ ...CAIXA, width: 150 }}>
             <option value="all">Toda a gravidade</option>
             {Object.entries(SEV_STYLE).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
           <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
-            style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', background: 'white', color: 'var(--ink-2)', cursor: 'pointer' }}>
+            aria-label="Estado" style={{ ...CAIXA, width: 150 }}>
             <option value="all">Todos os estados</option>
             {Object.entries(STATUS_STYLE).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
-        </div>
 
-        {error && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991b1b', marginBottom: 14 }}>{error}</div>}
-
-        {/* List */}
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 10 }} />)}
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="clipboard" size={32} color="var(--ink-4)" /></div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>
-              {incidents.length === 0 ? 'Sem ocorrências registadas' : 'Nenhuma ocorrência encontrada'}
-            </div>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-              {incidents.length === 0 ? 'Regista quedas, erros de medicação e outros incidentes para cumprir os requisitos legais.' : 'Tenta ajustar os filtros.'}
-            </p>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {/* ── O QUE NINGUEM CONSEGUE VER SOZINHO ──────────────────────
-                Cada ocorrencia foi escrita num dia diferente, provavelmente
-                por uma pessoa diferente, e nenhuma delas sabe das outras. Tres
-                quedas em dois meses nao sao tres quedas: e uma pessoa que
-                precisa de uma avaliacao de marcha. */}
-            {padroes.length > 0 && (
-              <div style={{ marginBottom: 6, display: 'flex', flexDirection: 'column', gap: 7 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-                  A repetir-se
-                </div>
-                {padroes.map(r => (
-                  <div key={`${r.patientId}-${r.tipo}`} style={{
-                    background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10,
-                    padding: '11px 14px', fontSize: 13, color: '#92400e', lineHeight: 1.55,
-                  }}>{r.frase}</div>
-                ))}
-              </div>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 12 }}>
+            {stats.open > 0 && (
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                {stats.open} EM ABERTO
+              </span>
             )}
+            {stats.critical > 0 && (
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+                {stats.critical} GRAVE{stats.critical > 1 ? 'S' : ''}
+              </span>
+            )}
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              {stats.thisMonth} este mês · {stats.total} ao todo
+            </span>
+          </span>
 
-            {ordenadas.map(inc => {
-              const ss = SEV_STYLE[inc.severity]
-              const st = STATUS_STYLE[inc.status]
-              const seg = seguimento(inc as any)
+          <div style={{ marginLeft: 'auto' }}>
+            <Botao feitio="principal"
+              onClick={() => { setEditingId(null); setForm({ ...EMPTY_FORM, created_by: (user as any)?.name || '' }); setShowForm(true); setSaveError('') }}>
+              + NOVA OCORRÊNCIA
+            </Botao>
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          {Object.entries(SEV_STYLE).map(([k, v]) => (
+            <span key={k} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: 'var(--r-sm)', border: `1px solid ${v.border}`, background: v.cheio ? v.bg : 'transparent' }} />
+              {v.label}
+            </span>
+          ))}
+          <span style={{ ...MONO }}>Cada linha é um registo legal: fica com a data, a hora e quem o escreveu.</span>
+        </BarraDeEstado>
+      }
+    >
+      {error && <Aviso tom="mau">{error}</Aviso>}
+
+      {/* ── O QUE NINGUÉM CONSEGUE VER SOZINHO ──────────────────────────
+          Cada ocorrência foi escrita num dia diferente, por uma pessoa
+          diferente, e nenhuma delas sabe das outras. Três quedas em dois
+          meses não são três quedas: é alguém que precisa de uma avaliação
+          de marcha. */}
+      {padroes.length > 0 && (
+        <Aviso tom="atencao" titulo="A repetir-se">
+          {padroes.map(r => <div key={`${r.patientId}-${r.tipo}`} style={{ marginTop: 2 }}>{r.frase}</div>)}
+        </Aviso>
+      )}
+
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(420px, 1fr) minmax(360px, 520px)' : '1fr',
+      }}>
+        {/* ── A LISTA ────────────────────────────────────────────────── */}
+        {(largo || !selected) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 74 }}>Data</span>
+                <span style={{ ...ROTULO, flex: 1 }}>Sobre quem · o quê</span>
+                <span style={{ ...ROTULO, width: 52 }}>Tipo</span>
+                <span style={{ ...ROTULO, width: 78 }}>Gravidade</span>
+                <span style={{ ...ROTULO, width: 82 }}>Estado</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{filtered.length} de {incidents.length}</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A carregar as ocorrências…" />
+            ) : filtered.length === 0 ? (
+              <Vazio
+                titulo={incidents.length === 0 ? 'Sem ocorrências registadas.' : 'Nenhuma corresponde aos filtros.'}
+                oQueFazer={incidents.length === 0
+                  ? 'Quedas, erros de medicação, cortes de água, visitas de fiscalização — tudo o que explica, três meses depois, porque é que naquele dia a rotina foi outra.'
+                  : 'Experimente alargar os filtros.'} />
+            ) : filtered.map(inc => {
+              const ss = SEV_STYLE[inc.severity] || SEV_STYLE.minor
+              const st = STATUS_STYLE[inc.status] || STATUS_STYLE.open
               return (
-                <div key={inc.id} onClick={() => setSelected(inc)}
-                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelected(inc) } }}
-                  role="button" tabIndex={0}
-                  style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', cursor: 'pointer', display: 'flex', transition: 'box-shadow 0.12s' }}
-                  onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.07)')}
-                  onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-                  <div style={{ width: 4, background: ss.color, flexShrink: 0 }} />
-                  <div style={{ padding: '12px 16px', flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ fontSize: 16 }}>{TYPE_ICONS[inc.type]}</span>
-                        <div>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{TYPE_LABELS[inc.type]}</div>
-                          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', marginTop: 1 }}>
-                            {inc.patient_name} · {inc.date} {inc.time && `às ${inc.time}`}
-                          </div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 5, flexShrink: 0, flexWrap: 'wrap' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: ss.color, background: ss.bg, border: `1px solid ${ss.border}`, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>{ss.label}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: st.color, background: st.bg, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>{st.label}</span>
-                      </div>
-                    </div>
-                    <p style={{ fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, margin: '6px 0 0', overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any }}>
-                      {inc.description}
-                    </p>
-                    {/* O seguimento, se houver. «Passou do prazo» e nao «EM
-                        ATRASO» a vermelho: quem le isto nao e o culpado, e quem
-                        esta a tentar resolver. */}
-                    {seg.frase && (
-                      <div style={{
-                        fontSize: 11.5, marginTop: 6, fontWeight: seg.chama ? 700 : 500,
-                        color: seg.estado === 'passou' ? '#c2410c' : seg.chama ? '#92400e' : 'var(--ink-4)',
-                      }}>{seg.frase}</div>
-                    )}
-                  </div>
-                </div>
+                <LinhaTabela key={inc.id}
+                  aoTocar={() => setSelected(inc)}
+                  ativa={selected?.id === inc.id}
+                  filete={inc.status === 'open' ? ss.border : undefined}
+                  antes={{
+                    largura: 74,
+                    conteudo: (
+                      <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>
+                        {inc.date.slice(8, 10)}/{inc.date.slice(5, 7)}{inc.time ? ` ${inc.time.slice(0, 5)}` : ''}
+                      </span>
+                    ),
+                  }}
+                  principal={inc.patient_name || 'A casa'}
+                  secundaria={inc.description}
+                  celulas={[
+                    { rotulo: 'Tipo', valor: (TYPE_LABELS[inc.type] || inc.type).slice(0, 4).toUpperCase(), largura: 52 },
+                    {
+                      rotulo: 'Gravidade', largura: 78,
+                      valor: (
+                        <span style={{
+                          padding: '2px 5px', borderRadius: 'var(--r-sm)', color: ss.color,
+                          border: `1px solid ${ss.border}`, background: ss.bg,
+                          fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any,
+                        }}>{ss.label.toUpperCase()}</span>
+                      ),
+                    },
+                    {
+                      rotulo: 'Estado', valor: st.label.toUpperCase(), largura: 82,
+                      cor: st.color, forte: true,
+                    },
+                  ]} />
               )
             })}
-          </div>
+          </Painel>
         )}
 
-        {/* Comunicar à família (ocorrência grave) — mensagem editável, envio deliberado */}
+        {/* ── O DETALHE ──────────────────────────────────────────────── */}
+        {selected ? (
+          <Painel
+            cabeca={
+              <div style={{ padding: '10px 16px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                <Botao onClick={() => setSelected(null)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                  {selected.date}{selected.time ? ` · ${selected.time}` : ''}
+                </span>
+              </div>
+            }
+          >
+            <div style={{ padding: '0 16px 16px' }}>{detalheDaOcorrencia}</div>
+          </Painel>
+        ) : largo ? (
+          <Painel>
+            <Vazio titulo="Escolha uma ocorrência."
+              oQueFazer="Abre aqui ao lado, sem sair da lista — para se poderem ver duas seguidas da mesma pessoa." />
+          </Painel>
+        ) : null}
+      </div>
+    </Mesa>
+
         {notify && (
           <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 18 }}
             onClick={e => { if (e.target === e.currentTarget && !notify.sending) setNotify(null) }}>
-            <div style={{ background: 'white', borderRadius: 16, width: '100%', maxWidth: 440, padding: '22px 22px 24px' }}>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', width: '100%', maxWidth: 440, padding: '22px 22px 24px' }}>
               {notify.done ? (
                 <div style={{ textAlign: 'center', padding: '18px 0' }}>
-                  <div style={{ fontSize: 34, marginBottom: 8 }}>✓</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120' }}>Família avisada</div>
-                  {notify.textNote && <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>{notify.textNote}</div>}
+                  <div style={{ fontSize: 'var(--t-numero)', color: 'var(--green)', marginBottom: 8 }}>✓</div>
+                  <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Família avisada</div>
+                  {notify.textNote && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 6 }}>{notify.textNote}</div>}
                 </div>
               ) : (
                 <>
-                  <div style={{ fontSize: 16, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Comunicar à família</div>
-                  <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 14 }}>Ocorrência grave com <b>{notify.patientName}</b>. Reveja a mensagem antes de enviar.</div>
+                  <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Comunicar à família</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 14 }}>Ocorrência grave com <b>{notify.patientName}</b>. Reveja a mensagem antes de enviar.</div>
                   <textarea value={notify.body} onChange={e => setNotify(n => n ? { ...n, body: e.target.value } : n)} rows={5}
-                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 13px', fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
-                  <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: '#475569', marginTop: 10, cursor: 'pointer' }}>
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 13px', fontSize: 'var(--t-dado)', lineHeight: 1.6, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 10, cursor: 'pointer' }}>
                     <input type="checkbox" checked={notify.alsoText} onChange={e => setNotify(n => n ? { ...n, alsoText: e.target.checked } : n)} /> Enviar também por SMS/WhatsApp
                   </label>
                   <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
-                    <button onClick={() => setNotify(null)} disabled={notify.sending} style={{ flex: 1, padding: '11px', background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 9, fontSize: 13.5, fontWeight: 600, color: '#64748b', cursor: 'pointer' }}>Não enviar</button>
-                    <button onClick={sendNotify} disabled={notify.sending || !notify.body.trim()} style={{ flex: 2, padding: '11px', background: '#dc2626', color: 'white', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: notify.sending ? 'wait' : 'pointer' }}>{notify.sending ? 'A enviar…' : 'Enviar à família'}</button>
+                    <button onClick={() => setNotify(null)} disabled={notify.sending} style={{ flex: 1, padding: '11px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)', cursor: 'pointer' }}>Não enviar</button>
+                    <button onClick={sendNotify} disabled={notify.sending || !notify.body.trim()} style={{ flex: 2, padding: '11px', background: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: notify.sending ? 'wait' : 'pointer' }}>{notify.sending ? 'A enviar…' : 'Enviar à família'}</button>
                   </div>
                 </>
               )}
@@ -643,22 +674,22 @@ export default function IncidentsPage() {
             onClick={e => { if (e.target === e.currentTarget) setShowForm(false) }}>
             <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 680, maxHeight: '92vh', overflow: 'auto', padding: '24px 24px 32px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editingId ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
-                <button aria-label="Fechar" onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }); setQuickNote(''); setStructureErr('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 20, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>              </div>
+                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, margin: 0 }}>{editingId ? 'Editar Ocorrência' : 'Nova Ocorrência'}</h2>
+                <button aria-label="Fechar" onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }); setQuickNote(''); setStructureErr('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-4)', lineHeight: 1 }}>×</button>              </div>
 
-              {saveError && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 7, padding: '9px 13px', fontSize: 13, color: '#991b1b', marginBottom: 14 }}>{saveError}</div>}
+              {saveError && <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding: '9px 13px', fontSize: 'var(--t-dado)', color: 'var(--red)', marginBottom: 14 }}>{saveError}</div>}
 
               {!editingId && (
-                <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 800, color: '#5b21b6', marginBottom: 8 }}>✨ Registo rápido — escreve o que aconteceu, a IA propõe o resto</div>
+                <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px', marginBottom: 16 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', marginBottom: 8 }}>✨ Registo rápido — escreve o que aconteceu, a IA propõe o resto</div>
                   <textarea value={quickNote} onChange={e => setQuickNote(e.target.value)} rows={2} placeholder={`Ex: A ${personLower} caiu na casa de banho, não se magoou mas ficou assustada...`}
-                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #ddd6fe', borderRadius: 8, padding: '9px 11px', fontSize: 13, fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: 'white' }} />
-                  {structureErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 6 }}>{structureErr}</div>}
+                    style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 11px', fontSize: 'var(--t-dado)', fontFamily: 'inherit', outline: 'none', resize: 'vertical', background: 'white' }} />
+                  {structureErr && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginTop: 6 }}>{structureErr}</div>}
                   <button onClick={structureQuickNote} disabled={structuring || !quickNote.trim()}
-                    style={{ marginTop: 8, padding: '7px 14px', background: structuring || !quickNote.trim() ? '#e5e7eb' : '#5b21b6', color: structuring || !quickNote.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: structuring || !quickNote.trim() ? 'not-allowed' : 'pointer' }}>
+                    style={{ marginTop: 8, padding: '7px 14px', background: structuring || !quickNote.trim() ? 'var(--border)' : 'var(--ink-2)', color: structuring || !quickNote.trim() ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: structuring || !quickNote.trim() ? 'not-allowed' : 'pointer' }}>
                     {structuring ? 'A estruturar…' : 'Estruturar com IA →'}
                   </button>
-                  <div style={{ fontSize: 10.5, color: '#7c3aed', marginTop: 6 }}>Preenche o formulário abaixo — revê e ajusta antes de guardar.</div>
+                  <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', marginTop: 6 }}>Preenche o formulário abaixo — revê e ajusta antes de guardar.</div>
                 </div>
               )}
 
@@ -671,12 +702,12 @@ export default function IncidentsPage() {
                   <select value={form.type} onChange={e => f('type', e.target.value)} style={selectStyle}>
                     {POR_GRUPO.map(g => (
                       <optgroup key={g.id} label={g.label}>
-                        {g.tipos.map(t => <option key={t.id} value={t.id}>{t.icone} {t.label}</option>)}
+                        {g.tipos.map(t => <option key={t.id} value={t.id}><Icon name={t.icone} size={15} />  {t.label}</option>)}
                       </optgroup>
                     ))}
                   </select>
                   {POR_TIPO.get(form.type)?.ajuda && (
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 4, lineHeight: 1.45 }}>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 4, lineHeight: 1.45 }}>
                       {POR_TIPO.get(form.type)!.ajuda}
                     </div>
                   )}
@@ -699,7 +730,7 @@ export default function IncidentsPage() {
                 )}
 
                 {eDaCasa(form.type) && (
-                  <div style={{ gridColumn: '1/-1', fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5 }}>
+                  <div style={{ gridColumn: '1/-1', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.5 }}>
                     Esta ocorrência é da casa — não é preciso escolher ninguém.
                   </div>
                 )}
@@ -771,8 +802,8 @@ export default function IncidentsPage() {
 
                 <div style={{ gridColumn: '1/-1', display: 'flex', alignItems: 'center', gap: 10 }}>
                   <input type="checkbox" id="followup" checked={form.follow_up_required} onChange={e => f('follow_up_required', e.target.checked)}
-                    style={{ width: 16, height: 16, accentColor: '#dc2626', cursor: 'pointer' }} />
-                  <label htmlFor="followup" style={{ fontSize: 13, color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    style={{ width: 16, height: 16, accentColor: 'var(--red)', cursor: 'pointer' }} />
+                  <label htmlFor="followup" style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                     Requer acompanhamento posterior
                   </label>
                 </div>
@@ -800,7 +831,7 @@ export default function IncidentsPage() {
                         style={{ ...inputStyle, resize: 'vertical' }} />
                     </div>
                     {!form.responsavel.trim() && (
-                      <div style={{ gridColumn: '1/-1', fontSize: 12, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', lineHeight: 1.5 }}>
+                      <div style={{ gridColumn: '1/-1', fontSize: 'var(--t-meta)', color: 'var(--amber)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '9px 12px', lineHeight: 1.5 }}>
                         Sem um nome, isto fica à espera de toda a gente — que é o mesmo que ficar à espera de ninguém.
                       </div>
                     )}
@@ -810,38 +841,37 @@ export default function IncidentsPage() {
 
               <div style={{ display: 'flex', gap: 10, marginTop: 20, justifyContent: 'flex-end' }}>
                 <button onClick={() => { setShowForm(false); setEditingId(null); setForm({ ...EMPTY_FORM }); setQuickNote(''); setStructureErr('') }}
-                  style={{ padding: '10px 20px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>
+                  style={{ padding: '10px 20px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>
                   Cancelar
                 </button>
                 <button onClick={save} disabled={saving}
-                  style={{ padding: '10px 24px', background: saving ? 'var(--bg-3)' : '#dc2626', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '10px 24px', background: saving ? 'var(--bg-3)' : 'var(--red)', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                   {saving ? 'A guardar...' : editingId ? 'Guardar alterações' : 'Registar ocorrência'}
                 </button>
               </div>
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </>
   )
 }
 
 function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>{children}</div>
+  return <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>{children}</div>
 }
 
 function Row({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div style={{ display: 'flex', gap: 12, marginBottom: 10, flexWrap: 'wrap' }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', minWidth: 110, paddingTop: 2 }}>{label}</div>
-      <div style={{ fontSize: 13, color: highlight ? '#991b1b' : 'var(--ink-2)', lineHeight: 1.6, flex: 1, fontWeight: highlight ? 600 : 400 }}>{value}</div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', minWidth: 110, paddingTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 'var(--t-dado)', color: highlight ? 'var(--red)' : 'var(--ink-2)', lineHeight: 1.6, flex: 1, fontWeight: highlight ? 600 : 400 }}>{value}</div>
     </div>
   )
 }
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px',
-  fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box',
+  width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px',
+  fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box',
   background: 'white', color: 'var(--ink)',
 }
 

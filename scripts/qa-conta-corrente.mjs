@@ -80,8 +80,18 @@ try {
         .match(/\d+\.\d{1,2}\s*€/g)
       diz(!maus, maus ? `dinheiro com PONTO decimal: ${maus.slice(0, 3).join(', ')}` : 'o dinheiro está à portuguesa')
 
-      const semNumero = /nan|undefined|null/.test(t2)
-      diz(!semNumero, semNumero ? 'há NaN/undefined no ecrã' : 'nenhum número sai como NaN')
+      // ── POR PALAVRA INTEIRA, E NA CAIXA ORIGINAL ─────────────────────────
+      // A primeira versão procurava `/nan|undefined|null/` no texto em
+      // minúsculas. Deu falha: a migalha de pão da página diz «FINANCEIRO», e
+      // «fi-NAN-ceiro» contém «nan».
+      //
+      // O ecrã estava perfeito e o teste é que estava a mentir — a sétima vez
+      // que me engano a MEDIR em vez de a construir. `NaN` é produzido pelo
+      // JavaScript exatamente assim, com essas maiúsculas, e `undefined` e
+      // `null` são palavras inteiras.
+      const cru = await page.evaluate(() => document.body.innerText)
+      const maus2 = cru.match(/\bNaN\b|\bundefined\b|\bnull\b/g)
+      diz(!maus2, maus2 ? `há ${maus2.join(', ')} no ecrã` : 'nenhum número sai como NaN')
     }
 
     await page.screenshot({ path: `${OUT}/conta.png` })

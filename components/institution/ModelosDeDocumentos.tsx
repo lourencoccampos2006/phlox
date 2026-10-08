@@ -43,7 +43,7 @@ type Modelo = {
 }
 type Pessoa = { id: string; name: string } & Record<string, any>
 
-export default function ModelosDeDocumentos({ cor = '#0d6e42' }: { cor?: string }) {
+export default function ModelosDeDocumentos({ cor = 'var(--green)' }: { cor?: string }) {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   const toast = useToast()
@@ -114,7 +114,7 @@ export default function ModelosDeDocumentos({ cor = '#0d6e42' }: { cor?: string 
         {podeEditar && (
           <button onClick={() => setAEditar({ id: '', nome: '', categoria: 'outro', corpo: '' })}
             style={{
-              padding: '9px 15px', borderRadius: 9, border: 'none', background: '#0b1120',
+              padding: '9px 15px', borderRadius: 'var(--r-lg)', border: 'none', background: 'var(--ink)',
               color: 'white', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
             }}>Novo modelo</button>
         )}
@@ -139,7 +139,7 @@ export default function ModelosDeDocumentos({ cor = '#0d6e42' }: { cor?: string 
                   return (
                     <div key={m.id} style={{
                       display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px',
-                      border: '1px solid var(--border)', borderRadius: 10, background: 'white',
+                      border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', background: 'white',
                       flexWrap: 'wrap',
                     }}>
                       <div style={{ flex: 1, minWidth: 180 }}>
@@ -149,7 +149,7 @@ export default function ModelosDeDocumentos({ cor = '#0d6e42' }: { cor?: string 
                           {/* Uma marca errada num modelo é um espaço em branco
                               num documento assinado. Vê-se aqui, na lista. */}
                           {!!erradas.length && (
-                            <span style={{ color: '#dc2626', fontWeight: 600 }}>
+                            <span style={{ color: 'var(--red)', fontWeight: 600 }}>
                               {' · '}{erradas.length} {erradas.length === 1 ? 'campo que não existe' : 'campos que não existem'}
                             </span>
                           )}
@@ -159,7 +159,7 @@ export default function ModelosDeDocumentos({ cor = '#0d6e42' }: { cor?: string 
                         Preencher para…
                       </button>
                       {podeEditar && (
-                        <button onClick={() => setAEditar(m)} style={botao('#64748b')}>Editar</button>
+                        <button onClick={() => setAEditar(m)} style={botao('var(--ink-4)')}>Editar</button>
                       )}
                     </div>
                   )
@@ -184,14 +184,14 @@ export default function ModelosDeDocumentos({ cor = '#0d6e42' }: { cor?: string 
 }
 
 const botao = (c: string, cheio = false): React.CSSProperties => ({
-  padding: '7px 13px', borderRadius: 8, cursor: 'pointer', fontFamily: 'inherit',
+  padding: '7px 13px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontFamily: 'inherit',
   fontSize: 12.5, fontWeight: 700, whiteSpace: 'nowrap',
   border: `1px solid ${cheio ? c : 'var(--border-2)'}`,
   background: cheio ? c : 'white', color: cheio ? 'white' : c,
 })
 
 const caixa: React.CSSProperties = {
-  width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 8,
+  width: '100%', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
   fontSize: 13.5, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box',
 }
 
@@ -338,7 +338,7 @@ function Editor({ modelo, cor, onFechar, onGravado }: {
             }} />
 
           {!!erradas.length && (
-            <p style={{ margin: '7px 0 0', fontSize: 12, color: '#dc2626', lineHeight: 1.55 }}>
+            <p style={{ margin: '7px 0 0', fontSize: 12, color: 'var(--red)', lineHeight: 1.55 }}>
               Estes campos não existem: <strong>{erradas.map(x => `{{${x}}}`).join(', ')}</strong>.
               Vão sair no documento tal como estão escritos.
             </p>
@@ -358,12 +358,12 @@ function Editor({ modelo, cor, onFechar, onGravado }: {
             placeholder="procurar…" style={{ ...caixa, marginBottom: 7, fontSize: 12.5 }} />
           <div style={{
             maxHeight: 330, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 3,
-            border: '1px solid var(--border)', borderRadius: 8, padding: 6,
+            border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 6,
           }}>
             {visiveis.map(c => (
               <button key={c.id} onClick={() => inserir(c.id)} title={c.rotulo}
                 style={{
-                  textAlign: 'left', padding: '5px 7px', borderRadius: 6, cursor: 'pointer',
+                  textAlign: 'left', padding: '5px 7px', borderRadius: 'var(--r)', cursor: 'pointer',
                   border: 'none', background: f.corpo.includes(`{{${c.id}}}`) ? `${cor}14` : 'transparent',
                   fontFamily: 'inherit', fontSize: 11.5, color: 'var(--ink-3)',
                 }}>
@@ -385,14 +385,14 @@ function Editor({ modelo, cor, onFechar, onGravado }: {
       <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
         <button onClick={gravar} disabled={!f.nome.trim() || !f.corpo.trim() || aGravar}
           style={{
-            flex: 1, background: cor, color: 'white', border: 'none', borderRadius: 9, padding: 12,
+            flex: 1, background: cor, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', padding: 12,
             fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
             cursor: f.nome.trim() && f.corpo.trim() ? 'pointer' : 'not-allowed',
             opacity: f.nome.trim() && f.corpo.trim() ? 1 : 0.5,
           }}>{aGravar ? 'A gravar…' : 'Guardar modelo'}</button>
         <button onClick={onFechar} style={{
           padding: '12px 16px', background: 'white', border: '1px solid var(--border)',
-          borderRadius: 9, fontSize: 14, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'inherit',
+          borderRadius: 'var(--r-lg)', fontSize: 14, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'inherit',
         }}>Cancelar</button>
       </div>
 
@@ -485,17 +485,17 @@ function Preenchedor({ modelo, pessoas, casa, cor, onFechar }: {
               descobre quando a Segurança Social o devolve. */}
           {!!feito?.emFalta.length && (
             <div style={{
-              padding: '11px 14px', borderRadius: 10, background: '#fffbeb',
-              border: '1px solid #fde68a', marginBottom: 12,
+              padding: '11px 14px', borderRadius: 'var(--r-lg)', background: 'var(--badge-amber-bg)',
+              border: '1px solid var(--badge-amber-border)', marginBottom: 12,
             }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#92400e', marginBottom: 4 }}>
+              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--amber)', marginBottom: 4 }}>
                 A ficha de {quem.name.split(' ')[0]} não tem{' '}
                 {feito.emFalta.length === 1 ? 'este campo' : `estes ${feito.emFalta.length} campos`}:
               </div>
-              <div style={{ fontSize: 12.5, color: '#92400e', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--amber)', lineHeight: 1.6 }}>
                 {feito.emFalta.map(x => x.rotulo.replace(/\s*\(.*\)$/, '').toLowerCase()).join(' · ')}
               </div>
-              <div style={{ fontSize: 11.5, color: '#92400e', marginTop: 6, opacity: 0.85 }}>
+              <div style={{ fontSize: 11.5, color: 'var(--amber)', marginTop: 6, opacity: 0.85 }}>
                 Vão sair como linhas a preencher à mão. Podes fechar isto, completar a
                 ficha e voltar.
               </div>
@@ -503,9 +503,9 @@ function Preenchedor({ modelo, pessoas, casa, cor, onFechar }: {
           )}
           {!!feito?.desconhecidas.length && (
             <div style={{
-              padding: '11px 14px', borderRadius: 10, background: '#fef2f2',
-              border: '1px solid #fecaca', marginBottom: 12, fontSize: 12.5,
-              color: '#991b1b', lineHeight: 1.6,
+              padding: '11px 14px', borderRadius: 'var(--r-lg)', background: 'var(--badge-red-bg)',
+              border: '1px solid var(--badge-red-border)', marginBottom: 12, fontSize: 12.5,
+              color: 'var(--red)', lineHeight: 1.6,
             }}>
               O modelo tem campos que não existem
               ({feito.desconhecidas.map(x => `{{${x}}}`).join(', ')}) e vão sair no
@@ -515,8 +515,8 @@ function Preenchedor({ modelo, pessoas, casa, cor, onFechar }: {
 
           <Rotulo>Como vai sair</Rotulo>
           <div style={{
-            border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px',
-            background: '#fdfdfc', maxHeight: '42vh', overflowY: 'auto',
+            border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px',
+            background: 'var(--bg)', maxHeight: '42vh', overflowY: 'auto',
             fontFamily: 'Georgia, serif', fontSize: 13.5, lineHeight: 1.75,
             whiteSpace: 'pre-wrap', color: 'var(--ink)',
           }}>{feito?.texto}</div>
@@ -524,7 +524,7 @@ function Preenchedor({ modelo, pessoas, casa, cor, onFechar }: {
           <div style={{ display: 'flex', gap: 8, marginTop: 16, alignItems: 'center' }}>
             <button onClick={emitir} disabled={aGuardar}
               style={{
-                flex: 1, background: cor, color: 'white', border: 'none', borderRadius: 9,
+                flex: 1, background: cor, color: 'white', border: 'none', borderRadius: 'var(--r-lg)',
                 padding: 12, fontSize: 14, fontWeight: 700, fontFamily: 'inherit',
                 cursor: aGuardar ? 'wait' : 'pointer',
               }}>
@@ -532,7 +532,7 @@ function Preenchedor({ modelo, pessoas, casa, cor, onFechar }: {
             </button>
             <button onClick={onFechar} style={{
               padding: '12px 16px', background: 'white', border: '1px solid var(--border)',
-              borderRadius: 9, fontSize: 14, cursor: 'pointer', color: 'var(--ink-3)',
+              borderRadius: 'var(--r-lg)', fontSize: 14, cursor: 'pointer', color: 'var(--ink-3)',
               fontFamily: 'inherit',
             }}>Fechar</button>
           </div>

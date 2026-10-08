@@ -6,13 +6,19 @@ import FusionTabs from '@/components/FusionTabs'
 import { RastreiosTool } from '../rastreios/page'
 
 // /agenda é agora "Agenda e rastreios": marcações + plano de rastreios/vacinas.
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Campo, Folha, CAIXA, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
 export default function AgendaPage() {
   return <FusionTabs
     eyebrow="Agenda" title="Agenda e rastreios"
     subtitle="As marcações do dia e o plano de rastreios e vacinas, num só sítio."
     tabs={[
-      { id: 'agenda', label: 'Agenda', icon: '📅', render: () => <AgendaTool /> },
-      { id: 'rastreios', label: 'Rastreios', icon: '🧪', render: () => <RastreiosTool /> },
+      { id: 'agenda', label: 'Agenda', icon: 'calendar', render: () => <AgendaTool /> },
+      { id: 'rastreios', label: 'Rastreios', icon: 'flask', render: () => <RastreiosTool /> },
     ]} />
 }
 import { useAuth } from '@/components/AuthContext'
@@ -33,29 +39,36 @@ interface Appt {
   responsible?: string | null; status: ApptStatus; notes?: string | null
 }
 
-const TYPES: Record<ApptType, { label: string; color: string }> = {
-  consulta:      { label: 'Consulta', color: '#2563eb' },
-  exame:         { label: 'Exame', color: '#7c3aed' },
-  terapia:       { label: 'Terapia', color: '#0891b2' },
-  visita_medica: { label: 'Visita médica', color: '#0d6e42' },
-  transporte:    { label: 'Transporte', color: '#d97706' },
-  reuniao:       { label: 'Reunião', color: '#64748b' },
-  vacina:        { label: 'Vacina', color: '#16a34a' },
-  outro:         { label: 'Outro', color: '#374151' },
+/* O TIPO E UM FACTO, O ESTADO E QUE E ESTADO (2026-10-07)
+   Eram oito cores — uma por tipo, e uma delas um `var(--green)` que nao existe em
+   mais lado nenhum da aplicacao. Pior: a HORA, que e o dado mais importante
+   desta pagina, era pintada da cor do tipo. Com o transporte a ambar, metade
+   das linhas de uma manha pareciam avisos.
+
+   O tipo passa a codigo. A cor fica para o estado, que e onde quer dizer
+   alguma coisa: realizado, cancelado, por fazer. */
+const TYPES: Record<ApptType, { label: string; codigo: string }> = {
+  consulta:      { label: 'Consulta',      codigo: 'CONS' },
+  exame:         { label: 'Exame',         codigo: 'EXA' },
+  terapia:       { label: 'Terapia',       codigo: 'TERA' },
+  visita_medica: { label: 'Visita médica', codigo: 'VIS' },
+  transporte:    { label: 'Transporte',    codigo: 'TRAN' },
+  reuniao:       { label: 'Reunião',       codigo: 'REUN' },
+  vacina:        { label: 'Vacina',        codigo: 'VAC' },
+  outro:         { label: 'Outro',         codigo: 'OUTR' },
 }
-const STATUS: Record<ApptStatus, { label: string; color: string; bg: string }> = {
-  scheduled: { label: 'Agendado', color: '#1d4ed8', bg: '#eff6ff' },
-  done:      { label: 'Realizado', color: '#16a34a', bg: '#f0fdf4' },
-  cancelled: { label: 'Cancelado', color: '#dc2626', bg: '#fef2f2' },
+const STATUS: Record<ApptStatus, { label: string; color: string }> = {
+  scheduled: { label: 'Por fazer',  color: 'var(--ink-4)' },
+  done:      { label: 'Realizado',  color: 'var(--green)' },
+  cancelled: { label: 'Cancelado',  color: 'var(--red)' },
 }
 const TYPE_KEYS = Object.keys(TYPES) as ApptType[]
 const todayStr = () => new Date().toISOString().slice(0, 10)
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
-const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 function AgendaTool() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
+  const largo = useLargo()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
@@ -161,135 +174,242 @@ function AgendaTool() {
     })
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     A pergunta da manhã é «quem é que hoje sai, a que horas, e com que
+     transporte». Nenhuma das três era uma coluna: a hora vinha pintada da cor
+     do tipo, o transporte era um selo escondido no meio da linha, e as ações
+     eram três quadrados de 30px com um SVG dentro, sem rótulo nenhum.
+
+     Passa a tabela: hora | o que é · quem | tipo | onde | transporte | estado.
+     Os dias separam-se com uma linha de grupo que fica colada ao topo.
+     ══════════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body" style={{ maxWidth: 880 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Agenda</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Agenda Clínica & Transportes</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>{cfg.appointmentNounPlural}, exames, terapias, visitas e transportes — por {cfg.personNoun.toLowerCase()}, num só sítio.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={printTransports} style={{ padding: '10px 14px', background: 'white', border: `1.5px solid ${stats.transportes ? '#d97706' : 'var(--border)'}`, color: stats.transportes ? '#d97706' : 'var(--ink-4)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🚐 Folha de transportes{stats.transportes ? ` (${stats.transportes})` : ''}</button>
-            <button onClick={openNew} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Agendar</button>
-          </div>
-        </div>
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Agenda</span>
 
-        {tableMissing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
+          <Seletor
+            opcoes={[
+              { id: 'hoje', rotulo: 'Hoje' },
+              { id: 'proximas', rotulo: 'Próximas' },
+              { id: 'todas', rotulo: 'Todas' },
+            ]}
+            ativa={view} aoMudar={v => setView(v as 'hoje' | 'proximas' | 'todas')} />
+
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {stats.hoje} HOJE
+              </span>
+              {stats.transportes > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+                  {stats.transportes} COM TRANSPORTE
+                </span>
+              )}
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                {stats.semana} NOS PRÓXIMOS 7 DIAS
+              </span>
+            </span>
+          )}
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <Botao onClick={printTransports}
+              titulo="A folha que vai com quem conduz: quem sai, a que horas, para onde.">
+              FOLHA DE TRANSPORTES{stats.transportes ? ` · ${stats.transportes}` : ''}
+            </Botao>
+            <Botao feitio="principal" onClick={openNew}>+ AGENDAR</Botao>
           </div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-              {[
-                { n: stats.hoje, l: 'Hoje', c: '#2563eb', bg: '#eff6ff', bd: '#bfdbfe' },
-                { n: stats.transportes, l: 'Transportes hoje', c: '#d97706', bg: '#fffbeb', bd: '#fde68a' },
-                { n: stats.semana, l: 'Próximos 7 dias', c: '#0d6e42', bg: '#f0fdf4', bd: '#bbf7d0' },
-              ].map(s => (
-                <div key={s.l} style={{ flex: '1 1 130px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 12, padding: '13px 16px' }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.n}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>{s.l}</div>
-                </div>
-              ))}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>TRANSPORTE = tem de sair da casa</span>
+          <span style={{ ...MONO, color: 'var(--green)' }}>REALIZADO</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>CANCELADO</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            {cfg.appointmentNounPlural}, exames, terapias, visitas e transportes —
+            por {cfg.personNoun.toLowerCase()}, num só sítio
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {tableMissing ? (
+        <Painel>
+          <Vazio titulo="A agenda ainda não está disponível nesta conta."
+            oQueFazer="Falta um passo de configuração desta casa. Assim que estiver feito, esta página junta consultas, exames e transportes num só sítio." />
+        </Painel>
+      ) : (
+        <Painel
+          cabeca={
+            <Cabecalho>
+              <span style={{ ...ROTULO, width: 48 }}>Hora</span>
+              <span style={{ ...ROTULO, flex: 1 }}>O que é · quem</span>
+              <span style={{ ...ROTULO, width: 48 }}>Tipo</span>
+              <span style={{ ...ROTULO, width: 110 }}>Onde</span>
+              <span style={{ ...ROTULO, width: 76 }}>Transporte</span>
+              <span style={{ ...ROTULO, width: 76 }}>Estado</span>
+              <span style={{ ...ROTULO, width: 150 }}> </span>
+            </Cabecalho>
+          }
+          rodape={<span style={MONO}>{visible.length} de {appts.length}</span>}
+        >
+          {loading ? (
+            <ACarregar oQue="A abrir a agenda…" />
+          ) : dates.length === 0 ? (
+            <Vazio
+              titulo={view === 'hoje' ? 'Nada agendado para hoje.' : 'Sem agendamentos.'}
+              oQueFazer="Consultas, exames, terapias e visitas — com e sem transporte. O que tiver transporte marcado sai depois na folha que vai com quem conduz."
+              acao={<Botao feitio="principal" onClick={openNew}>+ AGENDAR</Botao>} />
+          ) : dates.map(d => (
+            <div key={d}>
+              <div style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '5px 12px', background: 'var(--bg-2)',
+                borderTop: '1px solid var(--border-2)', borderBottom: '1px solid var(--border)',
+                position: 'sticky', top: 0, zIndex: 1,
+              }}>
+                <span style={{ ...ROTULO, flex: 1 }}>{fmtDate(d)}</span>
+                <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                  {groups.get(d)!.length}
+                </span>
+              </div>
+
+              {groups.get(d)!
+                .sort((a, b) => (a.time || '').localeCompare(b.time || ''))
+                .map(a => {
+                  const tc = TYPES[a.type] || TYPES.outro
+                  const st = STATUS[a.status]
+                  return (
+                    <LinhaTabela key={a.id}
+                      filete={a.status === 'cancelled' ? 'var(--red)' : a.transport ? 'var(--amber)' : undefined}
+                      antes={{
+                        largura: 48,
+                        conteudo: (
+                          <span style={{
+                            ...MONO, fontSize: 'var(--t-dado)',
+                            fontWeight: 'var(--peso-forte)' as any,
+                            color: a.status === 'cancelled' ? 'var(--ink-5)' : 'var(--ink-2)',
+                            textDecoration: a.status === 'cancelled' ? 'line-through' : 'none',
+                          }}>{a.time?.slice(0, 5) || '—'}</span>
+                        ),
+                      }}
+                      principal={a.title}
+                      secundaria={[nameOf(a.patient_id), roomOf(a.patient_id), a.responsible]
+                        .filter(Boolean).join(' · ') || undefined}
+                      celulas={[
+                        { rotulo: 'Tipo', valor: tc.codigo, largura: 48 },
+                        { rotulo: 'Onde', valor: a.location || '—', largura: 110 },
+                        {
+                          rotulo: 'Transporte', largura: 76,
+                          valor: a.transport ? 'SIM' : '—',
+                          forte: !!a.transport,
+                          cor: a.transport ? 'var(--amber)' : 'var(--ink-5)',
+                        },
+                        {
+                          rotulo: 'Estado', valor: st.label.toUpperCase(), largura: 76,
+                          cor: st.color, forte: a.status !== 'scheduled',
+                        },
+                      ]}
+                      fim={
+                        a.status === 'scheduled' ? (
+                          <>
+                            <Botao onClick={() => setStatus(a, 'done')}>FEITO</Botao>
+                            <Botao onClick={() => openEdit(a)}>MUDAR</Botao>
+                            <Botao feitio="calmo" onClick={() => remove(a)}>APAGAR</Botao>
+                          </>
+                        ) : (
+                          <Botao feitio="calmo" onClick={() => remove(a)}>APAGAR</Botao>
+                        )
+                      } />
+                  )
+                })}
             </div>
-
-            <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
-              {(['hoje', 'proximas', 'todas'] as const).map(v => (
-                <button key={v} onClick={() => setView(v)} style={{ padding: '7px 14px', borderRadius: 8, border: `1.5px solid ${view === v ? '#0d6e42' : 'var(--border)'}`, background: view === v ? '#eef6f1' : 'white', color: view === v ? '#0d6e42' : 'var(--ink-4)', fontSize: 12.5, fontWeight: view === v ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  {v === 'hoje' ? 'Hoje' : v === 'proximas' ? 'Próximas' : 'Todas'}
-                </button>
-              ))}
-            </div>
-
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 12 }} />)}</div>
-            ) : dates.length === 0 ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 44, textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--ink)', marginBottom: 6 }}>{view === 'hoje' ? 'Nada agendado para hoje' : 'Sem agendamentos'}</div>
-                <button onClick={openNew} style={{ marginTop: 8, padding: '9px 18px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-sans)' }}>Agendar primeiro</button>
-              </div>
-            ) : dates.map(d => (
-              <div key={d} style={{ marginBottom: 18 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', textTransform: 'capitalize' }}>{fmtDate(d)}</span>
-                  <span style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{groups.get(d)!.length}</span>
-                  <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                  {groups.get(d)!.sort((a, b) => (a.time || '').localeCompare(b.time || '')).map(a => {
-                    const tc = TYPES[a.type]; const st = STATUS[a.status]
-                    return (
-                      <div key={a.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${tc.color}`, borderRadius: 10, padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 12, opacity: a.status === 'cancelled' ? 0.55 : 1 }}>
-                        <div style={{ width: 52, flexShrink: 0, textAlign: 'center' }}>
-                          <div style={{ fontSize: 14, fontWeight: 700, color: tc.color, fontFamily: 'var(--font-mono)' }}>{a.time || '—'}</div>
-                        </div>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{a.title}</span>
-                            <span style={{ fontSize: 10, fontWeight: 700, color: tc.color, background: tc.color + '14', padding: '1px 7px', borderRadius: 5 }}>{tc.label}</span>
-                            {a.transport && <span style={{ fontSize: 10, fontWeight: 700, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', padding: '1px 7px', borderRadius: 5 }}>Transporte</span>}
-                          </div>
-                          <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>
-                            {nameOf(a.patient_id)} {roomOf(a.patient_id)}{a.location ? ` · ${a.location}` : ''}{a.responsible ? ` · ${a.responsible}` : ''}
-                          </div>
-                        </div>
-                        <div style={{ display: 'flex', gap: 5, flexShrink: 0, alignItems: 'center' }}>
-                          {a.status === 'scheduled' ? (
-                            <>
-                              <button onClick={() => setStatus(a, 'done')} title="Marcar realizado" style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>
-                              </button>
-                              <button onClick={() => openEdit(a)} style={{ width: 30, height: 30, borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z"/></svg>
-                              </button>
-                            </>
-                          ) : (
-                            <span style={{ fontSize: 11, fontWeight: 700, color: st.color, background: st.bg, padding: '3px 9px', borderRadius: 6 }}>{st.label}</span>
-                          )}
-                          <button aria-label="Eliminar" onClick={() => remove(a)} style={{ width: 30, height: 30, borderRadius: 7, border: 'none', background: 'transparent', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
-          </>
-        )}
-      </div>
-
-      {showForm && (
-        <div onMouseDown={e => { if (e.target === e.currentTarget) setShowForm(false) }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 36px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{editId ? 'Editar agendamento' : 'Novo agendamento'}</h2>
-              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-              <div><span style={lbl}>Título *</span><input value={form.title} onChange={e => setForm({ ...form, title: e.target.value })} placeholder="Ex: Consulta de Cardiologia" style={inp} /></div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><span style={lbl}>Tipo</span><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} style={inp}>{TYPE_KEYS.map(t => <option key={t} value={t}>{TYPES[t].label}</option>)}</select></div>
-                <div><span style={lbl}>{cfg.personNoun}</span><select value={form.patient_id} onChange={e => setForm({ ...form, patient_id: e.target.value })} style={inp}><option value="">{cfg.noPersonEventLabel}</option>{patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><span style={lbl}>Data *</span><input type="date" value={form.date} onChange={e => setForm({ ...form, date: e.target.value })} style={inp} /></div>
-                <div><span style={lbl}>Hora</span><input type="time" value={form.time} onChange={e => setForm({ ...form, time: e.target.value })} style={inp} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><span style={lbl}>Local</span><input value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Hospital, clínica..." style={inp} /></div>
-                <div><span style={lbl}>Responsável</span><input value={form.responsible} onChange={e => setForm({ ...form, responsible: e.target.value })} style={inp} /></div>
-              </div>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)' }}>
-                <input type="checkbox" checked={form.transport} onChange={e => setForm({ ...form, transport: e.target.checked })} /> Precisa de transporte
-              </label>
-              {form.transport && <div><span style={lbl}>Notas de transporte</span><input value={form.transport_notes} onChange={e => setForm({ ...form, transport_notes: e.target.value })} placeholder="Ambulância, cadeira de rodas, hora de saída..." style={inp} /></div>}
-              <div><span style={lbl}>Notas</span><textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2} style={{ ...inp, resize: 'vertical' }} /></div>
-              <button onClick={save} disabled={saving || !form.title.trim()} style={{ padding: '11px', background: (!form.title.trim() || saving) ? 'var(--bg-3)' : '#0d6e42', color: (!form.title.trim() || saving) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: (!form.title.trim() || saving) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A guardar…' : 'Guardar agendamento'}</button>
-            </div>
-          </div>
-        </div>
+          ))}
+        </Painel>
       )}
-    </div>
+    </Mesa>
+
+    {showForm && (
+      <Folha titulo={editId ? 'Mudar o agendamento' : 'Novo agendamento'} aoFechar={() => setShowForm(false)}>
+        <Campo rotulo="O que é" para="ag-titulo" obrigatorio>
+          <input id="ag-titulo" value={form.title} onChange={e => setForm({ ...form, title: e.target.value })}
+            placeholder="Ex: Consulta de cardiologia" style={{ ...CAIXA, width: '100%' }} />
+        </Campo>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Campo rotulo="Tipo" para="ag-tipo">
+            <select id="ag-tipo" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}
+              style={{ ...CAIXA, width: '100%' }}>
+              {TYPE_KEYS.map(t => <option key={t} value={t}>{TYPES[t].label}</option>)}
+            </select>
+          </Campo>
+          <Campo rotulo={cfg.personNoun} para="ag-pessoa">
+            <select id="ag-pessoa" value={form.patient_id}
+              onChange={e => setForm({ ...form, patient_id: e.target.value })} style={{ ...CAIXA, width: '100%' }}>
+              <option value="">{cfg.noPersonEventLabel}</option>
+              {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+            </select>
+          </Campo>
+        </div>
+
+        <Campo rotulo="Quando" obrigatorio>
+          <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr', gap: 10 }}>
+            <input aria-label="Data" type="date" value={form.date}
+              onChange={e => setForm({ ...form, date: e.target.value })} style={CAIXA} />
+            <input aria-label="Hora" type="time" value={form.time}
+              onChange={e => setForm({ ...form, time: e.target.value })} style={CAIXA} />
+          </div>
+        </Campo>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Campo rotulo="Onde" para="ag-local">
+            <input id="ag-local" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })}
+              placeholder="Hospital, clínica…" style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+          <Campo rotulo="Quem acompanha" para="ag-resp">
+            <input id="ag-resp" value={form.responsible}
+              onChange={e => setForm({ ...form, responsible: e.target.value })} style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+        </div>
+
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+          marginTop: 14, fontSize: 'var(--t-dado)', color: 'var(--ink)',
+        }}>
+          <input type="checkbox" checked={form.transport}
+            onChange={e => setForm({ ...form, transport: e.target.checked })}
+            style={{ accentColor: 'var(--green)' }} />
+          Tem de sair da casa — precisa de transporte
+        </label>
+
+        {form.transport && (
+          <Campo rotulo="O que quem conduz precisa de saber" para="ag-transp">
+            <input id="ag-transp" value={form.transport_notes}
+              onChange={e => setForm({ ...form, transport_notes: e.target.value })}
+              placeholder="Ambulância, cadeira de rodas, hora de saída…"
+              style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+        )}
+
+        <Campo rotulo="Notas" para="ag-notas">
+          <textarea id="ag-notas" value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })}
+            rows={2} style={{ ...CAIXA_TEXTO, width: '100%' }} />
+        </Campo>
+
+        <div style={{ marginTop: 16 }}>
+          <Botao feitio="principal" onClick={save} esperando={saving} disabled={!form.title.trim()}>
+            {editId ? 'GUARDAR AS ALTERAÇÕES' : 'AGENDAR'}
+          </Botao>
+        </div>
+      </Folha>
+    )}
+    </>
   )
 }

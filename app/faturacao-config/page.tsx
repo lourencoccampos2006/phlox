@@ -29,7 +29,7 @@ const DOC_TYPES = [
   { id: 'venda_dinheiro', label: 'Venda a dinheiro' },
   { id: 'recibo', label: 'Recibo' },
 ]
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 export default function FaturacaoConfigPage() {
@@ -106,7 +106,7 @@ export default function FaturacaoConfigPage() {
   }
 
   const prov = PROVIDERS.find(p => p.id === s.provider) || PROVIDERS[0]
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
@@ -118,11 +118,11 @@ export default function FaturacaoConfigPage() {
         </div>
 
         {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24, color: 'var(--amber)', fontSize: 13.5 }}>
             Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : loading ? (
-          <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />
+          <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-xl)' }} />
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             {/* Identidade fiscal — alimenta ATCUD / QR Code AT */}
@@ -144,7 +144,7 @@ export default function FaturacaoConfigPage() {
                 <div><span style={lbl}>Série</span><input value={fiscal.default_series} onChange={e => setFiscal({ ...fiscal, default_series: e.target.value })} placeholder="A" style={inp} /></div>
                 <div><span style={lbl}>Código ATCUD da série</span><input value={fiscal.atcud_code} onChange={e => setFiscal({ ...fiscal, atcud_code: e.target.value })} placeholder="ex: CSDF7T5H" style={inp} /></div>
               </div>
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 9, lineHeight: 1.5 }}>Sem código ATCUD, o talão usa "AT-{'{nº}'}" e indica que não é fiscalmente validado. O documento fiscal definitivo sai do software certificado.</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 9, lineHeight: 1.5 }}>Sem código ATCUD, o talão usa "AT-{'{nº}'}" e indica que não é fiscalmente validado. O documento fiscal definitivo sai do software certificado.</div>
             </div>
 
             {/* Pagamentos — MB WAY / Referência Multibanco / gateways */}
@@ -153,7 +153,7 @@ export default function FaturacaoConfigPage() {
               <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 10, lineHeight: 1.45 }}>Como o POS cobra. Para Referência Multibanco precisas da tua Entidade (atribuída pela SIBS). MB WAY/cartão via gateway (Easypay/SIBS).</div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                 {[['manual', 'Manual / TPA'], ['mb_referencia', 'Referência MB'], ['mbway', 'MB WAY'], ['easypay', 'Easypay'], ['sibs', 'SIBS']].map(([id, label]) => (
-                  <button key={id} onClick={() => setPay({ ...pay, provider: id })} style={{ padding: '7px 12px', borderRadius: 7, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${pay.provider === id ? '#0d6e42' : 'var(--border)'}`, background: pay.provider === id ? '#eef6f1' : 'white', color: pay.provider === id ? '#0d6e42' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{label}</button>
+                  <button key={id} onClick={() => setPay({ ...pay, provider: id })} style={{ padding: '7px 12px', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${pay.provider === id ? 'var(--green)' : 'var(--border)'}`, background: pay.provider === id ? 'var(--green-light)' : 'white', color: pay.provider === id ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{label}</button>
                 ))}
               </div>
               {(pay.provider === 'mb_referencia' || pay.provider === 'sibs') && (
@@ -165,15 +165,15 @@ export default function FaturacaoConfigPage() {
               {(pay.provider === 'mbway' || pay.provider === 'easypay' || pay.provider === 'sibs') && (
                 <div><span style={lbl}>Chave de API do gateway</span><input type="password" value={pay.api_key} onChange={e => setPay({ ...pay, api_key: e.target.value })} placeholder="••••••••" style={inp} /></div>
               )}
-              <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 9, lineHeight: 1.5 }}>Sem chave de gateway, o MB WAY regista a intenção (confirmação manual) e a Referência MB é gerada com a tua entidade.</div>
+              <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 9, lineHeight: 1.5 }}>Sem chave de gateway, o MB WAY regista a intenção (confirmação manual) e a Referência MB é gerada com a tua entidade.</div>
             </div>
 
             <div style={card}>
               <span style={lbl}>Software / método</span>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                 {PROVIDERS.map(p => (
-                  <button key={p.id} onClick={() => setS({ ...s, provider: p.id })} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 10, cursor: 'pointer', border: `1.5px solid ${s.provider === p.id ? '#0d6e42' : 'var(--border)'}`, background: s.provider === p.id ? '#eef6f1' : 'white', fontFamily: 'var(--font-sans)' }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: s.provider === p.id ? '#0d6e42' : 'var(--ink)' }}>{p.label}</div>
+                  <button key={p.id} onClick={() => setS({ ...s, provider: p.id })} style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 'var(--r-lg)', cursor: 'pointer', border: `1.5px solid ${s.provider === p.id ? 'var(--green)' : 'var(--border)'}`, background: s.provider === p.id ? 'var(--green-light)' : 'white', fontFamily: 'var(--font-sans)' }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: s.provider === p.id ? 'var(--green)' : 'var(--ink)' }}>{p.label}</div>
                     <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.45 }}>{p.desc}</div>
                   </button>
                 ))}
@@ -188,7 +188,7 @@ export default function FaturacaoConfigPage() {
                   {prov.needsAccount && <div><span style={lbl}>{s.provider === 'moloni' ? 'Company ID' : 'Conta / subdomínio'}</span><input value={s.account_id || ''} onChange={e => setS({ ...s, account_id: e.target.value })} style={inp} /></div>}
                   <div><span style={lbl}>Chave / token de API</span><input type="password" value={s.api_key || ''} onChange={e => setS({ ...s, api_key: e.target.value })} placeholder="••••••••••" style={inp} /></div>
                 </div>
-                <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 10, lineHeight: 1.5 }}>A chave fica guardada na tua conta e só é usada no servidor para emitir. Não é exposta no browser.</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>A chave fica guardada na tua conta e só é usada no servidor para emitir. Não é exposta no browser.</div>
               </div>
             )}
 
@@ -212,8 +212,8 @@ export default function FaturacaoConfigPage() {
             </div>
 
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-              <button onClick={save} style={{ padding: '11px 20px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Guardar</button>
-              {saved && <span style={{ fontSize: 13, fontWeight: 600, color: saved.includes('✓') ? '#16a34a' : '#dc2626' }}>{saved}</span>}
+              <button onClick={save} style={{ padding: '11px 20px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Guardar</button>
+              {saved && <span style={{ fontSize: 13, fontWeight: 600, color: saved.includes('✓') ? 'var(--green)' : 'var(--red)' }}>{saved}</span>}
             </div>
           </div>
         )}

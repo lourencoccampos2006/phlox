@@ -82,9 +82,9 @@ export default function TurnoResumo({ cor }: { cor: string }) {
                 {l.total ? `${l.feito}/${l.total}` : '—'}
               </span>
             </div>
-            <div style={{ height: 3, background: 'var(--bg-3)', borderRadius: 2, overflow: 'hidden' }}>
+            <div style={{ height: 3, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
               <div style={{
-                height: '100%', borderRadius: 2, background: cor,
+                height: '100%', borderRadius: 'var(--r-sm)', background: cor,
                 width: `${l.total ? Math.min(100, (l.feito / l.total) * 100) : 0}%`,
                 transition: 'width .4s',
               }} />

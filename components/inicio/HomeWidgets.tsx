@@ -40,11 +40,11 @@ function Tile({ href, tag, headline, sub, icon, t, tone }: {
       display: 'flex', flexDirection: 'column', gap: 7, padding: '15px 14px', minHeight: 112,
       borderRadius: t.radius, background: t.surface, border: `1px solid ${t.border}`, textDecoration: 'none',
     }}>
-      <div style={{ width: 32, height: 32, borderRadius: 10, background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ width: 32, height: 32, borderRadius: 'var(--r-lg)', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <Icon name={icon} size={16} color={t.accent} />
       </div>
       <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: t.inkFaint, textTransform: 'uppercase', letterSpacing: '0.07em' }}>{tag}</div>
-      <div style={{ fontSize: 15, fontWeight: 800, color: tone === 'warn' ? '#b45309' : tone === 'good' ? '#15803d' : t.ink, lineHeight: 1.2, marginTop: -2 }}>{headline}</div>
+      <div style={{ fontSize: 15, fontWeight: 800, color: tone === 'warn' ? 'var(--amber)' : tone === 'good' ? 'var(--green)' : t.ink, lineHeight: 1.2, marginTop: -2 }}>{headline}</div>
       <div style={{ fontSize: 11.5, color: t.inkFaint, lineHeight: 1.35 }}>{sub}</div>
     </Link>
   )
@@ -59,7 +59,7 @@ function Hero({ icon, tag, children, t, href }: { icon: string; tag: string; chi
   const style: React.CSSProperties = { gridColumn: '1 / -1', display: 'flex', alignItems: 'center', gap: 14, padding: '15px 16px', borderRadius: t.radius, background: t.surface, border: `1px solid ${t.border}`, textDecoration: 'none' }
   const inner = (
     <>
-      <div style={{ width: 38, height: 38, borderRadius: 11, background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <div style={{ width: 38, height: 38, borderRadius: 'var(--r-xl)', background: t.accentSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
         <Icon name={icon} size={19} color={t.accent} />
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
@@ -113,8 +113,8 @@ function SymptomsWidget({ t }: { t: ModeTheme }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 14, color: t.ink, fontWeight: 600 }}>Ainda não registou hoje</span>
           <div style={{ display: 'flex', gap: 6 }}>
-            <button onClick={() => quickLog(4)} disabled={busy} style={{ padding: '6px 12px', borderRadius: 8, border: 'none', background: t.accent, color: 'white', fontSize: 12.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer' }}>🙂 Tudo bem</button>
-            <Link href="/sintomas" style={{ padding: '6px 12px', borderRadius: 8, border: `1px solid ${t.border}`, color: t.accent, fontSize: 12.5, fontWeight: 700, textDecoration: 'none', alignSelf: 'center' }}>Registar →</Link>
+            <button onClick={() => quickLog(4)} disabled={busy} style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', border: 'none', background: t.accent, color: 'white', fontSize: 12.5, fontWeight: 700, cursor: busy ? 'wait' : 'pointer' }}>🙂 Tudo bem</button>
+            <Link href="/sintomas" style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', border: `1px solid ${t.border}`, color: t.accent, fontSize: 12.5, fontWeight: 700, textDecoration: 'none', alignSelf: 'center' }}>Registar →</Link>
           </div>
         </div>
       )}
@@ -282,7 +282,7 @@ export default function HomeWidgetsModule({ mode, theme: t }: { mode: string; th
   const [pickerOpen, setPickerOpen] = useState(false)
   useEffect(() => { setWidgets(activeWidgets(mode).map(w => w.id)) }, [mode])
 
-  if (widgets === null) return <div className="skeleton" style={{ height: 200, borderRadius: 10 }} />
+  if (widgets === null) return <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-lg)' }} />
 
   return (
     <div>

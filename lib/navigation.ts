@@ -23,25 +23,25 @@ export type NavCategory = {
 
 export const NAV_CATEGORIES: NavCategory[] = [
   {
-    id: 'medication', label: 'Medicação', color: '#0d9488',
+    id: 'medication', label: 'Medicação', color: 'var(--green-3)',
     tools: [
-      { href: '/scan',         icon: '📷', label: 'Explicar um exame ou receita', desc: 'Tire uma foto. Dizemos-lhe o que lá está, em português simples' },
-      { href: '/medicamento',  icon: '💡', label: 'O que é este medicamento?', desc: 'Escreva o nome → para que serve e cuidados' },
-      { href: '/mymeds',       icon: '💊', label: 'Os meus comprimidos', desc: 'Lista, horários e lembretes' },
-      { href: '/interactions', icon: '🔍', label: 'Dão-se bem juntos?',  desc: 'Ver se é seguro tomá-los ao mesmo tempo' },
+      { href: '/scan',         icon: 'camera', label: 'Explicar um exame ou receita', desc: 'Tire uma foto. Dizemos-lhe o que lá está, em português simples' },
+      { href: '/medicamento',  icon: 'spark', label: 'O que é este medicamento?', desc: 'Escreva o nome → para que serve e cuidados' },
+      { href: '/mymeds',       icon: 'pill', label: 'Os meus comprimidos', desc: 'Lista, horários e lembretes' },
+      { href: '/interactions', icon: 'search', label: 'Dão-se bem juntos?',  desc: 'Ver se é seguro tomá-los ao mesmo tempo' },
     ],
   },
   {
-    id: 'health', label: 'Saúde', color: '#e11d48',
+    id: 'health', label: 'Saúde', color: 'var(--red)',
     tools: [
-      { href: '/sintomas',  icon: '🌡', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
-      { href: '/vault',     icon: '🔒', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
-      { href: '/vitals',    icon: '❤️', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
-      { href: '/timeline',  icon: '🗓', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
-      { href: '/passport',  icon: '🆘', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
-      { href: '/labs',      icon: '🧪', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
-      { href: '/ai',        icon: '🤖', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
-      { href: '/partilhado-comigo', icon: '🔗', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
+      { href: '/sintomas',  icon: 'droplet', label: 'Como me sinto hoje',    desc: 'Diário de sintomas e recuperação' },
+      { href: '/vault',     icon: 'shield', label: 'Os meus documentos',   desc: 'Análises e receitas, com partilha por código', badge: 'Premium' },
+      { href: '/vitals',    icon: 'heart', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
+      { href: '/timeline',  icon: 'calendar', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
+      { href: '/passport',  icon: 'alert', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
+      { href: '/labs',      icon: 'flask', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
+      { href: '/ai',        icon: 'spark', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
+      { href: '/partilhado-comigo', icon: 'layers', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
       // CURADORIA 2026-07-21: eram 6 entradas Pro soltas aqui (rastreio visual,
       // vigia de ruturas, painel da condição, plano de recuperação, revisão da
       // medicação, exportar registo) — uma parede de itens parecidos, sem
@@ -54,59 +54,59 @@ export const NAV_CATEGORIES: NavCategory[] = [
     ],
   },
   {
-    id: 'caregiver', label: 'Cuidador', color: '#b45309',
+    id: 'caregiver', label: 'Cuidador', color: 'var(--amber)',
     tools: [
-      { href: '/familia',    icon: '🏠',   label: 'A minha família',    desc: 'A saúde de cada pessoa num só sítio, perfis para adicionar e editar' },
-      { href: '/dose-crianca', icon: '🧒', label: 'Dose para crianças', desc: 'Por peso e por medicamento' },
+      { href: '/familia',    icon: 'home',   label: 'A minha família',    desc: 'A saúde de cada pessoa num só sítio, perfis para adicionar e editar' },
+      { href: '/dose-crianca', icon: 'family', label: 'Dose para crianças', desc: 'Por peso e por medicamento' },
     ],
   },
   {
-    id: 'clinical', label: 'Clínico', color: '#2563eb',
+    id: 'clinical', label: 'Clínico', color: 'var(--blue)',
     tools: [
       // CURADORIA 2026-06-01: Reduzido de 26 para 14. Removidas /calculators,
       // /counseling, /electrolytes, /handover (ainda incompletas
       // ou duplicadas com calculos / oracle). O utilizador pode reativar em
       // /settings/tools.
-      { href: '/painel',             icon: '🎛️', label: 'Painel',              desc: 'O painel da instituição, ao vivo' },
-      { href: '/radar',              icon: '📋', label: 'O que merece atenção', desc: 'O que a equipa registou que saiu do padrão' },
-      { href: '/mar',                icon: '📝', label: 'MAR',                 desc: 'Registo de administração' },
-      { href: '/patients',           icon: '👥', label: 'Doentes',             desc: 'Fichas e medicação' },
-      { href: '/calculos',           icon: '🧮', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
-      { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',          desc: 'Vancomicina AUC · Aminoglicosídeos', badge: 'Pro' },
-      { href: '/antibiotics',        icon: '💉', label: 'Antibioterapia',      desc: 'Empírica · MRSA/ESBL', badge: 'Pro' },
-      { href: '/stopp-start',        icon: '🛑', label: 'STOPP/START',         desc: 'v3 2023 + Beers', badge: 'Pro' },
-      { href: '/tpn',                icon: '🧪', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
-      { href: '/adr-report',         icon: '⚠️', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
-      { href: '/equipa',                 icon: '👥', label: 'Equipa',              desc: 'Turnos · Competências' },
+      { href: '/painel',             icon: 'sliders', label: 'Painel',              desc: 'O painel da instituição, ao vivo' },
+      { href: '/radar',              icon: 'clipboard', label: 'O que merece atenção', desc: 'O que a equipa registou que saiu do padrão' },
+      { href: '/mar',                icon: 'note', label: 'MAR',                 desc: 'Registo de administração' },
+      { href: '/patients',           icon: 'users', label: 'Doentes',             desc: 'Fichas e medicação' },
+      { href: '/calculos',           icon: 'calculator', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
+      { href: '/pk-dosing',          icon: 'flask', label: 'Console PK',          desc: 'Vancomicina AUC · Aminoglicosídeos', badge: 'Pro' },
+      { href: '/antibiotics',        icon: 'pill', label: 'Antibioterapia',      desc: 'Empírica · MRSA/ESBL', badge: 'Pro' },
+      { href: '/stopp-start',        icon: 'alert', label: 'STOPP/START',         desc: 'v3 2023 + Beers', badge: 'Pro' },
+      { href: '/tpn',                icon: 'flask', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
+      { href: '/adr-report',         icon: 'alert', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
+      { href: '/equipa',                 icon: 'users', label: 'Equipa',              desc: 'Turnos · Competências' },
     ],
   },
   {
-    id: 'student', label: 'Estudante', color: '#7c3aed',
+    id: 'student', label: 'Estudante', color: 'var(--roxo)',
     tools: [
-      { href: '/biblioteca', icon: '📚', label: 'As minhas sebentas', desc: 'Carregar PDFs e slides → resumo e perguntas', badge: 'Premium' },
-      { href: '/arena',     icon: '🏆', label: 'Arena',            desc: 'Ligas Bronze → Diamante' },
-      { href: '/simulador', icon: '🎮', label: 'Casos clínicos',   desc: 'Pratique decisões num caso real' },
-      { href: '/osce',      icon: '🎯', label: 'Treinar OSCE',     desc: 'Exame prático com doente simulado' },
-      { href: '/estagio',   icon: '🩺', label: 'Estágio',          desc: 'Doentes, diário, casos e relatórios do estágio' },
-      { href: '/study',     icon: '🃏', label: 'Flashcards',       desc: '200+ tópicos com repetição espaçada' },
-      { href: '/anatomia-3d', icon: '🫀', label: 'Explorar em 3D', desc: 'Atlas 3D real · pesquisa + AR', badge: 'Premium' },
-      { href: '/tutor',     icon: '🤖', label: 'Tutor passo a passo', desc: 'Explica e faz-te pensar' },
+      { href: '/biblioteca', icon: 'book', label: 'As minhas sebentas', desc: 'Carregar PDFs e slides → resumo e perguntas', badge: 'Premium' },
+      { href: '/arena',     icon: 'trophy', label: 'Arena',            desc: 'Ligas Bronze → Diamante' },
+      { href: '/simulador', icon: 'cards', label: 'Casos clínicos',   desc: 'Pratique decisões num caso real' },
+      { href: '/osce',      icon: 'target', label: 'Treinar OSCE',     desc: 'Exame prático com doente simulado' },
+      { href: '/estagio',   icon: 'stethoscope', label: 'Estágio',          desc: 'Doentes, diário, casos e relatórios do estágio' },
+      { href: '/study',     icon: 'cards', label: 'Flashcards',       desc: '200+ tópicos com repetição espaçada' },
+      { href: '/anatomia-3d', icon: 'heart', label: 'Explorar em 3D', desc: 'Atlas 3D real · pesquisa + AR', badge: 'Premium' },
+      { href: '/tutor',     icon: 'spark', label: 'Tutor passo a passo', desc: 'Explica e faz-te pensar' },
       // CURADORIA 2026-07-22: "Turno Virtual" — reconstruída em 2026-05-31
       // (APIs /api/shift/generate e /api/shift/evaluate já reais) mas nunca
       // chegou a ser ligada a nenhum menu. Auditoria de ferramentas apanhou-a órfã.
-      { href: '/shift',     icon: '🏥', label: 'Turno virtual',     desc: 'Simula um turno completo, decisão a decisão' },
+      { href: '/shift',     icon: 'building', label: 'Turno virtual',     desc: 'Simula um turno completo, decisão a decisão' },
       // Pesquisa competitiva 2026-07-27: comunidade completa (casos reais,
       // votos, diagnóstico revelado) com tabelas próprias, nunca ligada a
       // nenhum menu — zero pessoas a vê-la. Conteúdo ainda escasso (1 caso
       // seed) — considerar semear mais casos antes de promover a um lugar
       // mais visível.
-      { href: '/grand-round', icon: '🩻', label: 'Grand Round',    desc: 'Casos reais anónimos — a comunidade debate, o autor revela' },
+      { href: '/grand-round', icon: 'flask', label: 'Grand Round',    desc: 'Casos reais anónimos — a comunidade debate, o autor revela' },
       // Pesquisa competitiva 2026-07-28: mnemónicas visuais geradas por IA
       // (Picmonic reporta +331% de retenção) — nunca tinha sido construída a sério.
-      { href: '/mnemonicas', icon: '🧠', label: 'Mnemónicas visuais', desc: 'Uma imagem mental memorável por conceito, com baralho pessoal' },
+      { href: '/mnemonicas', icon: 'spark', label: 'Mnemónicas visuais', desc: 'Uma imagem mental memorável por conceito, com baralho pessoal' },
       // sprint78 (exam_goals + IA) existia todo no backend mas /modo-exame era
       // só um redirect morto para /study — ninguém conseguia lá chegar.
-      { href: '/modo-exame', icon: '⏳', label: 'Modo Exame',     desc: 'Contagem decrescente até ao exame, com sprint final' },
+      { href: '/modo-exame', icon: 'clock', label: 'Modo Exame',     desc: 'Contagem decrescente até ao exame, com sprint final' },
     ],
   },
 ]
@@ -147,34 +147,34 @@ export function getAllToolsForMode(mode: Mode): (NavTool & { categoryLabel: stri
 
 export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   personal: [
-    { href: '/mymeds',       icon: '💊', label: 'Comprimidos', desc: 'A lista e os lembretes de hoje' },
-    { href: '/interactions', icon: '🔍', label: 'Verificar',   desc: 'Dão-se bem juntos?' },
-    { href: '/vitals',       icon: '❤️', label: 'Saúde',       desc: 'Tensão, peso e açúcar' },
-    { href: '/ai',           icon: '🤖', label: 'Perguntar',   desc: 'Tirar uma dúvida' },
-    { href: '/passport',     icon: '🆘', label: 'Emergência',  desc: 'Cartão QR' },
-    { href: '/scan',         icon: '📷', label: 'Explicar',    desc: 'Foto a um exame ou receita, explicado' },
+    { href: '/mymeds',       icon: 'pill', label: 'Comprimidos', desc: 'A lista e os lembretes de hoje' },
+    { href: '/interactions', icon: 'search', label: 'Verificar',   desc: 'Dão-se bem juntos?' },
+    { href: '/vitals',       icon: 'heart', label: 'Saúde',       desc: 'Tensão, peso e açúcar' },
+    { href: '/ai',           icon: 'spark', label: 'Perguntar',   desc: 'Tirar uma dúvida' },
+    { href: '/passport',     icon: 'alert', label: 'Emergência',  desc: 'Cartão QR' },
+    { href: '/scan',         icon: 'camera', label: 'Explicar',    desc: 'Foto a um exame ou receita, explicado' },
   ],
   caregiver: [
-    { href: '/familia',      icon: '👨‍👩‍👧', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },
-    { href: '/mymeds',       icon: '💊',   label: 'Medicação',  desc: 'Lista e lembretes' },
-    { href: '/interactions', icon: '🔍',   label: 'Verificar',  desc: 'São seguros juntos?' },
-    { href: '/ai',           icon: '🤖',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
+    { href: '/familia',      icon: 'family', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },
+    { href: '/mymeds',       icon: 'pill',   label: 'Medicação',  desc: 'Lista e lembretes' },
+    { href: '/interactions', icon: 'search',   label: 'Verificar',  desc: 'São seguros juntos?' },
+    { href: '/ai',           icon: 'spark',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
   ],
   clinical: [
-    { href: '/painel',             icon: '🎛️', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
-    { href: '/mar',                icon: '📝', label: 'MAR',           desc: 'Registo de administração' },
-    { href: '/equipa',                 icon: '👥', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
-    { href: '/calculos',           icon: '🧮', label: 'Calculadoras',  desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
-    { href: '/pk-dosing',          icon: '🔬', label: 'Console PK',    desc: 'Vancomicina AUC · Aminoglicosídeos' },
-    { href: '/tpn',                icon: '🧪', label: 'NP',            desc: 'Nutrição parentérica ASPEN 2022' },
-    { href: '/antibiotics',        icon: '💉', label: 'Antibióticos',  desc: 'Empírica · MRSA/ESBL · stewardship' },
-    { href: '/emergency-doses',    icon: '🚨', label: 'Urgência',      desc: 'Doses de emergência por peso' },
+    { href: '/painel',             icon: 'sliders', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
+    { href: '/mar',                icon: 'note', label: 'MAR',           desc: 'Registo de administração' },
+    { href: '/equipa',                 icon: 'users', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
+    { href: '/calculos',           icon: 'calculator', label: 'Calculadoras',  desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
+    { href: '/pk-dosing',          icon: 'flask', label: 'Console PK',    desc: 'Vancomicina AUC · Aminoglicosídeos' },
+    { href: '/tpn',                icon: 'flask', label: 'NP',            desc: 'Nutrição parentérica ASPEN 2022' },
+    { href: '/antibiotics',        icon: 'pill', label: 'Antibióticos',  desc: 'Empírica · MRSA/ESBL · stewardship' },
+    { href: '/emergency-doses',    icon: 'alert', label: 'Urgência',      desc: 'Doses de emergência por peso' },
   ],
   student: [
-    { href: '/arena',     icon: '🏆', label: 'Arena',     desc: 'Ligas Bronze → Diamante' },
-    { href: '/simulador', icon: '🎮', label: 'Simular',   desc: 'Casos clínicos' },
-    { href: '/study',     icon: '🃏', label: 'Estudar',   desc: 'Flashcards e quizzes' },
-    { href: '/tutor',     icon: '🤖', label: 'Tutor AI',  desc: 'Explicações passo a passo' },
-    { href: '/osce',      icon: '🎯', label: 'OSCE',      desc: 'Simulação de exame' },
+    { href: '/arena',     icon: 'trophy', label: 'Arena',     desc: 'Ligas Bronze → Diamante' },
+    { href: '/simulador', icon: 'cards', label: 'Simular',   desc: 'Casos clínicos' },
+    { href: '/study',     icon: 'cards', label: 'Estudar',   desc: 'Flashcards e quizzes' },
+    { href: '/tutor',     icon: 'spark', label: 'Tutor AI',  desc: 'Explicações passo a passo' },
+    { href: '/osce',      icon: 'target', label: 'OSCE',      desc: 'Simulação de exame' },
   ],
 }

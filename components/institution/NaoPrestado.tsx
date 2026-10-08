@@ -100,14 +100,14 @@ export default function RegistarNaoPrestado({
         role="dialog"
         aria-label={`${oQue}: o que aconteceu`}
         style={{
-          width: '100%', maxWidth: 460, background: 'var(--bg, #fff)',
+          width: '100%', maxWidth: 460, background: 'var(--bg, var(--bg))',
           borderRadius: '18px 18px 0 0', padding: '20px 18px calc(18px + env(safe-area-inset-bottom))',
           maxHeight: '86vh', overflowY: 'auto',
         }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, #111)', marginBottom: 4 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, var(--ink))', marginBottom: 4 }}>
           {oQue.charAt(0).toUpperCase() + oQue.slice(1)}
         </div>
-        <div style={{ fontSize: 13, color: 'var(--ink-4, #6b7280)', marginBottom: 16, lineHeight: 1.5 }}>
+        <div style={{ fontSize: 13, color: 'var(--ink-4, var(--ink-4))', marginBottom: 16, lineHeight: 1.5 }}>
           O que aconteceu? Fica escrito no registo{nome ? ` de ${nome.split(' ')[0]}` : ''} — é o que mostra
           que a equipa esteve cá e tentou.
         </div>
@@ -118,15 +118,15 @@ export default function RegistarNaoPrestado({
             return (
               <button key={m.id} onClick={() => setMotivo(m.id)}
                 style={{
-                  textAlign: 'left', padding: '11px 13px', borderRadius: 11, cursor: 'pointer',
+                  textAlign: 'left', padding: '11px 13px', borderRadius: 'var(--r-xl)', cursor: 'pointer',
                   minHeight: 44, fontFamily: 'inherit',
-                  border: `1.5px solid ${escolhido ? 'var(--accent, #0d9488)' : 'var(--border, #e5e7eb)'}`,
-                  background: escolhido ? 'var(--accent-soft, #f0fdfa)' : 'transparent',
+                  border: `1.5px solid ${escolhido ? 'var(--accent, var(--green-3))' : 'var(--border, var(--border))'}`,
+                  background: escolhido ? 'var(--accent-soft, var(--green-light))' : 'transparent',
                 }}>
-                <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink, #111)' }}>
+                <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink, var(--ink))' }}>
                   {m.label}
                 </span>
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4, #6b7280)', marginTop: 3, lineHeight: 1.45 }}>
+                <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4, var(--ink-4))', marginTop: 3, lineHeight: 1.45 }}>
                   {m.ajuda}
                 </span>
               </button>
@@ -135,36 +135,36 @@ export default function RegistarNaoPrestado({
         </div>
 
         <label style={{ display: 'block', marginTop: 16 }}>
-          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3, #374151)', marginBottom: 6 }}>
+          <span style={{ display: 'block', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3, var(--ink-3))', marginBottom: 6 }}>
             O que aconteceu {motivo === 'outro' ? '' : '(se houver mais a dizer)'}
           </span>
           <textarea
             value={nota} onChange={e => setNota(e.target.value)} rows={3}
             placeholder="Ex.: estava com dores nas costas e pediu para ser de tarde."
             style={{
-              width: '100%', padding: '10px 12px', borderRadius: 10, resize: 'vertical',
-              border: '1px solid var(--border, #e5e7eb)', fontFamily: 'inherit', fontSize: 14,
-              background: 'var(--bg-2, #fff)', color: 'var(--ink, #111)',
+              width: '100%', padding: '10px 12px', borderRadius: 'var(--r-lg)', resize: 'vertical',
+              border: '1px solid var(--border, var(--border))', fontFamily: 'inherit', fontSize: 14,
+              background: 'var(--bg-2, var(--bg))', color: 'var(--ink, var(--ink))',
             }} />
         </label>
 
         {erro && (
-          <div style={{ marginTop: 12, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>
+          <div style={{ marginTop: 12, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>
         )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
           <button onClick={aoFechar} style={{
-            flex: '0 0 auto', minHeight: 46, padding: '0 18px', borderRadius: 11,
-            border: '1px solid var(--border-2, #d1d5db)', background: 'transparent',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, #374151)', cursor: 'pointer',
+            flex: '0 0 auto', minHeight: 46, padding: '0 18px', borderRadius: 'var(--r-xl)',
+            border: '1px solid var(--border-2, var(--border-2))', background: 'transparent',
+            fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, var(--ink-3))', cursor: 'pointer',
           }}>Cancelar</button>
           <button
             onClick={gravar}
             disabled={!motivo || aGravar}
             style={{
-              flex: 1, minHeight: 46, borderRadius: 11, border: 'none',
-              background: motivo ? 'var(--accent, #0d9488)' : 'var(--bg-3, #e5e7eb)',
-              color: motivo ? '#fff' : 'var(--ink-5, #9ca3af)',
+              flex: 1, minHeight: 46, borderRadius: 'var(--r-xl)', border: 'none',
+              background: motivo ? 'var(--accent, var(--green-3))' : 'var(--bg-3, var(--border))',
+              color: motivo ? 'var(--bg)' : 'var(--ink-5, var(--ink-5))',
               fontFamily: 'inherit', fontSize: 15, fontWeight: 700,
               cursor: motivo && !aGravar ? 'pointer' : 'default',
             }}>
@@ -249,12 +249,12 @@ export function CuidadosNaoPrestados({
   if (!patientId || indisponivel) return null
 
   return (
-    <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 20 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#374151', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
-        <span style={{ width: 20, height: 20, background: '#64748b', borderRadius: 4, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 11, fontWeight: 800 }}>8</span>
+    <div style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+        <span style={{ width: 20, height: 20, background: 'var(--ink-4)', borderRadius: 'var(--r)', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: 'var(--bg)', fontSize: 11, fontWeight: 800 }}>8</span>
         O que não foi feito
       </div>
-      <p style={{ fontSize: 12.5, color: '#64748b', margin: '0 0 14px', lineHeight: 1.5 }}>
+      <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: '0 0 14px', lineHeight: 1.5 }}>
         Um cuidado recusado, escrito com o motivo, é a prova de que a equipa esteve cá e tentou.
       </p>
 
@@ -263,19 +263,19 @@ export function CuidadosNaoPrestados({
           {linhas.map(l => (
             <div key={l.id} style={{
               display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 11px',
-              background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: 8,
+              background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
             }}>
               <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: '#0b1120' }}>
+                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>
                   {emPalavras({ o_que: l.o_que, motivo: l.motivo, nota: l.nota }, nome)}
                 </span>
-                <span style={{ display: 'block', fontSize: 11, color: '#9ca3af', marginTop: 3 }}>
+                <span style={{ display: 'block', fontSize: 11, color: 'var(--ink-5)', marginTop: 3 }}>
                   {rotuloMotivo(l.motivo)}{l.recorded_by ? ` · ${l.recorded_by}` : ''}{l.turno ? ` · ${l.turno}` : ''}
                 </span>
               </span>
               {podeEditar && (
                 <button onClick={() => apagar(l.id)} title="Apagar este registo"
-                  style={{ flexShrink: 0, background: 'none', border: 'none', color: '#9ca3af', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 2 }}>×</button>
+                  style={{ flexShrink: 0, background: 'none', border: 'none', color: 'var(--ink-5)', fontSize: 16, cursor: 'pointer', lineHeight: 1, padding: 2 }}>×</button>
               )}
             </div>
           ))}
@@ -289,8 +289,8 @@ export function CuidadosNaoPrestados({
               <button key={c} onClick={() => setAEscolher(c)}
                 style={{
                   padding: '7px 12px', borderRadius: 999, minHeight: 36, cursor: 'pointer',
-                  border: '1px solid #e5e7eb', background: '#fff', fontFamily: 'inherit',
-                  fontSize: 12.5, fontWeight: 600, color: '#374151',
+                  border: '1px solid var(--border)', background: 'var(--bg)', fontFamily: 'inherit',
+                  fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)',
                 }}>{c}</button>
             ))}
           </div>
@@ -300,22 +300,22 @@ export function CuidadosNaoPrestados({
               placeholder="Outro cuidado…"
               onKeyDown={e => { if (e.key === 'Enter' && outro.trim()) { setAEscolher(outro.trim()); } }}
               style={{
-                flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: 8, fontSize: 13,
-                border: '1px solid #e5e7eb', fontFamily: 'inherit',
+                flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: 'var(--r-md)', fontSize: 13,
+                border: '1px solid var(--border)', fontFamily: 'inherit',
               }} />
             <button
               onClick={() => outro.trim() && setAEscolher(outro.trim())}
               disabled={!outro.trim()}
               style={{
-                flexShrink: 0, padding: '0 14px', minHeight: 38, borderRadius: 8, border: 'none',
-                background: outro.trim() ? '#0b1120' : '#e5e7eb', color: outro.trim() ? '#fff' : '#9ca3af',
+                flexShrink: 0, padding: '0 14px', minHeight: 38, borderRadius: 'var(--r-md)', border: 'none',
+                background: outro.trim() ? 'var(--ink)' : 'var(--border)', color: outro.trim() ? 'var(--bg)' : 'var(--ink-5)',
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: outro.trim() ? 'pointer' : 'default',
               }}>Assinalar</button>
           </div>
         </>
       ) : (
         linhas.length === 0 && (
-          <div style={{ fontSize: 12.5, color: '#9ca3af' }}>Nada assinalado neste dia.</div>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-5)' }}>Nada assinalado neste dia.</div>
         )
       )}
 

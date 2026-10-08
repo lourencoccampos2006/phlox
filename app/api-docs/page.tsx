@@ -63,15 +63,15 @@ const ENDPOINTS = [
 ]
 
 const METHOD_STYLE: Record<string, { bg: string; color: string }> = {
-  GET:    { bg: '#d1fae5', color: '#065f46' },
-  POST:   { bg: '#dbeafe', color: '#1e40af' },
-  DELETE: { bg: '#fee2e2', color: '#991b1b' },
+  GET:    { bg: 'var(--badge-green-bg)', color: 'var(--green)' },
+  POST:   { bg: 'var(--bg-3)', color: 'var(--ink-2)' },
+  DELETE: { bg: 'var(--badge-red-bg)', color: 'var(--red)' },
 }
 
 const PLAN_STYLE: Record<string, { bg: string; color: string }> = {
   'Free':     { bg: 'var(--bg-3)', color: 'var(--ink-4)' },
-  'Student+': { bg: '#ede9fe', color: '#6d28d9' },
-  'Pro+':     { bg: '#dbeafe', color: '#1d4ed8' },
+  'Student+': { bg: 'var(--roxo-claro)', color: 'var(--roxo)' },
+  'Pro+':     { bg: 'var(--bg-3)', color: 'var(--ink-2)' },
 }
 
 export default function ApiDocsPage() {
@@ -87,20 +87,20 @@ export default function ApiDocsPage() {
           <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, maxWidth:560 }}>
             API REST para integração com sistemas de saúde, farmácias e plataformas clínicas. Autenticação via Bearer token (token da sessão Supabase).
           </p>
-          <div style={{ marginTop:14, padding:'12px 16px', background:'var(--ink)', borderRadius:8, display:'flex', alignItems:'center', gap:12 }}>
-            <div style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'#94a3b8' }}>Base URL:</div>
-            <div style={{ fontSize:13, fontFamily:'var(--font-mono)', color:'#22c55e', fontWeight:700 }}>https://phlox-clinical.com/api</div>
+          <div style={{ marginTop:14, padding:'12px 16px', background:'var(--ink)', borderRadius: 'var(--r-md)', display:'flex', alignItems:'center', gap:12 }}>
+            <div style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--ink-5)' }}>Base URL:</div>
+            <div style={{ fontSize:13, fontFamily:'var(--font-mono)', color:'var(--green)', fontWeight:700 }}>https://phlox-clinical.com/api</div>
           </div>
         </div>
 
         {/* Auth */}
-        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'20px', marginBottom:20 }}>
+        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'20px', marginBottom:20 }}>
           <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.08em', textTransform:'uppercase', marginBottom:12 }}>Autenticação</div>
           <p style={{ fontSize:13, color:'var(--ink-3)', lineHeight:1.7, marginBottom:12 }}>
             Endpoints marcados como "Obrigatória" requerem um Bearer token no header Authorization. O token é o access_token da sessão Supabase do utilizador autenticado.
           </p>
-          <div style={{ background:'var(--ink)', borderRadius:7, padding:'14px 16px', fontFamily:'var(--font-mono)', fontSize:12, color:'#94a3b8', lineHeight:1.7 }}>
-            <span style={{ color:'#7c3aed' }}>Authorization</span>: Bearer <span style={{ color:'#22c55e' }}>{'<seu_access_token>'}</span>
+          <div style={{ background:'var(--ink)', borderRadius: 'var(--r-md)', padding:'14px 16px', fontFamily:'var(--font-mono)', fontSize:12, color:'var(--ink-5)', lineHeight:1.7 }}>
+            <span style={{ color:'var(--roxo)' }}>Authorization</span>: Bearer <span style={{ color:'var(--green)' }}>{'<seu_access_token>'}</span>
           </div>
           <div style={{ marginTop:10, fontSize:12, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>
             Rate limit: 60 requests/minuto por IP · endpoints Free: sem limite de autenticação
@@ -113,15 +113,15 @@ export default function ApiDocsPage() {
             const ms = METHOD_STYLE[ep.method] || METHOD_STYLE.POST
             const ps = PLAN_STYLE[ep.plan] || PLAN_STYLE['Free']
             return (
-              <div key={i} style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+              <div key={i} style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow:'hidden' }}>
                 {/* Header */}
                 <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', flexWrap:'wrap', gap:10 }}>
-                  <span style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:ms.color, background:ms.bg, padding:'3px 8px', borderRadius:4, letterSpacing:'0.06em', flexShrink:0 }}>
+                  <span style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:ms.color, background:ms.bg, padding:'3px 8px', borderRadius: 'var(--r)', letterSpacing:'0.06em', flexShrink:0 }}>
                     {ep.method}
                   </span>
                   <code style={{ fontSize:13, fontFamily:'var(--font-mono)', color:'var(--ink)', fontWeight:700 }}>{ep.path}</code>
                   <div style={{ marginLeft:'auto', display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                    <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:ps.color, background:ps.bg, padding:'2px 7px', borderRadius:3, letterSpacing:'0.06em', textTransform:'uppercase' }}>
+                    <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:ps.color, background:ps.bg, padding:'2px 7px', borderRadius: 'var(--r-sm)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
                       {ep.plan}
                     </span>
                     <span style={{ fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>Auth: {ep.auth}</span>
@@ -134,11 +134,11 @@ export default function ApiDocsPage() {
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }} className="code-grid">
                     <div>
                       <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6 }}>Request Body</div>
-                      <div style={{ background:'var(--bg-2)', borderRadius:6, padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:11, color:'var(--ink-2)', lineHeight:1.7, whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{ep.body}</div>
+                      <div style={{ background:'var(--bg-2)', borderRadius: 'var(--r)', padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:11, color:'var(--ink-2)', lineHeight:1.7, whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{ep.body}</div>
                     </div>
                     <div>
                       <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:6 }}>Response (200)</div>
-                      <div style={{ background:'var(--bg-2)', borderRadius:6, padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:11, color:'#0d6e42', lineHeight:1.7, whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{ep.response}</div>
+                      <div style={{ background:'var(--bg-2)', borderRadius: 'var(--r)', padding:'10px 12px', fontFamily:'var(--font-mono)', fontSize:11, color:'var(--green)', lineHeight:1.7, whiteSpace:'pre-wrap', wordBreak:'break-word' }}>{ep.response}</div>
                     </div>
                   </div>
                 </div>
@@ -148,10 +148,10 @@ export default function ApiDocsPage() {
         </div>
 
         {/* Contact */}
-        <div style={{ marginTop:24, padding:'20px', background:'var(--ink)', borderRadius:10, textAlign:'center' }}>
-          <div style={{ fontSize:14, fontWeight:700, color:'#f8fafc', marginBottom:8 }}>Integração institucional?</div>
-          <p style={{ fontSize:13, color:'#64748b', marginBottom:14 }}>Liga o Phlox ao teu software via webhooks assinados (HMAC) e exportações compatíveis com Sifarma/ERP.</p>
-          <a href="/webhooks" style={{ display:'inline-block', background:'#1d4ed8', color:'white', textDecoration:'none', padding:'10px 22px', borderRadius:7, fontSize:13, fontWeight:700 }}>
+        <div style={{ marginTop:24, padding:'20px', background:'var(--ink)', borderRadius: 'var(--r-lg)', textAlign:'center' }}>
+          <div style={{ fontSize:14, fontWeight:700, color:'var(--bg-2)', marginBottom:8 }}>Integração institucional?</div>
+          <p style={{ fontSize:13, color:'var(--ink-4)', marginBottom:14 }}>Liga o Phlox ao teu software via webhooks assinados (HMAC) e exportações compatíveis com Sifarma/ERP.</p>
+          <a href="/webhooks" style={{ display:'inline-block', background:'var(--ink-2)', color:'white', textDecoration:'none', padding:'10px 22px', borderRadius: 'var(--r-md)', fontSize:13, fontWeight:700 }}>
             Configurar integrações →
           </a>
         </div>

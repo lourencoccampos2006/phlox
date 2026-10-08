@@ -42,7 +42,7 @@ const MONO: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block',
 }
 const inp: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--border)', borderRadius: 8,
+  width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
   padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)',
   outline: 'none', boxSizing: 'border-box', background: 'white',
 }
@@ -239,15 +239,15 @@ export default function ContaCorrente({ month, patients, mensalidades }: {
     <div>
       {erro && (
         <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 8,
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
+          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
+          background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', color: 'var(--red)',
           fontSize: 13, fontWeight: 600,
         }}>{erro}</div>
       )}
 
       {recado && (
         <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 8,
+          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
           background: 'var(--bg-2)', border: '1px solid var(--border)',
           color: 'var(--ink-2)', fontSize: 13, fontWeight: 600,
           display: 'flex', justifyContent: 'space-between', gap: 10, alignItems: 'center',
@@ -281,7 +281,7 @@ export default function ContaCorrente({ month, patients, mensalidades }: {
           const estaAberto = aberto === pessoa.id
           return (
             <section key={pessoa.id} style={{
-              borderRadius: 12, border: `1px solid ${estaAberto ? 'var(--ink)' : 'var(--border)'}`,
+              borderRadius: 'var(--r-xl)', border: `1px solid ${estaAberto ? 'var(--ink)' : 'var(--border)'}`,
               background: 'white', overflow: 'hidden',
             }}>
               <button
@@ -297,7 +297,7 @@ export default function ContaCorrente({ month, patients, mensalidades }: {
                 </span>
                 <span style={{
                   flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 700,
-                  color: cents > 0 ? '#b45309' : cents < 0 ? '#15803d' : 'var(--ink-5)',
+                  color: cents > 0 ? 'var(--amber)' : cents < 0 ? 'var(--green)' : 'var(--ink-5)',
                 }}>
                   {cents === 0 ? 'em dia' : euro(saldo)}
                 </span>
@@ -366,7 +366,7 @@ function Conta({ pessoa, month, mensalidades, movimentos, podeEditar, lancar, ap
       {/* ── O extrato do mês ─────────────────────────────────────────────── */}
       <div style={{ ...MONO, marginTop: 12 }}>Extrato de {mesPorExtenso(month)}</div>
 
-      <div style={{ borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden' }}>
+      <div style={{ borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
         {Math.round(e.saldoAnterior * 100) !== 0 && (
           <Linha descricao="Saldo anterior" valor={e.saldoAnterior} debito={e.saldoAnterior > 0} primeira />
         )}
@@ -401,7 +401,7 @@ function Conta({ pessoa, month, mensalidades, movimentos, podeEditar, lancar, ap
           </span>
           <span style={{
             fontFamily: 'var(--font-mono)', fontSize: 14, fontWeight: 700,
-            color: e.saldoFinal > 0 ? '#b45309' : e.saldoFinal < 0 ? '#15803d' : 'var(--ink-5)',
+            color: e.saldoFinal > 0 ? 'var(--amber)' : e.saldoFinal < 0 ? 'var(--green)' : 'var(--ink-5)',
           }}>{euro(e.saldoFinal)}</span>
         </div>
       </div>
@@ -430,7 +430,7 @@ function Conta({ pessoa, month, mensalidades, movimentos, podeEditar, lancar, ap
               aria-label="Data do movimento"
               style={{ ...inp, flex: '0 1 150px', width: 'auto' }} />
             <button onClick={gravar} disabled={!valido || aGravar} style={{
-              minHeight: 40, padding: '0 16px', borderRadius: 8, border: 'none',
+              minHeight: 40, padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
               background: valido ? 'var(--ink)' : 'var(--bg-3)',
               color: valido ? 'white' : 'var(--ink-5)',
               fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
@@ -446,7 +446,7 @@ function Conta({ pessoa, month, mensalidades, movimentos, podeEditar, lancar, ap
 
       <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
         <button onClick={imprimir} style={{
-          minHeight: 38, padding: '0 14px', borderRadius: 8,
+          minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
           border: '1px solid var(--border)', background: 'white',
           fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', cursor: 'pointer',
         }}>Imprimir o extrato</button>
@@ -455,7 +455,7 @@ function Conta({ pessoa, month, mensalidades, movimentos, podeEditar, lancar, ap
             fora da instituição — não é o mesmo gesto que imprimir. */}
         {podeEditar && (
           <button onClick={enviar} disabled={aEnviar} style={{
-            minHeight: 38, padding: '0 14px', borderRadius: 8, border: 'none',
+            minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)', border: 'none',
             background: aEnviar ? 'var(--bg-3)' : 'var(--ink)',
             color: aEnviar ? 'var(--ink-5)' : 'white',
             fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
@@ -494,7 +494,7 @@ function Linha({ descricao, data, valor, debito, primeira, aoApagar }: {
       <span style={{
         flexShrink: 0, width: 82, textAlign: 'right',
         fontFamily: 'var(--font-mono)', fontSize: 12.5, fontWeight: 700,
-        color: debito ? 'var(--ink)' : '#15803d',
+        color: debito ? 'var(--ink)' : 'var(--green)',
       }}>{debito ? euro(valor) : `−${euro(valor)}`}</span>
     </div>
   )

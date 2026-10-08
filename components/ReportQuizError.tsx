@@ -89,10 +89,10 @@ export default function ReportQuizError({
         aria-label="Reportar erro nesta pergunta"
         style={{
           padding: '5px 11px',
-          background: reported ? '#f0fdf4' : hasFlags ? '#fffbeb' : 'white',
-          color: reported ? '#0d6e42' : hasFlags ? '#b45309' : '#475569',
-          border: `1px solid ${reported ? '#bbf7d0' : hasFlags ? '#fde68a' : '#e5e7eb'}`,
-          borderRadius: 6,
+          background: reported ? 'var(--badge-green-bg)' : hasFlags ? 'var(--badge-amber-bg)' : 'white',
+          color: reported ? 'var(--green)' : hasFlags ? 'var(--amber)' : 'var(--ink-3)',
+          border: `1px solid ${reported ? 'var(--green-mid)' : hasFlags ? 'var(--badge-amber-border)' : 'var(--border)'}`,
+          borderRadius: 'var(--r)',
           fontSize: 11.5,
           fontWeight: 700,
           cursor: reported ? 'default' : 'pointer',
@@ -104,14 +104,14 @@ export default function ReportQuizError({
       {open && !reported && (
         <div style={{
           position: 'absolute', right: 0, top: 'calc(100% + 6px)', zIndex: 30,
-          width: 320, background: 'white', border: '1px solid #e5e7eb', borderRadius: 10,
+          width: 320, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
           boxShadow: '0 8px 32px rgba(0,0,0,0.12)', padding: 14,
         }}>
-          <div style={{ fontSize: 12, fontWeight: 800, color: '#0b1120', marginBottom: 8, letterSpacing: '-0.01em' }}>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>
             Reportar erro nesta pergunta
           </div>
           {hasFlags && (
-            <div style={{ fontSize: 11, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 6, padding: '6px 8px', marginBottom: 8 }}>
+            <div style={{ fontSize: 11, color: 'var(--amber)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '6px 8px', marginBottom: 8 }}>
               <strong>Sinais de qualidade detetados:</strong> {(qualityFlags || []).join(' · ')}
             </div>
           )}
@@ -120,15 +120,15 @@ export default function ReportQuizError({
               <label key={r.id}
                 style={{
                   display: 'flex', alignItems: 'flex-start', gap: 8, padding: '6px 8px',
-                  background: reason === r.id ? '#eff6ff' : 'transparent',
-                  border: `1px solid ${reason === r.id ? '#bfdbfe' : 'transparent'}`,
-                  borderRadius: 6, cursor: 'pointer',
+                  background: reason === r.id ? 'var(--bg-2)' : 'transparent',
+                  border: `1px solid ${reason === r.id ? 'var(--border)' : 'transparent'}`,
+                  borderRadius: 'var(--r)', cursor: 'pointer',
                 }}>
                 <input type="radio" checked={reason === r.id} onChange={() => setReason(r.id)}
-                  style={{ marginTop: 2, accentColor: '#1d4ed8' }} />
+                  style={{ marginTop: 2, accentColor: 'var(--ink-2)' }} />
                 <span style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#0b1120' }}>{r.label}</div>
-                  <div style={{ fontSize: 11, color: '#64748b', marginTop: 1 }}>{r.hint}</div>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{r.label}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 1 }}>{r.hint}</div>
                 </span>
               </label>
             ))}
@@ -138,14 +138,14 @@ export default function ReportQuizError({
             onChange={e => setComment(e.target.value.slice(0, 1000))}
             placeholder="(opcional) Descreve o erro com mais detalhe…"
             rows={2}
-            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid #e5e7eb', borderRadius: 7, padding: '7px 9px', fontSize: 12, fontFamily: 'var(--font-sans)', resize: 'vertical', outline: 'none' }} />
+            style={{ width: '100%', boxSizing: 'border-box', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '7px 9px', fontSize: 12, fontFamily: 'var(--font-sans)', resize: 'vertical', outline: 'none' }} />
           <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', marginTop: 9 }}>
             <button onClick={() => setOpen(false)} disabled={sending}
-              style={{ padding: '6px 12px', background: 'white', color: '#475569', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
               Cancelar
             </button>
             <button onClick={submit} disabled={sending}
-              style={{ padding: '6px 14px', background: sending ? '#cbd5e1' : '#1d4ed8', color: 'white', border: 'none', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: sending ? 'wait' : 'pointer' }}>
+              style={{ padding: '6px 14px', background: sending ? 'var(--border-2)' : 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r)', fontSize: 12, fontWeight: 700, cursor: sending ? 'wait' : 'pointer' }}>
               {sending ? 'A enviar…' : 'Enviar reporte'}
             </button>
           </div>

@@ -111,7 +111,7 @@ export default function SecuritySettings() {
       <Card title="Verificação em dois passos (MFA)" subtitle="Adiciona uma 2ª camada à tua conta — código de app autenticadora.">
         {factors.filter(f => f.status === 'verified').length > 0 ? (
           <>
-            <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '10px 12px', fontSize: 12.5, color: '#15803d', marginBottom: 10 }}>
+            <div style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 12.5, color: 'var(--green)', marginBottom: 10 }}>
               ✓ MFA ativo
             </div>
             {factors.filter(f => f.status === 'verified').map(f => (
@@ -120,7 +120,7 @@ export default function SecuritySettings() {
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{f.friendly_name || 'Authenticator'}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>Criado {new Date(f.created_at).toLocaleDateString('pt-PT')}</div>
                 </div>
-                <button onClick={() => unenroll(f.id)} style={{ ...ghostBtn, color: '#dc2626' }}>Desativar</button>
+                <button onClick={() => unenroll(f.id)} style={{ ...ghostBtn, color: 'var(--red)' }}>Desativar</button>
               </div>
             ))}
           </>
@@ -133,10 +133,10 @@ export default function SecuritySettings() {
             </div>
             {enrolling.qr && (
               /* eslint-disable-next-line @next/next/no-img-element */
-              <img src={enrolling.qr} alt="QR MFA" style={{ width: 160, height: 160, display: 'block', margin: '0 auto 12px', border: '1px solid var(--border)', borderRadius: 8 }} />
+              <img src={enrolling.qr} alt="QR MFA" style={{ width: 160, height: 160, display: 'block', margin: '0 auto 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }} />
             )}
             {enrolling.secret && (
-              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', marginBottom: 10, textAlign: 'center', wordBreak: 'break-all' }}>
+              <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)', marginBottom: 10, textAlign: 'center', wordBreak: 'break-all' }}>
                 {enrolling.secret}
               </div>
             )}
@@ -160,7 +160,7 @@ export default function SecuritySettings() {
         {erroSessoes ? (
           /* "Sem sessoes registadas" num ecra de seguranca quer dizer "ninguem
              esta ligado a esta conta". Se a leitura falhou, nao se diz. */
-          <div style={{ fontSize: 12.5, color: '#c53030', textAlign: 'center', padding: 14, lineHeight: 1.6 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--red)', textAlign: 'center', padding: 14, lineHeight: 1.6 }}>
             {erroSessoes}
           </div>
         ) : sessions.length === 0 ? (
@@ -168,7 +168,7 @@ export default function SecuritySettings() {
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {sessions.map(s => (
-              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: s.revoked ? '#f8fafc' : 'white', border: '1px solid var(--border)', borderRadius: 8, opacity: s.revoked ? 0.6 : 1 }}>
+              <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: s.revoked ? 'var(--bg-2)' : 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', opacity: s.revoked ? 0.6 : 1 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{s.device_label || 'Dispositivo'}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
@@ -177,7 +177,7 @@ export default function SecuritySettings() {
                 </div>
                 {s.revoked
                   ? <span style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>REVOGADA</span>
-                  : <button onClick={() => revokeSession(s.id)} style={{ ...ghostBtn, color: '#dc2626' }}>Revogar</button>}
+                  : <button onClick={() => revokeSession(s.id)} style={{ ...ghostBtn, color: 'var(--red)' }}>Revogar</button>}
               </div>
             ))}
           </div>
@@ -188,9 +188,9 @@ export default function SecuritySettings() {
       {anomalies.length > 0 && (
         <Card title="Atividade suspeita detetada" subtitle="">
           {anomalies.map(a => {
-            const c = a.severity === 'critical' ? '#dc2626' : a.severity === 'warning' ? '#b45309' : '#1d4ed8'
+            const c = a.severity === 'critical' ? 'var(--red)' : a.severity === 'warning' ? 'var(--amber)' : 'var(--ink-2)'
             return (
-              <div key={a.id} style={{ padding: '10px 12px', border: `1px solid ${c}40`, borderLeft: `3px solid ${c}`, borderRadius: 8, marginBottom: 6 }}>
+              <div key={a.id} style={{ padding: '10px 12px', border: `1px solid ${c}40`, borderLeft: `3px solid ${c}`, borderRadius: 'var(--r-md)', marginBottom: 6 }}>
                 <div style={{ fontSize: 13, fontWeight: 700, color: c }}>{a.description}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{new Date(a.detected_at).toLocaleString('pt-PT')} · {a.kind}</div>
               </div>
@@ -204,7 +204,7 @@ export default function SecuritySettings() {
 
 function Card({ children, title, subtitle }: { children: React.ReactNode; title: string; subtitle?: string }) {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{title}</div>
       {subtitle && <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14, lineHeight: 1.55 }}>{subtitle}</div>}
       {children}
@@ -212,6 +212,6 @@ function Card({ children, title, subtitle }: { children: React.ReactNode; title:
   )
 }
 
-const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none' }
-const primaryBtn: React.CSSProperties = { padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
-const ghostBtn: React.CSSProperties = { padding: '7px 11px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
+const input: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none' }
+const primaryBtn: React.CSSProperties = { padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
+const ghostBtn: React.CSSProperties = { padding: '7px 11px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }

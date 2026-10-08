@@ -64,19 +64,19 @@ export default function SSOConfigPage() {
           <CardItem k="Revogação" v="Bloquear no IdP → próximo login negado; revogação imediata da sessão por força quando admin executar 'Forçar saída global'" />
         </SecuritySection>
 
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', marginTop: 22 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px', marginTop: 22 }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>Próximo passo</div>
           <p style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, margin: '0 0 14px' }}>
-            Depois de configurar a aplicação no teu IdP, envia o metadata XML/URL e o teu domínio de email para o Phlox em <Link href="/webhooks" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>integrações</Link> ou abre um ticket dentro de <Link href="/settings" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Definições</Link>. Ativamos em 24 horas úteis.
+            Depois de configurar a aplicação no teu IdP, envia o metadata XML/URL e o teu domínio de email para o Phlox em <Link href="/webhooks" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>integrações</Link> ou abre um ticket dentro de <Link href="/settings" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Definições</Link>. Ativamos em 24 horas úteis.
           </p>
-          <Link href="/sso/login" style={{ display: 'inline-block', padding: '11px 18px', background: '#0d6e42', color: 'white', textDecoration: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700 }}>
+          <Link href="/sso/login" style={{ display: 'inline-block', padding: '11px 18px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-lg)', fontSize: 13.5, fontWeight: 700 }}>
             Testar SSO →
           </Link>
         </div>
 
         <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Link href="/seguranca" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Modelo de segurança →</Link>
-          <Link href="/auditoria" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Audit Trail →</Link>
+          <Link href="/seguranca" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Modelo de segurança →</Link>
+          <Link href="/auditoria" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Audit Trail →</Link>
         </div>
       </div>
     </div>

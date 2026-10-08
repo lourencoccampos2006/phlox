@@ -29,7 +29,7 @@ function greet(): string {
   return 'Boa noite'
 }
 
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px' }
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '18px 20px' }
 
 export default function DailyBrief() {
   const { user, supabase } = useAuth() as any
@@ -58,21 +58,21 @@ export default function DailyBrief() {
     const overdueT = tasks.filter((t: any) => t.due_date && t.due_date < now.toISOString().slice(0, 10)).length
 
     const signals: Brief['signals'] = []
-    if (sales.length > 0) signals.push({ label: 'Caixa hoje', value: eur(revenue), color: '#0d6e42', href: '/faturacao' })
-    if (waiting.length > 0) signals.push({ label: 'Em espera', value: waitingNow, color: '#2563eb', href: '/agenda' })
-    if (tasks.length > 0) signals.push({ label: 'Tarefas abertas', value: tasks.length, color: overdueT > 0 ? '#d97706' : '#0b1120', href: '/tarefas-equipa' })
-    if (incidents.length > 0) signals.push({ label: 'Ocorrências', value: incidents.length, color: '#dc2626', href: '/incidents' })
-    signals.push({ label: 'Modo', value: user?.experience_mode === 'clinical' ? 'Clínico' : user?.experience_mode === 'caregiver' ? 'Cuidador' : user?.experience_mode === 'student' ? 'Estudo' : 'Pessoal', color: '#7c3aed' })
+    if (sales.length > 0) signals.push({ label: 'Caixa hoje', value: eur(revenue), color: 'var(--green)', href: '/faturacao' })
+    if (waiting.length > 0) signals.push({ label: 'Em espera', value: waitingNow, color: 'var(--ink-2)', href: '/agenda' })
+    if (tasks.length > 0) signals.push({ label: 'Tarefas abertas', value: tasks.length, color: overdueT > 0 ? 'var(--amber)' : 'var(--ink)', href: '/tarefas-equipa' })
+    if (incidents.length > 0) signals.push({ label: 'Ocorrências', value: incidents.length, color: 'var(--red)', href: '/incidents' })
+    signals.push({ label: 'Modo', value: user?.experience_mode === 'clinical' ? 'Clínico' : user?.experience_mode === 'caregiver' ? 'Cuidador' : user?.experience_mode === 'student' ? 'Estudo' : 'Pessoal', color: 'var(--roxo)' })
 
     const open_items: Brief['open_items'] = []
     incidents.filter((i: any) => i.severity === 'critical' || i.severity === 'major').forEach((i: any) =>
-      open_items.push({ title: `Ocorrência: ${i.type}`, href: '/incidents', tag: i.severity, tagColor: '#dc2626' })
+      open_items.push({ title: `Ocorrência: ${i.type}`, href: '/incidents', tag: i.severity, tagColor: 'var(--red)' })
     )
     tasks.filter((t: any) => t.due_date && t.due_date < now.toISOString().slice(0, 10)).slice(0, 4).forEach((t: any) =>
-      open_items.push({ title: t.title, href: '/tarefas-equipa', tag: 'em atraso', tagColor: '#d97706' })
+      open_items.push({ title: t.title, href: '/tarefas-equipa', tag: 'em atraso', tagColor: 'var(--amber)' })
     )
     waiting.filter((w: any) => w.priority === 'urgente' && w.status === 'waiting').slice(0, 3).forEach((w: any) =>
-      open_items.push({ title: `${w.name} — ${w.reason || 'urgente'}`, href: '/agenda', tag: 'urgente', tagColor: '#dc2626' })
+      open_items.push({ title: `${w.name} — ${w.reason || 'urgente'}`, href: '/agenda', tag: 'urgente', tagColor: 'var(--red)' })
     )
 
     const labels: Record<string, string> = {
@@ -113,7 +113,11 @@ export default function DailyBrief() {
     const NEWS_BY_MODE: Record<string, { title: string; href: string }[]> = {
       clinical: [
         { title: 'Clínico 360° (Pulse · Risk · Stewardship · Audit)', href: '/painel' },
-        { title: 'Reportar erros em quizzes / casos', href: '/painel' },
+        /* «Reportar erros em quizzes / casos» estava aqui, no modo CLÍNICO, a
+           apontar para o /painel — que é o painel da instituição e não tem
+           quizzes nenhuns. Era a novidade que o React estava a esconder, e ao
+           descobri-la vi que também estava no modo errado. Vai para o modo
+           estudante, com o destino certo. */
         { title: 'Mode isolation: vês só o que é teu', href: '/settings?tab=ferramentas' },
       ],
       caregiver: [
@@ -125,6 +129,7 @@ export default function DailyBrief() {
         { title: 'Biblioteca: PDFs e slides → resumos + perguntas', href: '/biblioteca' },
         { title: 'Revisão espaçada (SRS) das tuas notas', href: '/study/notas' },
         { title: 'Phlox Decisão: simulador com morte possível', href: '/simulador' },
+        { title: 'Reportar erros em quizzes e casos', href: '/study' },
       ],
       personal: [
         { title: 'História de saúde: adesão, sparklines, refill', href: '/timeline' },
@@ -151,13 +156,13 @@ export default function DailyBrief() {
   return (
     <div>
       <div style={{ marginBottom: 22 }}>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3.4vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.025em', margin: 0, lineHeight: 1.1 }}>{b?.greeting || greet()}{name ? `, ${name}` : ''}.</h1>
-        <div style={{ fontSize: 14, color: '#475569', marginTop: 8, textTransform: 'capitalize' }}>{b?.date || now.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-        {b?.weather_line && <div style={{ fontSize: 13.5, color: '#64748b', marginTop: 4 }}>{b.weather_line}</div>}
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3.4vw,36px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.025em', margin: 0, lineHeight: 1.1 }}>{b?.greeting || greet()}{name ? `, ${name}` : ''}.</h1>
+        <div style={{ fontSize: 14, color: 'var(--ink-3)', marginTop: 8, textTransform: 'capitalize' }}>{b?.date || now.toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+        {b?.weather_line && <div style={{ fontSize: 13.5, color: 'var(--ink-4)', marginTop: 4 }}>{b.weather_line}</div>}
       </div>
 
       {loading || !b ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 14 }} />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 120, borderRadius: 'var(--r-xl)' }} />)}</div>
       ) : (
         <>
           {b.signals.length > 0 && (
@@ -168,7 +173,7 @@ export default function DailyBrief() {
                   <Wrap key={s.label} href={s.href || '#'} style={{ textDecoration: 'none' }}>
                     <div style={{ ...card, padding: '14px 16px' }}>
                       <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: s.color, lineHeight: 1 }}>{s.value}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 6 }}>{s.label}</div>
+                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 6 }}>{s.label}</div>
                     </div>
                   </Wrap>
                 )
@@ -179,15 +184,15 @@ export default function DailyBrief() {
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 14, alignItems: 'start' }} className="brief-grid">
 
             <div style={{ ...card }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', marginBottom: 12 }}>A precisar de atenção</div>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>A precisar de atenção</div>
               {b.open_items.length === 0 ? (
-                <div style={{ fontSize: 13, color: '#16a34a', padding: '6px 0' }}>Sem itens críticos. Bom dia para focar.</div>
+                <div style={{ fontSize: 13, color: 'var(--green)', padding: '6px 0' }}>Sem itens críticos. Bom dia para focar.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {b.open_items.slice(0, 6).map((it, i) => (
-                    <Link key={i} href={it.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', borderRadius: 9, background: '#f8fafc', textDecoration: 'none' }}>
-                      <span style={{ fontSize: 13, color: '#1a202c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{it.title}</span>
-                      {it.tag && <span style={{ fontSize: 10, fontWeight: 700, color: it.tagColor, background: (it.tagColor || '#000') + '14', padding: '2px 8px', borderRadius: 5, flexShrink: 0 }}>{it.tag}</span>}
+                    <Link key={i} href={it.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '9px 12px', borderRadius: 'var(--r-lg)', background: 'var(--bg-2)', textDecoration: 'none' }}>
+                      <span style={{ fontSize: 13, color: 'var(--badge-blue-fg)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{it.title}</span>
+                      {it.tag && <span style={{ fontSize: 10, fontWeight: 700, color: it.tagColor, background: (it.tagColor || 'var(--ink)') + '14', padding: '2px 8px', borderRadius: 'var(--r)', flexShrink: 0 }}>{it.tag}</span>}
                     </Link>
                   ))}
                 </div>
@@ -196,23 +201,30 @@ export default function DailyBrief() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {b.suggestion && (
-                <div style={{ ...card, background: 'linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%)', borderColor: '#bbf7d0' }}>
-                  <div style={{ fontSize: 10.5, fontWeight: 800, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Sugestão de hoje</div>
-                  <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120' }}>{b.suggestion.title}</div>
-                  <div style={{ fontSize: 13, color: '#475569', marginTop: 4, lineHeight: 1.55 }}>{b.suggestion.desc}</div>
-                  <Link href={b.suggestion.href} style={{ display: 'inline-block', marginTop: 12, padding: '8px 14px', background: '#0d6e42', color: 'white', borderRadius: 8, fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
+                <div style={{ ...card, background: 'linear-gradient(135deg, var(--badge-green-bg) 0%, var(--badge-green-bg) 100%)', borderColor: 'var(--green-mid)' }}>
+                  <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Sugestão de hoje</div>
+                  <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{b.suggestion.title}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.55 }}>{b.suggestion.desc}</div>
+                  <Link href={b.suggestion.href} style={{ display: 'inline-block', marginTop: 12, padding: '8px 14px', background: 'var(--green)', color: 'white', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>
                     {b.suggestion.cta} →
                   </Link>
                 </div>
               )}
 
               <div style={{ ...card }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', marginBottom: 10 }}>Novidades</div>
+                <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Novidades</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {/* A chave é o TÍTULO, não o href — 2026-10-08.
+                      Duas novidades do modo clínico apontavam ambas para
+                      `/painel`, e com `key={n.href}` o React via duas chaves
+                      iguais e deitava a segunda fora: a «Reportar erros em
+                      quizzes / casos» nunca chegou a aparecer a ninguém.
+                      Dois destinos iguais são legítimos — duas chaves iguais
+                      não. O que distingue estas linhas é o que dizem. */}
                   {b.whats_new.map(n => (
-                    <Link key={n.href} href={n.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid #f1f5f9', textDecoration: 'none', fontSize: 13, color: '#1a202c' }}>
+                    <Link key={n.title} href={n.href} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 4px', borderBottom: '1px solid var(--bg-3)', textDecoration: 'none', fontSize: 13, color: 'var(--badge-blue-fg)' }}>
                       <span>{n.title}</span>
-                      <span style={{ color: '#94a3b8' }}>→</span>
+                      <span style={{ color: 'var(--ink-5)' }}>→</span>
                     </Link>
                   ))}
                 </div>
@@ -222,14 +234,14 @@ export default function DailyBrief() {
 
           {b.recent_activity.length > 0 && (
             <div style={{ ...card, marginTop: 14 }}>
-              <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                Últimos 7 dias <Link href="/auditoria" style={{ fontSize: 11.5, color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Ver tudo →</Link>
+              <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                Últimos 7 dias <Link href="/auditoria" style={{ fontSize: 11.5, color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Ver tudo →</Link>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {b.recent_activity.map((a, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: '1px dashed #f1f5f9', fontSize: 12.5 }}>
-                    <span style={{ color: '#1a202c' }}>{a.label}</span>
-                    <span style={{ color: '#94a3b8', fontFamily: 'var(--font-mono)', fontSize: 11 }}>{new Date(a.at).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 0', borderBottom: '1px dashed var(--bg-3)', fontSize: 12.5 }}>
+                    <span style={{ color: 'var(--badge-blue-fg)' }}>{a.label}</span>
+                    <span style={{ color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', fontSize: 11 }}>{new Date(a.at).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                   </div>
                 ))}
               </div>

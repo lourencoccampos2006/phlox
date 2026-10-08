@@ -67,14 +67,19 @@ export const ROTULO_ORIGEM: Record<Entrada['origem'], string> = {
   nota: 'Nota do turno',
 }
 
-/** A mesma paleta surda do /o-dia: dizem «de que tipo», não «é grave». */
-export const COR_ORIGEM: Record<Entrada['origem'], string> = {
-  ocorrencia: '#a1544c',
-  recusa: '#5a6d7c',
-  nao_prestado: '#7a5f70',
-  por_fazer: '#7c6f5a',
-  recado: '#6b6a80',
-  nota: '#5f7161',
+/* DE ONDE VEIO A ENTRADA — um codigo, nao uma cor (2026-10-07)
+   Eram seis tons surdos, um por origem. Seis cores que ninguem decora, e
+   nenhuma delas e uma das tres com significado (verde, ambar, vermelho): o
+   olho le-as como estado e engana-se.
+
+   Quatro letras em mono leem-se. Um castanho-avermelhado adivinha-se. */
+export const CODIGO_ORIGEM: Record<Entrada['origem'], string> = {
+  ocorrencia:   'OCOR',
+  recusa:       'RECU',
+  nao_prestado: 'N/FEI',
+  por_fazer:    'P/FAZ',
+  recado:       'RECA',
+  nota:         'NOTA',
 }
 
 export interface NotaDePessoa {

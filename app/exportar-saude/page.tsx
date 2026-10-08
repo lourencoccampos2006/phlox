@@ -11,8 +11,8 @@ import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
 
-const ACCENT = '#0f172a'
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+const ACCENT = 'var(--ink)'
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
 
 interface Med { name: string; dose?: string; frequency?: string; started_at?: string }
 interface Vital { recorded_at: string; bp_sys?: number; bp_dia?: number; hr?: number; spo2?: number; weight?: number; glucose?: number; temp?: number }
@@ -133,8 +133,8 @@ export default function ExportarSaudePage() {
       </div>
 
       <div className="page-container page-body" style={{ maxWidth: 720, display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {loading && <div className="skeleton" style={{ height: 160, borderRadius: 12 }} />}
-        {err && <div style={{ ...card, background: '#fef2f2', borderColor: '#fca5a5', color: '#991b1b', fontSize: 13 }}>{err}</div>}
+        {loading && <div className="skeleton" style={{ height: 160, borderRadius: 'var(--r-xl)' }} />}
+        {err && <div style={{ ...card, background: 'var(--badge-red-bg)', borderColor: 'var(--badge-red-border)', color: 'var(--red)', fontSize: 13 }}>{err}</div>}
 
         {data && !loading && (
           <>
@@ -153,7 +153,7 @@ export default function ExportarSaudePage() {
                 ))}
               </div>
             </div>
-            <button onClick={exportPDF} style={{ padding: '13px 24px', background: ACCENT, color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+            <button onClick={exportPDF} style={{ padding: '13px 24px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
               📄 Gerar PDF completo
             </button>
             <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center' }}>Últimos 12 meses de vitais/sintomas · últimos 20 relatórios de análises · toda a medicação atual.</div>
@@ -163,19 +163,19 @@ export default function ExportarSaudePage() {
               <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 12 }}>
                 Sem imprimir nada: gera um QR temporário (medicação, vitais e sintomas) para um profissional ler no telemóvel dele. Expira sozinho.
               </div>
-              {shareErr && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 10 }}>{shareErr}</div>}
+              {shareErr && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 10 }}>{shareErr}</div>}
               {session && !shareExpired ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`} alt="QR" style={{ width: 160, height: 160, borderRadius: 8, border: '1px solid var(--border)' }} />
+                  <img src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(shareUrl)}`} alt="QR" style={{ width: 160, height: 160, borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }} />
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>PIN de acesso</div>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 24, fontWeight: 700, color: ACCENT, letterSpacing: '0.08em' }}>{session.pin}</div>
                     <div style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>Válido até {new Date(session.expires_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</div>
-                    <button onClick={() => navigator.clipboard?.writeText(shareUrl)} style={{ padding: '7px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)', marginTop: 4 }}>Copiar link</button>
+                    <button onClick={() => navigator.clipboard?.writeText(shareUrl)} style={{ padding: '7px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)', marginTop: 4 }}>Copiar link</button>
                   </div>
                 </div>
               ) : (
-                <button onClick={createShare} disabled={creating} style={{ width: '100%', padding: 12, background: 'white', border: `1.5px solid ${ACCENT}`, color: ACCENT, borderRadius: 8, fontSize: 13.5, fontWeight: 700, cursor: creating ? 'wait' : 'pointer' }}>
+                <button onClick={createShare} disabled={creating} style={{ width: '100%', padding: 12, background: 'white', border: `1.5px solid ${ACCENT}`, color: ACCENT, borderRadius: 'var(--r-md)', fontSize: 13.5, fontWeight: 700, cursor: creating ? 'wait' : 'pointer' }}>
                   {creating ? 'A gerar…' : 'Gerar QR de partilha (30 min)'}
                 </button>
               )}

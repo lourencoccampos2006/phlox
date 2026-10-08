@@ -38,29 +38,29 @@ export default function SharedPage({ params }: { params: Promise<{ code: string 
   const latestVital = data?.vitals?.[0]
 
   if (loading) return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ fontSize: 14, color: '#64748b' }}>A carregar...</div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div style={{ fontSize: 14, color: 'var(--ink-4)' }}>A carregar...</div>
     </div>
   )
 
   if (error) return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, padding: 24 }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'system-ui, sans-serif', display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', gap: 12, padding: 24 }}>
       <div style={{ fontSize: 48 }}>{error.includes('revogado') ? '🔒' : error.includes('expirou') ? '⏰' : '❌'}</div>
-      <div style={{ fontSize: 20, fontWeight: 700, color: '#1e293b' }}>Link inválido</div>
-      <div style={{ fontSize: 14, color: '#64748b', textAlign: 'center', maxWidth: 340 }}>{error}</div>
-      <a href="https://phlox.pt" style={{ marginTop: 8, fontSize: 13, color: '#10b981', textDecoration: 'none', fontWeight: 600 }}>Conhecer o Phlox →</a>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink-2)' }}>Link inválido</div>
+      <div style={{ fontSize: 14, color: 'var(--ink-4)', textAlign: 'center', maxWidth: 340 }}>{error}</div>
+      <a href="https://phlox.pt" style={{ marginTop: 8, fontSize: 13, color: 'var(--green)', textDecoration: 'none', fontWeight: 600 }}>Conhecer o Phlox →</a>
     </div>
   )
 
   if (!data) return null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f1f5f9', fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-3)', fontFamily: 'var(--font-sans)' }}>
 
       {/* Phlox banner */}
-      <div style={{ background: '#0f172a', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: 'var(--ink)', padding: '10px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 16, fontWeight: 800, color: '#10b981', letterSpacing: '-0.02em' }}>Phlox</span>
+          <span style={{ fontSize: 16, fontWeight: 800, color: 'var(--green)', letterSpacing: '-0.02em' }}>Phlox</span>
           <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace' }}>· {code.toUpperCase()}</span>
         </div>
         <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', fontFamily: 'monospace' }}>
@@ -71,8 +71,8 @@ export default function SharedPage({ params }: { params: Promise<{ code: string 
       <div style={{ maxWidth: 600, margin: '0 auto', padding: '20px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
         {/* Header card */}
-        <div style={{ background: 'white', borderRadius: 16, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div style={{ background: '#0f172a', padding: '18px 20px' }}>
+        <div style={{ background: 'white', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: 'var(--ink)', padding: '18px 20px' }}>
             <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.5)', fontFamily: 'monospace', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>
               Perfil de Saúde Partilhado
               {data.label && ` · ${data.label}`}
@@ -80,54 +80,54 @@ export default function SharedPage({ params }: { params: Promise<{ code: string 
             <div style={{ fontSize: 22, color: 'white', fontWeight: 600 }}>{data.name || 'Utilizador Phlox'}</div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderTop: '1px solid #f1f5f9' }}>
-            <div style={{ padding: '14px 16px', borderRight: '1px solid #f1f5f9', background: data.blood_type ? '#eff6ff' : '#f8fafc' }}>
-              <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Grupo Sanguíneo</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: data.blood_type ? '#1d4ed8' : '#94a3b8', fontFamily: 'monospace' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderTop: '1px solid var(--bg-3)' }}>
+            <div style={{ padding: '14px 16px', borderRight: '1px solid var(--bg-3)', background: data.blood_type ? 'var(--bg-2)' : 'var(--bg-2)' }}>
+              <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Grupo Sanguíneo</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: data.blood_type ? 'var(--ink-2)' : 'var(--ink-5)', fontFamily: 'monospace' }}>
                 {data.blood_type || '—'}
               </div>
             </div>
-            <div style={{ padding: '14px 16px', borderRight: '1px solid #f1f5f9', background: data.allergies ? '#fef2f2' : '#f8fafc' }}>
-              <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Alergias</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: data.allergies ? '#991b1b' : '#94a3b8', lineHeight: 1.4 }}>
+            <div style={{ padding: '14px 16px', borderRight: '1px solid var(--bg-3)', background: data.allergies ? 'var(--badge-red-bg)' : 'var(--bg-2)' }}>
+              <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Alergias</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: data.allergies ? 'var(--red)' : 'var(--ink-5)', lineHeight: 1.4 }}>
                 {data.allergies || 'Sem alergias conhecidas'}
               </div>
             </div>
-            <div style={{ padding: '14px 16px', background: '#f8fafc' }}>
-              <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#94a3b8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Medicamentos</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>
+            <div style={{ padding: '14px 16px', background: 'var(--bg-2)' }}>
+              <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 4 }}>Medicamentos</div>
+              <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>
                 {data.medications.length}
               </div>
             </div>
           </div>
 
           {data.emergency_contact && (
-            <div style={{ padding: '12px 16px', borderTop: '1px solid #f1f5f9', background: '#fffbeb' }}>
-              <span style={{ fontSize: 10, fontFamily: 'monospace', color: '#92400e', letterSpacing: '0.1em', textTransform: 'uppercase', marginRight: 8 }}>Contacto de Emergência</span>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#78350f' }}>{data.emergency_contact}</span>
+            <div style={{ padding: '12px 16px', borderTop: '1px solid var(--bg-3)', background: 'var(--badge-amber-bg)' }}>
+              <span style={{ fontSize: 10, fontFamily: 'monospace', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginRight: 8 }}>Contacto de Emergência</span>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--amber)' }}>{data.emergency_contact}</span>
             </div>
           )}
         </div>
 
         {/* Medications */}
-        <div style={{ background: 'white', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ background: 'white', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
             <span style={{ fontSize: 16 }}>💊</span>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Medicação Atual ({data.medications.length})</span>
+            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Medicação Atual ({data.medications.length})</span>
           </div>
           {data.medications.length === 0 ? (
-            <div style={{ padding: '20px 18px', fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>Nenhum medicamento registado</div>
+            <div style={{ padding: '20px 18px', fontSize: 13, color: 'var(--ink-5)', fontStyle: 'italic' }}>Nenhum medicamento registado</div>
           ) : (
             <div>
               {data.medications.map((m, i) => (
-                <div key={i} style={{ padding: '12px 18px', borderBottom: i < data.medications.length - 1 ? '1px solid #f8fafc' : 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
+                <div key={i} style={{ padding: '12px 18px', borderBottom: i < data.medications.length - 1 ? '1px solid var(--bg-2)' : 'none', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>{m.name}</div>
-                    {m.indication && <div style={{ fontSize: 11, color: '#64748b', fontStyle: 'italic', marginTop: 1 }}>{m.indication}</div>}
+                    <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</div>
+                    {m.indication && <div style={{ fontSize: 11, color: 'var(--ink-4)', fontStyle: 'italic', marginTop: 1 }}>{m.indication}</div>}
                   </div>
                   <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                    {m.dose && <div style={{ fontSize: 12, fontFamily: 'monospace', color: '#1d4ed8', fontWeight: 600 }}>{m.dose}</div>}
-                    {m.frequency && <div style={{ fontSize: 11, color: '#64748b' }}>{m.frequency}</div>}
+                    {m.dose && <div style={{ fontSize: 12, fontFamily: 'monospace', color: 'var(--ink-2)', fontWeight: 600 }}>{m.dose}</div>}
+                    {m.frequency && <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{m.frequency}</div>}
                   </div>
                 </div>
               ))}
@@ -137,47 +137,47 @@ export default function SharedPage({ params }: { params: Promise<{ code: string 
 
         {/* Vitals (if access allows) */}
         {data.vitals && data.vitals.length > 0 && latestVital && (
-          <div style={{ background: 'white', borderRadius: 14, overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ background: 'white', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8 }}>
               <span style={{ fontSize: 16 }}>📊</span>
-              <span style={{ fontSize: 14, fontWeight: 700, color: '#0f172a' }}>Último registo de sinais vitais</span>
-              <span style={{ marginLeft: 'auto', fontSize: 11, color: '#94a3b8', fontFamily: 'monospace' }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>Último registo de sinais vitais</span>
+              <span style={{ marginLeft: 'auto', fontSize: 11, color: 'var(--ink-5)', fontFamily: 'monospace' }}>
                 {new Date(latestVital.recorded_at).toLocaleDateString('pt-PT')}
               </span>
             </div>
             <div style={{ padding: '14px 18px', display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 10 }}>
               {latestVital.bp_sys && latestVital.bp_dia && (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Tensão</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{latestVital.bp_sys}/{latestVital.bp_dia}</div>
-                  <div style={{ fontSize: 9, color: '#94a3b8' }}>mmHg</div>
+                <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Tensão</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{latestVital.bp_sys}/{latestVital.bp_dia}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink-5)' }}>mmHg</div>
                 </div>
               )}
               {latestVital.hr && (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>FC</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{latestVital.hr}</div>
-                  <div style={{ fontSize: 9, color: '#94a3b8' }}>bpm</div>
+                <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>FC</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{latestVital.hr}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink-5)' }}>bpm</div>
                 </div>
               )}
               {latestVital.spo2 && (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>SpO₂</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{latestVital.spo2}%</div>
+                <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>SpO₂</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{latestVital.spo2}%</div>
                 </div>
               )}
               {latestVital.weight && (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Peso</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{latestVital.weight}</div>
-                  <div style={{ fontSize: 9, color: '#94a3b8' }}>kg</div>
+                <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Peso</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{latestVital.weight}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink-5)' }}>kg</div>
                 </div>
               )}
               {latestVital.glucose && (
-                <div style={{ background: '#f8fafc', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: '#64748b', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Glicemia</div>
-                  <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', fontFamily: 'monospace' }}>{latestVital.glucose}</div>
-                  <div style={{ fontSize: 9, color: '#94a3b8' }}>mg/dL</div>
+                <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 9, fontFamily: 'monospace', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 3 }}>Glicemia</div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', fontFamily: 'monospace' }}>{latestVital.glucose}</div>
+                  <div style={{ fontSize: 9, color: 'var(--ink-5)' }}>mg/dL</div>
                 </div>
               )}
             </div>
@@ -186,8 +186,8 @@ export default function SharedPage({ params }: { params: Promise<{ code: string 
 
         {/* Footer */}
         <div style={{ textAlign: 'center', padding: '12px 0 20px' }}>
-          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Dados partilhados de forma segura via Phlox</div>
-          <a href="https://phlox.pt" style={{ fontSize: 12, color: '#10b981', textDecoration: 'none', fontWeight: 600 }}>Criar o meu perfil de saúde →</a>
+          <div style={{ fontSize: 11, color: 'var(--ink-5)', marginBottom: 4 }}>Dados partilhados de forma segura via Phlox</div>
+          <a href="https://phlox.pt" style={{ fontSize: 12, color: 'var(--green)', textDecoration: 'none', fontWeight: 600 }}>Criar o meu perfil de saúde →</a>
         </div>
       </div>
     </div>

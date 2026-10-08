@@ -30,7 +30,12 @@ import { CARE_DISCLAIMER, type CareResult } from '@/lib/careSignals'
 import type { ResidentTrend } from '@/lib/trendSignals'
 import { loadSentinel, combinedLevel, combinedScore, SEV_ORDER, SENTINEL_LIVE_TABLES } from '@/lib/sentinel'
 
-const ACCENT = '#b45309'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
+const ACCENT = 'var(--amber)'
 
 export default function GuardiaoPage() {
   const { user, supabase } = useAuth() as any
@@ -42,6 +47,7 @@ export default function GuardiaoPage() {
   const [results, setResults] = useState<CareResult[]>([])
   const [trends, setTrends] = useState<Record<string, ResidentTrend>>({})
   const [open, setOpen] = useState<Set<string>>(new Set())
+  const largo = useLargo()
 
   const load = useCallback(async () => {
     if (!user) return
@@ -85,115 +91,196 @@ export default function GuardiaoPage() {
 
   function toggle(id: string) { setOpen(p => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n }) }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — na linguagem da mesa, mas SEM a densidade dela (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Esta página é a excepção, e é-o de propósito. O resto da aplicação é uma
+     mesa de trabalho: trinta linhas num ecrã, para varrer uma casa de cima a
+     baixo. Isto é outra coisa — é um aviso que se lê de pé, ao fim de semana
+     ou às três da manhã, no telemóvel, num corredor, possivelmente com uma
+     mão só. Os alvos grandes são a razão de a página existir.
+
+     O que muda é o sistema: tokens, escala e peças, para deixar de haver aqui
+     um segundo sistema de estilo. O que não muda é o tamanho dos alvos.
+     ══════════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 80px' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Guardião{context ? ` · ${context}` : ''}</span>
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>
-          Modo Guardião{context ? ` · ${context}` : ''}
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 500, color: '#0b1120', margin: '0 0 8px', letterSpacing: '-0.02em' }}>
-          A quem ir ver primeiro
-        </h1>
-        <p style={{ fontSize: 15, color: '#475569', margin: '0 0 18px', lineHeight: 1.55 }}>
-          Só quem tem sinais que merecem atenção agora, por ordem de urgência. Feito para turnos com pouca gente.
-        </p>
+          <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>A quem ir ver primeiro</span>
 
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 110, borderRadius: 16 }} />)}</div>
-        ) : err ? (
-          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, padding: 18, color: '#991b1b', fontSize: 14 }}>{err}</div>
-        ) : (
-          <>
-            {/* Resumo — número grande, legível de relance */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
-              <div style={{ background: 'white', border: `1.5px solid ${urgent.length ? '#fca5a5' : '#bbf7d0'}`, borderRadius: 14, padding: '14px 20px', flex: '1 1 150px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 30, fontWeight: 800, color: urgent.length ? '#b91c1c' : '#16a34a', lineHeight: 1 }}>{urgent.length}</div>
-                <div style={{ fontSize: 13, color: '#64748b', marginTop: 5 }}>a precisar de atenção</div>
-              </div>
+          {!loading && !err && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
               {criticalCount > 0 && (
-                <div style={{ background: '#fef2f2', border: '1.5px solid #fca5a5', borderRadius: 14, padding: '14px 20px', flex: '1 1 150px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 30, fontWeight: 800, color: '#7f1d1d', lineHeight: 1 }}>{criticalCount}</div>
-                  <div style={{ fontSize: 13, color: '#991b1b', marginTop: 5 }}>{criticalCount === 1 ? 'urgente' : 'urgentes'}</div>
-                </div>
+                <span style={{
+                  ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)',
+                  fontWeight: 'var(--peso-forte)' as any,
+                }}>{criticalCount} URGENTE{criticalCount === 1 ? '' : 'S'}</span>
               )}
-            </div>
+              <span style={{
+                ...MONO, fontSize: 'var(--t-meta)',
+                color: urgent.length ? 'var(--amber)' : 'var(--green)',
+                fontWeight: 'var(--peso-forte)' as any,
+              }}>
+                {urgent.length} A PRECISAR DE ATENÇÃO
+              </span>
+            </span>
+          )}
 
-            {urgent.length === 0 ? (
-              <div style={{ background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 16, padding: '32px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 34, marginBottom: 10 }}>✓</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#15803d', marginBottom: 6 }}>Ninguém com sinais de alerta agora.</div>
-                <div style={{ fontSize: 13.5, color: '#16a34a', lineHeight: 1.55 }}>
-                  {results.length > 0
-                    ? `${results.length} ${results.length === 1 ? (cfg.personNoun?.toLowerCase() || 'pessoa') : (cfg.personNounPlural?.toLowerCase() || 'pessoas')} sem nada fora do padrão com o que está registado.`
-                    : 'Ainda sem pessoas registadas.'}
-                </div>
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {urgent.map(({ r, t, level }) => {
-                  const st = SEVERITY_STYLE[level]
-                  const isOpen = open.has(r.patientId)
-                  // No Guardião mostramos o sinal clínico, não a lista de
-                  // tarefas administrativas por completar.
-                  const items = [...r.outOfPattern, ...(t?.flags || [])]
-                  return (
-                    <div key={r.patientId} style={{ background: 'white', border: `2px solid ${level === 'critical' ? '#fca5a5' : '#fde68a'}`, borderRadius: 16, overflow: 'hidden' }}>
-                      <button onClick={() => toggle(r.patientId)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 14, padding: '18px 20px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                        <span style={{ width: 46, height: 46, borderRadius: 12, background: st.bg, border: `1.5px solid ${st.border}`, color: st.color, fontWeight: 800, fontSize: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flexShrink: 0, lineHeight: 1.1 }}>
-                          <span style={{ fontSize: 9, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{level === 'critical' ? 'Já' : 'Ver'}</span>
+          <div style={{ marginLeft: 'auto' }}>
+            <Link href="/radar" style={{ textDecoration: 'none' }}>
+              <Botao>BRIEFING COMPLETO →</Botao>
+            </Link>
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>JÁ = ir ver agora</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>VER = antes do fim do turno</span>
+          <span title={CARE_DISCLAIMER} style={{ ...MONO, color: 'var(--ink-5)', marginLeft: 'auto' }}>
+            APOIO AO TRABALHO — NÃO É DIAGNÓSTICO
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && <Aviso tom="mau">{err}</Aviso>}
+
+      {loading ? (
+        <Painel><ACarregar oQue="A ver quem precisa de atenção…" /></Painel>
+      ) : urgent.length === 0 ? (
+        <Painel>
+          <Vazio titulo="Ninguém com sinais de alerta agora."
+            oQueFazer={results.length > 0
+              ? `${results.length} ${results.length === 1 ? (cfg.personNoun?.toLowerCase() || 'pessoa') : (cfg.personNounPlural?.toLowerCase() || 'pessoas')} sem nada fora do padrão com o que está registado. Continue a registar ao longo do turno — é daí que esta lista se faz.`
+              : 'Ainda não há pessoas registadas nesta casa.'} />
+        </Painel>
+      ) : (
+        <Painel>
+          {urgent.map(({ r, t, level }) => {
+            const isOpen = open.has(r.patientId)
+            // No Guardião mostra-se o sinal clínico, não a lista de tarefas
+            // administrativas por completar.
+            const items = [...r.outOfPattern, ...(t?.flags || [])]
+            const cor = level === 'critical' ? 'var(--red)' : 'var(--amber)'
+            return (
+              <div key={r.patientId} style={{
+                borderBottom: '1px solid var(--border)',
+                borderLeft: `4px solid ${cor}`,
+              }}>
+                <button onClick={() => toggle(r.patientId)} aria-expanded={isOpen} style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 13,
+                  /* 16px de altura em cada lado. Isto é um alvo para um polegar
+                     num corredor, não uma linha de tabela. */
+                  padding: '16px 18px', background: 'none', border: 'none',
+                  cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', color: 'var(--ink)',
+                }}>
+                  <span style={{
+                    ...MONO, width: 44, height: 44, flexShrink: 0,
+                    borderRadius: 'var(--r-md)', border: `1px solid ${cor}`,
+                    color: cor, fontWeight: 'var(--peso-forte)' as any,
+                    fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>{level === 'critical' ? 'JÁ' : 'VER'}</span>
+
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{
+                      display: 'block', fontSize: 'var(--t-destaque)',
+                      fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)',
+                    }}>
+                      {r.name}
+                      {r.room && (
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                          {' '}· {cfg.roomLabel} {r.room}
                         </span>
-                        <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 18, fontWeight: 800, color: '#0b1120', letterSpacing: '-0.01em' }}>
-                            {r.name}{r.room ? ` · ${cfg.roomLabel} ${r.room}` : ''}
-                          </span>
-                          <span style={{ display: 'block', fontSize: 13.5, color: st.color, marginTop: 3, fontWeight: 600 }}>
-                            {items[0]?.title || r.note}{items.length > 1 ? ` · +${items.length - 1}` : ''}
-                          </span>
-                        </span>
-                        <span style={{ fontSize: 20, color: '#94a3b8', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s', flexShrink: 0 }}>⌄</span>
-                      </button>
-                      {isOpen && (
-                        <div style={{ padding: '0 20px 18px', borderTop: '1px solid #f1f5f9' }}>
-                          <div style={{ marginTop: 14, display: 'flex', flexDirection: 'column', gap: 8 }}>
-                            {items.map((s, i) => {
-                              const ss = SEVERITY_STYLE[s.severity]
-                              return (
-                                <div key={i} style={{ background: ss.bg, border: `1px solid ${ss.border}`, borderRadius: 10, padding: '12px 14px' }}>
-                                  <div style={{ fontSize: 14, fontWeight: 700, color: ss.color }}>{s.title}</div>
-                                  <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5, marginTop: 3 }}>{s.detail}</div>
-                                </div>
-                              )
-                            })}
-                          </div>
-                          <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
-                            <Link href={`/patients/${r.patientId}`} style={{ flex: '1 1 130px', textAlign: 'center', fontSize: 14, fontWeight: 700, color: 'white', background: ACCENT, borderRadius: 10, padding: '13px 16px', textDecoration: 'none' }}>Abrir ficha</Link>
-                            <Link href={`/care-log?patient=${r.patientId}`} style={{ flex: '1 1 130px', textAlign: 'center', fontSize: 14, fontWeight: 700, color: ACCENT, background: 'white', border: `1.5px solid ${ACCENT}`, borderRadius: 10, padding: '13px 16px', textDecoration: 'none' }}>Registar</Link>
-                          </div>
-                        </div>
                       )}
+                    </span>
+                    <span style={{
+                      display: 'block', fontSize: 'var(--t-dado)', color: cor,
+                      marginTop: 3, fontWeight: 'var(--peso-corpo)' as any,
+                    }}>
+                      {items[0]?.title || r.note}
+                      {items.length > 1 ? ` · +${items.length - 1}` : ''}
+                    </span>
+                  </span>
+
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)', flexShrink: 0,
+                  }}>{isOpen ? '▾' : '▸'}</span>
+                </button>
+
+                {isOpen && (
+                  <div style={{ padding: '0 18px 16px 76px' }}>
+                    {items.map((sinal, i) => (
+                      <div key={i} style={{
+                        padding: '9px 0', borderTop: '1px solid var(--border)',
+                      }}>
+                        <div style={{
+                          fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any,
+                          color: sinal.severity === 'critical' ? 'var(--red)'
+                            : sinal.severity === 'warning' ? 'var(--amber)' : 'var(--ink)',
+                        }}>{sinal.title}</div>
+                        <div style={{
+                          fontSize: 'var(--t-dado)', color: 'var(--ink-3)',
+                          lineHeight: 1.55, marginTop: 2,
+                        }}>{sinal.detail}</div>
+                      </div>
+                    ))}
+
+                    {/* Dois alvos largos, lado a lado. É o que se consegue
+                        tocar sem olhar com atenção. */}
+                    <div style={{ display: 'flex', gap: 8, marginTop: 14, flexWrap: 'wrap' }}>
+                      <Link href={`/patients/${r.patientId}`} style={{
+                        flex: '1 1 140px', textAlign: 'center', textDecoration: 'none',
+                        ...MONO, fontSize: 'var(--t-dado)', letterSpacing: '.06em',
+                        fontWeight: 'var(--peso-forte)' as any,
+                        color: 'var(--sobre-acento)', background: 'var(--green)',
+                        borderRadius: 'var(--r-md)', padding: '14px 16px',
+                      }}>ABRIR A FICHA</Link>
+                      <Link href={`/care-log?patient=${r.patientId}`} style={{
+                        flex: '1 1 140px', textAlign: 'center', textDecoration: 'none',
+                        ...MONO, fontSize: 'var(--t-dado)', letterSpacing: '.06em',
+                        fontWeight: 'var(--peso-forte)' as any,
+                        color: 'var(--ink-2)', background: 'var(--bg)',
+                        border: '1px solid var(--border-2)',
+                        borderRadius: 'var(--r-md)', padding: '14px 16px',
+                      }}>REGISTAR</Link>
                     </div>
-                  )
-                })}
+                  </div>
+                )}
               </div>
-            )}
+            )
+          })}
+        </Painel>
+      )}
 
-            {/* Transparência: nunca esconder gente em silêncio. */}
-            {rest > 0 && (
-              <div style={{ marginTop: 18, background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '14px 18px' }}>
-                <div style={{ fontSize: 13.5, color: '#475569', lineHeight: 1.55 }}>
-                  <strong style={{ color: '#0b1120' }}>{rest}</strong> {rest === 1 ? (cfg.personNoun?.toLowerCase() || 'pessoa') : (cfg.personNounPlural?.toLowerCase() || 'pessoas')} fora desta lista — sem sinais clínicos de alerta, ou só com registos administrativos por completar.
-                </div>
-                <Link href="/radar" style={{ display: 'inline-block', marginTop: 8, fontSize: 13.5, fontWeight: 700, color: ACCENT, textDecoration: 'none' }}>Ver tudo no briefing completo →</Link>
-              </div>
-            )}
-
-            <div style={{ marginTop: 16, background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10, padding: '11px 14px', fontSize: 12, color: '#475569', lineHeight: 1.5 }}>
-              ⓘ {CARE_DISCLAIMER}
+      {/* Transparência: nunca esconder gente em silêncio. Quem está de turno
+          tem de poder confiar que não lhe está a ser ocultado nada sem aviso. */}
+      {!loading && rest > 0 && (
+        <Painel>
+          <div style={{ padding: '12px 16px' }}>
+            <p style={{
+              margin: 0, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6,
+            }}>
+              <strong style={{ color: 'var(--ink)' }}>{rest}</strong>{' '}
+              {rest === 1 ? (cfg.personNoun?.toLowerCase() || 'pessoa') : (cfg.personNounPlural?.toLowerCase() || 'pessoas')}{' '}
+              fora desta lista — sem sinais clínicos de alerta, ou só com registos
+              administrativos por completar.
+            </p>
+            <div style={{ marginTop: 9 }}>
+              <Link href="/radar" style={{ textDecoration: 'none' }}>
+                <Botao>VER TUDO NO BRIEFING COMPLETO →</Botao>
+              </Link>
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          </div>
+        </Painel>
+      )}
+    </Mesa>
   )
 }

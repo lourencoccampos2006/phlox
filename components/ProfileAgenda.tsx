@@ -17,10 +17,10 @@ interface EventItem {
   created_by: string; created_by_name: string
 }
 
-const inputStyle: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', width: '100%', boxSizing: 'border-box' }
+const inputStyle: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', width: '100%', boxSizing: 'border-box' }
 const KIND_META = {
-  appointment: { label: 'Consulta / compromisso', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
-  coverage: { label: 'Cobertura', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  appointment: { label: 'Consulta / compromisso', color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)' },
+  coverage: { label: 'Cobertura', color: 'var(--roxo)', bg: 'var(--roxo-claro)', border: 'var(--roxo-borda)' },
 }
 
 function fmtDay(iso: string) { return new Date(iso).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) }
@@ -91,11 +91,11 @@ export default function ProfileAgenda({ profileId }: { profileId: string }) {
   function Card({ e }: { e: EventItem }) {
     const meta = KIND_META[e.kind]
     return (
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '13px 16px' }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '13px 16px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-              <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 6, padding: '2px 7px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{meta.label}</span>
+              <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 'var(--r)', padding: '2px 7px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{meta.label}</span>
             </div>
             <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{e.title}</div>
             <div style={{ fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>
@@ -114,8 +114,8 @@ export default function ProfileAgenda({ profileId }: { profileId: string }) {
         </div>
         {e.kind === 'coverage' && (
           <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
-            {!e.assigned_to && <button onClick={() => action(e.id, 'claim')} style={{ padding: '6px 12px', background: '#faf5ff', color: '#7c3aed', border: '1px solid #e9d5ff', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Fico responsável</button>}
-            {e.assigned_to === user?.id && <button onClick={() => action(e.id, 'unclaim')} style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Largar</button>}
+            {!e.assigned_to && <button onClick={() => action(e.id, 'claim')} style={{ padding: '6px 12px', background: 'var(--roxo-claro)', color: 'var(--roxo)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Fico responsável</button>}
+            {e.assigned_to === user?.id && <button onClick={() => action(e.id, 'unclaim')} style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Largar</button>}
           </div>
         )}
       </div>
@@ -124,14 +124,14 @@ export default function ProfileAgenda({ profileId }: { profileId: string }) {
 
   return (
     <div>
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', marginBottom: 12 }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px', marginBottom: 12 }}>
         <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700 }}>Adicionar à agenda</div>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
           {(['appointment', 'coverage'] as const).map(k => (
             <button key={k} onClick={() => setNewEvent(f => ({ ...f, kind: k }))}
               style={{
-                flex: 1, padding: '9px 10px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                flex: 1, padding: '9px 10px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                 border: `1.5px solid ${newEvent.kind === k ? KIND_META[k].color : 'var(--border)'}`,
                 background: newEvent.kind === k ? KIND_META[k].bg : 'white',
                 color: newEvent.kind === k ? KIND_META[k].color : 'var(--ink-4)',
@@ -171,14 +171,14 @@ export default function ProfileAgenda({ profileId }: { profileId: string }) {
 
         {err && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>{err}</div>}
         <button onClick={addEvent} disabled={!canSubmit || adding}
-          style={{ width: '100%', padding: '10px 18px', background: canSubmit && !adding ? 'var(--ink)' : 'var(--bg-3)', color: canSubmit && !adding ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: canSubmit && !adding ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+          style={{ width: '100%', padding: '10px 18px', background: canSubmit && !adding ? 'var(--ink)' : 'var(--bg-3)', color: canSubmit && !adding ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: canSubmit && !adding ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
           {adding ? '...' : 'Adicionar'}
         </button>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {loaded && upcoming.length === 0 && (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '40px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '40px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
             Sem nada agendado. Quem tiver acesso partilhado a este perfil também pode marcar consultas e turnos de cobertura.
           </div>
         )}

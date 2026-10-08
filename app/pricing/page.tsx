@@ -9,12 +9,12 @@ import { PLANS, formatPrice } from '@/lib/plans'
 
 type Billing = 'monthly' | 'annual'
 
-const INK = '#16181d'
-const INK_3 = '#545862'
-const INK_4 = '#767b86'
-const GREEN = '#0d6e42'
-const BORDER = '#e7e8ea'
-const PAPER = '#fbfaf7'
+const INK = 'var(--ink-2)'
+const INK_3 = 'var(--ink-3)'
+const INK_4 = 'var(--ink-4)'
+const GREEN = 'var(--green)'
+const BORDER = 'var(--border)'
+const PAPER = 'var(--bg-2)'
 
 export default function PricingPage() {
   const [billing, setBilling] = useState<Billing>('monthly')
@@ -22,7 +22,7 @@ export default function PricingPage() {
   const org = PLANS.find(p => p.audience === 'organization')!
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: 'var(--font-sans)', color: INK }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', color: INK }}>
       <div style={{ maxWidth: 1040, margin: '0 auto', padding: 'clamp(36px,6vw,72px) clamp(20px,5vw,40px) 72px', boxSizing: 'border-box', width: '100%' }}>
 
         {/* Cabeçalho editorial */}
@@ -43,10 +43,10 @@ export default function PricingPage() {
 
         {/* Toggle de faturação */}
         <div style={{ display: 'flex', marginBottom: 'clamp(24px,3vw,36px)' }}>
-          <div style={{ display: 'inline-flex', border: `1px solid ${BORDER}`, borderRadius: 2 }}>
+          <div style={{ display: 'inline-flex', border: `1px solid ${BORDER}`, borderRadius: 'var(--r-sm)' }}>
             {(['monthly', 'annual'] as Billing[]).map(b => (
-              <button key={b} onClick={() => setBilling(b)} style={{ padding: '9px 18px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: billing === b ? INK : 'transparent', color: billing === b ? '#fff' : INK_4, transition: 'all .15s' }}>
-                {b === 'monthly' ? 'Mensal' : 'Anual'}{b === 'annual' && <span style={{ marginLeft: 7, color: billing === b ? '#7fc4a0' : GREEN }}>−20%</span>}
+              <button key={b} onClick={() => setBilling(b)} style={{ padding: '9px 18px', border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 11.5, fontWeight: 700, letterSpacing: '0.04em', textTransform: 'uppercase', background: billing === b ? INK : 'transparent', color: billing === b ? 'var(--bg)' : INK_4, transition: 'all .15s' }}>
+                {b === 'monthly' ? 'Mensal' : 'Anual'}{b === 'annual' && <span style={{ marginLeft: 7, color: billing === b ? 'var(--green)' : GREEN }}>−20%</span>}
               </button>
             ))}
           </div>
@@ -57,11 +57,11 @@ export default function PricingPage() {
           {individual.map((p, i) => {
             const price = billing === 'monthly' ? p.price.monthly : p.price.annual
             return (
-              <div key={p.id} className="pr-col" style={{ borderTop: `3px solid ${p.highlight ? GREEN : INK}`, background: p.highlight ? PAPER : '#fff' }}>
+              <div key={p.id} className="pr-col" style={{ borderTop: `3px solid ${p.highlight ? GREEN : INK}`, background: p.highlight ? PAPER : 'var(--bg)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 9, marginBottom: 4 }}>
                   <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: INK_4 }}>0{i + 1}</span>
                   <span style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.01em' }}>{p.name}</span>
-                  {p.badge && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: GREEN, border: `1px solid ${GREEN}55`, padding: '2px 7px', borderRadius: 2, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.badge}</span>}
+                  {p.badge && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: GREEN, border: `1px solid ${GREEN}55`, padding: '2px 7px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.badge}</span>}
                 </div>
                 <div style={{ fontSize: 12.5, color: INK_4, minHeight: 34, lineHeight: 1.45 }}>{p.tagline}</div>
                 <div style={{ margin: '16px 0', minHeight: 60 }}>
@@ -72,7 +72,7 @@ export default function PricingPage() {
                   {price > 0 && billing === 'annual' && <div style={{ fontSize: 11.5, color: INK_4, marginTop: 6, fontFamily: 'var(--font-mono)' }}>{formatPrice(p.price.annualTotal)} uma vez por ano</div>}
                   {price > 0 && billing === 'monthly' && <div style={{ fontSize: 11.5, color: INK_4, marginTop: 6, fontFamily: 'var(--font-mono)' }}>ou {formatPrice(p.price.annual)}/mês no anual</div>}
                 </div>
-                <Link href={p.href} className="pr-cta" style={{ background: p.highlight ? INK : '#fff', color: p.highlight ? '#fff' : INK, border: `1.5px solid ${INK}` }}>{p.cta}</Link>
+                <Link href={p.href} className="pr-cta" style={{ background: p.highlight ? INK : 'var(--bg)', color: p.highlight ? 'var(--bg)' : INK, border: `1.5px solid ${INK}` }}>{p.cta}</Link>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 11, marginTop: 20, paddingTop: 18, borderTop: `1px solid ${BORDER}` }}>
                   {p.features.map(f => (
                     <div key={f} style={{ display: 'flex', gap: 10, alignItems: 'flex-start' }}>
@@ -87,17 +87,17 @@ export default function PricingPage() {
         </div>
 
         {/* Organização — sem preço nem checkout: contacto direto, à medida de cada instituição */}
-        <div style={{ background: INK, padding: 'clamp(24px,4vw,36px)', color: '#fff', marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between', borderTop: `3px solid ${GREEN}` }}>
+        <div style={{ background: INK, padding: 'clamp(24px,4vw,36px)', color: 'var(--bg)', marginTop: 18, display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'flex-start', justifyContent: 'space-between', borderTop: `3px solid ${GREEN}` }}>
           <div style={{ minWidth: 240, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 18, fontWeight: 800 }}>{org.name}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: '#7fc4a0', border: '1px solid rgba(127,196,160,0.4)', padding: '2px 8px', borderRadius: 2, letterSpacing: '0.06em' }}>CENTROS DE DIA E LARES</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 700, color: 'var(--green)', border: '1px solid rgba(127,196,160,0.4)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em' }}>CENTROS DE DIA E LARES</span>
             </div>
             <div style={{ fontSize: 13.5, color: 'rgba(255,255,255,0.6)', marginBottom: 18, lineHeight: 1.5 }}>{org.tagline}</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '8px 20px' }}>
               {org.features.map(f => (
                 <div key={f} style={{ display: 'flex', gap: 9, alignItems: 'flex-start' }}>
-                  <span style={{ color: '#7fc4a0', flexShrink: 0 }}>—</span>
+                  <span style={{ color: 'var(--green)', flexShrink: 0 }}>—</span>
                   <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.45 }}>{f}</span>
                 </div>
               ))}
@@ -107,9 +107,9 @@ export default function PricingPage() {
             <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 14, maxWidth: 220 }}>
               Cada instituição é diferente. Falamos primeiro e configuramos o Phlox à medida da sua.
             </div>
-            <a href={org.href} style={{ display: 'block', textAlign: 'center', padding: '12px 28px', background: '#fff', color: INK, textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2 }}>{org.cta}</a>
+            <a href={org.href} style={{ display: 'block', textAlign: 'center', padding: '12px 28px', background: 'var(--bg)', color: INK, textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r-sm)' }}>{org.cta}</a>
             <a href="mailto:suporte@phloxclinical.com?subject=Agendar%20demo%20-%20Phlox%20Clinical&body=Ol%C3%A1%2C%0A%0AGostaria%20de%20agendar%20uma%20demonstra%C3%A7%C3%A3o%20do%20Phlox%20Clinical%20para%20a%20nossa%20institui%C3%A7%C3%A3o.%0A%0ANome%20da%20institui%C3%A7%C3%A3o%3A%20%0ANome%3A%20%0ATelefone%3A%20"
-              style={{ display: 'block', textAlign: 'center', marginTop: 10, padding: '12px 28px', background: 'transparent', color: '#fff', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 2, border: '1.5px solid rgba(255,255,255,0.35)' }}>
+              style={{ display: 'block', textAlign: 'center', marginTop: 10, padding: '12px 28px', background: 'transparent', color: 'var(--bg)', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r-sm)', border: '1.5px solid rgba(255,255,255,0.35)' }}>
               Agendar demo connosco →
             </a>
           </div>

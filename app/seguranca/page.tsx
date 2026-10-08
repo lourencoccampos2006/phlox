@@ -65,7 +65,7 @@ export default function SegurancaPage() {
           <CardItem k="Base legal" v="Execução de contrato (cuidados) · obrigação legal (registos)" />
           <CardItem k="Direitos do titular" v="Acesso, retificação, portabilidade, eliminação — pedido em Definições" />
           <CardItem k="Notificação de violação" v="Procedimento interno · CNPD em 72 horas" />
-          <CardItem k="Subprocessadores" v={<Link href="#subprocessadores" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Lista pública abaixo ↓</Link>} />
+          <CardItem k="Subprocessadores" v={<Link href="#subprocessadores" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Lista pública abaixo ↓</Link>} />
         </SecuritySection>
 
         {/* Fiscal & PT-specific */}
@@ -84,16 +84,16 @@ export default function SegurancaPage() {
           ))}
         </SecuritySection>
         <p style={{ fontSize: 12.5, color: 'var(--ink-5)', margin: '-12px 0 22px' }}>
-          Finalidades, localizações e bases de transferência detalhadas em <Link href="/subprocessadores" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>/subprocessadores</Link>.
+          Finalidades, localizações e bases de transferência detalhadas em <Link href="/subprocessadores" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>/subprocessadores</Link>.
         </p>
 
-        <div style={{ marginTop: 26, padding: 18, background: 'white', border: '1px solid var(--border)', borderRadius: 12, fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
-          Encontraste algo que mereça atenção? Vai a <Link href="/settings" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Definições</Link> e usa a ligação direta no perfil. Tratamos com prioridade.
+        <div style={{ marginTop: 26, padding: 18, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+          Encontraste algo que mereça atenção? Vai a <Link href="/settings" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Definições</Link> e usa a ligação direta no perfil. Tratamos com prioridade.
         </div>
 
         <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Link href="/status" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Estado em tempo real →</Link>
-          <Link href="/changelog" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Histórico de alterações →</Link>
+          <Link href="/status" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Estado em tempo real →</Link>
+          <Link href="/changelog" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Histórico de alterações →</Link>
         </div>
       </div>
     </div>

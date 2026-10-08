@@ -52,8 +52,25 @@ export function iniciais(nome: string): string {
 }
 
 /** Uma cor estável por pessoa, para o círculo de iniciais não ser tudo cinzento. */
+/**
+ * A cor do redondo com as iniciais de alguém que não tem fotografia.
+ *
+ * A PALETA NÃO PODE TER CORES DE ESTADO — e tinha. Era
+ * `[verde, âmbar, azul, VERMELHO, verde, roxo, verde, âmbar-escuro]`, tirada
+ * por hash do id. Resultado: numa fila de oito caras no painel, duas saíam
+ * vermelhas e duas âmbar — e vermelho e âmbar, em todo o resto desta
+ * aplicação, querem dizer «isto precisa de atenção». Ninguém tinha problema
+ * nenhum; era o id.
+ *
+ * O que uma cor de avatar tem de fazer é só uma coisa: ajudar a distinguir
+ * oito caras numa fila. Para isso chegam tons da mesma família, que se
+ * distinguem entre si e nunca se confundem com um alarme.
+ */
 export function corDaPessoa(id: string): string {
-  const paleta = ['#0d9488', '#b45309', '#4f46e5', '#be123c', '#15803d', '#7c3aed', '#0e7490', '#a16207']
+  const paleta = [
+    'var(--ink-2)', 'var(--green-3)', 'var(--ink-3)', 'var(--blue)',
+    'var(--green-2)', 'var(--ink-4)', 'var(--roxo-escuro)', 'var(--green)',
+  ]
   let h = 0
   for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0
   return paleta[h % paleta.length]

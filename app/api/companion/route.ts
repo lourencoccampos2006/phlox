@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
       const last = bpReadings[0]
       const veryHigh = highBp.some(v => v.bp_sys >= 180 || v.bp_dia >= 110)
       concerns.push({
-        id: 'bp-high', severity: veryHigh ? 'urgent' : 'attention', icon: '🩺',
+        id: 'bp-high', severity: veryHigh ? 'urgent' : 'attention', icon: 'stethoscope',
         title: veryHigh ? 'Tensão arterial muito alta' : 'Tensão arterial alta nas últimas medições',
         detail: `A tua última leitura foi ${last.bp_sys}/${last.bp_dia} mmHg, e ${highBp.length} das últimas medições estiveram acima do normal. ${veryHigh ? 'Se tiveres dores de cabeça fortes, falta de ar ou dor no peito, procura ajuda já.' : 'Vale a pena falares com o teu médico sobre isto.'}`,
         action: { label: 'Ver as minhas tensões', route: '/vitals' },
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
     const lowSpo2 = vit.find(v => v.spo2 != null && v.spo2 < 92)
     if (lowSpo2) {
       concerns.push({
-        id: 'spo2-low', severity: 'urgent', icon: '🫁',
+        id: 'spo2-low', severity: 'urgent', icon: 'heart',
         title: 'Oxigénio no sangue baixo',
         detail: `Registaste uma SpO2 de ${lowSpo2.spo2}%. Abaixo de 92% pode ser sinal de alerta — se te sentes com falta de ar, contacta o SNS 24 (808 24 24 24) ou o teu médico.`,
         action: { label: 'Ver sinais vitais', route: '/vitals' },
@@ -151,7 +151,7 @@ export async function POST(req: NextRequest) {
         const daysLeft = Math.floor((m.pills_remaining || 0) / Math.max(0.25, m.pills_per_day))
         if (daysLeft <= 7) {
           concerns.push({
-            id: `refill-${norm(m.name)}`, severity: daysLeft <= 2 ? 'attention' : 'info', icon: '💊',
+            id: `refill-${norm(m.name)}`, severity: daysLeft <= 2 ? 'attention' : 'info', icon: 'pill',
             title: `${m.name} está a acabar`,
             detail: daysLeft <= 0 ? `Já não tens comprimidos de ${m.name}. Pede a receita ao teu médico ou vai à farmácia.` : `Tens ${m.name} para cerca de ${daysLeft} dia${daysLeft === 1 ? '' : 's'}. Trata da renovação a tempo.`,
             action: { label: 'Ver a minha medicação', route: '/mymeds' },
@@ -172,7 +172,7 @@ export async function POST(req: NextRequest) {
       }
       if (missedDays >= 3) {
         concerns.push({
-          id: 'adherence', severity: 'attention', icon: '📅',
+          id: 'adherence', severity: 'attention', icon: 'calendar',
           title: 'Tens falhado a medicação',
           detail: `Em ${missedDays} dos últimos 7 dias não houve registo de tomas. Saltar doses pode tirar eficácia ao tratamento. Queres ativar lembretes?`,
           action: { label: 'Configurar lembretes', route: '/mymeds' },
@@ -190,7 +190,7 @@ export async function POST(req: NextRequest) {
         if (!v.status || v.status === 'NORMAL') continue
         const isHigh = v.status === 'ALTO' || v.status === 'CRITICO_ALTO'
         concerns.push({
-          id: `lab-${key}`, severity: v.status.startsWith('CRITICO') ? 'urgent' : 'info', icon: '🧪',
+          id: `lab-${key}`, severity: v.status.startsWith('CRITICO') ? 'urgent' : 'info', icon: 'flask',
           title: `${v.name} ${isHigh ? 'acima' : 'abaixo'} do normal`,
           detail: `O teu valor de ${v.name} foi ${v.value}${v.unit ? ' ' + v.unit : ''}${v.reference ? ` (referência ${v.reference})` : ''}. Mostra ao teu médico na próxima consulta.`,
           action: { label: 'Perceber as minhas análises', route: '/labs' },
@@ -202,7 +202,7 @@ export async function POST(req: NextRequest) {
     if (age && age >= 75 && medsList.length >= 5) {
       const benzo = medsList.find(m => /diazepam|lorazepam|alprazolam|bromazepam|clonazepam|zolpidem/i.test(norm(m.name)))
       concerns.push({
-        id: 'polypharmacy', severity: 'info', icon: '🧓',
+        id: 'polypharmacy', severity: 'info', icon: 'user',
         title: 'Muitos medicamentos ao mesmo tempo',
         detail: `Tomas ${medsList.length} medicamentos. ${benzo ? `Um deles (${benzo.name}) merece atenção na tua idade. ` : ''}Vale a pena pedir ao médico uma revisão de toda a medicação.`,
         action: { label: 'Verificar a minha medicação', route: '/interactions' },
@@ -219,7 +219,7 @@ export async function POST(req: NextRequest) {
     )
     correlations.forEach(c => {
       concerns.push({
-        id: `correl-${norm(c.medication)}-${norm(c.symptom)}`, severity: 'info', icon: '🔗',
+        id: `correl-${norm(c.medication)}-${norm(c.symptom)}`, severity: 'info', icon: 'layers',
         title: `${c.symptom} desde que começaste ${c.medication}?`,
         detail: `Registaste "${c.symptom}" ${c.occurrences}x, começando ${c.days_after_start} dia${c.days_after_start === 1 ? '' : 's'} depois de iniciares ${c.medication}. Pode ser coincidência, mas vale a pena mencionar ao médico ou farmacêutico.`,
         action: { label: 'Ver o meu histórico', route: '/timeline' },
@@ -236,7 +236,7 @@ export async function POST(req: NextRequest) {
     )
     labCorrelations.forEach(c => {
       concerns.push({
-        id: `labcorrel-${norm(c.medication)}-${norm(c.test)}`, severity: 'info', icon: '🔗',
+        id: `labcorrel-${norm(c.medication)}-${norm(c.test)}`, severity: 'info', icon: 'layers',
         title: `${c.test} alterado desde que começaste ${c.medication}?`,
         detail: `${c.test} ficou alterado ${c.days_after_start} dia${c.days_after_start === 1 ? '' : 's'} depois de iniciares ${c.medication}. Pode ser coincidência, mas vale a pena mencionar ao médico.`,
         action: { label: 'Perceber as minhas análises', route: '/labs' },
@@ -256,7 +256,7 @@ export async function POST(req: NextRequest) {
     const hasData = medsList.length > 0 || vit.length > 0 || labList.length > 0
     if (concerns.length === 0 && hasData) {
       concerns.push({
-        id: 'all-good', severity: 'good', icon: '✅',
+        id: 'all-good', severity: 'good', icon: 'check',
         title: 'Está tudo no bom caminho',
         detail: 'Olhei para a tua medicação, sinais vitais e análises e não encontrei nada que precise de atenção agora. Continua assim!',
       })

@@ -50,9 +50,9 @@ export const ROTULO_DO_NIVEL: Record<Nivel, string> = {
 }
 
 export const COR_DO_NIVEL: Record<Nivel, { fundo: string; borda: string; texto: string }> = {
-  independente: { fundo: '#f0fdf4', borda: '#bbf7d0', texto: '#166534' },
-  ajuda:        { fundo: '#fffbeb', borda: '#fde68a', texto: '#92400e' },
-  dependente:   { fundo: '#fee2e2', borda: '#fca5a5', texto: '#991b1b' },
+  independente: { fundo: 'var(--green-light)', borda: 'var(--green-mid)', texto: 'var(--green-3)' },
+  ajuda:        { fundo: 'var(--amber-light)', borda: 'var(--badge-amber-border)', texto: 'var(--badge-amber-fg)' },
+  dependente:   { fundo: 'var(--red-light)', borda: 'var(--badge-red-border)', texto: 'var(--red)' },
 }
 
 /**

@@ -19,6 +19,12 @@ import { type ScaleType, SCALES, BETTER_WHEN_HIGHER, barthelLevel, bradenLevel, 
 // centro de dia; continuam a existir como ferramentas próprias fora daqui,
 // ex. /med-review via ⌘K). Também: exclusivo de lares — um centro de dia só
 // vê "Escalas" (não tem planos de cuidados formais no mesmo sentido).
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Campo, CAIXA, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
 export default function AssessmentsPage() {
   const { institution } = useClinicPrefs()
   const isDayCare = institution === 'day_care'
@@ -26,10 +32,10 @@ export default function AssessmentsPage() {
     eyebrow="Avaliações" title="Avaliações e planos de cuidados"
     subtitle={isDayCare ? 'Escalas validadas.' : 'Escalas validadas e planos de cuidados.'}
     tabs={isDayCare ? [
-      { id: 'escalas', label: 'Escalas', icon: '📐', render: () => <AssessmentsTool /> },
+      { id: 'escalas', label: 'Escalas', icon: 'scale', render: () => <AssessmentsTool /> },
     ] : [
-      { id: 'escalas', label: 'Escalas', icon: '📐', render: () => <AssessmentsTool /> },
-      { id: 'planos', label: 'Planos de cuidados', icon: '📋', render: () => <CarePlansTool /> },
+      { id: 'escalas', label: 'Escalas', icon: 'scale', render: () => <AssessmentsTool /> },
+      { id: 'planos', label: 'Planos de cuidados', icon: 'clipboard', render: () => <CarePlansTool /> },
     ]} />
 }
 
@@ -152,6 +158,7 @@ function AssessmentsTool() {
   const cfg = institutionConfig(institution)
   const person = cfg.personNoun
   const personLower = person.toLowerCase()
+  const largo = useLargo()
   const [tab, setTab] = useState<ScaleType>('barthel')
   const [patients, setPatients] = useState<Patient[]>([])
   const [records, setRecords] = useState<AssessmentRecord[]>([])
@@ -244,7 +251,7 @@ function AssessmentsTool() {
           const t = trendInfo(tab, r.score, prevScoreOf(r))
           return {
             title: `${r.date} — ${r.score}/${SCALES[tab].max} pts`,
-            tags: [{ label: levelOf(r.score), color: '#334155' }],
+            tags: [{ label: levelOf(r.score), color: 'var(--ink-3)' }],
             fields: [
               { label: 'Avaliado por', value: r.evaluated_by || '—' },
               ...(t ? [{ label: 'Tendência', value: `${t.arrow} ${t.label}` }] : []),
@@ -272,234 +279,307 @@ function AssessmentsTool() {
     return idx > 0 ? samePt[idx - 1].score : null
   }
 
-  const inputStyle: React.CSSProperties = { padding: '9px 12px', border: '1px solid #e2e8f0', borderRadius: 8, fontSize: 14, width: '100%', boxSizing: 'border-box', fontFamily: 'inherit' }
-  const labelStyle: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 5 }
 
   const level = getLevel()
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Tinha um cabeçalho PRETO de 160px — uma faixa `background: var(--ink)`
+     com migalha de pão, título, subtítulo, três indicadores em caixas
+     translúcidas e os separadores das escalas. Um bloco preto que não existe
+     em mais lado nenhum da aplicação, e 160px antes do primeiro item.
+
+     E cada item da escala era um cartão com um círculo numerado de 24px e as
+     opções em caixas com fundo de cor. O Barthel tem dez itens com quatro
+     opções cada: quarenta caixas e dez cartões, uns dois mil pixéis de rolar
+     para preencher uma escala.
+
+     Passa a duas colunas: a escala à esquerda, o histórico da pessoa à
+     direita — que é a comparação que dá sentido ao número de hoje.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const items = tab === 'barthel' ? BARTHEL_ITEMS
+    : tab === 'braden' ? BRADEN_ITEMS
+    : tab === 'morse' ? MORSE_ITEMS
+    : tab === 'mmse' ? MMSE_ITEMS
+    : MNA_SCREENING
+  const porResponder = items.filter(it => scores[it.id] === undefined).length
+  const historico = patientId ? patientRecords : allTabRecords
+
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: 'var(--font-sans)' }}>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Avaliações</span>
 
-      {/* Page header */}
-      <div style={{ background: '#0f172a', color: '#fff', padding: '20px 24px' }}>
-        <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
-            <span>›</span><span style={{ color: '#94a3b8' }}>Avaliações</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-            <div>
-              <h1 style={{ margin: 0, fontSize: 20, fontWeight: 700, letterSpacing: '-0.02em' }}>Avaliações Clínicas</h1>
-              <p style={{ margin: '3px 0 0', color: '#64748b', fontSize: 13 }}>Escalas validadas · Barthel · Braden · Morse · MMSE · MNA</p>
-            </div>
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Avaliações hoje', value: records.filter(r => r.date === new Date().toISOString().slice(0,10)).length },
-                { label: 'Total registadas', value: records.length },
-                { label: cfg.personNounPlural, value: new Set(records.map(r => r.patient_id)).size },
-              ].map(s => (
-                <div key={s.label} style={{ background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '8px 14px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 18, fontWeight: 700 }}>{s.value}</div>
-                  <div style={{ fontSize: 11, color: '#64748b' }}>{s.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <Seletor
+            opcoes={(Object.keys(SCALES) as ScaleType[]).map(k => ({ id: k, rotulo: SCALES[k].label }))}
+            ativa={tab} aoMudar={k => setTab(k as ScaleType)} />
 
-          {/* Scale tabs */}
-          <div style={{ display: 'flex', gap: 2, marginTop: 18, borderBottom: '1px solid rgba(255,255,255,0.1)', overflowX: 'auto' }}>
-            {(Object.keys(SCALES) as ScaleType[]).map(k => (
-              <button key={k} onClick={() => setTab(k)} style={{
-                padding: '8px 16px', border: 'none', cursor: 'pointer', borderRadius: '6px 6px 0 0',
-                background: tab === k ? '#fff' : 'transparent',
-                color: tab === k ? '#1d4ed8' : '#64748b',
-                fontWeight: tab === k ? 700 : 400, fontSize: 13,
-                whiteSpace: 'nowrap', minHeight: 38, fontFamily: 'inherit',
-              }}>
-                {SCALES[k].label}
-              </button>
+          <select value={patientId} onChange={e => setPatientId(e.target.value)}
+            aria-label={person} style={{ ...CAIXA, width: 220 }}>
+            <option value="">{`Escolher ${personLower}…`}</option>
+            {patients.map(p => (
+              <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}</option>
             ))}
-          </div>
+          </select>
+
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {records.filter(r => r.date === new Date().toISOString().slice(0, 10)).length} HOJE
+              </span>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                {new Set(records.map(r => r.patient_id)).size} {cfg.personNounPlural.toUpperCase()} AVALIADOS
+              </span>
+            </span>
+          )}
+
+          {/* O número em construção vive aqui: é o que muda a cada toque, e
+              tem de estar visível sem rolar até ao fim da escala. */}
+          <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'baseline', gap: 8 }}>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-numero)', lineHeight: 1,
+              fontWeight: 'var(--peso-forte)' as any, color: level.color,
+            }}>{totalScore}</span>
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>/{scale.max}</span>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+              letterSpacing: '.06em', textTransform: 'uppercase', color: level.color,
+            }}>{level.label}</span>
+            {liveTrend && (
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: liveTrend.color }}>
+                {liveTrend.arrow} {liveTrend.label}
+              </span>
+            )}
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>{scale.desc} · máximo {scale.max} pontos</span>
+          {liveTrend && lastRecord && (
+            <span style={{ ...MONO, color: liveTrend.color }}>
+              {liveTrend.arrow} {liveTrend.label} face a {lastRecord.date}
+            </span>
+          )}
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Escalas validadas — Barthel, Braden, Morse, MMSE e MNA. A leitura é sempre do profissional.
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {loading ? (
+        <Painel><ACarregar oQue="A carregar as avaliações…" /></Painel>
+      ) : (
+        <div style={{
+          display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'start',
+          gridTemplateColumns: largo ? 'minmax(420px, 1fr) minmax(300px, 380px)' : '1fr',
+        }}>
+          {/* ══ A ESCALA ═══════════════════════════════════════════════════ */}
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>{scale.label}</span>
+                <span style={{
+                  ...MONO, fontSize: 'var(--t-meta)',
+                  color: porResponder ? 'var(--amber)' : 'var(--green)',
+                  fontWeight: 'var(--peso-forte)' as any,
+                }}>
+                  {porResponder ? `${porResponder} POR RESPONDER` : 'TUDO RESPONDIDO'}
+                </span>
+              </Cabecalho>
+            }
+            rodape={
+              <>
+                <span style={MONO}>
+                  {items.length - porResponder} de {items.length} · {totalScore} pontos
+                </span>
+                <span style={{ marginLeft: 'auto' }}>
+                  <Botao feitio="principal" onClick={save} esperando={saving}
+                    disabled={!patientId || !podeEditar}>
+                    {patientId ? `GUARDAR — ${totalScore} PTS` : `ESCOLHA UM ${person.toUpperCase()}`}
+                  </Botao>
+                </span>
+              </>
+            }
+          >
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--border-2)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '150px 1fr', gap: 10 }}>
+                <Campo rotulo="Data" para="av-data">
+                  <input id="av-data" type="date" value={date} onChange={e => setDate(e.target.value)}
+                    style={{ ...CAIXA, width: '100%' }} />
+                </Campo>
+                <Campo rotulo="Avaliado por" para="av-quem">
+                  <input id="av-quem" value={evaluatedBy} onChange={e => setEvaluatedBy(e.target.value)}
+                    placeholder="Nome de quem avaliou" style={{ ...CAIXA, width: '100%' }} />
+                </Campo>
+              </div>
+            </div>
+
+            {items.map((item, idx) => {
+              const isMMSE = tab === 'mmse'
+              const current = scores[item.id]
+              const iItem = item as any
+              const respondido = current !== undefined
+              return (
+                <div key={item.id} style={{
+                  padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                  borderLeft: `3px solid ${respondido ? 'var(--green)' : 'var(--amber)'}`,
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 6 }}>
+                    <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)', width: 20, flexShrink: 0 }}>
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <span style={{
+                      flex: 1, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+                    }}>{item.label}</span>
+                    {respondido && (
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
+                        color: 'var(--ink-2)',
+                      }}>{current} pts</span>
+                    )}
+                  </div>
+
+                  {isMMSE && iItem.desc && (
+                    <div style={{
+                      fontSize: 'var(--t-meta)', color: 'var(--ink-4)',
+                      margin: '0 0 7px 28px', lineHeight: 1.5,
+                    }}>{iItem.desc}</div>
+                  )}
+
+                  <div style={{ marginLeft: 28 }}>
+                    {isMMSE ? (
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                        <input
+                          type="number" min={0} max={iItem.max} value={current ?? ''}
+                          aria-label={`${item.label}, de 0 a ${iItem.max} pontos`}
+                          onChange={e => setScores(sc => ({
+                            ...sc,
+                            [item.id]: Math.min(iItem.max, Math.max(0, parseInt(e.target.value) || 0)),
+                          }))}
+                          placeholder="0"
+                          style={{
+                            ...CAIXA, width: 72, textAlign: 'center',
+                            ...MONO, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
+                          }} />
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                          de {iItem.max} pontos
+                        </span>
+                      </span>
+                    ) : (
+                      /* Um `<input type="radio">` a sério e visível. Estava
+                         escondido com `display: none` por trás de um círculo
+                         desenhado à mão — o que tirava o foco do teclado e
+                         deixava quem navega sem rato sem saber onde está. */
+                      <div role="radiogroup" aria-label={item.label}>
+                        {iItem.options.map((opt: { v: number; l: string }) => {
+                          const on = current === opt.v
+                          const id = `${tab}-${item.id}-${opt.v}`
+                          return (
+                            <label key={opt.v} htmlFor={id} style={{
+                              display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer',
+                              padding: '5px 8px', borderRadius: 'var(--r-sm)',
+                              background: on ? 'var(--green-light)' : 'transparent',
+                            }}>
+                              <input id={id} type="radio" name={`${tab}-${item.id}`}
+                                value={opt.v} checked={on}
+                                onChange={() => setScores(sc => ({ ...sc, [item.id]: opt.v }))}
+                                style={{ marginTop: 2, accentColor: 'var(--green)', flexShrink: 0 }} />
+                              <span style={{
+                                fontSize: 'var(--t-dado)', lineHeight: 1.45,
+                                color: on ? 'var(--ink)' : 'var(--ink-3)',
+                              }}>
+                                <span style={{
+                                  ...MONO, fontWeight: 'var(--peso-forte)' as any,
+                                  color: on ? 'var(--green)' : 'var(--ink-4)', marginRight: 5,
+                                }}>{opt.v}</span>
+                                {opt.l}
+                              </span>
+                            </label>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+
+            <div style={{ padding: '10px 14px' }}>
+              <Campo rotulo="Observações" para="av-notas">
+                <textarea id="av-notas" value={notes} onChange={e => setNotes(e.target.value)}
+                  rows={2} placeholder="O que o número não diz."
+                  style={{ ...CAIXA_TEXTO, width: '100%' }} />
+              </Campo>
+            </div>
+          </Painel>
+
+          {/* ══ O HISTÓRICO ════════════════════════════════════════════════
+              É a comparação que dá sentido ao número de hoje: 65 no Barthel
+              não quer dizer nada; 65 depois de 80 há três meses quer. */}
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>
+                  {patientId ? 'Histórico desta pessoa' : `Últimas · ${scale.label}`}
+                </span>
+                {patientId && patientRecords.length > 0 && (
+                  <Botao onClick={printHistory}>IMPRIMIR</Botao>
+                )}
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{historico.length} avaliação{historico.length === 1 ? '' : 'ões'}</span>}
+          >
+            {historico.length === 0 ? (
+              <Vazio titulo={`Sem avaliações${patientId ? ' desta pessoa' : ''}.`}
+                oQueFazer="Uma escala sozinha diz pouco. É a segunda, três meses depois, que mostra se alguém está a perder autonomia — e é por isso que vale a pena repetir." />
+            ) : historico.map(r => {
+              const lvl = tab === 'barthel' ? barthelLevel(r.score)
+                : tab === 'braden' ? bradenLevel(r.score)
+                : tab === 'morse' ? morseLevel(r.score)
+                : tab === 'mmse' ? mmseLevel(r.score)
+                : mnaLevel(r.score)
+              const rTrend = trendInfo(tab, r.score, prevScoreOf(r))
+              return (
+                <div key={r.id} style={{
+                  padding: '8px 14px', borderBottom: '1px solid var(--border)',
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
+                    <span style={{
+                      ...MONO, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
+                      color: 'var(--ink)',
+                    }}>{r.score}</span>
+                    {rTrend && (
+                      <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: rTrend.color }}>
+                        {rTrend.arrow} {rTrend.delta > 0 ? '+' : ''}{rTrend.delta}
+                      </span>
+                    )}
+                    <span style={{
+                      ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                      textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any,
+                      color: lvl.color, marginLeft: 'auto',
+                    }}>{lvl.label}</span>
+                  </div>
+                  <div style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>
+                    {r.date}{r.evaluated_by ? ` · ${r.evaluated_by}` : ''}
+                    {!patientId && r.patient_name ? ` · ${r.patient_name}` : ''}
+                  </div>
+                  {r.notes && (
+                    <div style={{
+                      fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.5,
+                    }}>{r.notes}</div>
+                  )}
+                </div>
+              )
+            })}
+          </Painel>
         </div>
-      </div>
-
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '20px 24px' }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: 60, color: '#94a3b8' }}>A carregar…</div>
-        ) : (
-          <div className="assess-layout" style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: 20 }}>
-
-            {/* LEFT: Assessment form */}
-            <div>
-              {/* Scale info */}
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', padding: '18px 20px', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-                  <div>
-                    <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a' }}>{scale.label}</div>
-                    <div style={{ fontSize: 13, color: '#64748b', marginTop: 2 }}>{scale.desc} · Máx. {scale.max} pontos</div>
-                  </div>
-                  {/* Live score display */}
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 32, fontWeight: 900, color: level.color, lineHeight: 1 }}>{totalScore}</div>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: level.color, background: level.bg, padding: '3px 10px', borderRadius: 20, marginTop: 4, display: 'inline-block' }}>
-                      {level.label}
-                    </div>
-                    {liveTrend && (
-                      <div style={{ fontSize: 11, fontWeight: 700, color: liveTrend.color, marginTop: 5 }}>
-                        {liveTrend.arrow} {liveTrend.label} <span style={{ color: '#94a3b8', fontWeight: 500 }}>vs. {lastRecord!.date}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {/* Progress bar */}
-                <div style={{ marginTop: 12, background: '#f1f5f9', borderRadius: 4, height: 6, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${Math.min(100, (totalScore / scale.max) * 100)}%`, background: level.color, borderRadius: 4, transition: 'width 0.3s' }} />
-                </div>
-              </div>
-
-              {/* Patient + date controls */}
-              <div className="assess-controls" style={{ display: 'grid', gridTemplateColumns: '1fr 160px 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <label style={labelStyle}>{person}</label>
-                  <select style={inputStyle} value={patientId} onChange={e => setPatientId(e.target.value)}>
-                    <option value="">{`Seleccionar ${personLower}…`}</option>
-                    {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.age ? ` (${p.age}a)` : ''}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label style={labelStyle}>Data</label>
-                  <input style={inputStyle} type="date" value={date} onChange={e => setDate(e.target.value)} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Avaliado por</label>
-                  <input style={inputStyle} value={evaluatedBy} onChange={e => setEvaluatedBy(e.target.value)} placeholder="Nome do avaliador" />
-                </div>
-              </div>
-
-              {/* Scale items */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {(tab === 'barthel' ? BARTHEL_ITEMS : tab === 'braden' ? BRADEN_ITEMS : tab === 'morse' ? MORSE_ITEMS : tab === 'mmse' ? MMSE_ITEMS : MNA_SCREENING).map((item, idx) => {
-                  const isMMSE = tab === 'mmse'
-                  const current = scores[item.id]
-                  const iItem = item as any
-                  return (
-                    <div key={item.id} style={{ background: '#fff', borderRadius: 10, border: '1px solid #e2e8f0', padding: '14px 16px', transition: 'border-color 0.1s', borderLeft: current !== undefined ? `3px solid ${scale.color}` : '3px solid transparent' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                        <div style={{ width: 24, height: 24, borderRadius: '50%', background: '#f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: '#64748b', flexShrink: 0, marginTop: 1 }}>
-                          {idx + 1}
-                        </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', marginBottom: isMMSE ? 4 : 8 }}>{item.label}</div>
-                          {isMMSE && iItem.desc && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 8, fontStyle: 'italic' }}>{iItem.desc}</div>}
-
-                          {isMMSE ? (
-                            // MMSE: numeric input 0–max
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                              <input
-                                type="number" min={0} max={iItem.max} value={current ?? ''}
-                                onChange={e => setScores(s => ({ ...s, [item.id]: Math.min(iItem.max, Math.max(0, parseInt(e.target.value) || 0)) }))}
-                                style={{ width: 80, padding: '8px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: 16, fontWeight: 700, textAlign: 'center', outline: 'none' }}
-                                placeholder="0"
-                              />
-                              <span style={{ fontSize: 13, color: '#64748b' }}>de {iItem.max} pontos</span>
-                            </div>
-                          ) : (
-                            // Other scales: radio buttons
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {iItem.options.map((opt: { v: number; l: string }) => {
-                                const selected = current === opt.v
-                                return (
-                                  <label key={opt.v} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer', padding: '8px 10px', borderRadius: 7, background: selected ? `${scale.color}12` : '#f8fafc', border: `1px solid ${selected ? scale.color + '40' : '#f1f5f9'}`, transition: 'all 0.1s' }}>
-                                    <div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${selected ? scale.color : '#d1d5db'}`, background: selected ? scale.color : '#fff', flexShrink: 0, marginTop: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                      {selected && <div style={{ width: 6, height: 6, borderRadius: '50%', background: '#fff' }} />}
-                                    </div>
-                                    <input type="radio" name={`${tab}-${item.id}`} value={opt.v} checked={selected}
-                                      onChange={() => setScores(s => ({ ...s, [item.id]: opt.v }))}
-                                      style={{ display: 'none' }} />
-                                    <span style={{ fontSize: 13, color: selected ? '#0f172a' : '#374151', fontWeight: selected ? 600 : 400, lineHeight: 1.4 }}>
-                                      <span style={{ fontWeight: 700, color: scale.color, marginRight: 4 }}>{opt.v} pts —</span>
-                                      {opt.l}
-                                    </span>
-                                  </label>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
-
-              {/* Notes + Save */}
-              <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={labelStyle}>Observações</label>
-                  <textarea style={{ ...inputStyle, height: 72, resize: 'vertical' } as React.CSSProperties} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Notas clínicas sobre esta avaliação…" />
-                </div>
-                <button
-                  onClick={save}
-                  disabled={saving || !patientId}
-                  style={{ padding: '13px 24px', background: saving ? '#94a3b8' : (!patientId ? '#e2e8f0' : '#1d4ed8'), color: (!patientId || saving) ? '#94a3b8' : '#fff', border: 'none', borderRadius: 10, cursor: (!patientId || saving) ? 'not-allowed' : 'pointer', fontWeight: 700, fontSize: 15, fontFamily: 'inherit', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-                  {saving ? 'A guardar…' : `Guardar avaliação — ${scale.label} · ${totalScore} pts`}
-                </button>
-              </div>
-            </div>
-
-            {/* RIGHT: History */}
-            <div>
-              <div style={{ background: '#fff', borderRadius: 12, border: '1px solid #e2e8f0', overflow: 'hidden', position: 'sticky', top: 76 }}>
-                <div style={{ padding: '14px 16px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <div style={{ fontWeight: 700, fontSize: 14, color: '#0f172a' }}>Histórico</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    {patientId && patientRecords.length > 0 && (
-                      <button onClick={printHistory} style={{ fontSize: 11, fontWeight: 700, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '4px 9px', cursor: 'pointer', fontFamily: 'inherit' }}>Imprimir</button>
-                    )}
-                    <div style={{ fontSize: 12, color: '#64748b' }}>{patientId ? patientRecords.length : allTabRecords.length} aval.</div>
-                  </div>
-                </div>
-                <div style={{ maxHeight: 'calc(100vh - 240px)', overflowY: 'auto' }}>
-                  {(patientId ? patientRecords : allTabRecords).length === 0 ? (
-                    <div style={{ padding: '32px 16px', textAlign: 'center', color: '#94a3b8' }}>
-                      <div style={{ fontSize: 28, marginBottom: 8 }}>📋</div>
-                      <div style={{ fontSize: 13 }}>Sem avaliações{patientId ? ` para este ${personLower}` : ''}.</div>
-                    </div>
-                  ) : (patientId ? patientRecords : allTabRecords).map(r => {
-                    const lvl = tab === 'barthel' ? barthelLevel(r.score) : tab === 'braden' ? bradenLevel(r.score) : tab === 'morse' ? morseLevel(r.score) : tab === 'mmse' ? mmseLevel(r.score) : mnaLevel(r.score)
-                    const rTrend = trendInfo(tab, r.score, prevScoreOf(r))
-                    return (
-                      <div key={r.id} style={{ padding: '12px 16px', borderBottom: '1px solid #f8fafc' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', display: 'flex', alignItems: 'center', gap: 7 }}>
-                            {r.score} pts
-                            {rTrend && <span style={{ fontSize: 11, fontWeight: 700, color: rTrend.color }}>{rTrend.arrow} {rTrend.delta > 0 ? '+' : ''}{rTrend.delta}</span>}
-                          </div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: lvl.color, background: lvl.bg, padding: '1px 8px', borderRadius: 10 }}>{lvl.label}</div>
-                        </div>
-                        {!patientId && r.patient_name && <div style={{ fontSize: 12, color: '#64748b', marginBottom: 2 }}>{r.patient_name}</div>}
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>{r.date} {r.evaluated_by ? `· ${r.evaluated_by}` : ''}</div>
-                        {r.notes && <div style={{ fontSize: 12, color: '#64748b', marginTop: 4, fontStyle: 'italic' }}>{r.notes}</div>}
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            </div>
-
-          </div>
-        )}
-      </div>
-
-      <style>{`
-        @media(max-width:768px){
-          .assess-layout{grid-template-columns:1fr!important}
-          .assess-controls{grid-template-columns:1fr!important}
-        }
-        input[type=number]:focus,input[type=date]:focus,input[type=text]:focus,textarea:focus,select:focus{
-          border-color:#1d4ed8!important;outline:none;box-shadow:0 0 0 3px #1d4ed818
-        }
-      `}</style>
-    </div>
+      )}
+    </Mesa>
   )
 }

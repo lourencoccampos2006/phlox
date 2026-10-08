@@ -1,14 +1,47 @@
 'use client'
 
-// /auditoria — Audit Trail do utilizador (todos os planos).
-// Mostra eventos sensíveis com hash encadeado SHA-256, verifica integridade da cadeia
-// e exporta para JSON (RGPD: direito à portabilidade).
+// app/auditoria/page.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// AUDIT TRAIL — refeito de raiz na linguagem da mesa (2026-10-07).
+//
+// Cada acção sensível fica registada e encadeada por hash SHA-256. Daqui vê-se,
+// verifica-se a integridade da cadeia e exporta-se (RGPD: portabilidade).
+//
+// ── UM ACHADO: ISTO NÃO ESTAVA LIGADO A NADA ───────────────────────────────
+// A rota /auditoria redireciona para `/documentos?tab=auditoria` desde a fusão
+// — mas a /documentos nunca teve uma aba `auditoria`. Tinha «Modelos» e
+// «Guardados», e o `?tab=` desconhecido caía na primeira.
+//
+// Resultado: quem clicasse em «Auditoria» aterrava nos modelos de documentos
+// sem perceber porquê, e as 130 linhas do `AuditoriaTool` eram código morto a
+// ser mantido por ninguém. Não se apaga uma ferramenta — liga-se: a
+// /documentos passa a ter a terceira vista, e o redireccionamento acerta.
+//
+// ── ESTE REGISTO É DA PESSOA, NÃO DA CASA ──────────────────────────────────
+// Ao contrário da /conformidade e dos /consentimentos, aqui o `user_id` está
+// certo: a cadeia de hash é POR CONTA, e é isso que torna possível verificar
+// a sua integridade e exportá-la ao abrigo do direito à portabilidade. Juntar
+// contas na mesma cadeia partia as duas coisas.
+//
+// ── O QUE ESTAVA ERRADO NA FORMA ───────────────────────────────────────────
+//  1. SETE CORES POR CATEGORIA (var(--roxo), var(--green), var(--amber)…), nenhuma delas
+//     nos tokens. Uma categoria de evento não é um estado.
+//  2. SEIS INDICADORES no topo, um por categoria, antes do primeiro evento.
+//  3. CADA EVENTO ERA UM `<details>` com fundo branco e raio. Quinhentos
+//     eventos são quinhentos cartões.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
-import { AUDIT_ACTIONS, actionLabel, categoryLabel, verifyChain, type AuditCategory } from '@/lib/audit'
+import { actionLabel, categoryLabel, verifyChain, type AuditCategory } from '@/lib/audit'
+import { isSetupError } from '@/lib/clientError'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, CAIXA,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Ev {
   id: string; at: string; action: string; category: AuditCategory
@@ -18,9 +51,16 @@ interface Ev {
   user_id: string
 }
 
-const CAT_COLOR: Record<string, string> = { clinical: '#dc2626', billing: '#0d6e42', auth: '#7c3aed', settings: '#2563eb', data: '#0891b2', integration: '#ca8a04', general: '#64748b' }
+/* O CÓDIGO DE UMA CATEGORIA (2026-10-07)
+   Eram sete cores — roxo, azul-petróleo, mostarda — nenhuma delas nos tokens.
+   Uma categoria de evento é um FACTO: lê-se em quatro letras, e a cor fica
+   livre para o que importa aqui, que é a cadeia estar íntegra ou partida. */
+const CAT_CODIGO: Record<string, string> = {
+  clinical: 'CLIN', billing: 'FATU', auth: 'ACES',
+  settings: 'DEFS', data: 'DADO', integration: 'INTE', general: 'GERAL',
+}
 
-// Fundido em "Conformidade" (/documentos) como aba "Auditoria" (AuditoriaTool reutilizado).
+// Fundido em "Documentos" como terceira vista — ver o comentário no topo.
 export default function AuditoriaRedirect() {
   const r = useRouter()
   useEffect(() => { r.replace('/documentos?tab=auditoria') }, [r])
@@ -29,136 +69,226 @@ export default function AuditoriaRedirect() {
 
 export function AuditoriaTool() {
   const { user, supabase } = useAuth() as any
+  const largo = useLargo()
   const [events, setEvents] = useState<Ev[]>([])
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
   const [filterCat, setFilterCat] = useState<string>('all')
+  const [procura, setProcura] = useState('')
+  const [aberto, setAberto] = useState<string | null>(null)
   const [verify, setVerify] = useState<null | { ok: boolean; checked: number; reason?: string }>(null)
   const [verifying, setVerifying] = useState(false)
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data, error } = await supabase.from('audit_events').select('*').eq('user_id', user.id).order('seq', { ascending: false }).limit(500)
-    if (error) { if (/relation .*audit_events.* does not exist/i.test(error.message)) setMissing(true); setEvents([]) }
+    // `user_id` está certo aqui, ao contrário da conformidade: a cadeia de
+    // hash é POR CONTA, e é isso que a torna verificável e exportável.
+    const { data, error } = await supabase.from('audit_events').select('*')
+      .eq('user_id', user.id).order('seq', { ascending: false }).limit(500)
+    if (error) { if (isSetupError(error)) setMissing(true); setEvents([]) }
     else { setMissing(false); setEvents(data || []) }
     setLoading(false)
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
 
-  const shown = filterCat === 'all' ? events : events.filter(e => e.category === filterCat)
+  const shown = events.filter(e => {
+    if (filterCat !== 'all' && e.category !== filterCat) return false
+    const t = procura.trim().toLowerCase()
+    if (!t) return true
+    return actionLabel(e.action).toLowerCase().includes(t)
+      || (e.resource || '').toLowerCase().includes(t)
+      || e.action.toLowerCase().includes(t)
+  })
 
   async function runVerify() {
     setVerifying(true); setVerify(null)
-    // tem de verificar TODA a cadeia, por ordem ascendente
+    // Tem de verificar a cadeia TODA, por ordem ascendente.
     const r = await verifyChain(events as any)
-    setVerify(r.ok ? { ok: true, checked: r.checked } : { ok: false, checked: r.checked, reason: r.firstBreak?.reason })
+    setVerify(r.ok
+      ? { ok: true, checked: r.checked }
+      : { ok: false, checked: r.checked, reason: r.firstBreak?.reason })
     setVerifying(false)
   }
 
   function exportJson() {
     const blob = new Blob([JSON.stringify(events, null, 2)], { type: 'application/json' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = `phlox-auditoria-${new Date().toISOString().slice(0, 10)}.json`; a.click()
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `phlox-auditoria-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
     URL.revokeObjectURL(url)
   }
 
   const cats: string[] = Array.from(new Set(events.map(e => e.category)))
-  const totalByCat: Record<string, number> = {}; events.forEach(e => { totalByCat[e.category] = (totalByCat[e.category] || 0) + 1 })
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body" style={{ maxWidth: 980 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Phlox · Auditoria</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3vw,34px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Audit Trail</h1>
-            <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: '5px 0 0', lineHeight: 1.6 }}>Cada acção sensível é registada e encadeada por hash SHA-256. Aqui podes ver, verificar a integridade e exportar.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={exportJson} disabled={!events.length} style={{ padding: '9px 14px', border: '1px solid var(--border)', borderRadius: 8, background: 'white', cursor: events.length ? 'pointer' : 'default', fontSize: 12.5, fontWeight: 700, color: '#374151', fontFamily: 'var(--font-sans)' }}>Exportar JSON</button>
-            <button onClick={runVerify} disabled={verifying || !events.length} style={{ padding: '9px 14px', borderRadius: 8, background: '#0d6e42', color: 'white', border: 'none', cursor: verifying ? 'wait' : 'pointer', fontSize: 12.5, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>{verifying ? 'A verificar…' : 'Verificar integridade'}</button>
-          </div>
-        </div>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Auditoria</span>
 
-        {verify && (
-          <div style={{ marginBottom: 14, padding: '12px 16px', borderRadius: 10, border: `1.5px solid ${verify.ok ? '#bbf7d0' : '#fca5a5'}`, background: verify.ok ? '#f0fdf4' : '#fef2f2', color: verify.ok ? '#15803d' : '#991b1b', fontSize: 13.5, fontWeight: 600 }}>
-            {verify.ok ? `✓ Cadeia íntegra. ${verify.checked} evento(s) verificados.` : `✗ Cadeia comprometida no seq ${verify.checked + 1}: ${verify.reason}`}
-          </div>
-        )}
+          <input value={procura} onChange={e => setProcura(e.target.value)}
+            placeholder="Procurar uma acção…" aria-label="Procurar"
+            style={{ ...CAIXA, width: 220 }} />
 
-        {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
-            Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
-          </div>
-        ) : (
-          <>
-            {/* KPIs */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10, marginBottom: 16 }}>
-              <Kpi label="Eventos" value={events.length} color="#0b1120" />
-              {(Object.keys(totalByCat) as AuditCategory[]).slice(0, 5).map(c => (
-                <Kpi key={c} label={categoryLabel(c)} value={totalByCat[c]} color={CAT_COLOR[c] || '#64748b'} />
+          {cats.length > 1 && (
+            <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+              aria-label="Categoria" style={{ ...CAIXA, width: 170 }}>
+              <option value="all">Todas as categorias</option>
+              {cats.map(c => (
+                <option key={c} value={c}>{categoryLabel(c as AuditCategory)}</option>
               ))}
-            </div>
+            </select>
+          )}
 
-            {/* Filtros */}
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-              <FilterBtn active={filterCat === 'all'} onClick={() => setFilterCat('all')} color="#0b1120">Todos</FilterBtn>
-              {cats.map(c => <FilterBtn key={c} active={filterCat === c} onClick={() => setFilterCat(c)} color={CAT_COLOR[c] || '#64748b'}>{categoryLabel(c as AuditCategory)}</FilterBtn>)}
-            </div>
+          {!loading && !missing && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              {events.length} EVENTO{events.length === 1 ? '' : 'S'}
+              {events.length >= 500 ? ' (OS 500 MAIS RECENTES)' : ''}
+            </span>
+          )}
 
-            {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 50, borderRadius: 9 }} />)}</div>
-            ) : shown.length === 0 ? (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 36, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem eventos para este filtro.</div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {shown.map(e => {
-                  const color = CAT_COLOR[e.category] || '#64748b'
-                  return (
-                    <details key={e.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${color}`, borderRadius: 9 }}>
-                      <summary style={{ listStyle: 'none', padding: '10px 14px', cursor: 'pointer', display: 'flex', gap: 10, alignItems: 'center' }}>
-                        <span style={{ fontSize: 10, fontWeight: 700, color, background: color + '14', padding: '2px 7px', borderRadius: 5, flexShrink: 0 }}>{categoryLabel(e.category)}</span>
-                        <span style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', minWidth: 0, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{actionLabel(e.action)}{e.resource ? <span style={{ color: 'var(--ink-5)', fontWeight: 400 }}> · {e.resource}</span> : ''}</span>
-                        <span style={{ fontSize: 11.5, color: 'var(--ink-5)', flexShrink: 0, fontFamily: 'var(--font-mono)' }}>#{e.seq} · {new Date(e.at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}</span>
-                      </summary>
-                      <div style={{ padding: '10px 16px 14px', borderTop: '1px solid var(--bg-2)', fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink-3)', lineHeight: 1.6, wordBreak: 'break-all' }}>
-                        <div><strong>action:</strong> {e.action}</div>
-                        {e.resource_id && <div><strong>resource_id:</strong> {e.resource_id}</div>}
-                        {e.ip && <div><strong>ip:</strong> {e.ip}</div>}
-                        {e.user_agent && <div><strong>user_agent:</strong> {e.user_agent}</div>}
-                        {e.detail && Object.keys(e.detail).length > 0 && <div><strong>detail:</strong> {JSON.stringify(e.detail)}</div>}
-                        <div style={{ marginTop: 8, paddingTop: 8, borderTop: '1px dashed var(--bg-3)' }}><strong>prev_hash:</strong> {e.prev_hash || '—'}</div>
-                        <div><strong>hash:</strong> {e.event_hash}</div>
-                      </div>
-                    </details>
-                  )
-                })}
+          {verify && (
+            <span style={{
+              ...MONO, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+              color: verify.ok ? 'var(--green)' : 'var(--red)',
+            }}>
+              {verify.ok
+                ? `CADEIA ÍNTEGRA · ${verify.checked} VERIFICADOS`
+                : `CADEIA PARTIDA NO Nº ${verify.checked + 1}`}
+            </span>
+          )}
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <Botao onClick={exportJson} disabled={!events.length}>EXPORTAR JSON</Botao>
+            <Botao feitio="principal" onClick={runVerify} esperando={verifying} disabled={!events.length}>
+              VERIFICAR A CADEIA
+            </Botao>
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Cada acção leva o hash da anterior — mudar uma parte a cadeia</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Só de leitura: as inserções acontecem do lado do servidor, para a cadeia não poder ser reescrita
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {verify && !verify.ok && (
+        <Aviso tom="mau" titulo={`A cadeia está partida no evento nº ${verify.checked + 1}`}>
+          {verify.reason}. Isto quer dizer que um registo foi alterado ou apagado
+          depois de escrito. Guarde a exportação em JSON antes de mais nada.
+        </Aviso>
+      )}
+
+      {missing ? (
+        <Painel>
+          <Vazio titulo="A auditoria ainda não está disponível nesta conta."
+            oQueFazer="Falta um passo de configuração. Assim que estiver feito, cada acção sensível passa a ficar registada e encadeada." />
+        </Painel>
+      ) : (
+        <Painel
+          cabeca={
+            <Cabecalho>
+              <span style={{ ...ROTULO, width: 56, textAlign: 'right' }}>Nº</span>
+              <span style={{ ...ROTULO, width: 52 }}>Tipo</span>
+              <span style={{ ...ROTULO, flex: 1 }}>O que aconteceu</span>
+              <span style={{ ...ROTULO, width: 120, textAlign: 'right' }}>Quando</span>
+            </Cabecalho>
+          }
+          rodape={
+            <>
+              <span style={MONO}>{shown.length} de {events.length}</span>
+              <span style={{ ...MONO, color: 'var(--ink-5)', marginLeft: 'auto' }}>
+                <Link href="/seguranca" style={{ color: 'var(--green)', textDecoration: 'none' }}>
+                  COMO FUNCIONA A CADEIA →
+                </Link>
+              </span>
+            </>
+          }
+        >
+          {loading ? (
+            <ACarregar oQue="A ler o registo…" />
+          ) : shown.length === 0 ? (
+            <Vazio
+              titulo={events.length === 0 ? 'Ainda não há eventos registados.' : 'Nada corresponde ao filtro.'}
+              oQueFazer={events.length === 0
+                ? 'As acções sensíveis — entrar, mudar dados clínicos, exportar — ficam aqui à medida que acontecem, cada uma com o hash da anterior.'
+                : 'Experimente limpar a pesquisa ou escolher outra categoria.'} />
+          ) : shown.map(e => {
+            const on = aberto === e.id
+            return (
+              <div key={e.id} style={{
+                borderBottom: '1px solid var(--border)',
+                borderLeft: `3px solid ${on ? 'var(--green)' : 'transparent'}`,
+                background: on ? 'var(--green-light)' : 'transparent',
+              }}>
+                <button type="button" onClick={() => setAberto(on ? null : e.id)} style={{
+                  display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+                  textAlign: 'left', padding: '6px 12px', border: 'none',
+                  background: 'transparent', cursor: 'pointer',
+                  fontFamily: 'inherit', color: 'var(--ink)',
+                }}>
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-meta)', width: 56, textAlign: 'right',
+                    flexShrink: 0, color: 'var(--ink-5)',
+                  }}>{e.seq}</span>
+
+                  <span style={{ width: 52, flexShrink: 0 }}>
+                    <Codigo texto={CAT_CODIGO[e.category] || 'GERAL'} />
+                  </span>
+
+                  <span style={{
+                    flex: 1, minWidth: 0, fontSize: 'var(--t-dado)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {actionLabel(e.action)}
+                    {e.resource && (
+                      <span style={{ color: 'var(--ink-5)' }}> · {e.resource}</span>
+                    )}
+                  </span>
+
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-meta)', width: 120, textAlign: 'right',
+                    flexShrink: 0, color: 'var(--ink-4)',
+                  }}>
+                    {new Date(e.at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}
+                  </span>
+                </button>
+
+                {on && (
+                  <div style={{
+                    padding: '0 12px 10px 69px', ...MONO, fontSize: 'var(--t-meta)',
+                    color: 'var(--ink-3)', lineHeight: 1.65, wordBreak: 'break-all',
+                  }}>
+                    <div><span style={ROTULO}>acção</span> {e.action}</div>
+                    {e.resource_id && <div><span style={ROTULO}>id</span> {e.resource_id}</div>}
+                    {e.ip && <div><span style={ROTULO}>ip</span> {e.ip}</div>}
+                    {e.user_agent && <div><span style={ROTULO}>origem</span> {e.user_agent}</div>}
+                    {e.detail && Object.keys(e.detail).length > 0 && (
+                      <div><span style={ROTULO}>detalhe</span> {JSON.stringify(e.detail)}</div>
+                    )}
+                    <div style={{
+                      marginTop: 7, paddingTop: 7, borderTop: '1px dashed var(--border-2)',
+                    }}>
+                      <span style={ROTULO}>hash anterior</span> {e.prev_hash || '—'}
+                    </div>
+                    <div><span style={ROTULO}>hash</span> {e.event_hash}</div>
+                  </div>
+                )}
               </div>
-            )}
-          </>
-        )}
-
-        <div style={{ marginTop: 22, fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.6 }}>
-          O Audit Trail é só de leitura para a tua conta — as inserções acontecem só do lado do servidor (service role) para garantir a integridade da cadeia. <Link href="/seguranca" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Mais sobre o modelo de segurança →</Link>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function Kpi({ label, value, color }: { label: string; value: number; color: string }) {
-  return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 14px' }}>
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color, lineHeight: 1 }}>{value}</div>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 6 }}>{label}</div>
-    </div>
-  )
-}
-
-function FilterBtn({ active, onClick, color, children }: { active: boolean; onClick: () => void; color: string; children: React.ReactNode }) {
-  return (
-    <button onClick={onClick} style={{ padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${active ? color : 'var(--border)'}`, background: active ? color + '14' : 'white', color: active ? color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{children}</button>
+            )
+          })}
+        </Painel>
+      )}
+    </Mesa>
   )
 }

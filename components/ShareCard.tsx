@@ -5,7 +5,7 @@
 // expõe a marca e traz novos utilizadores.
 //
 // Uso:
-//   <ShareCard title="Varfarina + Ibuprofeno" badge="GRAVE" badgeColor="#dc2626"
+//   <ShareCard title="Varfarina + Ibuprofeno" badge="GRAVE" badgeColor="var(--red)"
 //              lines={["Risco de hemorragia grave.", "Fala com o farmacêutico."]} />
 
 import { useState, useRef } from 'react'
@@ -19,7 +19,7 @@ interface Props {
   label?: string  // texto do botão
 }
 
-export default function ShareCard({ title, badge, badgeColor = '#0d6e42', lines, footer, label = 'Partilhar' }: Props) {
+export default function ShareCard({ title, badge, badgeColor = 'var(--green)', lines, footer, label = 'Partilhar' }: Props) {
   const [busy, setBusy] = useState(false)
   const canvasRef = useRef<HTMLCanvasElement>(null)
 
@@ -40,20 +40,20 @@ export default function ShareCard({ title, badge, badgeColor = '#0d6e42', lines,
     const ctx = canvas.getContext('2d'); if (!ctx) return null
 
     // Fundo levemente off-white (editorial)
-    ctx.fillStyle = '#fbfbfa'; ctx.fillRect(0, 0, W, H)
+    ctx.fillStyle = 'var(--bg-2)'; ctx.fillRect(0, 0, W, H)
     // Cartão branco com margem
     const cardX = 56, cardY = 56, cardW = W - 112, cardH = H - 112, r = 40
-    ctx.fillStyle = '#ffffff'
+    ctx.fillStyle = 'var(--bg)'
     roundRect(ctx, cardX, cardY, cardW, cardH, r); ctx.fill()
-    ctx.strokeStyle = '#ededed'; ctx.lineWidth = 2; roundRect(ctx, cardX, cardY, cardW, cardH, r); ctx.stroke()
+    ctx.strokeStyle = 'var(--bg-3)'; ctx.lineWidth = 2; roundRect(ctx, cardX, cardY, cardW, cardH, r); ctx.stroke()
     // Barra de acento à esquerda
-    ctx.fillStyle = badge ? badgeColor : '#0d6e42'
+    ctx.fillStyle = badge ? badgeColor : 'var(--green)'
     roundRect(ctx, cardX, cardY, 14, cardH, 7); ctx.fill()
 
     // Marca (topo)
-    ctx.fillStyle = '#0d6e42'; ctx.font = '800 34px Georgia'
+    ctx.fillStyle = 'var(--green)'; ctx.font = '800 34px Georgia'
     ctx.fillText('Phlox', M, 168)
-    ctx.fillStyle = '#b8bcc4'; ctx.font = '500 20px Arial'
+    ctx.fillStyle = 'var(--border-2)'; ctx.font = '500 20px Arial'
     ctx.fillText('CLINICAL', M + 132, 168)
 
     let y = 300
@@ -68,28 +68,28 @@ export default function ShareCard({ title, badge, badgeColor = '#0d6e42', lines,
     }
 
     // Título (serif grande)
-    ctx.fillStyle = '#16181d'; ctx.font = '700 72px Georgia'
+    ctx.fillStyle = 'var(--ink-2)'; ctx.font = '700 72px Georgia'
     for (const l of wrap(ctx, title, cardW - (M - cardX) - 64)) { ctx.fillText(l, M, y); y += 86 }
     y += 30
 
     // Linha divisória subtil
-    ctx.strokeStyle = '#eee'; ctx.lineWidth = 2
+    ctx.strokeStyle = 'var(--bg-3)'; ctx.lineWidth = 2
     ctx.beginPath(); ctx.moveTo(M, y); ctx.lineTo(W - M, y); ctx.stroke(); y += 56
 
     // Linhas de conteúdo
-    ctx.fillStyle = '#3f3f46'; ctx.font = '400 38px Arial'
+    ctx.fillStyle = 'var(--ink-3)'; ctx.font = '400 38px Arial'
     for (const line of lines) {
       for (const l of wrap(ctx, line, cardW - (M - cardX) - 64)) { ctx.fillText(l, M, y); y += 56 }
       y += 18
     }
 
     // Rodapé
-    ctx.fillStyle = '#a1a1aa'; ctx.font = '400 24px Arial'
+    ctx.fillStyle = 'var(--ink-5)'; ctx.font = '400 24px Arial'
     ctx.fillText(footer || 'Informação de apoio — confirma com o farmacêutico.', M, H - 150)
     // CTA destacado
-    ctx.fillStyle = '#0d6e42'; ctx.font = '700 30px Arial'
+    ctx.fillStyle = 'var(--green)'; ctx.font = '700 30px Arial'
     ctx.fillText('phloxclinical.com', M, H - 100)
-    ctx.fillStyle = '#8b8f99'; ctx.font = '400 24px Arial'
+    ctx.fillStyle = 'var(--ink-5)'; ctx.font = '400 24px Arial'
     ctx.fillText('Saúde, medicação e estudo — em português.', M, H - 64)
 
     return new Promise(res => canvas.toBlob(b => res(b), 'image/png', 0.95))
@@ -132,8 +132,8 @@ export default function ShareCard({ title, badge, badgeColor = '#0d6e42', lines,
     <>
       <button onClick={share} disabled={busy} style={{
         display: 'inline-flex', alignItems: 'center', gap: 7, padding: '8px 14px',
-        background: 'white', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer',
-        fontSize: 13, fontWeight: 600, color: '#374151',
+        background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer',
+        fontSize: 13, fontWeight: 600, color: 'var(--ink-3)',
       }}>
         <span>↗</span> {busy ? 'A preparar…' : label}
       </button>

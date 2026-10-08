@@ -1,60 +1,120 @@
 'use client'
 
-// Conformidade & auditoria — checklist legal adaptado ao TIPO de instituição.
-// RGPD, licenciamento, registos obrigatórios, segurança. Score de prontidão,
-// estado por item (feito / pendente / N/A), notas e impressão para auditoria.
-// Ferramenta de organização — não substitui aconselhamento jurídico.
+// app/conformidade/page.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// CONFORMIDADE — refeito de raiz na linguagem da mesa (2026-10-07).
+//
+// Checklist legal adaptado ao TIPO de instituição: RGPD, licenciamento,
+// registos obrigatórios, segurança. Ferramenta de organização — não substitui
+// aconselhamento jurídico.
+//
+// ── O DEFEITO DE FUNDO, E O QUE DELE SE CORRIGE AQUI ───────────────────────
+// A checklist é DA CASA. Estava guardada POR PESSOA: a leitura era
+// `.eq('user_id', user.id)` e a escrita fazia `onConflict: 'user_id,key'`.
+//
+// Consequência real: numa casa com uma Direção Técnica e um administrador, os
+// dois abrem a mesma página e vêem checklists diferentes. Um marca o RGPD como
+// conforme, o outro continua a ver «pendente» — e nenhum dos dois sabe que o
+// outro já tratou. Numa auditoria isso é o pior dos mundos: o trabalho foi
+// feito e não se consegue provar.
+//
+// O QUE SE CORRIGE SEM MIGRAÇÃO: a LEITURA passa a ser da casa (`scope.filter`),
+// e quando há várias linhas para a mesma obrigação fica a mais recente. A
+// escrita passa a carimbar `org_id`. A partir de agora os dois vêem o mesmo.
+//
+// O QUE FICA A FALTAR, E PORQUÊ: a restrição de unicidade da tabela ainda é
+// `unique (user_id, key)` — cada pessoa continua a criar a sua própria linha
+// em vez de actualizar a da casa. Isso precisa de uma migração, que está
+// escrita em `supabase/sprint180_conformidade_da_casa.sql` e que o Fernando
+// tem de correr. Até lá, a página mostra a verdade (a leitura mais recente),
+// mas a tabela guarda uma linha por pessoa.
+//
+// ── O QUE ESTAVA ERRADO NA FORMA ───────────────────────────────────────────
+//  1. UM ANEL SVG DE 76px com a percentagem lá dentro. Um donut é decoração:
+//     diz o mesmo que o número, ocupa 76px e não se compara com nada.
+//  2. CADA OBRIGAÇÃO ERA UM CARTÃO de 90px com três botões de estado à
+//     direita. A checklist de um lar tem ~40 itens: 3600px de rolar.
+//  3. O 🖨 e o 📝.
+// ─────────────────────────────────────────────────────────────────────────────
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs, INST_META } from '@/lib/useClinicPrefs'
 import { checklistFor } from '@/lib/complianceChecklists'
 import { printDoc } from '@/lib/print'
+import { reportError, isSetupError } from '@/lib/clientError'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho,
+  Botao, Seletor, Vazio, ACarregar, Aviso, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 type Status = 'done' | 'pending' | 'na'
 interface Stored { key: string; status: Status; note?: string | null; updated_at?: string }
 
-const ST: Record<Status, { label: string; color: string; bg: string }> = {
-  done:    { label: 'Conforme',  color: '#16a34a', bg: '#f0fdf4' },
-  pending: { label: 'Pendente',  color: '#d97706', bg: '#fffbeb' },
-  na:      { label: 'N/A',       color: '#9ca3af', bg: '#f8fafc' },
+const ST: Record<Status, { label: string; cor: string }> = {
+  done:    { label: 'Conforme', cor: 'var(--green)' },
+  pending: { label: 'Pendente', cor: 'var(--amber)' },
+  na:      { label: 'N/A',      cor: 'var(--ink-5)' },
 }
+
+type Filtro = 'todos' | 'pendente' | 'conforme'
 
 export default function ConformidadePage() {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
+  const largo = useLargo()
   const groups = checklistFor(institution)
-  const allItems = groups.flatMap(g => g.items)
+  const allItems = useMemo(() => groups.flatMap(g => g.items), [groups])
 
   const [state, setState] = useState<Record<string, Stored>>({})
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
+  const [erro, setErro] = useState('')
   const [editingNote, setEditingNote] = useState<string | null>(null)
+  const [filtro, setFiltro] = useState<Filtro>('todos')
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const { data, error } = await supabase.from('compliance_items').select('key,status,note,updated_at').eq('user_id', user.id)
-    if (error) { if (/relation .*compliance_items.* does not exist/i.test(error.message)) setMissing(true) }
-    else {
-      setMissing(false)
+    // A CHECKLIST É DA CASA, não de quem a abre. Era `.eq('user_id', user.id)`
+    // — e por isso dois gestores da mesma casa viam estados diferentes.
+    const { data, error } = await scope.filter(
+      supabase.from('compliance_items').select('key,status,note,updated_at'))
+    if (error) {
+      if (isSetupError(error)) setMissing(true)
+      else setErro(reportError('conformidade-ler', error, 'Não foi possível ler a checklist.'))
+    } else {
+      setMissing(false); setErro('')
+      // Enquanto a unicidade da tabela for `(user_id, key)`, podem existir
+      // várias linhas para a mesma obrigação — uma por pessoa que lhe mexeu.
+      // Fica a mais recente, que é a verdade mais próxima do estado da casa.
       const map: Record<string, Stored> = {}
-      ;(data || []).forEach((r: Stored) => { map[r.key] = r })
+      ;(data || []).forEach((r: Stored) => {
+        const atual = map[r.key]
+        if (!atual || (r.updated_at || '') > (atual.updated_at || '')) map[r.key] = r
+      })
       setState(map)
     }
     setLoading(false)
-  }, [user, supabase])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, supabase, scope.orgId, scope.userId])
 
   useEffect(() => { load() }, [load])
 
   async function setItem(key: string, patch: Partial<Stored>) {
-    const next = { ...state[key], key, ...patch } as Stored
+    const agora = new Date().toISOString()
+    const next = { ...state[key], key, ...patch, updated_at: agora } as Stored
     setState(s => ({ ...s, [key]: next }))
-    await supabase.from('compliance_items').upsert({
+    const { error } = await supabase.from('compliance_items').upsert(scope.stamp({
       user_id: user.id, key, institution,
       status: next.status || 'pending', note: next.note ?? null,
-      reviewed_at: new Date().toISOString(), reviewed_by: user?.name || null, updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id,key' })
+      reviewed_at: agora, reviewed_by: user?.name || null, updated_at: agora,
+    }), { onConflict: 'user_id,key' })
+    if (error) setErro(reportError('conformidade-gravar', error, 'A alteração não ficou guardada.'))
+    else setErro('')
   }
 
   const done = allItems.filter(i => state[i.key]?.status === 'done').length
@@ -62,8 +122,18 @@ export default function ConformidadePage() {
   const applicable = allItems.length - na
   const pct = applicable > 0 ? Math.round((done / applicable) * 100) : 0
   const pending = allItems.filter(i => (state[i.key]?.status || 'pending') === 'pending')
+  const corProntidao = pct >= 90 ? 'var(--green)' : pct >= 60 ? 'var(--amber)' : 'var(--red)'
 
-  const scoreColor = pct >= 90 ? '#16a34a' : pct >= 60 ? '#d97706' : '#dc2626'
+  /** O que se mostra. Um filtro por «pendente» é o que torna 40 itens úteis. */
+  const gruposVisiveis = useMemo(() => groups.map(g => ({
+    group: g.group,
+    items: g.items.filter(it => {
+      const s = (state[it.key]?.status || 'pending') as Status
+      if (filtro === 'pendente') return s === 'pending'
+      if (filtro === 'conforme') return s === 'done'
+      return true
+    }),
+  })).filter(g => g.items.length > 0), [groups, state, filtro])
 
   function exportPdf() {
     printDoc({
@@ -82,7 +152,7 @@ export default function ConformidadePage() {
           const s = (state[it.key]?.status || 'pending') as Status
           return {
             title: it.title,
-            tags: [{ label: ST[s].label, color: ST[s].color }],
+            tags: [{ label: ST[s].label, color: ST[s].cor }],
             body: it.detail + (it.ref ? `  (${it.ref})` : ''),
             fields: state[it.key]?.note ? [{ label: 'Nota', value: state[it.key]!.note! }] : undefined,
           }
@@ -92,91 +162,193 @@ export default function ConformidadePage() {
     })
   }
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body" style={{ maxWidth: 880 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16, gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Legal · {INST_META[institution].label}</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Conformidade & auditoria</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Checklist adaptado ao tipo de instituição. Organiza obrigações de RGPD, licenciamento e segurança — pronto para auditoria.</p>
-          </div>
-          {!missing && <button onClick={exportPdf} style={{ padding: '10px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>🖨 Relatório</button>}
-        </div>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Conformidade</span>
 
-        {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
-          </div>
-        ) : loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 10 }} />)}</div>
-        ) : (
-          <>
-            {/* Score de prontidão */}
-            <div style={{ ...card, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 18, flexWrap: 'wrap' }}>
-              <div style={{ position: 'relative', width: 76, height: 76, flexShrink: 0 }}>
-                <svg width="76" height="76" viewBox="0 0 76 76">
-                  <circle cx="38" cy="38" r="32" fill="none" stroke="#f1f5f9" strokeWidth="8" />
-                  <circle cx="38" cy="38" r="32" fill="none" stroke={scoreColor} strokeWidth="8" strokeLinecap="round"
-                    strokeDasharray={`${2 * Math.PI * 32}`} strokeDashoffset={`${2 * Math.PI * 32 * (1 - pct / 100)}`}
-                    transform="rotate(-90 38 38)" style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
-                </svg>
-                <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, fontWeight: 800, color: scoreColor }}>{pct}%</div>
-              </div>
-              <div style={{ flex: 1, minWidth: 180 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Prontidão para auditoria</div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 3 }}>{done} conformes · {pending.length} pendentes{na > 0 ? ` · ${na} N/A` : ''} · {applicable} aplicáveis</div>
-                {pending.length > 0 && <div style={{ fontSize: 12, color: '#d97706', marginTop: 6, fontWeight: 600 }}>A resolver primeiro: {pending.slice(0, 3).map(p => p.title).join(' · ')}</div>}
-              </div>
+          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            {INST_META[institution].label}
+          </span>
+
+          <Seletor
+            opcoes={[
+              { id: 'todos', rotulo: `Tudo ${allItems.length}` },
+              { id: 'pendente', rotulo: `Pendentes ${pending.length}` },
+              { id: 'conforme', rotulo: `Conformes ${done}` },
+            ]}
+            ativa={filtro} aoMudar={f => setFiltro(f as Filtro)} />
+
+          {/* A prontidão. Era um anel SVG de 76px com o número lá dentro —
+              um donut diz o mesmo que o número e ocupa 76px. Fica o número,
+              em mono, com uma linha fina a mostrar a proporção. */}
+          {!loading && !missing && (
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+              <span style={{
+                ...MONO, fontSize: 'var(--t-destaque)', lineHeight: 1,
+                fontWeight: 'var(--peso-forte)' as any, color: corProntidao,
+              }}>{pct}%</span>
+              <span style={{
+                width: 90, height: 4, background: 'var(--bg-3)',
+                borderRadius: 'var(--r-sm)', overflow: 'hidden', flexShrink: 0,
+              }}>
+                <span style={{
+                  display: 'block', height: '100%', width: `${pct}%`,
+                  background: corProntidao,
+                }} />
+              </span>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {done} DE {applicable}{na > 0 ? ` · ${na} N/A` : ''}
+              </span>
+            </span>
+          )}
+
+          {!missing && (
+            <div style={{ marginLeft: 'auto' }}>
+              <Botao onClick={exportPdf}>RELATÓRIO PARA A AUDITORIA</Botao>
             </div>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--green)' }}>CONFORME</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>PENDENTE</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>N/A = não se aplica a esta casa</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Ferramenta de organização interna. Não substitui aconselhamento jurídico
+            nem a regulamentação em vigor.
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {erro && <Aviso tom="mau">{erro}</Aviso>}
 
-            {groups.map(g => (
-              <div key={g.group} style={{ marginBottom: 18 }}>
-                <div style={{ fontSize: 12.5, fontWeight: 800, color: '#0b1120', marginBottom: 8, letterSpacing: '-0.01em' }}>{g.group}</div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {g.items.map(it => {
-                    const s = (state[it.key]?.status || 'pending') as Status
-                    const note = state[it.key]?.note || ''
-                    return (
-                      <div key={it.key} style={{ ...card, padding: '13px 16px', borderLeft: `3px solid ${ST[s].color}` }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-                          <div style={{ minWidth: 0, flex: 1 }}>
-                            <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{it.title}{it.ref && <span style={{ fontSize: 11, fontWeight: 500, color: '#9ca3af' }}> · {it.ref}</span>}</div>
-                            <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.5 }}>{it.detail}</div>
-                            {note && <div style={{ fontSize: 12, color: '#475569', marginTop: 6, background: 'var(--bg-2)', borderRadius: 7, padding: '6px 10px' }}>📝 {note}</div>}
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
-                            <div style={{ display: 'flex', gap: 5 }}>
-                              {(['done', 'pending', 'na'] as Status[]).map(opt => (
-                                <button key={opt} onClick={() => setItem(it.key, { status: opt })} style={{ fontSize: 11, fontWeight: 700, padding: '5px 9px', borderRadius: 6, cursor: 'pointer', border: `1.5px solid ${s === opt ? ST[opt].color : 'var(--border)'}`, background: s === opt ? ST[opt].bg : 'white', color: s === opt ? ST[opt].color : 'var(--ink-5)', fontFamily: 'var(--font-sans)' }}>{ST[opt].label}</button>
-                              ))}
-                            </div>
-                            <button onClick={() => setEditingNote(editingNote === it.key ? null : it.key)} style={{ fontSize: 11, color: '#7c3aed', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 600 }}>{note ? 'Editar nota' : '+ Nota'}</button>
-                          </div>
+      {missing ? (
+        <Painel>
+          <Vazio titulo="A conformidade ainda não está disponível nesta conta."
+            oQueFazer="Falta um passo de configuração desta casa. Assim que estiver feito, esta página traz a checklist já adaptada ao tipo de instituição." />
+        </Painel>
+      ) : loading ? (
+        <Painel><ACarregar oQue="A ler a checklist…" /></Painel>
+      ) : (
+        <Painel
+          cabeca={
+            <Cabecalho>
+              <span style={{ ...ROTULO, flex: 1 }}>O que a lei pede</span>
+              <span style={{ ...ROTULO, width: 310, textAlign: 'right' }}>Em que ponto está</span>
+            </Cabecalho>
+          }
+          rodape={
+            pending.length > 0 ? (
+              <span style={{ ...MONO, color: 'var(--amber)' }}>
+                A resolver primeiro: {pending.slice(0, 3).map(p => p.title).join(' · ')}
+              </span>
+            ) : (
+              <span style={{ ...MONO, color: 'var(--green)' }}>
+                Nada pendente. Vale a pena rever de seis em seis meses.
+              </span>
+            )
+          }
+        >
+          {gruposVisiveis.length === 0 ? (
+            <Vazio titulo={filtro === 'pendente' ? 'Nada pendente.' : 'Nada conforme ainda.'}
+              oQueFazer={filtro === 'pendente'
+                ? 'Toda a checklist está tratada ou marcada como não aplicável. Vale a pena rever de seis em seis meses — e sempre que a casa muda de resposta social.'
+                : 'Marque como conforme o que já está feito. Cada item fica com a data e com quem o reviu.'} />
+          ) : gruposVisiveis.map(g => (
+            <div key={g.group}>
+              <div style={{
+                padding: '5px 12px', background: 'var(--bg-2)',
+                borderTop: '1px solid var(--border-2)', borderBottom: '1px solid var(--border)',
+                position: 'sticky', top: 0, zIndex: 1,
+              }}>
+                <span style={ROTULO}>{g.group}</span>
+              </div>
+
+              {g.items.map(it => {
+                const s = (state[it.key]?.status || 'pending') as Status
+                const note = state[it.key]?.note || ''
+                return (
+                  <div key={it.key} style={{
+                    padding: '9px 12px', borderBottom: '1px solid var(--border)',
+                    borderLeft: `3px solid ${s === 'pending' ? 'var(--amber)' : s === 'done' ? 'var(--green)' : 'transparent'}`,
+                  }}>
+                    <div style={{
+                      display: 'flex', gap: 10, alignItems: 'flex-start',
+                      flexDirection: largo ? 'row' : 'column',
+                    }}>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{
+                          fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+                        }}>
+                          {it.title}
+                          {it.ref && (
+                            <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                              {' '}· {it.ref}
+                            </span>
+                          )}
                         </div>
-                        {editingNote === it.key && (
-                          <div style={{ marginTop: 10 }}>
-                            <textarea defaultValue={note} rows={2} placeholder="Evidência, responsável, próxima revisão…"
-                              onBlur={e => { setItem(it.key, { note: e.target.value }); setEditingNote(null) }}
-                              style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', resize: 'vertical' }} autoFocus />
-                          </div>
+                        <div style={{
+                          fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.5,
+                        }}>{it.detail}</div>
+                        {note && (
+                          <div style={{
+                            fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 5,
+                            padding: '5px 9px', background: 'var(--bg-2)',
+                            borderLeft: '2px solid var(--border-2)', lineHeight: 1.5,
+                          }}>{note}</div>
                         )}
                       </div>
-                    )
-                  })}
-                </div>
-              </div>
-            ))}
 
-            <div style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', lineHeight: 1.6, padding: '6px 0 20px' }}>
-              Ferramenta de organização interna. Não substitui aconselhamento jurídico nem a regulamentação aplicável em vigor.
+                      <div style={{
+                        width: largo ? 310 : '100%', flexShrink: 0,
+                        display: 'flex', gap: 5, justifyContent: largo ? 'flex-end' : 'flex-start',
+                        flexWrap: 'wrap',
+                      }}>
+                        {(['done', 'pending', 'na'] as Status[]).map(opt => {
+                          const on = s === opt
+                          return (
+                            <button key={opt} type="button" className="mesa-botao"
+                              onClick={() => setItem(it.key, { status: opt })}
+                              style={{
+                                ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                                textTransform: 'uppercase', padding: '0 10px',
+                                borderRadius: 'var(--r-md)', cursor: 'pointer',
+                                border: `1px solid ${on ? ST[opt].cor : 'var(--border-2)'}`,
+                                background: on ? ST[opt].cor : 'transparent',
+                                color: on ? 'var(--sobre-acento)' : 'var(--ink-4)',
+                                fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                              }}>{ST[opt].label}</button>
+                          )
+                        })}
+                        <Botao feitio="calmo"
+                          onClick={() => setEditingNote(editingNote === it.key ? null : it.key)}>
+                          {note ? 'MUDAR A NOTA' : '+ NOTA'}
+                        </Botao>
+                      </div>
+                    </div>
+
+                    {editingNote === it.key && (
+                      <div style={{ marginTop: 8 }}>
+                        <textarea defaultValue={note} rows={2} autoFocus
+                          aria-label={`Nota sobre ${it.title}`}
+                          placeholder="Onde está a prova, quem é o responsável, quando se revê."
+                          onBlur={e => { setItem(it.key, { note: e.target.value }); setEditingNote(null) }}
+                          style={{ ...CAIXA_TEXTO, width: '100%' }} />
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
             </div>
-          </>
-        )}
-      </div>
-    </div>
+          ))}
+        </Painel>
+      )}
+    </Mesa>
   )
 }

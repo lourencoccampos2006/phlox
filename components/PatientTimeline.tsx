@@ -8,22 +8,23 @@
 import { useEffect, useState, useCallback, useMemo } from 'react'
 import { buildPatientTimeline, groupTimelineByDay, type TimelineItem, type TimelineKind } from '@/lib/patientTimeline'
 import { printDoc } from '@/lib/print'
+import Icon from '@/components/Icon'
 
 const KIND_META: Record<TimelineKind | 'all', { label: string; icon: string }> = {
   all: { label: 'Tudo', icon: '📜' },
-  med: { label: 'Medicação', icon: '💊' },
-  care: { label: 'Cuidados', icon: '📝' },
-  vital: { label: 'Vitais', icon: '❤️' },
+  med: { label: 'Medicação', icon: 'pill' },
+  care: { label: 'Cuidados', icon: 'note' },
+  vital: { label: 'Vitais', icon: 'heart' },
   incident: { label: 'Ocorrências', icon: '⚠️' },
-  assessment: { label: 'Avaliações', icon: '📐' },
-  appointment: { label: 'Consultas', icon: '📅' },
-  family: { label: 'Família', icon: '👨‍👩‍👧' },
-  request: { label: 'Pedidos', icon: '🙋' },
+  assessment: { label: 'Avaliações', icon: 'calculator' },
+  appointment: { label: 'Consultas', icon: 'calendar' },
+  family: { label: 'Família', icon: 'family' },
+  request: { label: 'Pedidos', icon: 'user' },
 }
 
-const TONE_COLOR: Record<string, string> = { good: '#0d6e42', warn: '#b45309', alert: '#b91c1c', default: '#475569' }
+const TONE_COLOR: Record<string, string> = { good: 'var(--green)', warn: 'var(--amber)', alert: 'var(--red)', default: 'var(--ink-3)' }
 
-export default function PatientTimeline({ patientId, supabase, scope, patientName, accent = '#0d9488' }: {
+export default function PatientTimeline({ patientId, supabase, scope, patientName, accent = 'var(--green-3)' }: {
   patientId: string; supabase: any; scope: any; patientName?: string; accent?: string
 }) {
   const [items, setItems] = useState<TimelineItem[]>([])
@@ -79,34 +80,34 @@ export default function PatientTimeline({ patientId, supabase, scope, patientNam
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {kinds.filter(k => k === 'all' || present.has(k as TimelineKind)).map(k => (
             <button key={k} onClick={() => setFilter(k)} style={{
-              padding: '5px 11px', borderRadius: 20, fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-              border: `1.5px solid ${filter === k ? accent : '#e5e7eb'}`,
-              background: filter === k ? accent + '12' : 'white', color: filter === k ? accent : '#64748b',
+              padding: '5px 11px', borderRadius: 'var(--r-xl)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
+              border: `1.5px solid ${filter === k ? accent : 'var(--border)'}`,
+              background: filter === k ? accent + '12' : 'white', color: filter === k ? accent : 'var(--ink-4)',
             }}>{KIND_META[k].icon} {KIND_META[k].label}</button>
           ))}
         </div>
-        {items.length > 0 && <button onClick={print} style={{ padding: '6px 12px', background: 'white', color: accent, border: `1.5px solid ${accent}55`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>🖨 Imprimir</button>}
+        {items.length > 0 && <button onClick={print} style={{ padding: '6px 12px', background: 'white', color: accent, border: `1.5px solid ${accent}55`, borderRadius: 'var(--r-lg)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>🖨 Imprimir</button>}
       </div>
 
       {loading ? (
-        <div style={{ color: '#94a3b8', fontSize: 13, padding: '20px 0' }}>A reunir a história…</div>
+        <div style={{ color: 'var(--ink-5)', fontSize: 13, padding: '20px 0' }}>A reunir a história…</div>
       ) : shown.length === 0 ? (
-        <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Ainda sem registos {filter !== 'all' ? `de ${KIND_META[filter].label.toLowerCase()}` : ''}.</div>
+        <div style={{ color: 'var(--ink-5)', fontSize: 13, textAlign: 'center', padding: '24px 0' }}>Ainda sem registos {filter !== 'all' ? `de ${KIND_META[filter].label.toLowerCase()}` : ''}.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           {groups.map(g => (
             <div key={g.day}>
-              <div style={{ fontSize: 11, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{g.label}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, borderLeft: '2px solid #eef0f2', paddingLeft: 14, marginLeft: 4 }}>
+              <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{g.label}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2, borderLeft: '2px solid var(--bg-3)', paddingLeft: 14, marginLeft: 4 }}>
                 {g.items.map((it, i) => (
                   <div key={i} style={{ position: 'relative', padding: '7px 0' }}>
                     <span style={{ position: 'absolute', left: -21, top: 9, width: 8, height: 8, borderRadius: '50%', background: TONE_COLOR[it.tone || 'default'], border: '2px solid white' }} />
                     <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                      <span style={{ fontSize: 10.5, color: '#94a3b8', fontFamily: 'var(--font-mono)', minWidth: 34 }}>{it.at.slice(11, 16)}</span>
-                      <span style={{ fontSize: 14 }}>{it.icon}</span>
+                      <span style={{ fontSize: 10.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', minWidth: 34 }}>{it.at.slice(11, 16)}</span>
+                      <Icon name={it.icon} size={14} />
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ display: 'block', fontSize: 13.5, color: it.tone === 'alert' ? '#b91c1c' : '#0b1120', fontWeight: it.tone === 'alert' ? 700 : 500, lineHeight: 1.4 }}>{it.title}</span>
-                        {it.detail && <span style={{ display: 'block', fontSize: 12, color: '#64748b', lineHeight: 1.4 }}>{it.detail}</span>}
+                        <span style={{ display: 'block', fontSize: 13.5, color: it.tone === 'alert' ? 'var(--red)' : 'var(--ink)', fontWeight: it.tone === 'alert' ? 700 : 500, lineHeight: 1.4 }}>{it.title}</span>
+                        {it.detail && <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.4 }}>{it.detail}</span>}
                       </span>
                     </div>
                   </div>

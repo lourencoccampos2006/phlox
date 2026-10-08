@@ -39,7 +39,7 @@ function useIsSaved(kind: SavedKind, title: string) {
 }
 
 export default function SaveButton<T = any>(props: Props<T>) {
-  const { color = '#0d6e42', size = 'md', className, attachProfile = true } = props
+  const { color = 'var(--green)', size = 'md', className, attachProfile = true } = props
   const savedId = useIsSaved(props.kind, props.title)
   const toast = useToast()
 
@@ -70,7 +70,7 @@ export default function SaveButton<T = any>(props: Props<T>) {
     <button onClick={onClick} className={className} aria-pressed={isSaved}
       style={{
         display: 'inline-flex', alignItems: 'center', gap: 6,
-        padding, borderRadius: 8,
+        padding, borderRadius: 'var(--r-md)',
         background: isSaved ? color : 'white',
         color: isSaved ? 'white' : color,
         border: `1.5px solid ${color}${isSaved ? '' : '55'}`,

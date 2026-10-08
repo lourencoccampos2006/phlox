@@ -46,6 +46,10 @@ import {
   type AbaId, type Base, type CruCuidados, type CruPessoas, type CruEquipa, type CruGestao,
 } from './painelAbas'
 import { areaDaRota } from '@/lib/areasDeDados'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Vazio, ACarregar, Botao,
+  MONO, ROTULO,
+} from '@/components/ui/mesa'
 
 const ABA_VALIDA = (v: string | null): AbaId =>
   (ABAS.some(a => a.id === v) ? v : 'hoje') as AbaId
@@ -303,96 +307,115 @@ export default function PainelHoje() {
 
   /* ── Estados de partida ────────────────────────────────────────────────── */
   if (carregando) {
-    return <div style={{ padding: 'var(--space-14)', color: 'var(--ink-4)', fontSize: 14 }}>A carregar o dia…</div>
+    return <Mesa altura="documento"><Painel><ACarregar oQue="A juntar o dia…" /></Painel></Mesa>
   }
   if (!user) {
     return (
-      <div style={{ padding: 'var(--space-14)' }}>
-        <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 'var(--space-5)' }}>A sessão expirou ou não foi possível confirmá-la.</p>
-        <Link href="/login" style={{ color: bp.accent, fontWeight: 700, fontSize: 14 }}>Entrar de novo →</Link>
-      </div>
+      <Mesa altura="documento">
+        <Painel>
+          <Vazio titulo="A sessão expirou, ou não foi possível confirmá-la."
+            oQueFazer="Nada do que estava a fazer se perdeu — é só entrar outra vez."
+            acao={<Link href="/login" style={{ textDecoration: 'none' }}>
+              <Botao feitio="principal">ENTRAR DE NOVO →</Botao>
+            </Link>} />
+        </Painel>
+      </Mesa>
     )
   }
   if (erro || !vista) {
     return (
-      <div style={{ padding: 'var(--space-14)' }}>
-        <p style={{ color: '#b91c1c', fontSize: 14, marginBottom: 'var(--space-5)' }}>{erro || 'Não foi possível montar o painel.'}</p>
-        <button onClick={carregarBase} style={{
-          padding: '9px 16px', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)',
-          background: 'var(--bg)', cursor: 'pointer', fontSize: 13, fontFamily: 'inherit',
-        }}>Tentar de novo</button>
-      </div>
+      <Mesa altura="documento">
+        <Painel>
+          <Vazio titulo={erro || 'Não foi possível montar o painel.'}
+            oQueFazer="Isto costuma ser a ligação. Os dados estão todos onde estavam."
+            acao={<Botao feitio="principal" onClick={carregarBase}>TENTAR DE NOVO</Botao>} />
+        </Painel>
+      </Mesa>
     )
   }
 
-  /* ── O painel ──────────────────────────────────────────────────────────── */
+  /* ══════════════════════════════════════════════════════════════════════════
+     O PAINEL — refeito na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Tinha um cabeçalho de 90px que REPETIA O MENU: a barra de navegação da
+     casa já tem «Hoje · Cuidados · Pessoas · Equipa · Gestão», destacado
+     enquanto se está na vista. Por baixo dela, a página escrevia outra vez o
+     mesmo — uma migalha em mono e um título em serifa de 34px.
+
+     Quem abre o painel dez vezes por dia não precisa de o ler dez vezes. As
+     acções sobem para a barra de trabalho; o cabeçalho sai.
+
+     A grelha de doze colunas do desenho fica exactamente como estava.
+     ══════════════════════════════════════════════════════════════════════════ */
   return (
     // --accent fica definido aqui e não só no shell: as legendas dos gráficos
     // usam-no, e uma peça não deve depender de um antepassado para saber a sua
     // própria cor.
-    <div style={{ padding: '26px clamp(18px,2.6vw,34px) 80px', ['--accent' as any]: bp.accent }}>
-      <div style={{ maxWidth: 1280, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 22 }}>
+    <div style={{ ['--accent' as any]: bp.accent }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>{vista.eyebrow}</span>
 
-        {/* Cabeçalho da vista */}
-        <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 20, flexWrap: 'wrap' }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.2em', textTransform: 'uppercase',
-              color: 'var(--ink-4)', fontWeight: 500, marginBottom: 11,
-            }}>{vista.eyebrow}</div>
-            <h1 style={{
-              fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,34px)', fontWeight: 400, margin: 0,
-              letterSpacing: '-0.015em', lineHeight: 1.15, maxWidth: '26ch', textWrap: 'pretty' as any, color: 'var(--ink)',
-            }}>{vista.headline}</h1>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{vista.headline}</span>
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
             {vista.acoes.map(a => (
-              <Link key={a.href + a.label} href={a.href} style={{
-                minHeight: 44, display: 'inline-flex', alignItems: 'center', borderRadius: 'var(--r-md)',
-                padding: a.primaria ? '0 17px' : '0 15px', fontSize: 12.5, fontWeight: 600, textDecoration: 'none',
-                whiteSpace: 'nowrap',
-                background: a.primaria ? 'var(--ink)' : 'transparent',
-                color: a.primaria ? 'var(--bg)' : 'var(--ink)',
-                border: `1px solid ${a.primaria ? 'var(--ink)' : 'var(--border-2)'}`,
-              }}>{a.label}</Link>
+              <Link key={a.href + a.label} href={a.href} style={{ textDecoration: 'none' }}>
+                <Botao feitio={a.primaria ? 'principal' : 'contorno'}>{a.label.toUpperCase()}</Botao>
+              </Link>
             ))}
           </div>
-        </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Todos os números saem de registos reais</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Onde não há dados, o bloco diz o que falta em vez de desenhar uma forma
+            bonita sobre nada — isto é onde alguém decide sobre pessoas
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {/* Quem está de serviço agora. Primeiro gesto de quem chega — antes
+          mesmo das presenças dos utentes. */}
+      {aba === 'hoje' && <TurnoEmCurso cor={bp.accent} />}
 
-        {/* Quem está de serviço agora. Primeiro gesto de quem chega — antes
-            mesmo das presenças dos utentes. */}
-        {aba === 'hoje' && <TurnoEmCurso cor={bp.accent} />}
+      {!!vista.kpis.length && <FaixaKpi kpis={vista.kpis} cor={bp.accent} />}
 
-        {!!vista.kpis.length && <FaixaKpi kpis={vista.kpis} cor={bp.accent} />}
+      {/* Marcar presenças fica no "Hoje" e em mais lado nenhum: nos outros
+          separadores não é a pergunta que se está a fazer. */}
+      {aba === 'hoje' && (
+        <CartaoPresencas
+          pessoas={pessoasPresenca} marcar={tocarPresenca} aGuardar={aGuardar}
+          cor={bp.accent} podeEditar={scope.canEdit} span={12}
+        />
+      )}
 
-        {/* Marcar presenças fica no "Hoje" e em mais lado nenhum: nos outros
-            separadores não é a pergunta que se está a fazer. */}
-        {aba === 'hoje' && (
-          <CartaoPresencas
-            pessoas={pessoasPresenca} marcar={tocarPresenca} aGuardar={aGuardar}
-            cor={bp.accent} podeEditar={scope.canEdit} span={12}
-          />
+      {/* A grelha de doze colunas do desenho */}
+      <div className="pn-grid" style={{
+        display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', gap: 10, alignItems: 'start',
+      }}>
+        <CartaoLinha dados={vista.linha} cor={bp.accent} corSuave={bp.accentSoft} />
+        <CartaoBarras dados={vista.barras} cor={bp.accent} />
+        <CartaoRosca dados={vista.rosca} cor={bp.accent} />
+        <CartaoTabela dados={vista.tabela} cor={bp.accent} />
+        {/* No desenho a lista ocupa 4 colunas e as pastas ocupam a linha
+            seguinte inteira — o que deixa oito colunas vazias ao lado da
+            lista em todos os separadores. Aqui a lista e as pastas partilham
+            a mesma linha (4+8): mesma ordem de leitura do desenho, sem o
+            buraco. Sem pastas, a lista fica com a linha toda. */}
+        <CartaoLista dados={vista.lista} span={pastas.length ? 4 : 12} />
+        {!!pastas.length && (
+          <CartaoPastas pastas={pastas} aberta={pasta} abrir={setPasta} fechar={() => setPasta(null)} span={8} />
         )}
-
-        {/* A grelha de doze colunas do desenho */}
-        <div className="pn-grid" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', gap: 16, alignItems: 'start',
-        }}>
-          <CartaoLinha dados={vista.linha} cor={bp.accent} corSuave={bp.accentSoft} />
-          <CartaoBarras dados={vista.barras} cor={bp.accent} />
-          <CartaoRosca dados={vista.rosca} cor={bp.accent} />
-          <CartaoTabela dados={vista.tabela} cor={bp.accent} />
-          {/* No desenho a lista ocupa 4 colunas e as pastas ocupam a linha
-              seguinte inteira — o que deixa oito colunas vazias ao lado da
-              lista em todos os separadores. Aqui a lista e as pastas partilham
-              a mesma linha (4+8): mesma ordem de leitura do desenho, sem o
-              buraco. Sem pastas, a lista fica com a linha toda. */}
-          <CartaoLista dados={vista.lista} span={pastas.length ? 4 : 12} />
-          {!!pastas.length && (
-            <CartaoPastas pastas={pastas} aberta={pasta} abrir={setPasta} fechar={() => setPasta(null)} span={8} />
-          )}
-        </div>
       </div>
+    </Mesa>
 
       <style>{`
         /* Um clique na linha da tabela abre a ficha — só se muda o fundo. */

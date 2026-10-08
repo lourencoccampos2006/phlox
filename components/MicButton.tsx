@@ -28,9 +28,9 @@ export default function MicButton({ onTranscript, onInterim, lang = 'pt-PT', siz
       aria-label={listening ? 'Parar gravação' : 'Falar'}
       title={listening ? 'Parar gravação' : error || 'Falar (pt-PT)'}
       style={{
-        width: size, height: size, borderRadius: 10, border: 'none', cursor: 'pointer',
-        background: listening ? '#dc2626' : '#f1f5f9',
-        color: listening ? 'white' : '#64748b',
+        width: size, height: size, borderRadius: 'var(--r-lg)', border: 'none', cursor: 'pointer',
+        background: listening ? 'var(--red)' : 'var(--bg-3)',
+        color: listening ? 'white' : 'var(--ink-4)',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         flexShrink: 0, transition: 'background 0.15s, transform 0.15s',
         boxShadow: listening ? '0 0 0 4px rgba(220,38,38,0.18)' : 'none',
@@ -44,7 +44,7 @@ export default function MicButton({ onTranscript, onInterim, lang = 'pt-PT', siz
         <line x1="8" y1="23" x2="16" y2="23"/>
       </svg>
       {listening && (
-        <span style={{ position: 'absolute', inset: 0, borderRadius: 10, border: '2px solid rgba(220,38,38,0.6)', animation: 'micRing 1.4s ease-out infinite', pointerEvents: 'none' }} />
+        <span style={{ position: 'absolute', inset: 0, borderRadius: 'var(--r-lg)', border: '2px solid rgba(220,38,38,0.6)', animation: 'micRing 1.4s ease-out infinite', pointerEvents: 'none' }} />
       )}
       <style>{`@keyframes micRing { 0%{transform:scale(1); opacity:1} 100%{transform:scale(1.6); opacity:0} }`}</style>
     </button>

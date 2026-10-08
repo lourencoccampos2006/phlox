@@ -42,9 +42,9 @@ export type Aviso = {
 }
 
 export const CORES: Record<Nivel, { cor: string; fundo: string }> = {
-  critico: { cor: '#dc2626', fundo: '#fef2f2' },
-  atencao: { cor: '#d97706', fundo: '#fffbeb' },
-  nota:    { cor: '#475569', fundo: '#f8fafc' },
+  critico: { cor: 'var(--red)', fundo: 'var(--red-light)' },
+  atencao: { cor: 'var(--amber)', fundo: 'var(--amber-light)' },
+  nota:    { cor: 'var(--blue)', fundo: 'var(--bg-2)' },
 }
 
 const ORDEM: Record<Nivel, number> = { critico: 0, atencao: 1, nota: 2 }

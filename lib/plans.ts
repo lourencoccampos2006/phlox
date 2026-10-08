@@ -50,7 +50,7 @@ export interface PlanDef {
 export const PLANS: PlanDef[] = [
   {
     id: 'free', name: 'Base', tagline: 'Grátis para sempre, para uma pessoa', price: { monthly: 0, annual: 0, annualTotal: 0 },
-    rank: 0, color: '#475569', cta: 'Começar grátis', href: '/login', audience: 'individual',
+    rank: 0, color: 'var(--blue)', cta: 'Começar grátis', href: '/login', audience: 'individual',
     features: [
       'Um perfil — o seu',
       'Medicação e horários, com lembretes no ecrã',
@@ -62,7 +62,7 @@ export const PLANS: PlanDef[] = [
   },
   {
     id: 'student', name: 'Plus', tagline: 'Para estudantes de saúde', price: { monthly: 3.99, annual: 3.19, annualTotal: 38.28 },
-    rank: 1, color: '#7c3aed', cta: 'Escolher Plus', href: '/checkout?plan=student', audience: 'individual',
+    rank: 1, color: 'var(--roxo)', cta: 'Escolher Plus', href: '/checkout?plan=student', audience: 'individual',
     features: [
       'Estudo sem limites: flashcards e quiz sobre qualquer tema',
       'Arena de casos, AI Tutor e caso clínico evolutivo',
@@ -77,7 +77,7 @@ export const PLANS: PlanDef[] = [
   },
   {
     id: 'pro', name: 'Pro', tagline: 'Para quem cuida de si ou de alguém', price: { monthly: 12.99, annual: 10.39, annualTotal: 124.68 },
-    rank: 2, highlight: true, badge: 'Mais popular', color: '#0d6e42', cta: 'Escolher Pro', href: '/checkout?plan=pro', audience: 'individual',
+    rank: 2, highlight: true, badge: 'Mais popular', color: 'var(--green)', cta: 'Escolher Pro', href: '/checkout?plan=pro', audience: 'individual',
     features: [
       'Lembretes que tocam no telemóvel, mesmo com a aplicação fechada',
       'Um segundo perfil para quem cuida consigo — a outra pessoa edita a medicação e regista sinais, sem pagar',
@@ -95,7 +95,7 @@ export const PLANS: PlanDef[] = [
     // só para contacto (ver app/pricing/page.tsx, app/comecar-instituicao,
     // app/api/org/setup — criação de org exige institution_signup_approved).
     id: 'clinic', name: 'Institucional', tagline: 'Para centros de dia e lares', price: { monthly: 149, annual: 124.08, annualTotal: 1489 },
-    rank: 3, color: '#1d4ed8', cta: 'Falar connosco', href: 'mailto:suporte@phloxclinical.com?subject=Institui%C3%A7%C3%A3o%20-%20Phlox%20Clinical', audience: 'organization',
+    rank: 3, color: 'var(--blue)', cta: 'Falar connosco', href: 'mailto:suporte@phloxclinical.com?subject=Institui%C3%A7%C3%A3o%20-%20Phlox%20Clinical', audience: 'organization',
     features: [
       'Painel do dia montado de raiz para centro de dia ou lar',
       'Presenças, refeições, humor, atividades e medicação num só sítio',

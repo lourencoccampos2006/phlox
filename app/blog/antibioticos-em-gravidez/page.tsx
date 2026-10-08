@@ -30,7 +30,7 @@ export default function PostAntibioticosGravidez() {
         </div>
 
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: 'inline-block', background: '#faf5ff', color: '#7c3aed', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>GRAVIDEZ</div>
+          <div style={{ display: 'inline-block', background: 'var(--roxo-claro)', color: 'var(--roxo)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>GRAVIDEZ</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
             Antibióticos na gravidez — guia por categoria
           </h1>
@@ -42,9 +42,9 @@ export default function PostAntibioticosGravidez() {
           </div>
         </div>
 
-        <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '4px solid #2563eb', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
-          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1e40af', letterSpacing: '0.08em', marginBottom: 6 }}>ℹ NUNCA EM AUTOMEDICAÇÃO</div>
-          <p style={{ fontSize: 14, color: '#1e3a5f', lineHeight: 1.7, margin: 0 }}>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderLeft: '4px solid var(--ink-2)', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
+          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-2)', letterSpacing: '0.08em', marginBottom: 6 }}>ℹ NUNCA EM AUTOMEDICAÇÃO</div>
+          <p style={{ fontSize: 14, color: 'var(--badge-blue-fg)', lineHeight: 1.7, margin: 0 }}>
             Na gravidez, qualquer antibiótico tem de ser prescrito por um médico que conheça a situação. Este guia ajuda a perceber as categorias — não a escolher sozinha.
           </p>
         </div>
@@ -82,13 +82,13 @@ export default function PostAntibioticosGravidez() {
           </ul>
         </div>
 
-        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Percebe a tua receita e a tua medicação</div>
           <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>Tira foto a um medicamento e o Phlox explica o que é, para que serve e os cuidados — em português simples.</p>
-          <Link href="/scan" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Experimentar o Phlox Scan →</Link>
+          <Link href="/scan" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Experimentar o Phlox Scan →</Link>
         </div>
 
-        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
           <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento médico. Na gravidez, nenhum antibiótico deve ser tomado sem prescrição. Base: EMA, FDA, NIH.
           </p>

@@ -5,6 +5,7 @@
 // botão de fechar. Posição: canto inferior direito (não interfere com o cockpit).
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
+import Icon from '@/components/Icon'
 
 export type ToastKind = 'success' | 'error' | 'info' | 'warn'
 export interface ToastItem { id: string; kind: ToastKind; title: string; description?: string; duration?: number }
@@ -78,10 +79,10 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 const STYLE: Record<ToastKind, { color: string; bg: string; icon: string }> = {
-  success: { color: '#15803d', bg: '#f0fdf4', icon: '✓' },
-  error:   { color: '#991b1b', bg: '#fef2f2', icon: '✗' },
-  info:    { color: '#1e40af', bg: '#eff6ff', icon: 'i' },
-  warn:    { color: '#92400e', bg: '#fffbeb', icon: '!' },
+  success: { color: 'var(--green)', bg: 'var(--badge-green-bg)', icon: '✓' },
+  error:   { color: 'var(--red)', bg: 'var(--badge-red-bg)', icon: '✗' },
+  info:    { color: 'var(--ink-2)', bg: 'var(--bg-2)', icon: 'i' },
+  warn:    { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', icon: '!' },
 }
 
 function Stack({ items, onDismiss }: { items: ToastItem[]; onDismiss: (id: string) => void }) {
@@ -107,7 +108,7 @@ function ToastNode({ t, onDismiss }: { t: ToastItem; onDismiss: (id: string) => 
   return (
     <div style={{
       pointerEvents: 'auto', background: 'white', border: `1px solid ${s.color}33`,
-      borderLeft: `4px solid ${s.color}`, borderRadius: 12, padding: '12px 14px',
+      borderLeft: `4px solid ${s.color}`, borderRadius: 'var(--r-xl)', padding: '12px 14px',
       boxShadow: '0 8px 26px -10px rgba(8,12,24,0.18), 0 4px 12px -6px rgba(8,12,24,0.08)',
       display: 'flex', gap: 11, alignItems: 'flex-start',
       transform: open ? 'translateX(0)' : 'translateX(24px)',
@@ -115,12 +116,12 @@ function ToastNode({ t, onDismiss }: { t: ToastItem; onDismiss: (id: string) => 
       transition: 'transform 0.22s cubic-bezier(0.16,1,0.3,1), opacity 0.22s',
       fontFamily: 'var(--font-sans)',
     }}>
-      <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, marginTop: 1, fontFamily: 'var(--font-mono)' }}>{s.icon}</div>
+      <div style={{ width: 22, height: 22, borderRadius: '50%', background: s.bg, color: s.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0, marginTop: 1, fontFamily: 'var(--font-mono)' }}><Icon name={s.icon} size={16} /></div>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', lineHeight: 1.4 }}>{t.title}</div>
-        {t.description && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 3, lineHeight: 1.5 }}>{t.description}</div>}
+        <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', lineHeight: 1.4 }}>{t.title}</div>
+        {t.description && <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.5 }}>{t.description}</div>}
       </div>
-      <button onClick={() => onDismiss(t.id)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 16, lineHeight: 1, padding: 2, flexShrink: 0 }}>×</button>
+      <button onClick={() => onDismiss(t.id)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16, lineHeight: 1, padding: 2, flexShrink: 0 }}>×</button>
     </div>
   )
 }

@@ -61,14 +61,19 @@ export interface ExecucaoServico {
   turno: string | null
 }
 
-export const CATEGORIAS: Record<string, { label: string; icone: string; cor: string }> = {
-  higiene:     { label: 'Higiene',     icone: '🛁', cor: '#0891b2' },
-  mobilidade:  { label: 'Mobilidade',  icone: '🚶', cor: '#7c3aed' },
-  alimentacao: { label: 'Alimentação', icone: '🍽️', cor: '#d97706' },
-  saude:       { label: 'Saúde',       icone: '🩺', cor: '#dc2626' },
-  social:      { label: 'Companhia',   icone: '💬', cor: '#0d9488' },
-  apoio:       { label: 'Apoio',       icone: '🧺', cor: '#64748b' },
-  outro:       { label: 'Outro',       icone: '📌', cor: '#64748b' },
+/* CODIGOS, NAO EMOJI NEM CORES (2026-10-07)
+   Sete emoji e sete cores, nenhuma delas no globals.css — e o vermelho da
+   «Saude» (var(--red)) era um vermelho DIFERENTE do `--red` que quer dizer «ha
+   um problema». Duas coisas vermelhas a dizer coisas diferentes no mesmo
+   ecra e a maneira mais rapida de uma equipa deixar de ler a cor. */
+export const CATEGORIAS: Record<string, { label: string; codigo: string }> = {
+  higiene:     { label: 'Higiene',     codigo: 'HIG' },
+  mobilidade:  { label: 'Mobilidade',  codigo: 'MOB' },
+  alimentacao: { label: 'Alimentação', codigo: 'ALIM' },
+  saude:       { label: 'Saúde',       codigo: 'SAU' },
+  social:      { label: 'Companhia',   codigo: 'COMP' },
+  apoio:       { label: 'Apoio',       codigo: 'APO' },
+  outro:       { label: 'Outro',       codigo: 'OUTR' },
 }
 
 export const ORDEM_DAS_CATEGORIAS = [

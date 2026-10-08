@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 interface Q {
   type: 'escrita' | 'escolha'
@@ -61,12 +61,12 @@ export default function ExamePage() {
 
   return (
     <main style={{ padding: '20px clamp(14px,4vw,32px)', maxWidth: 820, margin: '0 auto' }}>
-      <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8b8f99' }}>Gerador de exame</div>
+      <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-5)' }}>Gerador de exame</div>
       <h1 style={{ margin: '4px 0 4px', fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>O que é provável sair no teu exame.</h1>
-      <p style={{ color: '#6b7280', fontSize: 14, marginBottom: 16 }}>A partir do <Link href="/study/documentos" style={{ color: ACCENT, fontWeight: 600 }}>teu material</Link> (sebentas, slides, testes do professor), prevejo perguntas — incluindo de desenvolvimento — e corrijo as tuas respostas.</p>
+      <p style={{ color: 'var(--ink-4)', fontSize: 14, marginBottom: 16 }}>A partir do <Link href="/study/documentos" style={{ color: ACCENT, fontWeight: 600 }}>teu material</Link> (sebentas, slides, testes do professor), prevejo perguntas — incluindo de desenvolvimento — e corrijo as tuas respostas.</p>
 
       {questions.length === 0 && (
-        <div style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
           <input value={topic} onChange={e => setTopic(e.target.value)} placeholder="Cadeira / tópico (ex: Farmacologia — sistema cardiovascular)" style={inp} />
           <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap', alignItems: 'center' }}>
             <select value={style} onChange={e => setStyle(e.target.value)} style={{ ...inp, width: 'auto' }}>
@@ -77,20 +77,20 @@ export default function ExamePage() {
             <select value={count} onChange={e => setCount(Number(e.target.value))} style={{ ...inp, width: 'auto' }}>
               {[4, 6, 8, 10].map(n => <option key={n} value={n}>{n} perguntas</option>)}
             </select>
-            <button onClick={generate} disabled={busy} style={{ padding: '10px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer' }}>{busy ? 'A gerar…' : 'Gerar exame'}</button>
+            <button onClick={generate} disabled={busy} style={{ padding: '10px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontWeight: 700, cursor: 'pointer' }}>{busy ? 'A gerar…' : 'Gerar exame'}</button>
           </div>
         </div>
       )}
 
-      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 12, borderRadius: 8, marginTop: 14, fontSize: 13 }}>{err}</div>}
+      {err && <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: 12, borderRadius: 'var(--r-md)', marginTop: 14, fontSize: 13 }}>{err}</div>}
 
       {questions.length > 0 && (
         <div style={{ display: 'grid', gap: 14, marginTop: 16 }}>
           {questions.map((q, i) => (
-            <div key={i} style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 16 }}>
+            <div key={i} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 8 }}>
                 <span style={{ fontWeight: 700, fontSize: 15 }}>{i + 1}. {q.question}</span>
-                <span style={{ fontSize: 10, color: q.type === 'escrita' ? '#6d28d9' : '#1d4ed8', fontWeight: 700, textTransform: 'uppercase', flexShrink: 0 }}>{q.type === 'escrita' ? '✍ desenvolvimento' : 'escolha'}</span>
+                <span style={{ fontSize: 10, color: q.type === 'escrita' ? 'var(--roxo)' : 'var(--ink-2)', fontWeight: 700, textTransform: 'uppercase', flexShrink: 0 }}>{q.type === 'escrita' ? '✍ desenvolvimento' : 'escolha'}</span>
               </div>
 
               {q.type === 'escolha' && q.options ? (
@@ -101,9 +101,9 @@ export default function ExamePage() {
                     const showWrong = revealed[i] && sel && oi !== q.correct_index
                     return (
                       <button key={oi} onClick={() => !revealed[i] && setAnswers(a => ({ ...a, [i]: oi }))} style={{
-                        textAlign: 'left', padding: '9px 12px', borderRadius: 8, cursor: revealed[i] ? 'default' : 'pointer', fontSize: 13.5,
-                        border: `1px solid ${showCorrect ? ACCENT : showWrong ? '#dc2626' : sel ? '#1d4ed8' : '#e7e8ea'}`,
-                        background: showCorrect ? '#f0fdf5' : showWrong ? '#fef2f2' : sel ? '#eff6ff' : 'white',
+                        textAlign: 'left', padding: '9px 12px', borderRadius: 'var(--r-md)', cursor: revealed[i] ? 'default' : 'pointer', fontSize: 13.5,
+                        border: `1px solid ${showCorrect ? ACCENT : showWrong ? 'var(--red)' : sel ? 'var(--ink-2)' : 'var(--border)'}`,
+                        background: showCorrect ? 'var(--green-light)' : showWrong ? 'var(--badge-red-bg)' : sel ? 'var(--bg-2)' : 'white',
                       }}>{String.fromCharCode(65 + oi)}. {opt}</button>
                     )
                   })}
@@ -113,20 +113,20 @@ export default function ExamePage() {
                 <div>
                   <textarea value={(answers[i] as string) || ''} onChange={e => setAnswers(a => ({ ...a, [i]: e.target.value }))} rows={4} placeholder="Escreve a tua resposta…" style={{ ...inp, resize: 'vertical' }} />
                   <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                    <button onClick={() => grade(i)} disabled={!((answers[i] as string) || '').trim()} style={{ ...btnGhost, color: '#6d28d9', borderColor: '#c4b5fd' }}>Corrigir a minha resposta</button>
+                    <button onClick={() => grade(i)} disabled={!((answers[i] as string) || '').trim()} style={{ ...btnGhost, color: 'var(--roxo)', borderColor: 'var(--roxo-meio)' }}>Corrigir a minha resposta</button>
                     <button onClick={() => setRevealed(r => ({ ...r, [i]: true }))} style={btnGhost}>Ver resposta-modelo</button>
                   </div>
                   {grades[i] && (
-                    <div style={{ marginTop: 10, background: '#f6f7f8', borderRadius: 8, padding: 12 }}>
-                      <div style={{ fontWeight: 700, color: grades[i].score >= 60 ? ACCENT : '#d97706' }}>{grades[i].score}/100</div>
-                      <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>{grades[i].feedback}</div>
-                      {grades[i].missing?.length > 0 && <div style={{ fontSize: 12.5, color: '#991b1b', marginTop: 4 }}>Faltou: {grades[i].missing.join('; ')}</div>}
+                    <div style={{ marginTop: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: 12 }}>
+                      <div style={{ fontWeight: 700, color: grades[i].score >= 60 ? ACCENT : 'var(--amber)' }}>{grades[i].score}/100</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4 }}>{grades[i].feedback}</div>
+                      {grades[i].missing?.length > 0 && <div style={{ fontSize: 12.5, color: 'var(--red)', marginTop: 4 }}>Faltou: {grades[i].missing.join('; ')}</div>}
                     </div>
                   )}
-                  {revealed[i] && q.model_answer && <div style={{ marginTop: 10, fontSize: 13, color: '#374151', borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}><b>Resposta-modelo:</b> {q.model_answer}</div>}
+                  {revealed[i] && q.model_answer && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--ink-3)', borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}><b>Resposta-modelo:</b> {q.model_answer}</div>}
                 </div>
               )}
-              {revealed[i] && q.why_likely && <div style={{ fontSize: 11.5, color: '#8b8f99', marginTop: 8 }}>💡 {q.why_likely}</div>}
+              {revealed[i] && q.why_likely && <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 8 }}>💡 {q.why_likely}</div>}
             </div>
           ))}
           <button onClick={() => { setQuestions([]); setErr('') }} style={{ ...btnGhost, alignSelf: 'flex-start' }}>← Gerar outro exame</button>
@@ -136,5 +136,5 @@ export default function ExamePage() {
   )
 }
 
-const inp: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }
-const btnGhost: React.CSSProperties = { padding: '7px 12px', background: 'white', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 12.5, fontWeight: 600, color: '#374151', cursor: 'pointer' }
+const inp: React.CSSProperties = { width: '100%', padding: '10px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 14, fontFamily: 'inherit', boxSizing: 'border-box' }
+const btnGhost: React.CSSProperties = { padding: '7px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer' }

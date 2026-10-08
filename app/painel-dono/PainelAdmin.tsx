@@ -52,6 +52,7 @@ import { ultimosDias } from '@/lib/painelDados'
 import {
   FaixaKpi, CartaoLinha, CartaoBarras, CartaoRosca, CartaoTabela, CartaoLista,
 } from '../painel/painelPecas'
+import { Painel, Vazio, ACarregar, Botao, MONO, ROTULO } from '@/components/ui/mesa'
 import {
   ABAS_ADMIN, abaCasa, abaCuidado, abaEquipa, abaDinheiro, abaConformidade,
   type AbaAdminId, type BaseAdmin,
@@ -194,10 +195,10 @@ export default function PainelAdmin({ extra }: { extra?: React.ReactNode }) {
   }, [aba, base, casa, cuidado, equipa, dinheiro, conf, nomeDaCasa, pessoas, dias, mesEmPalavras, hoje])
 
   if (erro) {
-    return <div style={{ padding: 'var(--space-14)', color: 'var(--ink-4)', fontSize: 14 }}>{erro}</div>
+    return <Painel><Vazio titulo={erro} oQueFazer="Isto costuma ser a ligação. Os dados estão todos onde estavam." /></Painel>
   }
   if (!vista) {
-    return <div style={{ padding: 'var(--space-14)', color: 'var(--ink-4)', fontSize: 14 }}>A abrir o painel…</div>
+    return <Painel><ACarregar oQue="A abrir o painel…" /></Painel>
   }
 
   // Sem moldura de pagina de proposito: quem decide a largura e o fundo e a
@@ -205,7 +206,7 @@ export default function PainelAdmin({ extra }: { extra?: React.ReactNode }) {
   // encaixadas davam duas margens e dois fundos diferentes no mesmo ecra.
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {/* Sem cabeçalho próprio, de propósito: a página já diz «Painel
             administrativo» e o nome da casa mesmo por cima. Repetir os dois
             aqui dava dois títulos iguais empilhados — foi o que o primeiro
@@ -222,24 +223,21 @@ export default function PainelAdmin({ extra }: { extra?: React.ReactNode }) {
               <button key={a.id} onClick={() => setAba(a.id)}
                 aria-current={aba === a.id ? 'page' : undefined}
                 style={{
-                  padding: '10px 15px', background: 'none', border: 'none', cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 13.5, whiteSpace: 'nowrap', marginBottom: -1,
-                  fontWeight: aba === a.id ? 800 : 600,
-                  color: aba === a.id ? 'var(--ink)' : 'var(--ink-4)',
-                  borderBottom: `2.5px solid ${aba === a.id ? bp.accent : 'transparent'}`,
+                  display: 'flex', alignItems: 'center', height: 36, padding: '0 14px',
+                  background: 'none', border: 'none', cursor: 'pointer', marginBottom: -1,
+                  ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.08em',
+                  textTransform: 'uppercase', whiteSpace: 'nowrap',
+                  fontWeight: (aba === a.id ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                  color: aba === a.id ? 'var(--green)' : 'var(--ink-4)',
+                  borderBottom: `2px solid ${aba === a.id ? 'var(--green)' : 'transparent'}`,
                 }}>{a.label}</button>
             ))}
           </nav>
           <div className="pa-acoes" style={{ display: 'flex', gap: 8, flexShrink: 0, paddingBottom: 7 }}>
             {vista.acoes.map(a => (
-              <Link key={a.href + a.label} href={a.href} style={{
-                minHeight: 36, display: 'inline-flex', alignItems: 'center',
-                borderRadius: 'var(--r-md)', padding: a.primaria ? '0 15px' : '0 13px',
-                fontSize: 12.5, fontWeight: 600, textDecoration: 'none', whiteSpace: 'nowrap',
-                background: a.primaria ? 'var(--ink)' : 'transparent',
-                color: a.primaria ? 'var(--bg)' : 'var(--ink)',
-                border: `1px solid ${a.primaria ? 'var(--ink)' : 'var(--border-2)'}`,
-              }}>{a.label}</Link>
+              <Link key={a.href + a.label} href={a.href} style={{ textDecoration: 'none' }}>
+                <Botao feitio={a.primaria ? 'principal' : 'contorno'}>{a.label.toUpperCase()}</Botao>
+              </Link>
             ))}
           </div>
         </div>
@@ -252,7 +250,7 @@ export default function PainelAdmin({ extra }: { extra?: React.ReactNode }) {
             sobre nada, que é precisamente o que este painel não pode fazer.
             Uma vista que não usa gráfico de linha simplesmente não tem um. */}
         <div className="pn-grid" style={{
-          display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', gap: 16, alignItems: 'start',
+          display: 'grid', gridTemplateColumns: 'repeat(12,minmax(0,1fr))', gap: 10, alignItems: 'start',
         }}>
           {temAlgoADizer(vista.linha) && <CartaoLinha dados={vista.linha} cor={bp.accent} corSuave={bp.accentSoft} />}
           {temAlgoADizer(vista.barras) && <CartaoBarras dados={vista.barras} cor={bp.accent} />}
@@ -266,8 +264,8 @@ export default function PainelAdmin({ extra }: { extra?: React.ReactNode }) {
             escapavam e ficar a pensar o que mais lhe escapa. */}
         {aba === 'equipa' && (
           <p style={{
-            margin: 0, fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.65,
-            padding: '11px 14px', background: 'var(--bg)',
+            margin: 0, ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)',
+            lineHeight: 1.65, padding: '9px 14px', background: 'var(--bg)',
             border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
           }}>
             Os recados dirigidos a pessoas concretas não aparecem aqui, nem a si.

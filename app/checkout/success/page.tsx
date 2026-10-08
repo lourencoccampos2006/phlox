@@ -27,7 +27,7 @@ function SuccessContent() {
         <p style={{ fontSize: 16, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 32 }}>
           O teu pagamento foi processado com sucesso. O teu plano está activo — todas as ferramentas estão disponíveis agora.
         </p>
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '20px', marginBottom: 24, textAlign: 'left' }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px', marginBottom: 24, textAlign: 'left' }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Começa por aqui</div>
           {(plan === 'pro' ? [
             { href: '/med-review', label: 'Revisão Clínica de Medicação', desc: 'Análise completa + relatório PDF' },
@@ -48,7 +48,7 @@ function SuccessContent() {
           ))}
         </div>
         <Link href="/dashboard"
-          style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
+          style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600, letterSpacing: '-0.01em' }}>
           Ir para o dashboard →
         </Link>
         <div style={{ marginTop: 16, fontSize: 12, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>Redirigido automaticamente em 5 segundos</div>

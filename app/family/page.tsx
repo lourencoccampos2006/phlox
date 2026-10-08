@@ -9,6 +9,10 @@ import { useOrgScope } from '@/lib/orgScope'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import { useToast } from '@/components/Toast'
 import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface FamilyContact {
   id: string
@@ -57,18 +61,18 @@ interface Patient {
 }
 
 const MSG_TYPES = {
-  update:  { label: 'Atualização',  color: '#2563eb',  bg: '#eff6ff',  border: '#bfdbfe',  icon: 'note' },
-  alert:   { label: 'Alerta',       color: '#dc2626',  bg: '#fef2f2',  border: '#fecaca',  icon: 'alert' },
-  visit:   { label: 'Visita',       color: '#7c3aed',  bg: '#faf5ff',  border: '#e9d5ff',  icon: 'family' },
-  report:  { label: 'Relatório',    color: '#16a34a',  bg: '#f0fdf4',  border: '#bbf7d0',  icon: 'chart' },
-  general: { label: 'Geral',        color: '#6b7280',  bg: '#f9fafb',  border: '#e5e7eb',  icon: 'chat' },
+  update:  { label: 'Atualização',  color: 'var(--ink-2)',  bg: 'var(--bg-2)',  border: 'var(--border)',  icon: 'note' },
+  alert:   { label: 'Alerta',       color: 'var(--red)',  bg: 'var(--badge-red-bg)',  border: 'var(--badge-red-border)',  icon: 'alert' },
+  visit:   { label: 'Visita',       color: 'var(--ink-3)',  bg: 'var(--bg-2)',  border: 'var(--border)',  icon: 'family' },
+  report:  { label: 'Relatório',    color: 'var(--green)',  bg: 'var(--badge-green-bg)',  border: 'var(--badge-green-border)',  icon: 'chart' },
+  general: { label: 'Geral',        color: 'var(--ink-4)',  bg: 'var(--bg-2)',  border: 'var(--border)',  icon: 'chat' },
 }
 
 const VISIT_STATUS = {
-  pending:   { label: 'Pendente',   bg: '#fffbeb', color: '#d97706', border: '#fde68a' },
-  approved:  { label: 'Aprovada',   bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-  declined:  { label: 'Recusada',   bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
-  completed: { label: 'Realizada',  bg: '#f9fafb', color: '#6b7280', border: '#e5e7eb' },
+  pending:   { label: 'Pendente',   bg: 'var(--badge-amber-bg)', color: 'var(--amber)', border: 'var(--badge-amber-border)' },
+  approved:  { label: 'Aprovada',   bg: 'var(--badge-green-bg)', color: 'var(--green)', border: 'var(--badge-green-border)' },
+  declined:  { label: 'Recusada',   bg: 'var(--badge-red-bg)', color: 'var(--red)', border: 'var(--badge-red-border)' },
+  completed: { label: 'Realizada',  bg: 'var(--bg-2)', color: 'var(--ink-4)', border: 'var(--border)' },
 }
 
 const TEMPLATES = [
@@ -289,56 +293,70 @@ export default function FamilyPage() {
   }
 
   const pendingVisits = visits.filter(v => v.status === 'pending').length
+  const largo = useLargo()
+  /* Se a foto do dia correu bem ou não era lido de `dayPhotoMsg.startsWith('✓')`
+     — um emoji a servir de valor de retorno. Um estado não se lê do texto que
+     se mostra a quem lá está. */
+  const dayPhotoFalhou = /^[✕×]/.test(dayPhotoMsg || '') || /não|erro|falh/i.test(dayPhotoMsg || '')
 
+  /* A MOLDURA — refeita (2026-10-08).
+
+     Tinha «Portal Família» a 22px em negrito com um parágrafo por baixo, e a
+     barra lateral já diz «Famílias». Dois títulos para a mesma coisa.
+
+     As badges dos separadores FICAM: são a única coisa nesta página que diz
+     «há coisas por responder». Mudam de língua, não de função. */
   return (
-    <div style={{ padding: '24px 20px', maxWidth: 1100, margin: '0 auto' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, gap: 12, flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: 22, fontWeight: 700, color: '#0b1120' }}>Portal Família</h1>
-          <p style={{ margin: '4px 0 0', fontSize: 13, color: '#6b7280' }}>Comunicação com familiares e tutores legais dos {cfg.personNounPlural.toLowerCase()}</p>
-        </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {/* O dia em 1 foto — partilha com todas as famílias dos presentes */}
-          <input ref={dayPhotoInput} type="file" accept="image/*" style={{ display: 'none' }}
-            onChange={e => { const f = e.target.files?.[0]; if (f) broadcastDayPhoto(f); e.target.value = '' }} />
-          <button onClick={() => dayPhotoInput.current?.click()} disabled={dayPhotoBusy}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '10px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #0d6e42', borderRadius: 8, fontWeight: 700, fontSize: 14, cursor: 'pointer' }}>
-            {dayPhotoBusy ? 'A partilhar…' : <><Icon name="camera" size={16} color="#0d6e42" /> Foto do dia</>}
-          </button>
-          <button onClick={() => setShowCompose(true)}
-            style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}>
-            + Nova Mensagem
-          </button>
-        </div>
-      </div>
-      {dayPhotoMsg && <div style={{ marginBottom: 14, padding: '10px 14px', background: dayPhotoMsg.startsWith('✓') ? '#f0fdf4' : '#fef2f2', border: `1px solid ${dayPhotoMsg.startsWith('✓') ? '#bbf7d0' : '#fecaca'}`, borderRadius: 8, fontSize: 13, color: dayPhotoMsg.startsWith('✓') ? '#15803d' : '#991b1b' }}>{dayPhotoMsg}</div>}
+    <Mesa
+      altura={tab === 'conversa' ? 'janela' : 'documento'}
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Famílias</span>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '1.5px solid #e5e7eb', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-        {([
-          ['conversa', 'Conversa'],
-          ['visits',   'Visitas'],
-          ['contacts', 'Contactos'],
-        ] as const).map(([t, l]) => (
-          <button
-            key={t}
-            onClick={() => setTab(t)}
-            style={{ padding: '10px 16px', border: 'none', borderBottom: `2px solid ${tab === t ? '#2563eb' : 'transparent'}`, background: 'none', color: tab === t ? '#2563eb' : '#6b7280', fontWeight: tab === t ? 600 : 400, fontSize: 14, cursor: 'pointer', marginBottom: -1.5, flexShrink: 0, whiteSpace: 'nowrap' }}
-          >
-            {l}
-            {t === 'conversa' && totalUnread > 0 && (
-              <span style={{ marginLeft: 6, background: '#dc2626', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{totalUnread}</span>
-            )}
-            {t === 'visits' && pendingVisits > 0 && (
-              <span style={{ marginLeft: 6, background: '#d97706', color: '#fff', borderRadius: 10, padding: '0 6px', fontSize: 11, fontWeight: 700 }}>{pendingVisits}</span>
-            )}
-          </button>
-        ))}
-      </div>
+          <Seletor
+            opcoes={[
+              { id: 'conversa', rotulo: totalUnread > 0 ? `Conversa ${totalUnread}` : 'Conversa' },
+              { id: 'visits', rotulo: pendingVisits > 0 ? `Visitas ${pendingVisits}` : 'Visitas' },
+              { id: 'contacts', rotulo: `Contactos ${contacts.length}` },
+            ]}
+            ativa={tab} aoMudar={v => setTab(v as typeof tab)} />
+
+          {totalUnread > 0 && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+              {totalUnread} POR LER
+            </span>
+          )}
+          {pendingVisits > 0 && (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+              {pendingVisits} VISITA{pendingVisits === 1 ? '' : 'S'} POR RESPONDER
+            </span>
+          )}
+
+          <span style={{ display: 'inline-flex', gap: 6, marginLeft: largo ? 'auto' : undefined }}>
+            <input ref={dayPhotoInput} type="file" accept="image/*" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files?.[0]; if (f) broadcastDayPhoto(f); e.target.value = '' }} />
+            <Botao onClick={() => dayPhotoInput.current?.click()} esperando={dayPhotoBusy}
+              titulo="Uma foto do dia, enviada às famílias de quem esteve presente">FOTO DO DIA</Botao>
+            <Botao feitio="principal" onClick={() => setShowCompose(true)}>NOVA MENSAGEM</Botao>
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>A família vê o que se escreve aqui</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Comunicação com familiares e tutores legais {cfg.personNounPlural ? `d${cfg.personNounPlural.toLowerCase().startsWith('u') ? 'o' : 'o'}s ${cfg.personNounPlural.toLowerCase()}` : ''}
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {dayPhotoMsg && <Aviso tom={dayPhotoFalhou ? 'mau' : 'bom'}>{dayPhotoMsg.replace(/^[✓✕×]\s*/, '')}</Aviso>}
 
       {loading ? (
-        <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>A carregar...</div>
+        <Painel><ACarregar oQue="A abrir as conversas…" /></Painel>
       ) : (
         <>
           {/* Conversa tab — fio em tempo real lar↔família por residente */}
@@ -352,42 +370,42 @@ export default function FamilyPage() {
           {tab === 'visits' && (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14, gap: 10, flexWrap: 'wrap' }}>
-                <div style={{ fontSize: 13, color: '#6b7280' }}>Livro de visitas e pedidos das famílias.</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>Livro de visitas e pedidos das famílias.</div>
                 <button onClick={() => { setVisitForm(f => ({ ...f, patient_id: '', contact_id: '' })); setShowVisit(true) }}
-                  style={{ padding: '8px 16px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}>
+                  style={{ padding: '8px 16px', background: 'var(--ink-3)', color: 'var(--bg)', border: 'none', borderRadius: 'var(--r-md)', fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-dado)', cursor: 'pointer' }}>
                   + Registar visita
                 </button>
               </div>
               {enrichedVisits.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-                  <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="family" size={38} color="#cbd5e1" /></div>
-                  <div style={{ fontWeight: 600, color: '#374151' }}>Sem visitas registadas</div>
-                  <div style={{ fontSize: 13, marginTop: 4 }}>Os pedidos de visita das famílias aparecerão aqui</div>
+                <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink-5)' }}>
+                  <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="family" size={38} color="var(--border-2)" /></div>
+                  <div style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)' }}>Sem visitas registadas</div>
+                  <div style={{ fontSize: 'var(--t-dado)', marginTop: 4 }}>Os pedidos de visita das famílias aparecerão aqui</div>
                 </div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {enrichedVisits.map(v => {
                     const vs = VISIT_STATUS[v.status]
                     return (
-                      <div key={v.id} style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+                      <div key={v.id} style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: 200 }}>
-                          <div style={{ fontWeight: 600, fontSize: 14, color: '#0b1120' }}>
+                          <div style={{ fontWeight: 'var(--peso-corpo)' as any, fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>
                             {v.contact_name || 'Familiar'} → {v.patient_name || person}
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#6b7280', marginTop: 3 }}>
-                            <Icon name="calendar" size={13} color="#6b7280" /> {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}{v.requested_time ? ` às ${v.requested_time}` : ' · hora a combinar'}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 3 }}>
+                            <Icon name="calendar" size={13} color="var(--ink-4)" /> {new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}{v.requested_time ? ` às ${v.requested_time}` : ' · hora a combinar'}
                           </div>
-                          {v.notes && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{v.notes}</div>}
+                          {v.notes && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>{v.notes}</div>}
                         </div>
-                        <span style={{ padding: '4px 10px', borderRadius: 20, fontSize: 12, fontWeight: 500, background: vs.bg, color: vs.color, border: `1px solid ${vs.border}` }}>{vs.label}</span>
+                        <span style={{ padding: '4px 10px', borderRadius: 'var(--r-xl)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, background: vs.bg, color: vs.color, border: `1px solid ${vs.border}` }}>{vs.label}</span>
                         {v.status === 'pending' && (
                           <div style={{ display: 'flex', gap: 6 }}>
-                            <button onClick={() => updateVisitStatus(v.id, 'approved')} style={{ padding: '5px 12px', background: '#16a34a', color: '#fff', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 600 }}>Aprovar</button>
-                            <button onClick={() => updateVisitStatus(v.id, 'declined')} style={{ padding: '5px 12px', background: '#f3f4f6', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Recusar</button>
+                            <button onClick={() => updateVisitStatus(v.id, 'approved')} style={{ padding: '5px 12px', background: 'var(--green)', color: 'var(--bg)', border: 'none', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', cursor: 'pointer', fontWeight: 'var(--peso-corpo)' as any }}>Aprovar</button>
+                            <button onClick={() => updateVisitStatus(v.id, 'declined')} style={{ padding: '5px 12px', background: 'var(--bg-3)', color: 'var(--red)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Recusar</button>
                           </div>
                         )}
                         {v.status === 'approved' && (
-                          <button onClick={() => updateVisitStatus(v.id, 'completed')} style={{ padding: '5px 12px', background: '#f3f4f6', color: '#6b7280', border: '1px solid #e5e7eb', borderRadius: 6, fontSize: 12, cursor: 'pointer' }}>Marcar realizada</button>
+                          <button onClick={() => updateVisitStatus(v.id, 'completed')} style={{ padding: '5px 12px', background: 'var(--bg-3)', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Marcar realizada</button>
                         )}
                       </div>
                     )
@@ -418,9 +436,9 @@ export default function FamilyPage() {
             return (
               <div>
                 {enrichedContacts.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-                    <div style={{ fontWeight: 600, color: '#374151' }}>Sem contactos familiares</div>
-                    <div style={{ fontSize: 13, marginTop: 4 }}>Adiciona contactos no perfil de cada {personLower}</div>
+                  <div style={{ textAlign: 'center', padding: 60, color: 'var(--ink-5)' }}>
+                    <div style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)' }}>Sem contactos familiares</div>
+                    <div style={{ fontSize: 'var(--t-dado)', marginTop: 4 }}>Adiciona contactos no perfil de cada {personLower}</div>
                   </div>
                 ) : (
                   <>
@@ -428,38 +446,38 @@ export default function FamilyPage() {
                       value={contactSearch}
                       onChange={e => setContactSearch(e.target.value)}
                       placeholder={`Pesquisar por contacto, ${personLower}, parentesco ou telefone...`}
-                      style={{ width: '100%', maxWidth: 420, marginBottom: 18, padding: '9px 13px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }}
+                      style={{ width: '100%', maxWidth: 420, marginBottom: 18, padding: '9px 13px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }}
                     />
                     {groupList.length === 0 ? (
-                      <div style={{ textAlign: 'center', padding: 40, color: '#9ca3af', fontSize: 13 }}>Nenhum contacto corresponde a “{contactSearch}”.</div>
+                      <div style={{ textAlign: 'center', padding: 40, color: 'var(--ink-5)', fontSize: 'var(--t-dado)' }}>Nenhum contacto corresponde a “{contactSearch}”.</div>
                     ) : groupList.map(g => (
                       <div key={g.patientName} style={{ marginBottom: 22 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                          <span style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{g.patientName}</span>
-                          {g.room && <span style={{ fontSize: 11, color: '#6b7280', fontFamily: 'var(--font-mono)' }}>Quarto {g.room}</span>}
-                          <span style={{ fontSize: 11, color: '#9ca3af' }}>· {g.contacts.length} contacto{g.contacts.length !== 1 ? 's' : ''}</span>
-                          <div style={{ flex: 1, height: 1, background: '#f1f5f9' }} />
+                          <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{g.patientName}</span>
+                          {g.room && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Quarto {g.room}</span>}
+                          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>· {g.contacts.length} contacto{g.contacts.length !== 1 ? 's' : ''}</span>
+                          <div style={{ flex: 1, height: 1, background: 'var(--bg-3)' }} />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 12 }}>
                           {g.contacts.map(c => (
-                            <div key={c.id} style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 10, padding: '14px 16px' }}>
+                            <div key={c.id} style={{ background: 'var(--bg)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '14px 16px' }}>
                               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, gap: 6 }}>
                                 <div style={{ minWidth: 0 }}>
-                                  <div style={{ fontWeight: 600, fontSize: 14, color: '#0b1120' }}>{c.name}</div>
-                                  {c.relationship && <div style={{ fontSize: 12, color: '#6b7280' }}>{c.relationship}</div>}
+                                  <div style={{ fontWeight: 'var(--peso-corpo)' as any, fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{c.name}</div>
+                                  {c.relationship && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{c.relationship}</div>}
                                 </div>
                                 <div style={{ display: 'flex', gap: 4, flexShrink: 0, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                                  {c.is_emergency && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 20 }}>Urgência</span>}
-                                  {c.is_legal_guardian && <span style={{ fontSize: 10, fontWeight: 600, padding: '2px 6px', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 20 }}>Tutor</span>}
+                                  {c.is_emergency && <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-corpo)' as any, padding: '2px 6px', background: 'var(--badge-red-bg)', color: 'var(--red)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)' }}>Urgência</span>}
+                                  {c.is_legal_guardian && <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-corpo)' as any, padding: '2px 6px', background: 'var(--bg-2)', color: 'var(--ink-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)' }}>Tutor</span>}
                                 </div>
                               </div>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                                {c.phone && <a href={`tel:${c.phone}`} style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none' }}>{c.phone}</a>}
-                                {c.email && <a href={`mailto:${c.email}`} style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none' }}>{c.email}</a>}
+                                {c.phone && <a href={`tel:${c.phone}`} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', textDecoration: 'none' }}>{c.phone}</a>}
+                                {c.email && <a href={`mailto:${c.email}`} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', textDecoration: 'none' }}>{c.email}</a>}
                               </div>
                               <button
                                 onClick={() => { setCompose(prev => ({ ...prev, patient_id: c.patient_id, contact_id: c.id })); setShowCompose(true) }}
-                                style={{ marginTop: 10, width: '100%', padding: '7px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: 6, fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
+                                style={{ marginTop: 10, width: '100%', padding: '7px', background: 'var(--bg-3)', color: 'var(--ink-3)', border: 'none', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', cursor: 'pointer', fontWeight: 'var(--peso-corpo)' as any }}
                               >Enviar mensagem</button>
                             </div>
                           ))}
@@ -480,21 +498,21 @@ export default function FamilyPage() {
           onClick={e => { if (e.target === e.currentTarget) setShowCompose(false) }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
         >
-          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--bg)', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Nova Mensagem</h2>
-              <button aria-label="Fechar" onClick={() => setShowCompose(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>            </div>
+              <h2 style={{ margin: 0, fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any }}>Nova Mensagem</h2>
+              <button aria-label="Fechar" onClick={() => setShowCompose(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)' }}>×</button>            </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               {/* Template quick fills */}
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Modelo rápido</label>
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>Modelo rápido</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {TEMPLATES.map(tpl => (
                     <button
                       key={tpl.label}
                       onClick={() => applyTemplate(tpl)}
-                      style={{ padding: '5px 10px', borderRadius: 6, border: '1.5px solid #e5e7eb', background: '#f9fafb', color: '#374151', fontSize: 12, cursor: 'pointer' }}
+                      style={{ padding: '5px 10px', borderRadius: 'var(--r)', border: '1.5px solid var(--border)', background: 'var(--bg-2)', color: 'var(--ink-3)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}
                     >{tpl.label}</button>
                   ))}
                 </div>
@@ -502,15 +520,15 @@ export default function FamilyPage() {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{person} *</label>
-                  <select value={compose.patient_id} onChange={e => setCompose(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                  <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>{person} *</label>
+                  <select value={compose.patient_id} onChange={e => setCompose(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', boxSizing: 'border-box' }}>
                     <option value="">Selecionar...</option>
                     {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` (Q.${p.room_number})` : ''}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Para (familiar)</label>
-                  <select value={compose.contact_id} onChange={e => setCompose(p => ({ ...p, contact_id: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} disabled={!compose.patient_id}>
+                  <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Para (familiar)</label>
+                  <select value={compose.contact_id} onChange={e => setCompose(p => ({ ...p, contact_id: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', boxSizing: 'border-box' }} disabled={!compose.patient_id}>
                     <option value="">Todos / General</option>
                     {patientContacts.map(c => <option key={c.id} value={c.id}>{c.name}{c.relationship ? ` (${c.relationship})` : ''}</option>)}
                   </select>
@@ -519,37 +537,37 @@ export default function FamilyPage() {
 
               <button onClick={generateWeeklyLetter} disabled={!compose.patient_id || generatingLetter}
                 title={!compose.patient_id ? `Escolhe primeiro ${personLower}` : undefined}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px 14px', borderRadius: 8, border: '1.5px solid #ddd6fe', background: compose.patient_id ? '#faf5ff' : '#f9fafb', color: compose.patient_id ? '#6d28d9' : '#c4b5fd', fontSize: 13, fontWeight: 700, cursor: compose.patient_id && !generatingLetter ? 'pointer' : 'not-allowed' }}>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7, padding: '10px 14px', borderRadius: 'var(--r-md)', border: '1.5px solid var(--border)', background: compose.patient_id ? 'var(--bg-2)' : 'var(--bg-2)', color: compose.patient_id ? 'var(--ink-2)' : 'var(--green-mid)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: compose.patient_id && !generatingLetter ? 'pointer' : 'not-allowed' }}>
                 {generatingLetter ? 'A escrever a carta semanal…' : '✨ Gerar carta semanal com IA'}
               </button>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Tipo</label>
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>Tipo</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {(Object.entries(MSG_TYPES) as [FamilyMessage['type'], typeof MSG_TYPES.update][]).map(([key, cfg]) => (
                     <button
                       key={key}
                       onClick={() => setCompose(p => ({ ...p, type: key }))}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${compose.type === key ? cfg.color : '#e5e7eb'}`, background: compose.type === key ? cfg.bg : '#fff', color: compose.type === key ? cfg.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                    ><Icon name={cfg.icon} size={13} color={compose.type === key ? cfg.color : '#6b7280'} /> {cfg.label}</button>
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 'var(--r-xl)', border: `1.5px solid ${compose.type === key ? cfg.color : 'var(--border)'}`, background: compose.type === key ? cfg.bg : 'var(--bg)', color: compose.type === key ? cfg.color : 'var(--ink-4)', fontSize: 'var(--t-meta)', cursor: 'pointer', fontWeight: 'var(--peso-corpo)' as any }}
+                    ><Icon name={cfg.icon} size={13} color={compose.type === key ? cfg.color : 'var(--ink-4)'} /> {cfg.label}</button>
                   ))}
                 </div>
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Assunto *</label>
-                <input value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} placeholder="Assunto da mensagem" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Assunto *</label>
+                <input value={compose.subject} onChange={e => setCompose(p => ({ ...p, subject: e.target.value }))} placeholder="Assunto da mensagem" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', boxSizing: 'border-box' }} />
               </div>
 
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Mensagem *</label>
-                <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} rows={5} placeholder="Escreve a mensagem para a família..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Mensagem *</label>
+                <textarea value={compose.body} onChange={e => setCompose(p => ({ ...p, body: e.target.value }))} rows={5} placeholder="Escreve a mensagem para a família..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', resize: 'vertical', boxSizing: 'border-box' }} />
               </div>
 
               <button
                 onClick={sendMessage}
                 disabled={!compose.patient_id || !compose.subject.trim() || !compose.body.trim() || saving}
-                style={{ padding: '12px 20px', background: compose.patient_id && compose.subject.trim() && compose.body.trim() ? '#2563eb' : '#e5e7eb', color: compose.patient_id && compose.subject.trim() && compose.body.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: 'pointer', marginTop: 4 }}
+                style={{ padding: '12px 20px', background: compose.patient_id && compose.subject.trim() && compose.body.trim() ? 'var(--ink-2)' : 'var(--border)', color: compose.patient_id && compose.subject.trim() && compose.body.trim() ? 'var(--bg)' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', fontWeight: 'var(--peso-corpo)' as any, fontSize: 'var(--t-corpo)', cursor: 'pointer', marginTop: 4 }}
               >{saving ? 'A enviar...' : 'Registar Mensagem'}</button>
             </div>
           </div>
@@ -559,50 +577,50 @@ export default function FamilyPage() {
       {showVisit && (
         <div onClick={e => { if (e.target === e.currentTarget) setShowVisit(false) }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--bg)', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Registar visita</h2>
-              <button aria-label="Fechar" onClick={() => setShowVisit(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>            </div>
+              <h2 style={{ margin: 0, fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any }}>Registar visita</h2>
+              <button aria-label="Fechar" onClick={() => setShowVisit(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)' }}>×</button>            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
               <div className="vf-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>{person} *</label>
-                  <select value={visitForm.patient_id} onChange={e => setVisitForm(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                  <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>{person} *</label>
+                  <select value={visitForm.patient_id} onChange={e => setVisitForm(p => ({ ...p, patient_id: e.target.value, contact_id: '' }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', boxSizing: 'border-box' }}>
                     <option value="">Selecionar...</option>
                     {patients.map(p => <option key={p.id} value={p.id}>{p.name}{p.room_number ? ` (Q.${p.room_number})` : ''}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Visitante</label>
-                  <select value={visitForm.contact_id} onChange={e => setVisitForm(p => ({ ...p, contact_id: e.target.value }))} disabled={!visitForm.patient_id} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }}>
+                  <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Visitante</label>
+                  <select value={visitForm.contact_id} onChange={e => setVisitForm(p => ({ ...p, contact_id: e.target.value }))} disabled={!visitForm.patient_id} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', boxSizing: 'border-box' }}>
                     <option value="">Familiar / outro</option>
                     {visitContacts.map(c => <option key={c.id} value={c.id}>{c.name}{c.relationship ? ` (${c.relationship})` : ''}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Data *</label>
-                  <input type="date" value={visitForm.requested_date} onChange={e => setVisitForm(p => ({ ...p, requested_date: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Data *</label>
+                  <input type="date" value={visitForm.requested_date} onChange={e => setVisitForm(p => ({ ...p, requested_date: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Hora</label>
-                  <input type="time" value={visitForm.requested_time} onChange={e => setVisitForm(p => ({ ...p, requested_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
+                  <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Hora</label>
+                  <input type="time" value={visitForm.requested_time} onChange={e => setVisitForm(p => ({ ...p, requested_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', boxSizing: 'border-box' }} />
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Estado</label>
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 6 }}>Estado</label>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {(Object.entries(VISIT_STATUS) as [VisitRequest['status'], typeof VISIT_STATUS.pending][]).map(([key, cfg]) => (
                     <button key={key} onClick={() => setVisitForm(p => ({ ...p, status: key }))}
-                      style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${visitForm.status === key ? cfg.color : '#e5e7eb'}`, background: visitForm.status === key ? cfg.bg : '#fff', color: visitForm.status === key ? cfg.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}>{cfg.label}</button>
+                      style={{ padding: '5px 12px', borderRadius: 'var(--r-xl)', border: `1.5px solid ${visitForm.status === key ? cfg.color : 'var(--border)'}`, background: visitForm.status === key ? cfg.bg : 'var(--bg)', color: visitForm.status === key ? cfg.color : 'var(--ink-4)', fontSize: 'var(--t-meta)', cursor: 'pointer', fontWeight: 'var(--peso-corpo)' as any }}>{cfg.label}</button>
                   ))}
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Notas</label>
-                <textarea value={visitForm.notes} onChange={e => setVisitForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder={`Ex: trouxe roupa lavada, almoçou com o/a ${personLower}...`} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', display: 'block', marginBottom: 4 }}>Notas</label>
+                <textarea value={visitForm.notes} onChange={e => setVisitForm(p => ({ ...p, notes: e.target.value }))} rows={2} placeholder={`Ex: trouxe roupa lavada, almoçou com o/a ${personLower}...`} style={{ width: '100%', padding: '9px 12px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', resize: 'vertical', boxSizing: 'border-box' }} />
               </div>
               <button onClick={saveVisit} disabled={!visitForm.patient_id || savingVisit}
-                style={{ padding: '12px 20px', background: visitForm.patient_id ? '#7c3aed' : '#e5e7eb', color: visitForm.patient_id ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: visitForm.patient_id ? 'pointer' : 'default', marginTop: 4 }}>
+                style={{ padding: '12px 20px', background: visitForm.patient_id ? 'var(--ink-3)' : 'var(--border)', color: visitForm.patient_id ? 'var(--bg)' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', fontWeight: 'var(--peso-corpo)' as any, fontSize: 'var(--t-corpo)', cursor: visitForm.patient_id ? 'pointer' : 'default', marginTop: 4 }}>
                 {savingVisit ? 'A guardar...' : 'Registar visita'}
               </button>
             </div>
@@ -615,14 +633,14 @@ export default function FamilyPage() {
           .family-msg-grid { grid-template-columns: 1fr !important; }
           .vf-grid { grid-template-columns: 1fr !important; }
           /* Conversa estilo WhatsApp: ou vejo a LISTA, ou a CONVERSA (uma de cada vez). */
-          .ft-grid { grid-template-columns: 1fr !important; height: calc(100vh - 180px) !important; min-height: 0 !important; }
+          .ft-grid { grid-template-columns: 1fr !important; height: 100% !important; min-height: 0 !important; }
           .ft-list[data-open="chat"] { display: none !important; }
           .ft-chat[data-open="list"] { display: none !important; }
           .ft-list[data-open="list"], .ft-chat[data-open="chat"] { height: 100%; }
           .ft-back { display: inline-block !important; }
         }
       `}</style>
-    </div>
+    </Mesa>
   )
 }
 
@@ -641,14 +659,14 @@ const MOOD_OPTS = [
   { v: 'mau', label: 'Em baixo', emoji: '😔' },
 ]
 const MEALS_OPTS = [
-  { v: 'tudo', label: 'Comeu tudo', emoji: '🍽️' },
+  { v: 'tudo', label: 'Comeu tudo', emoji: 'meal' },
   { v: 'parte', label: 'Comeu parte', emoji: '🥄' },
   { v: 'pouco', label: 'Comeu pouco', emoji: '⚠️' },
 ]
 const ACTIVITY_OPTS = [
-  { v: 'ativo', label: 'Ativo(a)', emoji: '🚶' },
+  { v: 'ativo', label: 'Ativo(a)', emoji: 'route' },
   { v: 'calmo', label: 'Tranquilo(a)', emoji: '🛋️' },
-  { v: 'na_cama', label: 'Mais na cama', emoji: '🛏️' },
+  { v: 'na_cama', label: 'Mais na cama', emoji: 'home' },
 ]
 const optLabel = (arr: { v: string; label: string; emoji: string }[], v?: string) => arr.find(o => o.v === v)
 
@@ -855,14 +873,14 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
   }
 
   return (
-    <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: 'calc(100vh - 300px)', minHeight: 460 }}>
+    <div className="ft-grid" style={{ display: 'grid', gridTemplateColumns: '260px 1fr', gap: 16, height: '100%', minHeight: 0 }}>
       {/* Lista de residentes — em mobile esconde-se quando há conversa aberta */}
-      <div className="ft-list" data-open={patientId ? 'chat' : 'list'} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, overflowY: 'auto' }}>
-        <div style={{ padding: '10px 12px', borderBottom: '1px solid #f1f5f9', position: 'sticky', top: 0, background: '#fff', zIndex: 1 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{cfg.personNounPlural}</div>
+      <div className="ft-list" data-open={patientId ? 'chat' : 'list'} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflowY: 'auto' }}>
+        <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--bg-3)', position: 'sticky', top: 0, background: 'var(--bg)', zIndex: 1 }}>
+          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>{cfg.personNounPlural}</div>
           <input value={ptSearch} onChange={e => setPtSearch(e.target.value)}
             placeholder={`Procurar por nome ou familiar…`}
-            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '8px 11px', fontSize: 13, outline: 'none', background: '#f9fafb' }} />
+            style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 11px', fontSize: 'var(--t-dado)', outline: 'none', background: 'var(--bg-2)' }} />
         </div>
         {(() => {
           const ql = ptSearch.trim().toLowerCase()
@@ -871,20 +889,20 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
             contacts.some((c: FamilyContact) => c.patient_id === p.id && c.name.toLowerCase().includes(ql))
           )
           return list.length === 0 ? (
-          <div style={{ padding: 16, fontSize: 13, color: '#9ca3af' }}>{patients.length === 0 ? `Sem ${cfg.personNounPlural.toLowerCase()}.` : `Nada corresponde a “${ptSearch}”.`}</div>
+          <div style={{ padding: 16, fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>{patients.length === 0 ? `Sem ${cfg.personNounPlural.toLowerCase()}.` : `Nada corresponde a “${ptSearch}”.`}</div>
         ) : list.map((p: Patient) => {
           const active = p.id === patientId
           const nContacts = contacts.filter((c: FamilyContact) => c.patient_id === p.id).length
           return (
             <button key={p.id} onClick={() => setPatientId(p.id)}
-              style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', border: 'none', borderBottom: '1px solid #f9fafb', background: active ? '#eff6ff' : '#fff', cursor: 'pointer' }}>
-              <div style={{ width: 34, height: 34, borderRadius: '50%', background: active ? '#2563eb' : '#f1f5f9', color: active ? '#fff' : '#6b7280', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>{p.name.charAt(0)}</div>
+              style={{ width: '100%', textAlign: 'left', display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', border: 'none', borderBottom: '1px solid var(--bg-2)', background: active ? 'var(--bg-2)' : 'var(--bg)', cursor: 'pointer' }}>
+              <div style={{ width: 34, height: 34, borderRadius: '50%', background: active ? 'var(--ink-2)' : 'var(--bg-3)', color: active ? 'var(--bg)' : 'var(--ink-4)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>{p.name.charAt(0)}</div>
               <div style={{ minWidth: 0, flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                <div style={{ fontSize: 11, color: '#9ca3af' }}>{p.room_number ? `Q.${p.room_number} · ` : ''}{nContacts} familiar{nContacts !== 1 ? 'es' : ''}</div>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{p.room_number ? `Q.${p.room_number} · ` : ''}{nContacts} familiar{nContacts !== 1 ? 'es' : ''}</div>
               </div>
               {(unreadByPt?.[p.id] || 0) > 0 && (
-                <span style={{ flexShrink: 0, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9, background: '#dc2626', color: '#fff', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadByPt[p.id]}</span>
+                <span style={{ flexShrink: 0, minWidth: 18, height: 18, padding: '0 5px', borderRadius: 'var(--r-lg)', background: 'var(--red)', color: 'var(--bg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{unreadByPt[p.id]}</span>
               )}
             </button>
           )
@@ -893,49 +911,49 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
       </div>
 
       {/* Fio */}
-      <div className="ft-chat" data-open={patientId ? 'chat' : 'list'} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 12, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+      <div className="ft-chat" data-open={patientId ? 'chat' : 'list'} style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
         {!patientId ? (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: '#9ca3af', gap: 8, padding: 24, textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex' }}><Icon name="chat" size={36} color="#cbd5e1" /></div>
-            <div style={{ fontWeight: 600, color: '#374151' }}>Seleciona {cfg.personNounIndef}</div>
-            <div style={{ fontSize: 13, maxWidth: 320, lineHeight: 1.5 }}>Conversa direta com a família, com atualizações, fotos e boletins de bem-estar — tudo registado no Phlox.</div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-5)', gap: 8, padding: 24, textAlign: 'center' }}>
+            <div style={{ display: 'inline-flex' }}><Icon name="chat" size={36} color="var(--border-2)" /></div>
+            <div style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)' }}>Seleciona {cfg.personNounIndef}</div>
+            <div style={{ fontSize: 'var(--t-dado)', maxWidth: 320, lineHeight: 1.5 }}>Conversa direta com a família, com atualizações, fotos e boletins de bem-estar — tudo registado no Phlox.</div>
           </div>
         ) : (
           <>
             {/* Cabeçalho */}
-            <div style={{ padding: '10px 14px', borderBottom: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
+            <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
-                <button className="ft-back" onClick={() => setPatientId('')} title="Voltar" style={{ display: 'none', background: 'none', border: 'none', fontSize: 20, color: '#0d6e42', cursor: 'pointer', padding: 0, flexShrink: 0 }}>←</button>
+                <button className="ft-back" onClick={() => setPatientId('')} title="Voltar" style={{ display: 'none', background: 'none', border: 'none', fontSize: 'var(--t-destaque)', color: 'var(--green)', cursor: 'pointer', padding: 0, flexShrink: 0 }}>←</button>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patient?.name}{patient?.room_number ? ` · ${cfg.roomLabel?.charAt(0) || 'Q'}.${patient.room_number}` : ''}</div>
-                  <div style={{ fontSize: 11, color: '#9ca3af', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ptContacts.length ? ptContacts.map((c: FamilyContact) => c.name).join(', ') : 'Sem familiares ligados'}</div>
+                  <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{patient?.name}{patient?.room_number ? ` · ${cfg.roomLabel?.charAt(0) || 'Q'}.${patient.room_number}` : ''}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{ptContacts.length ? ptContacts.map((c: FamilyContact) => c.name).join(', ') : 'Sem familiares ligados'}</div>
                 </div>
               </div>
               {familyCode ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: 9, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Código família</div>
-                    <div style={{ fontSize: 15, fontWeight: 800, color: '#2563eb', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>{familyCode}</div>
+                    <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Código família</div>
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', letterSpacing: '0.12em', fontFamily: 'var(--font-mono)' }}>{familyCode}</div>
                   </div>
                   <button onClick={() => { navigator.clipboard?.writeText(`Acompanhe ${patient?.name} no Phlox: crie conta em ${typeof window !== 'undefined' ? window.location.origin : ''}/login?mode=family e ligue-se em "A minha família" com o código ${familyCode}`); }}
-                    title="Copiar convite" style={{ padding: '7px 10px', background: '#eff6ff', border: '1px solid #bfdbfe', color: '#2563eb', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Copiar convite</button>
+                    title="Copiar convite" style={{ padding: '7px 10px', background: 'var(--bg-2)', border: '1px solid var(--border)', color: 'var(--ink-2)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>Copiar convite</button>
                 </div>
               ) : (
-                <button onClick={genCode} disabled={codeBusy} style={{ padding: '7px 12px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={genCode} disabled={codeBusy} style={{ padding: '7px 12px', background: 'var(--ink-2)', color: 'var(--bg)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>
                   {codeBusy ? '…' : 'Gerar código de acesso família'}
                 </button>
               )}
             </div>
             {codeErr && (
-              <div style={{ padding: '9px 14px', background: '#fef2f2', borderBottom: '1px solid #fecaca', fontSize: 12.5, color: '#991b1b' }}>{codeErr}</div>
+              <div style={{ padding: '9px 14px', background: 'var(--badge-red-bg)', borderBottom: '1px solid var(--badge-red-border)', fontSize: 'var(--t-meta)', color: 'var(--red)' }}>{codeErr}</div>
             )}
 
             {/* Mensagens — fundo estilo WhatsApp */}
-            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px', background: '#e9e6df' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: '14px 14px', background: 'var(--chao)' }}>
               {loading ? (
-                <div style={{ textAlign: 'center', color: '#7d8a99', fontSize: 13, padding: 20 }}>A carregar…</div>
+                <div style={{ textAlign: 'center', color: 'var(--ink-5)', fontSize: 'var(--t-dado)', padding: 20 }}>A carregar…</div>
               ) : msgs.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#7d8a99', fontSize: 13, padding: 24, lineHeight: 1.6 }}>
+                <div style={{ textAlign: 'center', color: 'var(--ink-5)', fontSize: 'var(--t-dado)', padding: 24, lineHeight: 1.6 }}>
                   Ainda sem conversa. Escreva à família ou partilhe uma foto do dia.
                 </div>
               ) : msgs.map(m => <ThreadBubble key={m.id} m={m} mySide="staff" />)}
@@ -944,49 +962,49 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
 
             {/* Painel de extras — só quando se abre o "+" (não tapa as mensagens) */}
             {extrasOpen && (
-              <div style={{ borderTop: '1px solid #e5e7eb', padding: '12px 14px', background: '#f8fafc', maxHeight: '40vh', overflowY: 'auto' }}>
+              <div style={{ borderTop: '1px solid var(--border)', padding: '12px 14px', background: 'var(--bg-2)', maxHeight: '40vh', overflowY: 'auto' }}>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-                  <label style={{ padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #e5e7eb', background: 'white', color: '#0d6e42', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    <Icon name="camera" size={15} color="#0d6e42" /> Foto<input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { setPhoto(e.target.files?.[0] || null); setExtrasOpen(false) }} />
+                  <label style={{ padding: '8px 12px', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: '1.5px solid var(--border)', background: 'white', color: 'var(--green)', display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                    <Icon name="camera" size={15} color="var(--green)" /> Foto<input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { setPhoto(e.target.files?.[0] || null); setExtrasOpen(false) }} />
                   </label>
-                  <button onClick={() => { composeDaySummary(); setExtrasOpen(false) }} disabled={prefilling} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #99f6e4', background: '#f0fdfa', color: '#0d9488' }}>{prefilling ? 'A compor…' : <><Icon name="spark" size={15} color="#0d9488" /> Mensagem do dia</>}</button>
-                  <button onClick={() => setMode(mode === 'wellbeing' ? 'message' : 'wellbeing')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${mode === 'wellbeing' ? '#0d6e42' : '#e5e7eb'}`, background: mode === 'wellbeing' ? '#f0fdf4' : 'white', color: mode === 'wellbeing' ? '#0d6e42' : '#475569' }}><Icon name="heart" size={15} color={mode === 'wellbeing' ? '#0d6e42' : '#475569'} /> Boletim</button>
+                  <button onClick={() => { composeDaySummary(); setExtrasOpen(false) }} disabled={prefilling} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: '1.5px solid var(--green-mid)', background: 'var(--green-light)', color: 'var(--green)' }}>{prefilling ? 'A compor…' : <><Icon name="spark" size={15} color="var(--green)" /> Mensagem do dia</>}</button>
+                  <button onClick={() => setMode(mode === 'wellbeing' ? 'message' : 'wellbeing')} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 12px', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${mode === 'wellbeing' ? 'var(--green)' : 'var(--border)'}`, background: mode === 'wellbeing' ? 'var(--badge-green-bg)' : 'white', color: mode === 'wellbeing' ? 'var(--green)' : 'var(--ink-3)' }}><Icon name="heart" size={15} color={mode === 'wellbeing' ? 'var(--green)' : 'var(--ink-3)'} /> Boletim</button>
                 </div>
                 {mode === 'wellbeing' && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {([['Humor', MOOD_OPTS, 'mood'], ['Refeições', MEALS_OPTS, 'meals'], ['Atividade', ACTIVITY_OPTS, 'activity']] as const).map(([lab, opts, key]) => (
                       <div key={key}>
-                        <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{lab}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>{lab}</div>
                         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                          {opts.map(o => { const on = (wb as any)[key] === o.v; return <button key={o.v} onClick={() => setWb(p => ({ ...p, [key]: on ? undefined : o.v }))} style={{ padding: '6px 11px', borderRadius: 8, fontSize: 12.5, cursor: 'pointer', border: `1.5px solid ${on ? '#0d6e42' : '#e5e7eb'}`, background: on ? '#f0fdf4' : 'white', color: on ? '#0d6e42' : '#374151', fontWeight: on ? 700 : 400 }}>{o.emoji} {o.label}</button> })}
+                          {opts.map(o => { const on = (wb as any)[key] === o.v; return <button key={o.v} onClick={() => setWb(p => ({ ...p, [key]: on ? undefined : o.v }))} style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', cursor: 'pointer', border: `1.5px solid ${on ? 'var(--green)' : 'var(--border)'}`, background: on ? 'var(--badge-green-bg)' : 'white', color: on ? 'var(--green)' : 'var(--ink-3)', fontWeight: on ? 700 : 400 }}><Icon name={o.emoji} size={15} />  {o.label}</button> })}
                         </div>
                       </div>
                     ))}
-                    <button onClick={prefillFromToday} disabled={prefilling} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', padding: '6px 11px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: '1.5px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a' }}>{prefilling ? '…' : <><Icon name="spark" size={14} color="#16a34a" /> Pré-preencher do registo de hoje</>}</button>
+                    <button onClick={prefillFromToday} disabled={prefilling} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, alignSelf: 'flex-start', padding: '6px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: '1.5px solid var(--badge-green-border)', background: 'var(--badge-green-bg)', color: 'var(--green)' }}>{prefilling ? '…' : <><Icon name="spark" size={14} color="var(--green)" /> Pré-preencher do registo de hoje</>}</button>
                   </div>
                 )}
               </div>
             )}
 
             {/* Compositor — barra única estilo WhatsApp */}
-            <div style={{ borderTop: '1px solid #e5e7eb', padding: '8px 10px', background: '#f0f2f5', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
-              <button onClick={() => setExtrasOpen(o => !o)} title="Mais (foto, boletim…)" style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '50%', border: 'none', background: extrasOpen ? '#0d6e42' : '#e2e8f0', color: extrasOpen ? 'white' : '#475569', fontSize: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{extrasOpen ? '×' : '+'}</button>
+            <div style={{ borderTop: '1px solid var(--border)', padding: '8px 10px', background: 'var(--bg-2)', display: 'flex', gap: 8, alignItems: 'flex-end' }}>
+              <button onClick={() => setExtrasOpen(o => !o)} title="Mais (foto, boletim…)" style={{ flexShrink: 0, width: 40, height: 40, borderRadius: '50%', border: 'none', background: extrasOpen ? 'var(--green)' : 'var(--border)', color: extrasOpen ? 'white' : 'var(--ink-3)', fontSize: 'var(--t-destaque)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>{extrasOpen ? '×' : '+'}</button>
               <textarea value={text} onChange={e => setText(e.target.value)} rows={1}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder={mode === 'wellbeing' ? 'Nota para a família…' : 'Mensagem…'}
-                style={{ flex: 1, border: '1px solid #e0e0e0', borderRadius: 22, padding: '10px 16px', fontSize: 14.5, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', boxSizing: 'border-box', background: 'white', maxHeight: 110 }} />
+                style={{ flex: 1, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 16px', fontSize: 'var(--t-corpo)', fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', boxSizing: 'border-box', background: 'white', maxHeight: 110 }} />
               <button onClick={send} disabled={sending} title="Enviar"
-                style={{ flexShrink: 0, width: 42, height: 42, borderRadius: '50%', background: '#0d6e42', color: 'white', border: 'none', fontSize: 18, cursor: sending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ flexShrink: 0, width: 42, height: 42, borderRadius: '50%', background: 'var(--green)', color: 'white', border: 'none', fontSize: 'var(--t-destaque)', cursor: sending ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 {sending ? '…' : '➤'}
               </button>
             </div>
             {erroEnvio && (
               <div style={{
-                padding: '9px 14px', background: '#fff5f5', borderTop: '1px solid #fed7d7',
-                fontSize: 12.5, color: '#c53030', lineHeight: 1.5,
+                padding: '9px 14px', background: 'var(--badge-red-bg)', borderTop: '1px solid var(--badge-red-border)',
+                fontSize: 'var(--t-meta)', color: 'var(--red)', lineHeight: 1.5,
               }}>{erroEnvio}</div>
             )}
-            {photo && <div style={{ fontSize: 12, color: '#0d6e42', padding: '6px 14px', background: '#f0f2f5' }}>📎 {photo.name} — será enviada <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 12 }}>remover</button></div>}
+            {photo && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green)', padding: '6px 14px', background: 'var(--bg-2)' }}>📎 {photo.name} — será enviada <button onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 'var(--t-meta)' }}>remover</button></div>}
           </>
         )}
       </div>
@@ -999,29 +1017,29 @@ function FamilyThread({ patients, contacts, user, supabase, unreadByPt, onRead, 
 function ThreadBubble({ m, mySide = 'staff' }: { m: ThreadMsg; mySide?: 'staff' | 'family' }) {
   const mine = m.author_side === mySide
   const time = new Date(m.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })
-  const bubbleBg = mine ? '#dcf8c6' : '#ffffff'   // verde-claro WhatsApp para as minhas
+  const bubbleBg = mine ? 'var(--green-light)' : 'var(--bg)'   // verde-claro WhatsApp para as minhas
   return (
     <div style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start', marginBottom: 6 }}>
       <div style={{ maxWidth: '82%' }}>
-        <div style={{ background: bubbleBg, color: '#0b1120', border: mine ? 'none' : '1px solid #ececec', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '7px 11px 6px', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
-          {!mine && <div style={{ fontSize: 11, fontWeight: 700, color: '#0d6e42', marginBottom: 2 }}>{m.author_name || (m.author_side === 'staff' ? 'Equipa' : 'Família')}</div>}
+        <div style={{ background: bubbleBg, color: 'var(--ink)', border: mine ? 'none' : '1px solid var(--border)', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: '7px 11px 6px', boxShadow: '0 1px 1px rgba(0,0,0,0.06)' }}>
+          {!mine && <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', marginBottom: 2 }}>{m.author_name || (m.author_side === 'staff' ? 'Equipa' : 'Família')}</div>}
           {m.kind === 'wellbeing' ? (
             <div>
-              <div style={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', color: '#0d6e42', marginBottom: 5 }}>Como correu o dia</div>
+              <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--green)', marginBottom: 5 }}>Como correu o dia</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 {[optLabel(MOOD_OPTS, m.mood), optLabel(MEALS_OPTS, m.meals), optLabel(ACTIVITY_OPTS, m.activity)].filter(Boolean).map((o: any, i) => (
-                  <div key={i} style={{ fontSize: 13.5 }}>{o.emoji} {o.label}</div>
+                  <div key={i} style={{ fontSize: 'var(--t-dado)' }}><Icon name={o.emoji} size={15} />  {o.label}</div>
                 ))}
               </div>
-              {m.content && <div style={{ fontSize: 13.5, marginTop: 6, lineHeight: 1.45 }}>{m.content}</div>}
+              {m.content && <div style={{ fontSize: 'var(--t-dado)', marginTop: 6, lineHeight: 1.45 }}>{m.content}</div>}
             </div>
           ) : (
             <>
-              {m.photo_url && <img src={m.photo_url} alt="foto" style={{ width: '100%', borderRadius: 8, marginBottom: m.content ? 6 : 0, display: 'block' }} />}
-              {m.content && <div style={{ fontSize: 14.5, lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
+              {m.photo_url && <img src={m.photo_url} alt="foto" style={{ width: '100%', borderRadius: 'var(--r-md)', marginBottom: m.content ? 6 : 0, display: 'block' }} />}
+              {m.content && <div style={{ fontSize: 'var(--t-corpo)', lineHeight: 1.45, whiteSpace: 'pre-wrap' }}>{m.content}</div>}
             </>
           )}
-          <div style={{ fontSize: 10, color: '#94a3b8', textAlign: 'right', marginTop: 2 }}>{time}</div>
+          <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textAlign: 'right', marginTop: 2 }}>{time}</div>
         </div>
       </div>
     </div>

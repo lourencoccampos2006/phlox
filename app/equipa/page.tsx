@@ -17,8 +17,16 @@ import {
   resumoCurto, PAPEL_ANTIGO_PARA_NOVO, PAPEIS_ATRIBUIVEIS,
   normalizarPapel, permissoesDe, pode,
 } from '@/lib/permissoes'
+import { VERDE_DA_CASA } from '@/lib/institutionBlueprint'
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Campo, Grupo, CAIXA,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
-const ACCENT = '#0d9488'
+/* O acento era turquesa (var(--green-3)), a unica cor da aplicacao fora dos tokens.
+   Desde 2026-10-07 e o verde da casa, como em todo o resto. */
+const ACCENT = 'var(--green)'
 type PageTab = 'conta' | 'escalas' | 'mural'
 
 // Os papéis que se podem dar a alguém, tirados de lib/permissoes — que é também
@@ -37,6 +45,7 @@ export default function EquipaPage() {
 
   // Aceita ?tab=conta|escalas|mural e o antigo ?tab=team|schedule|tarefas|config
   // (do /schedule) para não partir favoritos/links antigos.
+  const largo = useLargo()
   const [tab, setTab] = useState<PageTab>('conta')
   // A pessoa cujos acessos estão abertos. Ver components/team/AcessosPessoa.
   const [acessosDe, setAcessosDe] = useState<Member | null>(null)
@@ -198,7 +207,6 @@ export default function EquipaPage() {
 
   if (!user) return null
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '20px 22px' }
   // Comparava `myRole === 'owner' || myRole === 'admin'`. Depois do sprint152 o
   // papel é `dono`/`direcao`, e isto ficava FALSO para toda a gente — a página
   // da equipa trancava-se ao próprio dono.
@@ -208,311 +216,488 @@ export default function EquipaPage() {
   const papelNaCasa = normalizarPapel(myRole)
   const isManager = !!papelNaCasa && pode(permissoesDe(papelNaCasa), 'equipa', 'editar')
 
+  /* ── AS DEFINIÇÕES DA CASA ──────────────────────────────────────────────
+     Eram dezoito campos empilhados no mesmo cartão que a lista da equipa, por
+     trás de um «Renomear ▾». Passam a quatro grupos com nome, no painel da
+     direita — e a lista da equipa deixa de ter de rolar por cima deles. */
+  const definicoesDaCasa = (
+    <>
+      <Grupo titulo="A casa">
+        <Campo rotulo="Nome da instituição" para="org-name-edit" obrigatorio>
+          <input id="org-name-edit" value={editName} onChange={e => setEditName(e.target.value)}
+            placeholder="Nome da instituição" style={{ ...CAIXA, width: '100%' }} />
+        </Campo>
+
+        {/* O TIPO já não se muda aqui (2026-09-06). Muda o vocabulário, as
+            ferramentas e os relatórios de toda a casa — passou a ser um acto
+            do dono do Phlox, no /admin. Aqui só se lê. */}
+        <Campo rotulo="Tipo"
+          ajuda="Definido quando a instituição foi criada. Muda o vocabulário, as ferramentas e os relatórios de toda a casa — para mudar, fale connosco.">
+          <span style={{
+            ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
+            display: 'inline-block', padding: '4px 9px', color: 'var(--ink-2)',
+            border: '1px solid var(--border-2)', borderRadius: 'var(--r-sm)',
+            background: 'var(--bg-2)',
+          }}>{INST_META[editKind as keyof typeof INST_META]?.label || editKind}</span>
+        </Campo>
+
+        <Campo rotulo="Morada da instituição" para="org-address"
+          ajuda="É daqui que parte e para aqui volta a rota de transportes. Ao guardar, é convertida em coordenadas automaticamente.">
+          <input id="org-address" value={editAddress} onChange={e => setEditAddress(e.target.value)}
+            placeholder="Rua, número, código postal e localidade" style={{ ...CAIXA, width: '100%' }} />
+        </Campo>
+      </Grupo>
+
+      <Grupo titulo="O negócio">
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Campo rotulo="Lotação (lugares)" para="org-capacity">
+            <input id="org-capacity" value={editCapacity} inputMode="numeric"
+              onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))}
+              placeholder="Ex: 30" style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+          <Campo rotulo="Mensalidade por utente (€)" para="org-fee">
+            <input id="org-fee" value={editFee} inputMode="decimal"
+              onChange={e => setEditFee(e.target.value.replace(/[^0-9.]/g, ''))}
+              placeholder="Ex: 450" style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+        </div>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.5 }}>
+          Alimentam o painel administrativo: a taxa de ocupação e a receita prevista
+          saem destes dois números.
+        </div>
+      </Grupo>
+
+      <Grupo titulo="A página pública">
+        <label style={{
+          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
+          fontSize: 'var(--t-dado)', color: 'var(--ink)', marginTop: 10,
+        }}>
+          <input type="checkbox" checked={editPublic} onChange={e => setEditPublic(e.target.checked)} />
+          Tornar a página pública
+        </label>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', margin: '4px 0 0', lineHeight: 1.5 }}>
+          Cria um endereço que pode partilhar com as famílias e nas redes.
+        </div>
+
+        <Campo rotulo="Endereço" para="org-slug">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)', whiteSpace: 'nowrap' }}>
+              phloxclinical.com/c/
+            </span>
+            <input id="org-slug" value={editSlug}
+              onChange={e => setEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))}
+              placeholder="centro-sao-jose" style={{ ...CAIXA, flex: 1 }} />
+          </span>
+        </Campo>
+
+        <Campo rotulo="Frase de apresentação" para="org-tagline">
+          <input id="org-tagline" value={editTagline} onChange={e => setEditTagline(e.target.value)}
+            placeholder="Cuidamos de quem mais ama, perto de si." maxLength={160}
+            style={{ ...CAIXA, width: '100%' }} />
+        </Campo>
+
+        {editPublic && editSlug && (
+          <a href={`/c/${editSlug}`} target="_blank" rel="noreferrer" style={{
+            ...MONO, display: 'inline-block', marginTop: 8, fontSize: 'var(--t-meta)',
+            color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none',
+          }}>VER A PÁGINA →</a>
+        )}
+      </Grupo>
+
+      <Grupo titulo="A marca">
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.5 }}>
+          Opcional — personaliza o painel administrativo e a página pública.
+        </div>
+
+        <Campo rotulo="Logótipo (endereço da imagem)" para="org-logo">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            {editLogoUrl && (
+              <img src={editLogoUrl} alt="" style={{
+                width: 32, height: 32, borderRadius: 'var(--r-sm)', objectFit: 'cover',
+                border: '1px solid var(--border)', flexShrink: 0,
+              }} onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
+            )}
+            <input id="org-logo" value={editLogoUrl} onChange={e => setEditLogoUrl(e.target.value)}
+              placeholder="https://…/logotipo.png" style={{ ...CAIXA, flex: 1 }} />
+          </span>
+        </Campo>
+
+        <Campo rotulo="Cor de marca" para="org-accent">
+          <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
+            <input aria-label="Escolher a cor de marca" type="color"
+              value={/^#[0-9a-fA-F]{6}$/.test(editAccentColor) ? editAccentColor : VERDE_DA_CASA}
+              onChange={e => setEditAccentColor(e.target.value)}
+              style={{
+                width: 34, height: 32, borderRadius: 'var(--r-sm)',
+                border: '1px solid var(--border)', padding: 2, cursor: 'pointer', flexShrink: 0,
+              }} />
+            <input id="org-accent" value={editAccentColor} onChange={e => setEditAccentColor(e.target.value)}
+              placeholder={VERDE_DA_CASA} style={{ ...CAIXA, flex: 1 }} />
+          </span>
+        </Campo>
+      </Grupo>
+
+      <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+        <Botao feitio="principal" onClick={saveOrgSettings} esperando={savingOrg}
+          disabled={!editName.trim()}>
+          {orgSaved ? 'GUARDADO ✓' : 'GUARDAR ALTERAÇÕES'}
+        </Botao>
+        {org && editName.trim() && editName.trim() !== org.name && (
+          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)' }}>
+            Vai mudar de «{org.name}» para «{editName.trim()}».
+          </span>
+        )}
+      </div>
+    </>
+  )
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     A página chama-se «Equipa» e a lista das pessoas estava em último: para
+     ver quem trabalha na casa era preciso rolar por cima do atalho ao painel
+     do dono, de dezoito campos de configuração da instituição e do formulário
+     de adicionar alguém.
+
+     Passa a duas colunas, e a ordem é a da pergunta:
+
+       ESQUERDA   quem trabalha aqui       — sempre visível
+       DIREITA    o que se está a fazer    — adicionar, ou as definições
+
+     No telemóvel empilham, com a equipa primeiro.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const abas: PageTab[] = ['conta', 'escalas', 'mural']
+  const ROTULO_ABA: Record<PageTab, string> = {
+    conta: 'Conta e acesso', escalas: 'Escalas e turnos', mural: 'Mural',
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px clamp(14px,3vw,28px) 70px' }}>
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+            Equipa
+          </span>
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Equipa</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
-          {org ? org.name : 'A sua instituição'}
-        </h1>
-        <p style={{ fontSize: 14, color: '#64748b', margin: '0 0 18px', lineHeight: 1.5 }}>
-          {org ? 'Adicione os funcionários e dê-lhes acesso. Todos trabalham sobre os mesmos utentes.' : 'Crie a sua instituição para começar a adicionar a equipa.'}
-        </p>
+          <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>
+            {org ? org.name : 'A sua instituição'}
+          </span>
 
-        {org && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 18, flexWrap: 'wrap' }}>
-            {([['conta', '👤 Conta & Acesso'], ['escalas', '🗓️ Escalas & Turnos'], ['mural', '💬 Mural']] as const).map(([t, l]) => (
-              <button key={t} onClick={() => setTab(t)}
-                style={{ padding: '8px 15px', borderRadius: 8, border: `1.5px solid ${tab === t ? ACCENT : '#e2e8f0'}`, background: tab === t ? ACCENT : 'white', color: tab === t ? 'white' : '#475569', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-                {l}
-              </button>
-            ))}
-          </div>
-        )}
+          {org && (
+            <Seletor
+              opcoes={abas.map(t => ({ id: t, rotulo: ROTULO_ABA[t] }))}
+              ativa={tab} aoMudar={t => setTab(t as PageTab)} />
+          )}
 
-        {tab === 'escalas' && org ? <EscalasEquipa initialSubTab={escalasSubTab} /> : tab === 'mural' && org ? <MuralEquipa /> : <>
+          {/* Enquanto nao se sabe, nao se diz. Dizer «0 PESSOAS» durante o
+              carregamento e afirmar uma coisa falsa sobre a casa de alguem. */}
+          {org && tab === 'conta' && !loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {team.length} PESSOA{team.length === 1 ? '' : 'S'}
+              </span>
+              {invites.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+                  {invites.length} CONVITE{invites.length === 1 ? '' : 'S'} POR ACEITAR
+                </span>
+              )}
+            </span>
+          )}
 
-        {err && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '11px 15px', fontSize: 13, marginBottom: 16 }}>{err}</div>}
-        {loading && <div style={{ ...card, color: '#94a3b8' }}>A carregar…</div>}
-
-        {/* Criação de contas de equipa ainda não ativa nesta conta (config do
-            servidor). Mensagem calma para o cliente; o detalhe é para o dev,
-            uma vez só e como info — isto estava aqui como console.error DENTRO
-            do render, a disparar a cada pintura e a enterrar os erros a sério
-            na consola de quem anda a procurar problemas. */}
-        {!loading && noKey && (
-          <div style={{ ...card, background: '#fffbeb', border: '1px solid #fde68a' }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#92400e', marginBottom: 8 }}>Contas de equipa a caminho</div>
-            <p style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6, margin: 0 }}>
-              A criação de contas para os funcionários ainda não está ativa nesta conta. Fala connosco e
-              ativamos num instante — entretanto, podes continuar a usar o Phlox normalmente.
-            </p>
-          </div>
-        )}
-
-        {/* ── Sem organização → criar ── */}
-        {!loading && !org && !noKey && (
-          <div style={card}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 14 }}>Criar a instituição</div>
-            <label htmlFor="org-name-create" style={lbl}>Nome da instituição</label>
-            <input id="org-name-create" value={orgName} onChange={e => setOrgName(e.target.value)} placeholder="Ex: Centro de Dia São José" style={inp} />
-            <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-              {OFFERED_INSTITUTIONS.map(k => (
-                <button key={k} onClick={() => setOrgKind(k)} style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${orgKind === k ? ACCENT : '#e2e8f0'}`, background: orgKind === k ? '#f0fdfa' : 'white', color: orgKind === k ? ACCENT : '#475569', fontSize: 13, fontWeight: orgKind === k ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  {INST_META[k].icon} {INST_META[k].label}
-                </button>
-              ))}
+          {org && isManager && tab === 'conta' && (
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <Botao onClick={() => setShowSettings(s => !s)}>
+                {showSettings ? 'FECHAR AS DEFINIÇÕES' : 'DEFINIÇÕES DA CASA'}
+              </Botao>
+              <Link href="/painel-dono" style={{ textDecoration: 'none' }}>
+                <Botao>PAINEL ADMINISTRATIVO →</Botao>
+              </Link>
             </div>
-            <button onClick={createOrg} disabled={busy || !orgName.trim()} style={{ ...btn, opacity: busy || !orgName.trim() ? 0.5 : 1 }}>
-              {busy ? 'A criar…' : 'Criar instituição →'}
-            </button>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        tab === 'conta' ? (
+          <BarraDeEstado>
+            <span style={MONO}>A função decide o que cada pessoa vê e pode mudar</span>
+            <span style={{ ...MONO, color: 'var(--green)' }}>DONO = nunca se limita a si próprio</span>
+            <span style={{ ...MONO, color: 'var(--amber)' }}>CONVITE = ainda não entrou</span>
+            <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+              Acessos = afinar área a área, por cima da função
+            </span>
+          </BarraDeEstado>
+        ) : undefined
+      }
+    >
+      {err && <Aviso tom="mau">{err}</Aviso>}
+
+      {/* As escalas e o mural são ecrãs inteiros próprios. */}
+      {tab === 'escalas' && org ? (
+        <Painel><div style={{ padding: 14 }}><EscalasEquipa initialSubTab={escalasSubTab} /></div></Painel>
+      ) : tab === 'mural' && org ? (
+        <Painel><div style={{ padding: 14 }}><MuralEquipa /></div></Painel>
+      ) : loading ? (
+        <Painel><ACarregar oQue="A carregar a equipa…" /></Painel>
+      ) : noKey ? (
+        /* A criação de contas não está ativa nesta conta. Isto é configuração
+           do servidor, não culpa de quem está a usar — a frase não leva
+           detalhe técnico nenhum. */
+        <Painel>
+          <Vazio titulo="Contas de equipa a caminho."
+            oQueFazer="A criação de contas para os funcionários ainda não está ativa nesta conta. Fale connosco e ativamos num instante — entretanto pode continuar a usar o Phlox normalmente." />
+        </Painel>
+      ) : !org ? (
+        /* ══ AINDA NÃO HÁ CASA ══════════════════════════════════════════════ */
+        <Painel cabeca={<Cabecalho><span style={{ ...ROTULO, flex: 1 }}>Criar a instituição</span></Cabecalho>}>
+          <div style={{ padding: 14, maxWidth: 520 }}>
+            <Campo rotulo="Nome da instituição" para="org-name-create" obrigatorio>
+              <input id="org-name-create" value={orgName} onChange={e => setOrgName(e.target.value)}
+                placeholder="Ex: Centro de Dia São José" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+            <Campo rotulo="Tipo">
+              <Seletor
+                opcoes={OFFERED_INSTITUTIONS.map(k => ({ id: k, rotulo: INST_META[k].label }))}
+                ativa={orgKind} aoMudar={k => setOrgKind(k)} />
+            </Campo>
+            <div style={{ marginTop: 14 }}>
+              <Botao feitio="principal" onClick={createOrg} esperando={busy} disabled={!orgName.trim()}>
+                CRIAR INSTITUIÇÃO →
+              </Botao>
+            </div>
           </div>
-        )}
+        </Painel>
+      ) : (
+        <div style={{
+          display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+          gridTemplateColumns: largo ? 'minmax(400px, 1fr) minmax(360px, 480px)' : '1fr',
+        }}>
+          {/* ══ QUEM TRABALHA AQUI ════════════════════════════════════════════ */}
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>Nome · email</span>
+                <span style={{ ...ROTULO, width: 150 }}>Função</span>
+                <span style={{ ...ROTULO, width: 140, textAlign: 'right' }}>Acesso</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{team.length} na equipa · {invites.length} por aceitar</span>}
+          >
+            {team.length === 0 ? (
+              <Vazio titulo="Ainda não há mais ninguém na equipa."
+                oQueFazer="Adicione a primeira pessoa ao lado: o Phlox pode gerar o login na hora, ou enviar um convite por email." />
+            ) : team.map(m => {
+              const papel = PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role
+              const ehDono = ['owner', 'dono'].includes(m.role)
+              return (
+                <LinhaTabela key={m.user_id}
+                  principal={m.name}
+                  secundaria={m.email || '—'}
+                  celulas={[{ rotulo: 'Função', valor: resumoCurto(papel), largura: 150 }]}
+                  fim={
+                    ehDono ? <Codigo texto="DONO" cor="var(--green)" />
+                      : isManager ? (
+                        <>
+                          <Botao onClick={() => setAcessosDe(m)}>ACESSOS</Botao>
+                          <Botao feitio="calmo" onClick={() => removeMember(m.user_id)}>TIRAR</Botao>
+                        </>
+                      ) : undefined
+                  } />
+              )
+            })}
 
-        {/* ── Com organização ── */}
-        {!loading && org && (
-          <>
-            {!isManager && (
-              <div style={{ ...card, marginBottom: 16, background: '#fffbeb', border: '1px solid #fde68a', color: '#92400e', fontSize: 13 }}>
-                Só o dono ou administrador pode gerir a equipa.
-              </div>
-            )}
-
-            {isManager && (
+            {invites.length > 0 && (
               <>
-                {/* Painel do dono — atalho */}
-                <Link href="/painel-dono" style={{ ...card, display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, textDecoration: 'none', borderColor: '#cbd5e1' }}>
-                  <span style={{ fontSize: 22 }}>🛡️</span>
-                  <span style={{ flex: 1 }}>
-                    <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: '#0b1120' }}>Painel administrativo</span>
-                    <span style={{ display: 'block', fontSize: 12.5, color: '#64748b' }}>Quem deu a medicação a quem, e todos os registos da equipa, com data e hora.</span>
-                  </span>
-                  <span style={{ color: ACCENT, fontWeight: 700 }}>→</span>
-                </Link>
-
-                {/* Definições da instituição — renomear / mudar tipo */}
-                <div style={{ ...card, marginBottom: 16 }}>
-                  <button onClick={() => setShowSettings(s => !s)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: 'inherit' }}>
-                    <span style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Definições da instituição</span>
-                    <span style={{ color: '#94a3b8', fontSize: 13 }}>{showSettings ? '▲' : 'Renomear ▾'}</span>
-                  </button>
-                  {showSettings && (
-                    <div style={{ marginTop: 14 }}>
-                      <label htmlFor="org-name-edit" style={lbl}>Nome da instituição</label>
-                      <input id="org-name-edit" value={editName} onChange={e => setEditName(e.target.value)} placeholder="Nome da instituição" style={inp} />
-                      {/* O TIPO já não se muda aqui (2026-09-06). Muda o
-                          vocabulário, as ferramentas e os relatórios de toda a
-                          casa — passou a ser um ato do dono do Phlox, no
-                          /admin. Aqui só se lê. */}
-                      <label style={{ ...lbl, marginTop: 14 }}>Tipo</label>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16, flexWrap: 'wrap' }}>
-                        <span style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg-2)', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
-                          {INST_META[editKind as keyof typeof INST_META]?.icon} {INST_META[editKind as keyof typeof INST_META]?.label || editKind}
-                        </span>
-                        <span style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5, flex: '1 1 200px' }}>
-                          Definido quando a instituição foi criada. Para mudar, fala connosco.
-                        </span>
-                      </div>
-                      {/* Morada — é daqui que parte a rota de transportes. */}
-                      <label htmlFor="org-address" style={{ ...lbl, marginTop: 4 }}>Morada da instituição</label>
-                      <input id="org-address" value={editAddress} onChange={e => setEditAddress(e.target.value)}
-                        placeholder="Rua, número, código postal e localidade"
-                        style={{ ...inp, marginBottom: 4 }} />
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 14, lineHeight: 1.45 }}>
-                        É daqui que parte e para aqui volta a rota de transportes. Ao guardar, é convertida em
-                        coordenadas automaticamente.
-                      </div>
-
-                      {/* Negócio — lotação e mensalidade (alimentam o painel do dono) */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-                        <div><label htmlFor="org-capacity" style={lbl}>Lotação (lugares)</label><input id="org-capacity" value={editCapacity} onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))} placeholder="Ex: 30" inputMode="numeric" style={inp} /></div>
-                        <div><label htmlFor="org-fee" style={lbl}>Mensalidade por utente (€)</label><input id="org-fee" value={editFee} onChange={e => setEditFee(e.target.value.replace(/[^0-9.]/g, ''))} placeholder="Ex: 450" inputMode="decimal" style={inp} /></div>
-                      </div>
-
-                      {/* Página pública (prova social + angariação) */}
-                      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, marginBottom: 14 }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: 9, fontSize: 13.5, color: '#0b1120', fontWeight: 700, cursor: 'pointer', marginBottom: 10 }}>
-                          <input type="checkbox" checked={editPublic} onChange={e => setEditPublic(e.target.checked)} /> Página pública da instituição
-                        </label>
-                        <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 10px', lineHeight: 1.5 }}>Cria um endereço que pode partilhar com as famílias e nas redes — bom para angariar.</p>
-                        <label htmlFor="org-slug" style={lbl}>Endereço (slug)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-                          <span style={{ fontSize: 12.5, color: '#94a3b8', whiteSpace: 'nowrap' }}>phloxclinical.com/c/</span>
-                          <input id="org-slug" value={editSlug} onChange={e => setEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))} placeholder="centro-sao-jose" style={{ ...inp, flex: 1 }} />
-                        </div>
-                        <label htmlFor="org-tagline" style={lbl}>Frase de apresentação</label>
-                        <input id="org-tagline" value={editTagline} onChange={e => setEditTagline(e.target.value)} placeholder="Cuidamos de quem mais ama, perto de si." style={inp} maxLength={160} />
-                        {editPublic && editSlug && <a href={`/c/${editSlug}`} target="_blank" rel="noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ver a página →</a>}
-                      </div>
-
-                      {/* Marca — aparece no cabeçalho do Painel do Dono e na página pública */}
-                      <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 14, marginBottom: 14 }}>
-                        <div style={{ fontSize: 13.5, color: '#0b1120', fontWeight: 700, marginBottom: 4 }}>Marca</div>
-                        <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 10px', lineHeight: 1.5 }}>Opcional — personaliza o Painel do Dono e a página pública com o logótipo e a cor da instituição.</p>
-                        <label htmlFor="org-logo" style={lbl}>Logótipo (endereço da imagem)</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
-                          {editLogoUrl && <img src={editLogoUrl} alt="" style={{ width: 34, height: 34, borderRadius: 9, objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }} onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />}
-                          <input id="org-logo" value={editLogoUrl} onChange={e => setEditLogoUrl(e.target.value)} placeholder="https://…/logotipo.png" style={{ ...inp, flex: 1 }} />
-                        </div>
-                        <label htmlFor="org-accent" style={lbl}>Cor de marca</label>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                          <input aria-label="Cor de marca" type="color" value={/^#[0-9a-fA-F]{6}$/.test(editAccentColor) ? editAccentColor : '#0d9488'} onChange={e => setEditAccentColor(e.target.value)} style={{ width: 38, height: 38, borderRadius: 9, border: '1px solid #e2e8f0', padding: 2, cursor: 'pointer', flexShrink: 0 }} />
-                          <input id="org-accent" value={editAccentColor} onChange={e => setEditAccentColor(e.target.value)} placeholder="#0d9488" style={{ ...inp, flex: 1 }} />
-                        </div>
-                      </div>
-                      <button onClick={saveOrgSettings} disabled={savingOrg || !editName.trim()} style={{ ...btn, opacity: savingOrg || !editName.trim() ? 0.5 : 1 }}>
-                        {savingOrg ? 'A guardar…' : orgSaved ? '✓ Guardado' : 'Guardar alterações'}
-                      </button>
-                      {org && editName.trim() && editName.trim() !== org.name && (
-                        <p style={{ fontSize: 12, color: '#b45309', margin: '10px 0 0' }}>Vai mudar de “{org.name}” para “{editName.trim()}”.</p>
-                      )}
-                    </div>
-                  )}
+                <div style={{
+                  padding: '6px 12px', background: 'var(--bg-2)',
+                  borderTop: '1px solid var(--border-2)', borderBottom: '1px solid var(--border)',
+                }}>
+                  <span style={ROTULO}>Convites por aceitar</span>
                 </div>
-
-                {/* Adicionar membro */}
-                <div style={{ ...card, marginBottom: 16 }}>
-                  <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 12 }}>Adicionar funcionário</div>
-                  <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-                    {([['generate', '⚡ Gerar login na hora'], ['invite', '✉️ Convidar por email']] as const).map(([m, label]) => (
-                      <button key={m} onClick={() => setAddMode(m)} style={{ flex: 1, padding: '9px', borderRadius: 9, border: `1.5px solid ${addMode === m ? ACCENT : '#e2e8f0'}`, background: addMode === m ? '#f0fdfa' : 'white', color: addMode === m ? ACCENT : '#475569', fontSize: 13, fontWeight: addMode === m ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit' }}>{label}</button>
-                    ))}
-                  </div>
-
-                  {addMode === 'generate' ? (
-                    <>
-                      <label htmlFor="staff-name" style={lbl}>Nome do funcionário</label>
-                      <input id="staff-name" value={newName} onChange={e => setNewName(e.target.value)} placeholder="Ex: Ana Silva" style={inp} />
-                      <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>O Phlox cria o utilizador e a palavra-passe — entrega-os ao funcionário (pode imprimir).</p>
-                    </>
-                  ) : (
-                    <>
-                      <label htmlFor="staff-email" style={lbl}>Email do funcionário</label>
-                      <input id="staff-email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="ana@exemplo.pt" style={inp} />
-                      <p style={{ fontSize: 12, color: '#94a3b8', margin: '8px 0 0' }}>Se já tiver conta Phlox, entra já na equipa. Senão, recebe um convite por email para criar a conta.</p>
-                    </>
-                  )}
-
-                  <label style={{ ...lbl, marginTop: 14 }}>Função</label>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 16 }}>
-                    {ROLES.map(r => (
-                      <button key={r.id} onClick={() => setNewRole(r.id)} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${newRole === r.id ? ACCENT : '#e9eaec'}`, background: newRole === r.id ? '#f0fdfa' : 'white', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit' }}>
-                        <span style={{ width: 16, height: 16, borderRadius: '50%', border: `2px solid ${newRole === r.id ? ACCENT : '#cbd5e1'}`, background: newRole === r.id ? ACCENT : 'white', flexShrink: 0 }} />
-                        <span><span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{r.label}</span><span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8' }}>{r.hint}</span></span>
-                      </button>
-                    ))}
-                  </div>
-
-                  <button onClick={addMember} disabled={busy || (addMode === 'generate' ? !newName.trim() : !newEmail.trim())} style={{ ...btn, opacity: busy || (addMode === 'generate' ? !newName.trim() : !newEmail.trim()) ? 0.5 : 1 }}>
-                    {busy ? 'A processar…' : addMode === 'generate' ? 'Gerar acesso →' : 'Adicionar / convidar →'}
-                  </button>
-
-                  {inviteMsg && <div style={{ marginTop: 12, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 10, padding: '10px 14px', fontSize: 13 }}>{inviteMsg}</div>}
-
-                  {/* Credenciais geradas — mostram-se UMA vez */}
-                  {lastLogin && (
-                    <div style={{ marginTop: 16, background: '#f0fdfa', border: `1.5px solid ${ACCENT}`, borderRadius: 12, padding: 16 }}>
-                      <div style={{ fontSize: 12, fontWeight: 800, color: ACCENT, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>✓ Acesso criado — entregue ao funcionário</div>
-                      <div style={{ display: 'flex', gap: 18, flexWrap: 'wrap', marginBottom: 12 }}>
-                        <div><div style={lblsm}>Utilizador</div><div style={mono}>{lastLogin.username}</div></div>
-                        <div><div style={lblsm}>Palavra-passe</div><div style={mono}>{lastLogin.password}</div></div>
-                      </div>
-                      <div style={{ display: 'flex', gap: 8 }}>
-                        <button onClick={() => printLogin(lastLogin)} style={{ ...btnSm, background: ACCENT, color: 'white' }}>🖨 Imprimir</button>
-                        <button onClick={() => { navigator.clipboard?.writeText(`${lastLogin.username} / ${lastLogin.password}`) }} style={{ ...btnSm, background: 'white', color: ACCENT, border: `1px solid ${ACCENT}` }}>Copiar</button>
-                      </div>
-                      <p style={{ fontSize: 11.5, color: '#64748b', margin: '10px 0 0' }}>Guarde isto agora — a palavra-passe não volta a ser mostrada.</p>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {/* Lista da equipa */}
-            <div style={card}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 12 }}>Equipa ({team.length})</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                {team.map(m => (
-                  <div key={m.user_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', border: '1px solid #f1f5f9', borderRadius: 10 }}>
-                    <span style={{ width: 34, height: 34, borderRadius: '50%', background: '#f0fdfa', color: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>{(m.name || '?')[0].toUpperCase()}</span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{m.name}</span>
-                      <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8' }}>
-                        {resumoCurto(PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role)}{m.email ? ` · ${m.email}` : ''}
-                      </span>
-                    </span>
-                    {/* Os acessos desta pessoa. O Dono não se limita — é a
-                        única garantia de que ninguém fica fechado fora da sua
-                        própria casa. */}
-                    {isManager && !['owner', 'dono'].includes(m.role) && (
-                      <button onClick={() => setAcessosDe(m)} style={{ background: 'none', border: '1px solid #e2e8f0', borderRadius: 7, padding: '4px 10px', color: '#475569', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Acessos</button>
-                    )}
-                    {isManager && !['owner', 'dono'].includes(m.role) && (
-                      <button onClick={() => removeMember(m.user_id)} style={{ background: 'none', border: 'none', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Remover</button>
-                    )}
-                    {['owner', 'dono'].includes(m.role) && <span style={{ fontSize: 11, color: ACCENT, fontWeight: 700 }}>Dono</span>}
+                {invites.map((iv, i) => (
+                  <div key={i} style={{
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    padding: '8px 12px', borderBottom: '1px solid var(--border)',
+                  }}>
+                    <span style={{ flex: 1, ...MONO, fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>{iv.email}</span>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{roleLabel(iv.role)}</span>
+                    <Codigo texto="POR ACEITAR" cor="var(--amber)" />
                   </div>
                 ))}
-              </div>
+              </>
+            )}
+          </Painel>
 
-              {invites.length > 0 && (
-                <>
-                  <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', margin: '16px 0 8px' }}>Convites por aceitar</div>
-                  {invites.map((iv, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px', fontSize: 12.5, color: '#64748b' }}>
-                      <span>✉️</span><span style={{ flex: 1 }}>{iv.email}</span><span style={{ fontSize: 11 }}>{roleLabel(iv.role)}</span>
+          {/* ══ O QUE SE ESTÁ A FAZER ═════════════════════════════════════════ */}
+          {isManager ? (
+            <Painel
+              cabeca={
+                <Cabecalho>
+                  <span style={{ ...ROTULO, flex: 1 }}>
+                    {showSettings ? 'Definições da instituição' : 'Adicionar funcionário'}
+                  </span>
+                </Cabecalho>
+              }
+            >
+              {showSettings ? (
+                <div style={{ padding: 14 }}>{definicoesDaCasa}</div>
+              ) : (
+                <div style={{ padding: 14 }}>
+                  {/* Duas maneiras de dar acesso, e a diferença importa: gerar
+                      um login na hora serve a auxiliar que não usa email; o
+                      convite serve quem já tem conta Phlox. */}
+                  <Campo rotulo="Como é que esta pessoa entra">
+                    <Seletor
+                      opcoes={[
+                        { id: 'generate', rotulo: 'Gerar login na hora' },
+                        { id: 'invite', rotulo: 'Convidar por email' },
+                      ]}
+                      ativa={addMode} aoMudar={m => setAddMode(m as 'generate' | 'invite')} />
+                  </Campo>
+
+                  {addMode === 'generate' ? (
+                    <Campo rotulo="Nome do funcionário" para="staff-name"
+                      ajuda="O Phlox cria o utilizador e a palavra-passe — entrega-os ao funcionário (pode imprimir).">
+                      <input id="staff-name" value={newName} onChange={e => setNewName(e.target.value)}
+                        placeholder="Ex: Ana Silva" style={{ ...CAIXA, width: '100%' }} />
+                    </Campo>
+                  ) : (
+                    <Campo rotulo="Email do funcionário" para="staff-email"
+                      ajuda="Se já tiver conta Phlox, entra logo na equipa. Senão, recebe um convite por email para a criar.">
+                      <input id="staff-email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
+                        placeholder="ana@exemplo.pt" style={{ ...CAIXA, width: '100%' }} />
+                    </Campo>
+                  )}
+
+                  <div style={{ ...ROTULO, margin: '14px 0 6px' }}>Função</div>
+                  {ROLES.map(r => {
+                    const on = newRole === r.id
+                    return (
+                      <button key={r.id} type="button" onClick={() => setNewRole(r.id)}
+                        style={{
+                          display: 'flex', alignItems: 'flex-start', gap: 9, width: '100%',
+                          textAlign: 'left', padding: '8px 10px', cursor: 'pointer',
+                          border: 'none', borderBottom: '1px solid var(--border)',
+                          borderLeft: `3px solid ${on ? 'var(--green)' : 'transparent'}`,
+                          background: on ? 'var(--green-light)' : 'transparent',
+                          fontFamily: 'inherit',
+                        }}>
+                        <span aria-hidden style={{
+                          ...MONO, fontSize: 'var(--t-meta)', color: on ? 'var(--green)' : 'var(--ink-5)',
+                          fontWeight: 'var(--peso-forte)' as any, flexShrink: 0, marginTop: 1,
+                        }}>{on ? '●' : '○'}</span>
+                        <span style={{ minWidth: 0 }}>
+                          <span style={{
+                            display: 'block', fontSize: 'var(--t-dado)',
+                            fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+                          }}>{r.label}</span>
+                          <span style={{
+                            display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.45,
+                          }}>{r.hint}</span>
+                        </span>
+                      </button>
+                    )
+                  })}
+
+                  <div style={{ marginTop: 14 }}>
+                    <Botao feitio="principal" onClick={addMember} esperando={busy}
+                      disabled={addMode === 'generate' ? !newName.trim() : !newEmail.trim()}>
+                      {addMode === 'generate' ? 'GERAR ACESSO →' : 'ADICIONAR / CONVIDAR →'}
+                    </Botao>
+                  </div>
+
+                  {inviteMsg && <div style={{ marginTop: 12 }}><Aviso tom="bom">{inviteMsg}</Aviso></div>}
+
+                  {/* As credenciais mostram-se UMA vez. A frase que o diz não é
+                      um aviso decorativo: a palavra-passe não está guardada em
+                      sítio nenhum em claro, e não há como voltar a mostrá-la. */}
+                  {lastLogin && (
+                    <div style={{
+                      marginTop: 14, border: '1px solid var(--green)',
+                      borderRadius: 'var(--r-sm)', overflow: 'hidden',
+                    }}>
+                      <div style={{
+                        padding: '6px 12px', background: 'var(--green-light)',
+                        borderBottom: '1px solid var(--green)',
+                      }}>
+                        <span style={{ ...ROTULO, color: 'var(--green)' }}>
+                          Acesso criado — entregue ao funcionário
+                        </span>
+                      </div>
+                      <div style={{ padding: 12 }}>
+                        <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', marginBottom: 10 }}>
+                          <span>
+                            <span style={{ ...ROTULO, display: 'block', marginBottom: 2 }}>Utilizador</span>
+                            <span style={{ ...MONO, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>
+                              {lastLogin.username}
+                            </span>
+                          </span>
+                          <span>
+                            <span style={{ ...ROTULO, display: 'block', marginBottom: 2 }}>Palavra-passe</span>
+                            <span style={{ ...MONO, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>
+                              {lastLogin.password}
+                            </span>
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                          <Botao feitio="principal" onClick={() => printLogin(lastLogin)}>IMPRIMIR</Botao>
+                          <Botao onClick={() => { navigator.clipboard?.writeText(`${lastLogin.username} / ${lastLogin.password}`) }}>
+                            COPIAR
+                          </Botao>
+                        </div>
+                        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', margin: '9px 0 0', lineHeight: 1.5 }}>
+                          Guarde isto agora — a palavra-passe não volta a ser mostrada.
+                        </p>
+                      </div>
                     </div>
-                  ))}
-                </>
+                  )}
+                </div>
               )}
-            </div>
-          </>
-        )}
-        </>}
-      </div>
-
-      {/* ── Os acessos de uma pessoa ────────────────────────────────────
-          A frase primeiro, a matriz atrás de «Afinar». Quem guarda é a rota
-          /api/org/permissoes, que volta a verificar tudo do lado do servidor:
-          esconder um botão não impede ninguém de chamar a API. */}
-      {acessosDe && (
-        <AcessosPessoa
-          pessoa={{
-            user_id: acessosDe.user_id,
-            nome: acessosDe.name,
-            email: acessosDe.email,
-            papel: PAPEL_ANTIGO_PARA_NOVO[acessosDe.role] || acessosDe.role,
-          }}
-          aoFechar={() => setAcessosDe(null)}
-          aoGuardar={async (papel, permissoes) => {
-            try {
-              const r = await fetch('/api/org/permissoes', {
-                method: 'POST', headers: await auth(),
-                body: JSON.stringify({ userId: acessosDe.user_id, papel, permissoes }),
-              })
-              const j = await r.json()
-              if (!r.ok) return { ok: false, erro: j.error || 'Não foi possível guardar.' }
-              await loadAll()
-              return { ok: true }
-            } catch {
-              return { ok: false, erro: 'Não foi possível guardar. Verifique a ligação.' }
-            }
-          }}
-        />
+            </Painel>
+          ) : largo ? (
+            <Painel>
+              <Vazio titulo="Só quem gere a equipa pode adicionar ou tirar pessoas."
+                oQueFazer="Vê a lista toda, com a função de cada um. Para mudar acessos, fale com a Direção Técnica ou com o dono." />
+            </Painel>
+          ) : null}
+        </div>
       )}
-    </div>
+    </Mesa>
+
+    {/* ── Os acessos de uma pessoa ────────────────────────────────────
+        A frase primeiro, a matriz atrás de «Afinar». Quem guarda é a rota
+        /api/org/permissoes, que volta a verificar tudo do lado do servidor:
+        esconder um botão não impede ninguém de chamar a API. */}
+    {acessosDe && (
+      <AcessosPessoa
+        pessoa={{
+          user_id: acessosDe.user_id,
+          nome: acessosDe.name,
+          email: acessosDe.email,
+          papel: PAPEL_ANTIGO_PARA_NOVO[acessosDe.role] || acessosDe.role,
+        }}
+        aoFechar={() => setAcessosDe(null)}
+        aoGuardar={async (papel, permissoes) => {
+          try {
+            const r = await fetch('/api/org/permissoes', {
+              method: 'POST', headers: await auth(),
+              body: JSON.stringify({ userId: acessosDe.user_id, papel, permissoes }),
+            })
+            const j = await r.json()
+            if (!r.ok) return { ok: false, erro: j.error || 'Não foi possível guardar.' }
+            await loadAll()
+            return { ok: true }
+          } catch {
+            return { ok: false, erro: 'Não foi possível guardar. Verifique a ligação.' }
+          }
+        }}
+      />
+    )}
+    </>
   )
 }
 
 function roleLabel(r: string) {
   return ({ owner: 'Dono', admin: 'Administrador', nurse: 'Enfermeiro/a', assistant: 'Auxiliar', clinician: 'Clínico', viewer: 'Só leitura' } as any)[r] || r
 }
-const lbl: React.CSSProperties = { display: 'block', fontSize: 11, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }
-const lblsm: React.CSSProperties = { fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }
-const mono: React.CSSProperties = { fontFamily: 'var(--font-mono, monospace)', fontSize: 18, fontWeight: 700, color: '#0b1120' }
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '10px 13px', fontSize: 14, fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }
-const btn: React.CSSProperties = { width: '100%', padding: '12px', background: ACCENT, color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'inherit' }
-const btnSm: React.CSSProperties = { padding: '8px 14px', borderRadius: 8, border: 'none', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }
 

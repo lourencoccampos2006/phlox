@@ -22,7 +22,7 @@ export default function PlanGate({ min, tool, children, note }: {
 
   if (loading) {
     return <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div className="skeleton" style={{ width: 280, height: 120, borderRadius: 14 }} />
+      <div className="skeleton" style={{ width: 280, height: 120, borderRadius: 'var(--r-xl)' }} />
     </div>
   }
 
@@ -35,8 +35,8 @@ export default function PlanGate({ min, tool, children, note }: {
 
   return (
     <div style={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, fontFamily: 'var(--font-sans)' }}>
-      <div style={{ width: 'min(460px, 100%)', background: 'white', border: '1px solid var(--border)', borderRadius: 18, padding: '28px 26px', textAlign: 'center', boxShadow: '0 12px 50px rgba(8,12,24,0.08)' }}>
-        <div style={{ width: 54, height: 54, borderRadius: 14, background: target.color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+      <div style={{ width: 'min(460px, 100%)', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '28px 26px', textAlign: 'center', boxShadow: '0 12px 50px rgba(8,12,24,0.08)' }}>
+        <div style={{ width: 54, height: 54, borderRadius: 'var(--r-xl)', background: target.color + '14', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={target.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
         </div>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: target.color, letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 8, fontWeight: 700 }}>Funcionalidade {planName(min)}</div>
@@ -46,15 +46,15 @@ export default function PlanGate({ min, tool, children, note }: {
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
           {isOrg ? (
-            <Link href="/organizacao" style={{ padding: '13px 18px', background: target.color, color: 'white', borderRadius: 10, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>
+            <Link href="/organizacao" style={{ padding: '13px 18px', background: target.color, color: 'white', borderRadius: 'var(--r-lg)', textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>
               Conhecer o plano Institucional
             </Link>
           ) : (
-            <Link href={`/checkout?plan=${min}`} style={{ padding: '13px 18px', background: target.color, color: 'white', borderRadius: 10, textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>
+            <Link href={`/checkout?plan=${min}`} style={{ padding: '13px 18px', background: target.color, color: 'white', borderRadius: 'var(--r-lg)', textDecoration: 'none', fontSize: 14, fontWeight: 700 }}>
               Obter {planName(min)} — {target.price.monthly.toFixed(2).replace('.', ',')}€/mês
             </Link>
           )}
-          <Link href="/pricing" style={{ padding: '11px', background: 'none', color: 'var(--ink-4)', borderRadius: 10, textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
+          <Link href="/pricing" style={{ padding: '11px', background: 'none', color: 'var(--ink-4)', borderRadius: 'var(--r-lg)', textDecoration: 'none', fontSize: 13, fontWeight: 600 }}>
             Ver todos os planos
           </Link>
         </div>

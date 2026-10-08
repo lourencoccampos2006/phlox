@@ -10,6 +10,10 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { logStudy, setLastTool } from '@/lib/studyProgress'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface GrandRoundCase {
   id: string
@@ -53,9 +57,9 @@ const SPECIALTIES = [
 ]
 
 const DIFF_META = {
-  comum:   { label: 'Comum',   color: '#0d6e42', bg: '#d1fae5' },
-  incomum: { label: 'Incomum', color: '#d97706', bg: '#fef9c3' },
-  raro:    { label: 'Raro',    color: '#dc2626', bg: '#fee2e2' },
+  comum:   { label: 'Comum',   color: 'var(--green)', bg: 'var(--badge-green-bg)' },
+  incomum: { label: 'Incomum', color: 'var(--amber)', bg: 'var(--amber-light)' },
+  raro:    { label: 'Raro',    color: 'var(--red)', bg: 'var(--badge-red-bg)' },
 }
 
 function timeAgo(d: string) {
@@ -69,28 +73,28 @@ function timeAgo(d: string) {
 function CaseCard({ c, onClick }: { c: GrandRoundCase; onClick: () => void }) {
   const diff = DIFF_META[c.difficulty]
   return (
-    <div onClick={onClick} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '18px 20px', cursor: 'pointer', transition: 'all 0.15s' }} className="grand-card">
+    <div onClick={onClick} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '18px 20px', cursor: 'pointer', transition: 'all 0.15s' }} className="grand-card">
       <div style={{ display: 'flex', gap: 10, marginBottom: 10, flexWrap: 'wrap', alignItems: 'center' }}>
-        <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: diff.color, background: diff.bg, padding: '2px 7px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{diff.label}</span>
-        <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{c.specialty}</span>
-        {c.revealed && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', padding: '2px 7px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>Revelado</span>}
-        <span style={{ fontSize: 10, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>{timeAgo(c.created_at)}</span>
+        <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: diff.color, background: diff.bg, padding: '2px 7px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{diff.label}</span>
+        <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{c.specialty}</span>
+        {c.revealed && <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', background: 'var(--badge-green-bg)', padding: '2px 7px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>Revelado</span>}
+        <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginLeft: 'auto' }}>{timeAgo(c.created_at)}</span>
       </div>
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, marginBottom: 8, lineHeight: 1.3 }}>{c.title}</div>
-      <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 12 }}>
+      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, marginBottom: 8, lineHeight: 1.3 }}>{c.title}</div>
+      <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 12 }}>
         {c.presentation.slice(0, 180)}{c.presentation.length > 180 ? '...' : ''}
       </p>
       {c.key_findings?.length > 0 && (
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
           {c.key_findings.slice(0, 4).map((f, i) => (
-            <span key={i} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '2px 8px', borderRadius: 3 }}>{f}</span>
+            <span key={i} style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>{f}</span>
           ))}
         </div>
       )}
       <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>
-        <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>↑ {c.votes}</span>
-        <span style={{ fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>💬 {c.comments_count}</span>
-        <span style={{ fontSize: 11, color: 'var(--ink-4)', marginLeft: 'auto' }}>{c.submitted_role} · {c.submitted_by}</span>
+        <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>↑ {c.votes}</span>
+        <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{c.comments_count}</span>
+        <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginLeft: 'auto' }}>{c.submitted_role} · {c.submitted_by}</span>
       </div>
     </div>
   )
@@ -155,56 +159,56 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
 
   return (
     <div>
-      <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)', padding: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 5 }}>← Voltar</button>
+      <button onClick={onBack} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-dado)', color: 'var(--ink-4)', fontFamily: 'var(--font-sans)', padding: 0, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 5 }}>← Voltar</button>
 
-      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden', marginBottom: 14 }}>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', marginBottom: 14 }}>
         <div style={{ padding: '20px 22px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 10, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: diff.color, background: diff.bg, padding: '2px 7px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{diff.label}</span>
-            <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{c.specialty}</span>
+            <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: diff.color, background: diff.bg, padding: '2px 7px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{diff.label}</span>
+            <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{c.specialty}</span>
           </div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, marginBottom: 6 }}>{c.title}</div>
-          <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, marginBottom: 6 }}>{c.title}</div>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>
             Submetido por {c.submitted_by} ({c.submitted_role}) · {timeAgo(c.created_at)}
           </div>
         </div>
         <div style={{ padding: '20px 22px' }}>
-          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Apresentação clínica</div>
-          <p style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.8, fontFamily: 'var(--font-serif)', marginBottom: 16 }}>{c.presentation}</p>
+          <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Apresentação clínica</div>
+          <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', lineHeight: 1.8, fontFamily: 'var(--font-serif)', marginBottom: 16 }}>{c.presentation}</p>
 
           {c.key_findings?.length > 0 && (
             <div style={{ marginBottom: 16 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Achados chave</div>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Achados chave</div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 {c.key_findings.map((f, i) => (
-                  <span key={i} style={{ fontSize: 12, fontFamily: 'var(--font-mono)', color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '3px 10px', borderRadius: 4 }}>{f}</span>
+                  <span key={i} style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '3px 10px', borderRadius: 'var(--r)' }}>{f}</span>
                 ))}
               </div>
             </div>
           )}
 
-          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Questão para debate</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: '#1e40af', lineHeight: 1.5 }}>{c.question}</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 16px', marginBottom: 20 }}>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Questão para debate</div>
+            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', lineHeight: 1.5 }}>{c.question}</div>
           </div>
 
           {/* Vote */}
           <div style={{ display: 'flex', gap: 10, marginBottom: 20 }}>
             <button onClick={vote} disabled={voted}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: voted ? '#d1fae5' : 'white', border: `1px solid ${voted ? '#6ee7b7' : 'var(--border)'}`, borderRadius: 7, cursor: voted ? 'default' : 'pointer', fontSize: 13, fontWeight: 700, color: voted ? '#0d6e42' : 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', background: voted ? 'var(--badge-green-bg)' : 'white', border: `1px solid ${voted ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', cursor: voted ? 'default' : 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: voted ? 'var(--green)' : 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
               ↑ {votes} {voted ? 'votaste' : 'votar'}
             </button>
           </div>
 
           {/* My diagnosis */}
           {!c.revealed && (
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 16px', marginBottom: 16 }}>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>O teu diagnóstico / raciocínio</div>
+            <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 16 }}>
+              <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--badge-amber-fg)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>O teu diagnóstico / raciocínio</div>
               <textarea value={myDiag} onChange={e => setMyDiag(e.target.value)}
                 placeholder="Qual é o teu diagnóstico diferencial? O que farias a seguir?"
-                rows={3} style={{ width: '100%', border: '1.5px solid #fde68a', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, background: 'white', marginBottom: 8 }} />
+                rows={3} style={{ width: '100%', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, background: 'white', marginBottom: 8 }} />
               <button onClick={submitDiagnosis} disabled={!myDiag.trim()}
-                style={{ padding: '8px 16px', background: '#d97706', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', opacity: myDiag.trim() ? 1 : 0.5 }}>
+                style={{ padding: '8px 16px', background: 'var(--amber)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', opacity: myDiag.trim() ? 1 : 0.5 }}>
                 Guardar raciocínio
               </button>
             </div>
@@ -212,15 +216,15 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
 
           {/* Revelation */}
           {c.revealed && c.diagnosis && (
-            <div style={{ background: '#0f172a', borderRadius: 10, padding: '18px 20px', marginBottom: 16 }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>Diagnóstico e Plano — Revelado pelo autor</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: '#f8fafc', marginBottom: 10 }}>{c.diagnosis}</div>
-              {c.management && <p style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.7, marginBottom: 10 }}>{c.management}</p>}
+            <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-lg)', padding: '18px 20px', marginBottom: 16 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.14em', marginBottom: 8 }}>Diagnóstico e Plano — Revelado pelo autor</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--bg-2)', marginBottom: 10 }}>{c.diagnosis}</div>
+              {c.management && <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', lineHeight: 1.7, marginBottom: 10 }}>{c.management}</p>}
               {c.learning_points && (
-                <div style={{ borderTop: '1px solid #1e293b', paddingTop: 10 }}>
-                  <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Pontos de aprendizagem</div>
+                <div style={{ borderTop: '1px solid var(--ink-2)', paddingTop: 10 }}>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Pontos de aprendizagem</div>
                   {c.learning_points.map((p, i) => (
-                    <div key={i} style={{ fontSize: 13, color: '#94a3b8', lineHeight: 1.6, marginBottom: 4 }}>→ {p}</div>
+                    <div key={i} style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', lineHeight: 1.6, marginBottom: 4 }}>→ {p}</div>
                   ))}
                 </div>
               )}
@@ -231,34 +235,34 @@ function CaseDetail({ c, onBack, userId, supabase, myRole, myName }: {
 
       {/* Comments */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+        <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
           Debate da comunidade ({comments.length})
         </div>
-        <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 10, padding: 14, marginBottom: 10 }}>
+        <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14, marginBottom: 10 }}>
           <textarea value={comment} onChange={e => setComment(e.target.value)}
             placeholder="Partilha o teu raciocínio, diagnóstico diferencial, ou questão..."
-            rows={3} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, marginBottom: 8 }} />
+            rows={3} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6, marginBottom: 8 }} />
           <button onClick={submitComment} disabled={!comment.trim() || submitting}
-            style={{ padding: '9px 18px', background: comment.trim() ? 'var(--ink)' : 'var(--bg-3)', color: comment.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+            style={{ padding: '9px 18px', background: comment.trim() ? 'var(--ink)' : 'var(--bg-3)', color: comment.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
             Comentar
           </button>
           {erroEnvio && (
             <div style={{
-              marginTop: 8, padding: '8px 12px', background: '#fff5f5',
-              border: '1px solid #fed7d7', borderRadius: 7,
-              fontSize: 12.5, color: '#c53030', lineHeight: 1.5,
+              marginTop: 8, padding: '8px 12px', background: 'var(--badge-red-bg)',
+              border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)',
+              fontSize: 'var(--t-meta)', color: 'var(--red)', lineHeight: 1.5,
             }}>{erroEnvio}</div>
           )}
         </div>
         {comments.map(cm => (
-          <div key={cm.id} style={{ padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 9, marginBottom: 6 }}>
+          <div key={cm.id} style={{ padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', marginBottom: 6 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 6, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{cm.author_name}</span>
-              {cm.author_role && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{cm.author_role}</span>}
-              {cm.is_answer && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', background: '#d1fae5', padding: '1px 5px', borderRadius: 3 }}>Resposta do autor</span>}
-              <span style={{ fontSize: 10, color: 'var(--ink-5)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{timeAgo(cm.created_at)}</span>
+              <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{cm.author_name}</span>
+              {cm.author_role && <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>{cm.author_role}</span>}
+              {cm.is_answer && <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', background: 'var(--badge-green-bg)', padding: '1px 5px', borderRadius: 'var(--r-sm)' }}>Resposta do autor</span>}
+              <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginLeft: 'auto', fontFamily: 'var(--font-mono)' }}>{timeAgo(cm.created_at)}</span>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.65, margin: 0 }}>{cm.content}</p>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', lineHeight: 1.65, margin: 0 }}>{cm.content}</p>
           </div>
         ))}
       </div>
@@ -330,17 +334,28 @@ export default function GrandRoundPage() {
   const tabStyle = (t: string) => ({
     padding: '9px 16px', background: 'none', border: 'none',
     borderBottom: `2px solid ${tab === t ? 'var(--ink)' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 11, fontWeight: 700,
+    cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
     color: tab === t ? 'var(--ink)' : 'var(--ink-4)',
     fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
     textTransform: 'uppercase' as const, marginBottom: -1,
   })
 
-  const inp = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }
-  const lbl = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 6, display: 'block' }
+  const inp = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }
+  const lbl = { fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 6, display: 'block' }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Grande visita</span>
+        </BarraDeTrabalho>
+      }
+    >
 
 
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
@@ -348,16 +363,16 @@ export default function GrandRoundPage() {
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14, flexWrap: 'wrap', gap: 10 }}>
             <div>
               <div className="eyebrow" style={{ marginBottom: 6 }}>Phlox Grand Round</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 4 }}>
+              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, letterSpacing: '-0.01em', marginBottom: 4 }}>
                 Casos clínicos da comunidade
               </h1>
-              <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: 0 }}>
+              <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: 0 }}>
                 Submete um caso real. A comunidade debate. O autor revela o diagnóstico.
               </p>
             </div>
             {isPro && !composing && !selected && (
               <button onClick={() => setComposing(true)}
-                style={{ padding: '10px 20px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                style={{ padding: '10px 20px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
                 + Submeter caso
               </button>
             )}
@@ -378,8 +393,8 @@ export default function GrandRoundPage() {
             userId={user?.id || ''} supabase={supabase}
             myRole={myRole} myName={user?.name || 'Anónimo'} />
         ) : composing ? (
-          <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 12, padding: 22 }}>
-            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 18 }}>
+          <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 'var(--r-xl)', padding: 22 }}>
+            <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 18 }}>
               Submeter caso clínico
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -414,7 +429,7 @@ export default function GrandRoundPage() {
                 <label style={lbl}>Achados chave (um por linha)</label>
                 <textarea value={form.key_findings} onChange={e => setForm(p=>({...p,key_findings:e.target.value}))}
                   placeholder={'TA 180/110 mmHg\nCreatinina 2.3 mg/dL\nProteinúria 3+'} rows={3}
-                  style={{ ...inp, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12 }} />
+                  style={{ ...inp, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)' }} />
               </div>
               <div>
                 <label style={lbl}>Questão para a comunidade *</label>
@@ -422,7 +437,7 @@ export default function GrandRoundPage() {
                   placeholder="Ex: Qual seria o vosso diagnóstico diferencial e plano imediato?" style={inp} />
               </div>
               <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 4 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#854d0e', marginBottom: 10, background: '#fef9c3', padding: '8px 10px', borderRadius: 6 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--badge-amber-fg)', marginBottom: 10, background: 'var(--amber-light)', padding: '8px 10px', borderRadius: 'var(--r)' }}>
                   Resposta do autor — preenche agora e revela quando quiseres
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -447,11 +462,11 @@ export default function GrandRoundPage() {
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <button onClick={submitCase} disabled={submitting || !form.title.trim() || !form.presentation.trim() || !form.question.trim()}
-                  style={{ flex: 1, padding: '12px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', opacity: (form.title.trim() && form.presentation.trim()) ? 1 : 0.5 }}>
+                  style={{ flex: 1, padding: '12px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', opacity: (form.title.trim() && form.presentation.trim()) ? 1 : 0.5 }}>
                   {submitting ? 'A submeter...' : 'Submeter caso →'}
                 </button>
                 <button onClick={() => setComposing(false)}
-                  style={{ padding: '12px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '12px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)' }}>
                   Cancelar
                 </button>
               </div>
@@ -459,19 +474,19 @@ export default function GrandRoundPage() {
           </div>
         ) : loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height: 180, borderRadius: 10 }} />)}
+            {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height: 180, borderRadius: 'var(--r-lg)' }} />)}
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 12, padding: '56px 24px', textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 10 }}>
+          <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-xl)', padding: '56px 24px', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 10 }}>
               {tab === 'open' ? 'Ainda sem casos em aberto' : tab === 'revealed' ? 'Ainda sem casos revelados' : 'Ainda não submeteste nenhum caso'}
             </div>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 360, margin: '0 auto 20px' }}>
+            <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 360, margin: '0 auto 20px' }}>
               {isPro ? 'Sê o primeiro a submeter um caso clínico para debate da comunidade.' : 'O Grand Round requer plano Pro ou superior.'}
             </p>
             {isPro
-              ? <button onClick={() => setComposing(true)} style={{ padding: '11px 24px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Submeter primeiro caso →</button>
-              : <Link href="/pricing" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>Ver planos →</Link>
+              ? <button onClick={() => setComposing(true)} style={{ padding: '11px 24px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>Submeter primeiro caso →</button>
+              : <Link href="/pricing" style={{ display: 'inline-block', padding: '11px 24px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>Ver planos →</Link>
             }
           </div>
         ) : (
@@ -481,6 +496,6 @@ export default function GrandRoundPage() {
         )}
       </div>
       <style>{`.grand-card:hover { border-color: var(--border-2) !important; transform: translateY(-1px); box-shadow: var(--shadow-md); }`}</style>
-    </div>
+    </Mesa>
   )
 }

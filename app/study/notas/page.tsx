@@ -8,8 +8,9 @@
 
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import Icon from '@/components/Icon'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 interface Note {
   id: string; title: string; body: string|null; domain: string|null
@@ -26,13 +27,13 @@ type Tab = 'review' | 'notes' | 'graph'
 
 // ─── Templates clínicos ─────────────────────────────────────────────────────
 const TEMPLATES: { id: string; icon: string; title: string; domain: string; body: string }[] = [
-  { id: 'soap', icon: '📝', title: 'Nota SOAP', domain: 'clinico', body: `## S — Subjectivo\n(queixas, história relatada)\n\n## O — Objectivo\n(exame físico, vitais, exames)\n\n## A — Avaliação\n(diagnóstico/raciocínio)\n\n## P — Plano\n(terapêutica e seguimento)\n` },
-  { id: 'caso', icon: '🩺', title: 'Caso clínico', domain: 'clinico', body: `## Identificação\nSexo, idade, profissão.\n\n## História da doença actual\n(HDA)\n\n## Antecedentes\n- Pessoais:\n- Familiares:\n- Hábitos:\n\n## Exame físico\nVitais: TA · FC · FR · SpO2 · T\n\n## Exames complementares\n\n## Diagnóstico diferencial\n\n## Conduta\n\n## Discussão / Pearls\n` },
-  { id: 'farmaco', icon: '💊', title: 'Cartão de fármaco', domain: 'farmacologia', body: `## Princípio activo\n\n## Classe terapêutica\n\n## Mecanismo de acção\n\n## Indicações principais\n\n## Doses (adulto)\n\n## Efeitos adversos comuns\n\n## Contra-indicações\n\n## Interacções importantes\n\n## Pearls\n` },
+  { id: 'soap', icon: 'note', title: 'Nota SOAP', domain: 'clinico', body: `## S — Subjectivo\n(queixas, história relatada)\n\n## O — Objectivo\n(exame físico, vitais, exames)\n\n## A — Avaliação\n(diagnóstico/raciocínio)\n\n## P — Plano\n(terapêutica e seguimento)\n` },
+  { id: 'caso', icon: 'stethoscope', title: 'Caso clínico', domain: 'clinico', body: `## Identificação\nSexo, idade, profissão.\n\n## História da doença actual\n(HDA)\n\n## Antecedentes\n- Pessoais:\n- Familiares:\n- Hábitos:\n\n## Exame físico\nVitais: TA · FC · FR · SpO2 · T\n\n## Exames complementares\n\n## Diagnóstico diferencial\n\n## Conduta\n\n## Discussão / Pearls\n` },
+  { id: 'farmaco', icon: 'pill', title: 'Cartão de fármaco', domain: 'farmacologia', body: `## Princípio activo\n\n## Classe terapêutica\n\n## Mecanismo de acção\n\n## Indicações principais\n\n## Doses (adulto)\n\n## Efeitos adversos comuns\n\n## Contra-indicações\n\n## Interacções importantes\n\n## Pearls\n` },
   { id: 'patologia', icon: '🦠', title: 'Cartão de patologia', domain: 'medicina_interna', body: `## Definição\n\n## Epidemiologia\n\n## Fisiopatologia\n\n## Manifestações clínicas\n\n## Diagnóstico\n### Critérios\n### Exames\n\n## Diagnóstico diferencial\n\n## Tratamento\n### Primeira linha\n### Refractária\n\n## Complicações\n` },
   { id: 'ecg', icon: '💓', title: 'Cartão de ECG', domain: 'cardiologia', body: `## Tipo de ritmo\n\n## Frequência\n\n## PR · QRS · QTc\n\n## Achados-chave\n\n## Diagnóstico\n\n## Conduta\n\n## DDx\n` },
-  { id: 'procedimento', icon: '✅', title: 'Procedimento', domain: 'clinico', body: `## Indicações\n\n## Contra-indicações\n\n## Material\n\n## Passos\n1.\n2.\n3.\n\n## Complicações\n` },
-  { id: 'review', icon: '🔁', title: 'Review semanal', domain: 'estudo', body: `## O que aprendi\n\n## A aprofundar\n\n## Erros / lacunas\n\n## Plano próxima semana\n` },
+  { id: 'procedimento', icon: 'check', title: 'Procedimento', domain: 'clinico', body: `## Indicações\n\n## Contra-indicações\n\n## Material\n\n## Passos\n1.\n2.\n3.\n\n## Complicações\n` },
+  { id: 'review', icon: 'refresh', title: 'Review semanal', domain: 'estudo', body: `## O que aprendi\n\n## A aprofundar\n\n## Erros / lacunas\n\n## Plano próxima semana\n` },
 ]
 
 const DOMAINS = ['farmacologia', 'cardiologia', 'medicina_interna', 'clinico', 'microbiologia', 'anatomia', 'fisiologia', 'estudo']
@@ -78,24 +79,24 @@ export default function NotasPage() {
     (async () => { setLoading(true); await Promise.all([loadNotes(), loadDash()]); setLoading(false) })()
   }, [loadNotes, loadDash])
 
-  if (loading) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
+  if (loading) return <main style={{ padding: 24 }}><p style={{ color: 'var(--ink-4)' }}>A carregar…</p></main>
 
   return (
     <main style={{ padding: '18px clamp(14px,4vw,32px)', maxWidth: 1100, margin: '0 auto' }}>
       {/* Cabeçalho editorial */}
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8b8f99', marginBottom: 4 }}>Memória clínica</div>
+        <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 4 }}>Memória clínica</div>
         <h1 style={{ margin: 0, fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>As tuas notas, a estudar contigo.</h1>
       </div>
 
       {/* Tabs */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e7e8ea', marginBottom: 16, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 16, overflowX: 'auto' }}>
         {([['review', `Rever${dash.due_today ? ` · ${dash.due_today}` : ''}`], ['notes', 'Notas'], ['graph', 'Grafo']] as [Tab, string][]).map(([t, label]) => (
           <button key={t} onClick={() => setTab(t)} style={{
             padding: '9px 14px', border: 'none', background: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-            fontSize: 14, fontWeight: 600, color: tab === t ? ACCENT : '#6b7280',
+            fontSize: 14, fontWeight: 600, color: tab === t ? ACCENT : 'var(--ink-4)',
             borderBottom: `2px solid ${tab === t ? ACCENT : 'transparent'}`, marginBottom: -1,
-          }}>{label}{t === 'review' && dash.due_today > 0 && <span style={{ marginLeft: 6, background: '#a82828', color: 'white', borderRadius: 999, padding: '1px 7px', fontSize: 11 }}>{dash.due_today}</span>}</button>
+          }}>{label}{t === 'review' && dash.due_today > 0 && <span style={{ marginLeft: 6, background: 'var(--red)', color: 'white', borderRadius: 999, padding: '1px 7px', fontSize: 11 }}>{dash.due_today}</span>}</button>
         ))}
       </div>
 
@@ -166,16 +167,16 @@ function ReviewTab({ auth, dash, onAfter, goNotes }: { auth: () => Promise<any>;
   // Para a voz ao sair da revisão
   useEffect(() => () => { if (typeof window !== 'undefined') window.speechSynthesis?.cancel() }, [])
 
-  if (loading) return <p style={{ color: '#6b7280' }}>A preparar a revisão…</p>
+  if (loading) return <p style={{ color: 'var(--ink-4)' }}>A preparar a revisão…</p>
 
   // Estado vazio / concluído
   if (cards.length === 0) {
     const nothingEver = dash.total_cards === 0
     return (
-      <div style={{ textAlign: 'center', padding: '48px 20px', background: '#f8fafc', border: '1px solid #e7e8ea', borderRadius: 12 }}>
+      <div style={{ textAlign: 'center', padding: '48px 20px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)' }}>
         <div style={{ fontSize: 40, marginBottom: 8 }}>{nothingEver ? '🗂️' : '✓'}</div>
         <h2 style={{ margin: '0 0 6px', fontSize: 20 }}>{nothingEver ? 'Ainda não tens cartões' : (done > 0 ? 'Revisão concluída!' : 'Nada para rever agora')}</h2>
-        <p style={{ color: '#6b7280', fontSize: 14, maxWidth: 420, margin: '0 auto 18px', lineHeight: 1.5 }}>
+        <p style={{ color: 'var(--ink-4)', fontSize: 14, maxWidth: 420, margin: '0 auto 18px', lineHeight: 1.5 }}>
           {nothingEver
             ? 'Cria uma nota e a IA transforma-a em flashcards. Eles voltam a ti no momento certo para fixares.'
             : done > 0 ? `Reviste ${done} cartões. Volta amanhã — a revisão espaçada reagenda automaticamente.`
@@ -191,26 +192,26 @@ function ReviewTab({ auth, dash, onAfter, goNotes }: { auth: () => Promise<any>;
   return (
     <div>
       {/* Progresso */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, fontSize: 13, color: '#6b7280' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, fontSize: 13, color: 'var(--ink-4)' }}>
         <span>Cartão {idx + 1} de {cards.length}</span>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <button onClick={() => setAudioMode(a => !a)} title="Estudar de ouvidos (mãos livres)" style={{
-            padding: '4px 10px', borderRadius: 999, border: `1px solid ${audioMode ? '#6d28d9' : '#e7e8ea'}`,
-            background: audioMode ? '#6d28d9' : 'white', color: audioMode ? 'white' : '#374151', cursor: 'pointer', fontSize: 12, fontWeight: 600,
+            padding: '4px 10px', borderRadius: 999, border: `1px solid ${audioMode ? 'var(--roxo)' : 'var(--border)'}`,
+            background: audioMode ? 'var(--roxo)' : 'white', color: audioMode ? 'white' : 'var(--ink-3)', cursor: 'pointer', fontSize: 12, fontWeight: 600,
           }}>{audioMode ? '🎧 A ouvir' : '🎧 Ouvir'}</button>
           <span>{dash.reviewed_today + done} revistos hoje</span>
         </div>
       </div>
-      <div style={{ height: 4, background: '#eceef0', borderRadius: 4, marginBottom: 18, overflow: 'hidden' }}>
+      <div style={{ height: 4, background: 'var(--bg-3)', borderRadius: 'var(--r)', marginBottom: 18, overflow: 'hidden' }}>
         <div style={{ height: '100%', width: `${pct}%`, background: ACCENT, transition: 'width 0.3s' }} />
       </div>
 
       {/* Cartão */}
-      <div style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 14, padding: 'clamp(20px,5vw,40px)', minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-        {card.domain && <div style={{ fontSize: 11, color: '#8b8f99', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>{card.domain.replace('_', ' ')}</div>}
-        <div style={{ fontSize: 'clamp(16px,2.5vw,20px)', color: '#16181d', lineHeight: 1.5, fontWeight: 600 }}>{card.front}</div>
+      <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 'clamp(20px,5vw,40px)', minHeight: 220, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {card.domain && <div style={{ fontSize: 11, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: 0.6, marginBottom: 12 }}>{card.domain.replace('_', ' ')}</div>}
+        <div style={{ fontSize: 'clamp(16px,2.5vw,20px)', color: 'var(--ink-2)', lineHeight: 1.5, fontWeight: 600 }}>{card.front}</div>
         {showBack && (
-          <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid #e7e8ea', fontSize: 'clamp(14px,2.2vw,17px)', color: '#374151', lineHeight: 1.6 }}>
+          <div style={{ marginTop: 20, paddingTop: 20, borderTop: '1px solid var(--border)', fontSize: 'clamp(14px,2.2vw,17px)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
             {card.back}
           </div>
         )}
@@ -221,15 +222,15 @@ function ReviewTab({ auth, dash, onAfter, goNotes }: { auth: () => Promise<any>;
         <button onClick={() => setShowBack(true)} style={{ ...btn('primary'), width: '100%', marginTop: 16, padding: '13px' }}>Mostrar resposta</button>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 8, marginTop: 16 }}>
-          {([['Errei', 0, '#a82828'], ['Difícil', 3, '#8a5a16'], ['Bom', 4, '#1f4a8a'], ['Fácil', 5, ACCENT]] as [string, number, string][]).map(([label, q, color]) => (
+          {([['Errei', 0, 'var(--red)'], ['Difícil', 3, 'var(--amber)'], ['Bom', 4, 'var(--ink-2)'], ['Fácil', 5, ACCENT]] as [string, number, string][]).map(([label, q, color]) => (
             <button key={q} onClick={() => grade(q)} style={{
-              padding: '12px 6px', border: `1px solid ${color}`, borderRadius: 8, background: 'white', color,
+              padding: '12px 6px', border: `1px solid ${color}`, borderRadius: 'var(--r-md)', background: 'white', color,
               fontWeight: 700, fontSize: 13, cursor: 'pointer',
             }}>{label}</button>
           ))}
         </div>
       )}
-      <p style={{ textAlign: 'center', fontSize: 11, color: '#9ca3af', marginTop: 12 }}>
+      <p style={{ textAlign: 'center', fontSize: 11, color: 'var(--ink-5)', marginTop: 12 }}>
         A tua resposta ajusta quando este cartão volta a aparecer (revisão espaçada).
       </p>
     </div>
@@ -261,25 +262,25 @@ function NotesTab({ auth, notes, reload }: { auth: () => Promise<any>; notes: No
         style={{ ...input, width: '100%', marginBottom: 14, padding: '10px 12px' }} />
 
       {filtered.length === 0 ? (
-        <p style={{ color: '#6b7280', fontSize: 14, textAlign: 'center', padding: 30 }}>
+        <p style={{ color: 'var(--ink-4)', fontSize: 14, textAlign: 'center', padding: 30 }}>
           {notes.length === 0 ? 'Sem notas ainda. Usa a captura acima ou um template.' : 'Nada encontrado.'}
         </p>
       ) : (
         <div style={{ display: 'grid', gap: 8 }}>
           {filtered.map(n => (
             <button key={n.id} onClick={() => setActive(n)} style={{
-              textAlign: 'left', background: 'white', border: '1px solid #e7e8ea', borderRadius: 10, padding: 14, cursor: 'pointer',
+              textAlign: 'left', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14, cursor: 'pointer',
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#16181d' }}>{n.title}</span>
+                <span style={{ fontWeight: 700, fontSize: 15, color: 'var(--ink-2)' }}>{n.title}</span>
                 <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexShrink: 0 }}>
-                  {n.domain && <span style={{ fontSize: 11, color: '#6b7280' }}>{n.domain.replace('_', ' ')}</span>}
-                  {!!n.card_count && <span style={{ fontSize: 11, color: '#6d28d9', background: '#ede9fe', borderRadius: 999, padding: '1px 8px', fontWeight: 700 }}>{n.card_count} cartões</span>}
+                  {n.domain && <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>{n.domain.replace('_', ' ')}</span>}
+                  {!!n.card_count && <span style={{ fontSize: 11, color: 'var(--roxo)', background: 'var(--roxo-claro)', borderRadius: 999, padding: '1px 8px', fontWeight: 700 }}>{n.card_count} cartões</span>}
                 </div>
               </div>
-              {n.body && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#6b7280', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.body.replace(/[#*\[\]]/g, '').slice(0, 160)}</p>}
+              {n.body && <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{n.body.replace(/[#*\[\]]/g, '').slice(0, 160)}</p>}
               {typeof n.mastery === 'number' && n.mastery > 0 && (
-                <div style={{ height: 3, background: '#eceef0', borderRadius: 3, marginTop: 8, overflow: 'hidden' }}>
+                <div style={{ height: 3, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', marginTop: 8, overflow: 'hidden' }}>
                   <div style={{ height: '100%', width: `${Math.round(n.mastery * 100)}%`, background: ACCENT }} />
                 </div>
               )}
@@ -408,7 +409,7 @@ function CaptureBar({ auth, reload, onCreated }: { auth: () => Promise<any>; rel
           <span style={{ fontSize: 18 }}>📷</span><span>Foto do quadro</span>
         </button>
         <button onClick={recState === 'recording' ? stopRec : startRec} disabled={busy}
-          style={{ ...captureBtn, ...(recState === 'recording' ? { borderColor: '#a82828', color: '#a82828' } : {}) }}>
+          style={{ ...captureBtn, ...(recState === 'recording' ? { borderColor: 'var(--red)', color: 'var(--red)' } : {}) }}>
           <span style={{ fontSize: 18 }}>{recState === 'recording' ? '⏹' : '🎙️'}</span>
           <span>{recState === 'recording' ? 'Parar gravação' : 'Gravar aula'}</span>
         </button>
@@ -417,15 +418,15 @@ function CaptureBar({ auth, reload, onCreated }: { auth: () => Promise<any>; rel
         </button>
       </div>
       <input ref={fileRef} type="file" accept="image/*" onChange={onPhoto} style={{ display: 'none' }} />
-      {recState === 'recording' && <p style={{ fontSize: 12, color: '#a82828', marginTop: 8, fontWeight: 600 }}>⏺ A gravar… carrega em "Parar gravação" quando terminares.</p>}
-      {(busy || status) && <p style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>{status || 'A processar…'}</p>}
+      {recState === 'recording' && <p style={{ fontSize: 12, color: 'var(--red)', marginTop: 8, fontWeight: 600 }}>⏺ A gravar… carrega em "Parar gravação" quando terminares.</p>}
+      {(busy || status) && <p style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 8 }}>{status || 'A processar…'}</p>}
       {showTemplates && (
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 6, marginTop: 8, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #e7e8ea' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(150px,1fr))', gap: 6, marginTop: 8, padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)' }}>
           {TEMPLATES.map(t => (
             <button key={t.id} onClick={() => create({ title: t.title, body: t.body, domain: t.domain, source: 'template' })} style={{
-              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'white', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer', fontSize: 13, textAlign: 'left',
+              display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 13, textAlign: 'left',
             }}>
-              <span>{t.icon}</span><span>{t.title}</span>
+              <span><Icon name={t.icon} size={16} /></span><span>{t.title}</span>
             </button>
           ))}
         </div>
@@ -521,7 +522,7 @@ function NoteEditor({ auth, note, allNotes, onClose, reload, onOpen }: {
         <button onClick={onClose} style={btn('ghost')}>← Notas</button>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {msg && <span style={{ fontSize: 12, color: ACCENT, fontWeight: 600 }}>{msg}</span>}
-          <button onClick={remove} style={{ ...btn('ghost'), color: '#a82828' }}>Eliminar</button>
+          <button onClick={remove} style={{ ...btn('ghost'), color: 'var(--red)' }}>Eliminar</button>
           <button onClick={save} disabled={busy} style={btn('ghost')}>Guardar</button>
         </div>
       </div>
@@ -534,11 +535,11 @@ function NoteEditor({ auth, note, allNotes, onClose, reload, onOpen }: {
           <option value="">Sem domínio</option>
           {DOMAINS.map(d => <option key={d} value={d}>{d.replace('_', ' ')}</option>)}
         </select>
-        <div style={{ display: 'flex', background: '#f3f4f6', borderRadius: 7, padding: 2 }}>
+        <div style={{ display: 'flex', background: 'var(--bg-3)', borderRadius: 'var(--r-md)', padding: 2 }}>
           <button onClick={() => setView('edit')} style={tbtn(view === 'edit')}>Editar</button>
           <button onClick={() => setView('preview')} style={tbtn(view === 'preview')}>Ver</button>
         </div>
-        <button onClick={toggleRec} style={{ ...aibtn, borderColor: recording ? '#a82828' : '#c4b5fd', color: recording ? '#a82828' : '#6d28d9' }}>
+        <button onClick={toggleRec} style={{ ...aibtn, borderColor: recording ? 'var(--red)' : 'var(--roxo-meio)', color: recording ? 'var(--red)' : 'var(--roxo)' }}>
           {recording ? '⏺ A gravar…' : '🎤 Ditar'}
         </button>
       </div>
@@ -552,23 +553,23 @@ function NoteEditor({ auth, note, allNotes, onClose, reload, onOpen }: {
 
       {view === 'edit' ? (
         <textarea value={body} onChange={e => setBody(e.target.value)} placeholder="Escreve em markdown. Usa [[título]] para ligar a outra nota."
-          style={{ width: '100%', minHeight: 300, padding: 14, border: '1px solid #e7e8ea', borderRadius: 10, fontFamily: 'var(--font-mono,monospace)', fontSize: 14, lineHeight: 1.6, boxSizing: 'border-box', resize: 'vertical' }} />
+          style={{ width: '100%', minHeight: 300, padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontFamily: 'var(--font-mono,monospace)', fontSize: 14, lineHeight: 1.6, boxSizing: 'border-box', resize: 'vertical' }} />
       ) : (
-        <div style={{ minHeight: 300, padding: 14, border: '1px solid #e7e8ea', borderRadius: 10 }}>
+        <div style={{ minHeight: 300, padding: 14, border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
           <MarkdownRender text={body} onLink={openLink} />
         </div>
       )}
 
       {/* O coração: gerar flashcards */}
-      <div style={{ marginTop: 14, padding: 16, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 12 }}>
+      <div style={{ marginTop: 14, padding: 16, background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-xl)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontWeight: 700, fontSize: 14, color: '#6d28d9' }}>Transformar em revisão</div>
-            <div style={{ fontSize: 12.5, color: '#6b7280', marginTop: 2 }}>
+            <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--roxo)' }}>Transformar em revisão</div>
+            <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2 }}>
               {cardCount > 0 ? `${cardCount} flashcards desta nota entram na revisão espaçada.` : 'A IA cria flashcards e mete-os na tua revisão diária.'}
             </div>
           </div>
-          <button onClick={saveAndGenerate} disabled={busy} style={{ ...btn('primary'), background: '#6d28d9', whiteSpace: 'nowrap' }}>
+          <button onClick={saveAndGenerate} disabled={busy} style={{ ...btn('primary'), background: 'var(--roxo)', whiteSpace: 'nowrap' }}>
             {cardCount > 0 ? 'Regenerar flashcards' : 'Gerar flashcards'}
           </button>
         </div>
@@ -579,7 +580,7 @@ function NoteEditor({ auth, note, allNotes, onClose, reload, onOpen }: {
 
 // ─── MarkdownRender (preservado) ────────────────────────────────────────────
 function MarkdownRender({ text, onLink }: { text: string; onLink?: (title: string) => void }) {
-  if (!text) return <p style={{ color: '#9ca3af', fontSize: 13 }}>(Sem conteúdo)</p>
+  if (!text) return <p style={{ color: 'var(--ink-5)', fontSize: 13 }}>(Sem conteúdo)</p>
   // SEGURANÇA: escapar HTML antes das transformações markdown — o texto é uma
   // nota do próprio utilizador e o [[link]] abaixo insere-o num atributo
   // data-link="…", pelo que aspas não escapadas permitiam escapar do atributo.
@@ -590,16 +591,16 @@ function MarkdownRender({ text, onLink }: { text: string; onLink?: (title: strin
     .replace(/^# (.+)$/gm, '<h1 class="md-h1">$1</h1>')
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
     .replace(/\*([^*]+)\*/g, '<em>$1</em>')
-    .replace(/`([^`]+)`/g, '<code style="background:#f3f4f6;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12.5px">$1</code>')
-    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid #e5e7eb;margin:14px 0" />')
+    .replace(/`([^`]+)`/g, '<code style="background:var(--bg-3);padding:1px 6px;border-radius:4px;font-family:monospace;font-size:12.5px">$1</code>')
+    .replace(/^---+$/gm, '<hr style="border:none;border-top:1px solid var(--border);margin:14px 0" />')
     .replace(/^\s*- (.+)$/gm, '<li>$1</li>')
     .replace(/(<li>[\s\S]*?<\/li>(?:\s*<li>[\s\S]*?<\/li>)*)/g, '<ul style="margin:6px 0;padding-left:22px">$1</ul>')
-    .replace(/\[\[([^\]]+)\]\]/g, (_m, t) => `<a href="#" data-link="${t}" style="background:#eff6ff;color:#1e40af;padding:1px 8px;border-radius:6px;text-decoration:none;border:1px solid #bfdbfe;font-weight:600;font-size:12.5px">${t}</a>`)
+    .replace(/\[\[([^\]]+)\]\]/g, (_m, t) => `<a href="#" data-link="${t}" style="background:var(--bg-2);color:var(--ink-2);padding:1px 8px;border-radius:6px;text-decoration:none;border:1px solid var(--border);font-weight:600;font-size:12.5px">${t}</a>`)
     .replace(/\n\n/g, '</p><p style="margin:8px 0">')
   html = `<p style="margin:8px 0">${html}</p>`
   return (
-    <div className="md-content" onClick={e => { const t = e.target as HTMLElement; if (t.dataset?.link && onLink) { e.preventDefault(); onLink(t.dataset.link) } }} style={{ color: '#111827' }}>
-      <style>{`.md-h1{font-size:22px;font-weight:700;margin:16px 0 8px}.md-h2{font-size:18px;font-weight:700;margin:14px 0 6px;color:${ACCENT}}.md-h3{font-size:15px;font-weight:700;margin:12px 0 4px;color:#374151}`}</style>
+    <div className="md-content" onClick={e => { const t = e.target as HTMLElement; if (t.dataset?.link && onLink) { e.preventDefault(); onLink(t.dataset.link) } }} style={{ color: 'var(--ink)' }}>
+      <style>{`.md-h1{font-size:22px;font-weight:700;margin:16px 0 8px}.md-h2{font-size:18px;font-weight:700;margin:14px 0 6px;color:${ACCENT}}.md-h3{font-size:15px;font-weight:700;margin:12px 0 4px;color:var(--ink-3)}`}</style>
       <div dangerouslySetInnerHTML={{ __html: html }} />
     </div>
   )
@@ -627,18 +628,18 @@ function NotesGraph({ notes, onOpen }: { notes: Note[]; onOpen: (n: Note) => voi
     return { positions, edges }
   }, [notes])
 
-  if (notes.length === 0) return <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 14, padding: 40, textAlign: 'center', color: '#6b7280' }}>Sem notas. Usa [[título]] dentro das notas para criar ligações.</div>
+  if (notes.length === 0) return <div style={{ background: 'white', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-xl)', padding: 40, textAlign: 'center', color: 'var(--ink-4)' }}>Sem notas. Usa [[título]] dentro das notas para criar ligações.</div>
   const W = 900, H = 600
   return (
-    <div style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 14, padding: 14 }}>
-      <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 10 }}><b>{notes.length}</b> notas · <b>{edges.length}</b> ligações</div>
-      <div style={{ overflow: 'auto', background: '#fafafa', borderRadius: 8 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
+      <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 10 }}><b>{notes.length}</b> notas · <b>{edges.length}</b> ligações</div>
+      <div style={{ overflow: 'auto', background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
         <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', minWidth: 600, display: 'block' }}>
-          {edges.map((e, i) => { const p1 = positions[e.from], p2 = positions[e.to]; if (!p1 || !p2) return null; const h = hover === e.from || hover === e.to; return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={h ? ACCENT : '#cbd5e1'} strokeWidth={h ? 2 : 1} opacity={hover && !h ? 0.25 : 0.65} /> })}
+          {edges.map((e, i) => { const p1 = positions[e.from], p2 = positions[e.to]; if (!p1 || !p2) return null; const h = hover === e.from || hover === e.to; return <line key={i} x1={p1.x} y1={p1.y} x2={p2.x} y2={p2.y} stroke={h ? ACCENT : 'var(--border-2)'} strokeWidth={h ? 2 : 1} opacity={hover && !h ? 0.25 : 0.65} /> })}
           {notes.map(n => { const p = positions[n.id]; if (!p) return null; const r = 8 + Math.min(14, p.degree * 3); const h = hover === n.id; return (
             <g key={n.id} style={{ cursor: 'pointer' }} onMouseEnter={() => setHover(n.id)} onMouseLeave={() => setHover(null)} onClick={() => onOpen(n)}>
-              <circle cx={p.x} cy={p.y} r={r} fill={p.degree >= 4 ? '#dc2626' : p.degree >= 2 ? '#7c3aed' : p.degree >= 1 ? ACCENT : '#94a3b8'} opacity={hover && !h ? 0.4 : 1} stroke="white" strokeWidth={2} />
-              <text x={p.x} y={p.y + r + 12} fontSize={11} fontWeight={h ? 700 : 500} fill="#111827" textAnchor="middle" opacity={hover && !h ? 0.4 : 1}>{n.title.length > 22 ? n.title.slice(0, 22) + '…' : n.title}</text>
+              <circle cx={p.x} cy={p.y} r={r} fill={p.degree >= 4 ? 'var(--red)' : p.degree >= 2 ? 'var(--roxo)' : p.degree >= 1 ? ACCENT : 'var(--ink-5)'} opacity={hover && !h ? 0.4 : 1} stroke="white" strokeWidth={2} />
+              <text x={p.x} y={p.y + r + 12} fontSize={11} fontWeight={h ? 700 : 500} fill="var(--ink)" textAnchor="middle" opacity={hover && !h ? 0.4 : 1}>{n.title.length > 22 ? n.title.slice(0, 22) + '…' : n.title}</text>
             </g>
           ) })}
         </svg>
@@ -648,11 +649,11 @@ function NotesGraph({ notes, onOpen }: { notes: Note[]; onOpen: (n: Note) => voi
 }
 
 // ─── estilos ────────────────────────────────────────────────────────────────
-const input: React.CSSProperties = { padding: '7px 10px', border: '1px solid #d1d5db', borderRadius: 6, fontSize: 13, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
-const aibtn: React.CSSProperties = { padding: '6px 11px', background: 'white', border: '1px solid #c4b5fd', color: '#6d28d9', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }
-const captureBtn: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '16px 10px', background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: '#16181d' }
-function tbtn(active: boolean): React.CSSProperties { return { padding: '5px 12px', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12.5, fontWeight: 600, background: active ? ACCENT : 'transparent', color: active ? 'white' : '#374151' } }
+const input: React.CSSProperties = { padding: '7px 10px', border: '1px solid var(--border-2)', borderRadius: 'var(--r)', fontSize: 13, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
+const aibtn: React.CSSProperties = { padding: '6px 11px', background: 'white', border: '1px solid var(--roxo-meio)', color: 'var(--roxo)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600 }
+const captureBtn: React.CSSProperties = { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, padding: '16px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)' }
+function tbtn(active: boolean): React.CSSProperties { return { padding: '5px 12px', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, background: active ? ACCENT : 'transparent', color: active ? 'white' : 'var(--ink-3)' } }
 function btn(kind: 'primary' | 'ghost'): React.CSSProperties {
-  if (kind === 'primary') return { padding: '9px 16px', border: 'none', borderRadius: 8, cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 13.5 }
-  return { padding: '8px 14px', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer', background: 'white', color: '#374151', fontWeight: 600, fontSize: 13 }
+  if (kind === 'primary') return { padding: '9px 16px', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 13.5 }
+  return { padding: '8px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', background: 'white', color: 'var(--ink-3)', fontWeight: 600, fontSize: 13 }
 }

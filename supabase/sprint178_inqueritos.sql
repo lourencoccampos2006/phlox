@@ -1,5 +1,9 @@
 -- supabase/sprint178_inqueritos.sql
 -- ─────────────────────────────────────────────────────────────────────────────
+-- ⚠ JÁ CORREU, E TEM UM ERRO: as políticas aqui em baixo perguntam a
+--   `team_members` quem é o utilizador, e a pertença desta casa é `org_members`.
+--   O **sprint179** corrige isso. Não editar este ficheiro: ele é o que correu.
+--
 -- FERNANDO: corre isto depois do sprint177, e DEPOIS corre o sprint153 outra
 -- vez (cria tabelas novas, e é o 153 que lhes põe as regras de leitura).
 --

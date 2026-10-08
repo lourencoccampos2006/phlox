@@ -22,9 +22,9 @@ const buildPlan = (id: 'student' | 'pro' | 'clinic', color: string) => {
 }
 
 const PLANS = {
-  student: buildPlan('student', '#7c3aed'),
-  pro: buildPlan('pro', '#0d6e42'),
-  clinic: buildPlan('clinic', '#1d4ed8'),
+  student: buildPlan('student', 'var(--roxo)'),
+  pro: buildPlan('pro', 'var(--green)'),
+  clinic: buildPlan('clinic', 'var(--ink-2)'),
 } as const
 
 type PlanKey = keyof typeof PLANS
@@ -82,7 +82,7 @@ function CheckoutContent() {
           <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 22 }}>
             O plano Institucional não se ativa por aqui. Cada centro de dia ou lar é configurado à medida — fala connosco e tratamos do resto.
           </p>
-          <a href="mailto:suporte@phloxclinical.com?subject=Institui%C3%A7%C3%A3o%20-%20Phlox%20Clinical" style={{ display: 'inline-block', padding: '13px 26px', background: 'var(--ink)', color: 'white', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 8, marginBottom: 12 }}>
+          <a href="mailto:suporte@phloxclinical.com?subject=Institui%C3%A7%C3%A3o%20-%20Phlox%20Clinical" style={{ display: 'inline-block', padding: '13px 26px', background: 'var(--ink)', color: 'white', textDecoration: 'none', fontSize: 14, fontWeight: 700, borderRadius: 'var(--r-md)', marginBottom: 12 }}>
             Falar connosco →
           </a>
           <div><Link href="/pricing" style={{ fontSize: 13, color: 'var(--ink-4)' }}>← Voltar aos planos</Link></div>
@@ -104,17 +104,17 @@ function CheckoutContent() {
         </div>
 
         {/* Billing toggle */}
-        <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: 4, gap: 4, marginBottom: 20 }}>
+        <div style={{ display: 'flex', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 4, gap: 4, marginBottom: 20 }}>
           {(['monthly', 'annual'] as const).map(b => (
             <button key={b} onClick={() => setBilling(b)}
-              style={{ flex: 1, padding: '9px', background: billing === b ? 'white' : 'transparent', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-sans)', boxShadow: billing === b ? 'var(--shadow-xs)' : 'none', transition: 'all 0.15s' }}>
+              style={{ flex: 1, padding: '9px', background: billing === b ? 'white' : 'transparent', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-sans)', boxShadow: billing === b ? 'var(--shadow-xs)' : 'none', transition: 'all 0.15s' }}>
               {b === 'monthly' ? 'Mensal' : <span>Anual <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--green)', fontWeight: 700 }}>−25%</span></span>}
             </button>
           ))}
         </div>
 
         {/* Plan card */}
-        <div style={{ background: 'white', border: `2px solid ${plan.color}`, borderRadius: 12, overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{ background: 'white', border: `2px solid ${plan.color}`, borderRadius: 'var(--r-xl)', overflow: 'hidden', marginBottom: 16 }}>
           <div style={{ height: 4, background: plan.color }} />
           <div style={{ padding: '22px 22px 18px' }}>
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginBottom: 16 }}>
@@ -140,7 +140,7 @@ function CheckoutContent() {
 
         {/* Checkout button */}
         <button onClick={handleCheckout} disabled={processing || !user}
-          style={{ width: '100%', padding: '15px', background: processing ? 'var(--bg-3)' : plan.color, color: processing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, cursor: processing ? 'wait' : 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12, transition: 'all 0.15s' }}>
+          style={{ width: '100%', padding: '15px', background: processing ? 'var(--bg-3)' : plan.color, color: processing ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: processing ? 'wait' : 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 12, transition: 'all 0.15s' }}>
           {processing ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A processar...</> : `Activar plano ${plan.name} →`}
         </button>
 
@@ -149,7 +149,7 @@ function CheckoutContent() {
           Sem período de fidelização · Faturação no início de cada período
         </div>
 
-        <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-2)', borderRadius: 8, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.6 }}>
           Ao prosseguir aceitas os{' '}
           <Link href="/terms" style={{ color: 'var(--ink-3)', textDecoration: 'underline' }}>Termos de Serviço</Link>
           {' '}e a{' '}

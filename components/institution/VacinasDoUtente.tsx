@@ -179,7 +179,7 @@ export default function VacinasDoUtente({ pid, nome, cor }: { pid: string; nome:
         )}
       </div>
 
-      {erro && <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+      {erro && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
 
       {/* O que está a tocar vem primeiro e por cima da lista. É a única coisa
           desta secção que pede uma ação hoje. */}
@@ -253,7 +253,7 @@ export default function VacinasDoUtente({ pid, nome, cor }: { pid: string; nome:
                 <button key={h.nome} onClick={() => escolher(h)} style={{
                   minHeight: 36, padding: '0 12px', borderRadius: 999, cursor: 'pointer',
                   border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
-                  background: on ? cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
+                  background: on ? cor : 'transparent', color: on ? 'var(--bg)' : 'var(--ink-3)',
                   fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
                 }}>{h.nome}</button>
               )
@@ -289,7 +289,7 @@ export default function VacinasDoUtente({ pid, nome, cor }: { pid: string; nome:
             <button onClick={acrescentar} disabled={!form.vacina.trim() || !form.data} style={{
               minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
               background: form.vacina.trim() && form.data ? cor : 'var(--bg-3)',
-              color: form.vacina.trim() && form.data ? '#fff' : 'var(--ink-5)',
+              color: form.vacina.trim() && form.data ? 'var(--bg)' : 'var(--ink-5)',
               fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
               cursor: form.vacina.trim() && form.data ? 'pointer' : 'default',
             }}>Registar</button>

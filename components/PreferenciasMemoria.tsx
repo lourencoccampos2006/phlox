@@ -32,7 +32,7 @@ function Interruptor({ ligado, ocupado, onChange }: { ligado: boolean; ocupado: 
       />
       <span aria-hidden style={{
         display: 'block', width: 42, height: 24, borderRadius: 999,
-        background: ligado ? 'var(--green, #0d9488)' : 'var(--bg-4, #cbd5e1)',
+        background: ligado ? 'var(--green, var(--green-3))' : 'var(--bg-4, var(--border-2))',
         transition: 'background 140ms ease',
       }}>
         <span style={{
@@ -126,7 +126,7 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
     setAberta(null)
   }
 
-  if (!carregado) return <div className="skeleton" style={{ height: 150, borderRadius: 10 }} />
+  if (!carregado) return <div className="skeleton" style={{ height: 150, borderRadius: 'var(--r-lg)' }} />
 
   const linha = {
     display: 'flex', alignItems: 'flex-start', gap: 13, padding: '13px 15px',
@@ -134,7 +134,7 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
   } as React.CSSProperties
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
         Memória de documentos
       </div>
@@ -144,16 +144,16 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
       </div>
 
       {indisponivel && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 7, fontSize: 12.5, color: '#854d0e', lineHeight: 1.6 }}>
+        <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--badge-amber-fg)', lineHeight: 1.6 }}>
           Esta escolha ainda não está disponível nesta conta.
         </div>
       )}
 
       {erro && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12.5, color: '#c53030' }}>{erro}</div>
+        <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--red)' }}>{erro}</div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
         <label style={linha}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--ink)' }}>Guardar o que analiso</div>
@@ -202,7 +202,7 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
             Cada pessoa tem a sua. O que se sabe de uma nunca entra no que o Phlox diz sobre outra.
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
             {gavetas.map(g => {
               const d = normalizarDossier(g.dossier)
               const sabe = contarDossier(d)
@@ -248,7 +248,7 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
                       {sabe === 0 && <div style={{ color: 'var(--ink-5)' }}>Ainda não há nada guardado sobre esta pessoa.</div>}
 
                       <button onClick={() => esquecer(g)} disabled={ocupado} style={{
-                        marginTop: 9, background: 'none', border: 'none', padding: 0, color: '#b91c1c',
+                        marginTop: 9, background: 'none', border: 'none', padding: 0, color: 'var(--red)',
                         fontSize: 12, fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
                         textDecoration: 'underline', textUnderlineOffset: 3,
                       }}>Esquecer esta pessoa</button>
@@ -271,7 +271,7 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
             {' '}
             {!perguntarApagar && (
               <button onClick={() => setPerguntarApagar(true)} disabled={ocupado} style={{
-                background: 'none', border: 'none', padding: 0, color: '#b91c1c',
+                background: 'none', border: 'none', padding: 0, color: 'var(--red)',
                 fontSize: 12.5, fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
                 textDecoration: 'underline', textUnderlineOffset: 3,
               }}>Apagar tudo</button>
@@ -279,19 +279,19 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
           </div>
 
           {perguntarApagar && (
-            <div style={{ marginTop: 10, padding: '12px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 8 }}>
-              <div style={{ fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 10 }}>
+            <div style={{ marginTop: 10, padding: '12px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)' }}>
+              <div style={{ fontSize: 12.5, color: 'var(--red)', lineHeight: 1.6, marginBottom: 10 }}>
                 Apagar a memória não apaga nada do cofre — só o que o Phlox guardou por
                 si. Não há forma de recuperar.
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                 <button onClick={apagarTudo} disabled={ocupado} style={{
-                  padding: '8px 14px', background: '#b91c1c', color: 'white', border: 'none',
-                  borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
+                  padding: '8px 14px', background: 'var(--red)', color: 'white', border: 'none',
+                  borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit',
                 }}>{ocupado ? 'A apagar…' : 'Apagar tudo'}</button>
                 <button onClick={() => setPerguntarApagar(false)} disabled={ocupado} style={{
                   padding: '8px 14px', background: 'white', color: 'var(--ink-3)',
-                  border: '1px solid var(--border)', borderRadius: 7, fontSize: 12.5,
+                  border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12.5,
                   fontWeight: 650, cursor: 'pointer', fontFamily: 'inherit',
                 }}>Manter</button>
               </div>
@@ -301,7 +301,7 @@ export default function PreferenciasMemoria({ supabase, userId, plano }: { supab
       )}
 
       {apagado && (
-        <div style={{ marginTop: 12, fontSize: 12.5, color: '#0d6e42', lineHeight: 1.55 }}>
+        <div style={{ marginTop: 12, fontSize: 12.5, color: 'var(--green)', lineHeight: 1.55 }}>
           Apagado. O Phlox já não tem nenhum documento guardado desta conta.
         </div>
       )}

@@ -9,6 +9,11 @@ import { useAuth } from '@/components/AuthContext'
 import { useToast } from '@/components/Toast'
 import { downloadICS } from '@/lib/ics'
 import { reportError, MSG } from '@/lib/clientError'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface CalEvent {
   id: string
@@ -34,11 +39,11 @@ interface MedRow {
 }
 
 const KIND_META: Record<CalEvent['kind'], { label: string; color: string; icon: string }> = {
-  consulta:  { label: 'Consulta',  color: '#1d4ed8', icon: '🩺' },
-  exame:     { label: 'Exame',     color: '#0d6e42', icon: '🔬' },
-  medicacao: { label: 'Medicação', color: '#0891b2', icon: '💊' },
-  lembrete:  { label: 'Lembrete',  color: '#b45309', icon: '🔔' },
-  event:     { label: 'Evento',    color: '#475569', icon: '📌' },
+  consulta:  { label: 'Consulta',  color: 'var(--ink-2)', icon: 'stethoscope' },
+  exame:     { label: 'Exame',     color: 'var(--green)', icon: 'flask' },
+  medicacao: { label: 'Medicação', color: 'var(--green)', icon: 'pill' },
+  lembrete:  { label: 'Lembrete',  color: 'var(--amber)', icon: 'megaphone' },
+  event:     { label: 'Evento',    color: 'var(--ink-3)', icon: 'pin' },
 }
 
 function toLocalInput(d: Date): string {
@@ -244,38 +249,49 @@ export default function CalendarioPage() {
     .slice(0, 8)
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Calendário</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div className="page-container page-body" style={{ maxWidth: 1000 }}>
 
         {/* Header */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Phlox · Calendário</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: '#0b1120', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>O meu calendário</h1>
-            <p style={{ fontSize: 13.5, color: '#64748b', margin: '5px 0 0' }}>Consultas, exames, medicações, lembretes — num só sítio. Exporta para Apple/Google Calendar.</p>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Phlox · Calendário</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, letterSpacing: '-0.02em', margin: 0 }}>O meu calendário</h1>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: '5px 0 0' }}>Consultas, exames, medicações, lembretes — num só sítio. Exporta para Apple/Google Calendar.</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
             <button onClick={() => setShowMeds(s => !s)} title="Mostrar/ocultar tomas e medicação a acabar"
-              style={{ ...secondaryBtn, background: showMeds ? '#ecfeff' : 'white', borderColor: showMeds ? '#67e8f9' : '#e5e7eb', color: showMeds ? '#0891b2' : '#64748b' }}>
+              style={{ ...secondaryBtn, background: showMeds ? 'var(--green-light)' : 'white', borderColor: showMeds ? 'var(--green-mid)' : 'var(--border)', color: showMeds ? 'var(--green)' : 'var(--ink-4)' }}>
               💊 Medicação {showMeds ? 'on' : 'off'}
             </button>
             <button onClick={() => openNew()} style={primaryBtn}>＋ Novo</button>
-            <button onClick={exportMonthICS} style={secondaryBtn}>📅 Pôr no calendário</button>
+            <button onClick={exportMonthICS} style={secondaryBtn}>Pôr no calendário</button>
           </div>
         </div>
 
         {/* Follow-up inteligente: "como correu?" para eventos passados sem desfecho */}
         {!missing && needsFollowup.length > 0 && (
-          <div style={{ background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 14, padding: '14px 16px', marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: '#0f766e', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}>
+          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-xl)', padding: '14px 16px', marginBottom: 14 }}>
+            <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green-3)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 7 }}>
               <span>💬</span> Como correu?
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {needsFollowup.map(e => (
-                <div key={e.id} style={{ background: 'white', border: '1px solid #d1fae5', borderRadius: 10, padding: '10px 12px' }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: '#0b1120', marginBottom: 6 }}>
+                <div key={e.id} style={{ background: 'white', border: '1px solid var(--badge-green-bg)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 6 }}>
                     {KIND_META[e.kind]?.icon} {e.title}
-                    <span style={{ fontWeight: 500, color: '#94a3b8', marginLeft: 6, fontFamily: 'var(--font-mono)', fontSize: 11 }}>
+                    <span style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-5)', marginLeft: 6, fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)' }}>
                       {new Date(e.starts_at).toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}
                     </span>
                   </div>
@@ -285,9 +301,9 @@ export default function CalendarioPage() {
                       onChange={ev => setFollowupDraft(d => ({ ...d, [e.id]: ev.target.value }))}
                       onKeyDown={ev => { if (ev.key === 'Enter') saveOutcome(e.id, followupDraft[e.id] || '') }}
                       placeholder="Ex: correu bem, médico ajustou a medicação…"
-                      style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '8px 11px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                      style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 11px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
                     <button onClick={() => saveOutcome(e.id, followupDraft[e.id] || '')} disabled={!(followupDraft[e.id] || '').trim()}
-                      style={{ padding: '8px 14px', background: (followupDraft[e.id] || '').trim() ? '#0d9488' : '#e5e7eb', color: (followupDraft[e.id] || '').trim() ? 'white' : '#9ca3af', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: (followupDraft[e.id] || '').trim() ? 'pointer' : 'default' }}>
+                      style={{ padding: '8px 14px', background: (followupDraft[e.id] || '').trim() ? 'var(--green-3)' : 'var(--border)', color: (followupDraft[e.id] || '').trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: (followupDraft[e.id] || '').trim() ? 'pointer' : 'default' }}>
                       Guardar
                     </button>
                   </div>
@@ -298,7 +314,7 @@ export default function CalendarioPage() {
         )}
 
         {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24, color: 'var(--amber)', fontSize: 'var(--t-dado)' }}>
             Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : (
@@ -306,15 +322,15 @@ export default function CalendarioPage() {
             {/* Navegação mês */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} style={navBtn}>‹</button>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: '#0b1120', textTransform: 'capitalize' }}>{monthLabel}</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', textTransform: 'capitalize' }}>{monthLabel}</div>
               <button onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} style={navBtn}>›</button>
             </div>
 
             {/* Grelha */}
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, overflow: 'hidden', marginBottom: 16 }}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: '#f8fafc', borderBottom: '1px solid #e5e7eb' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', marginBottom: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
                 {['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'].map(d => (
-                  <div key={d} style={{ padding: '8px 6px', fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{d}</div>
+                  <div key={d} style={{ padding: '8px 6px', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.05em', textAlign: 'center', fontFamily: 'var(--font-mono)' }}>{d}</div>
                 ))}
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)' }}>
@@ -324,14 +340,14 @@ export default function CalendarioPage() {
                     <div key={i} onClick={() => c.date && openNew(c.date)}
                       style={{
                         minHeight: 90, padding: 6,
-                        borderRight: (i % 7 !== 6) ? '1px solid #f1f5f9' : 'none',
-                        borderBottom: '1px solid #f1f5f9',
-                        background: c.date ? (isToday ? '#f0fdf4' : 'white') : '#fafbfc',
+                        borderRight: (i % 7 !== 6) ? '1px solid var(--bg-3)' : 'none',
+                        borderBottom: '1px solid var(--bg-3)',
+                        background: c.date ? (isToday ? 'var(--badge-green-bg)' : 'white') : 'var(--bg-2)',
                         cursor: c.date ? 'pointer' : 'default', position: 'relative',
                       }}>
                       {c.date && (
                         <>
-                          <div style={{ fontSize: 11, fontWeight: isToday ? 800 : 600, color: isToday ? '#15803d' : '#475569', textAlign: 'right', marginBottom: 3 }}>{c.date.getDate()}</div>
+                          <div style={{ fontSize: 'var(--t-meta)', fontWeight: isToday ? 800 : 600, color: isToday ? 'var(--green)' : 'var(--ink-3)', textAlign: 'right', marginBottom: 3 }}>{c.date.getDate()}</div>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             {c.events.slice(0, 3).map(e => {
                               const m = KIND_META[e.kind]
@@ -340,12 +356,12 @@ export default function CalendarioPage() {
                                 <div key={e.id}
                                   onClick={ev => { ev.stopPropagation(); if (e.derived) { window.location.href = '/mymeds' } else { setEdit(e); setShowForm(true) } }}
                                   title={e.derived === 'med_dose' ? 'Toma de medicação · abrir Os meus medicamentos' : e.derived === 'med_runout' ? 'Medicação a acabar · abrir Os meus medicamentos' : e.title}
-                                  style={{ background: m.color + (e.derived ? '0d' : '14'), color: m.color, fontSize: 10.5, padding: '2px 5px', borderRadius: 4, fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', border: e.derived === 'med_runout' ? `1px solid ${m.color}66` : 'none', opacity: e.derived === 'med_dose' ? 0.85 : 1 }}>
-                                  {m.icon} {e.title}
+                                  style={{ background: m.color + (e.derived ? '0d' : '14'), color: m.color, fontSize: 'var(--t-micro)', padding: '2px 5px', borderRadius: 'var(--r)', fontWeight: 'var(--peso-forte)' as any, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', border: e.derived === 'med_runout' ? `1px solid ${m.color}66` : 'none', opacity: e.derived === 'med_dose' ? 0.85 : 1 }}>
+                                  <Icon name={m.icon} size={15} />  {e.title}
                                 </div>
                               )
                             })}
-                            {c.events.length > 3 && <div style={{ fontSize: 10, color: '#94a3b8', fontWeight: 700 }}>+{c.events.length - 3}</div>}
+                            {c.events.length > 3 && <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontWeight: 'var(--peso-forte)' as any }}>+{c.events.length - 3}</div>}
                           </div>
                         </>
                       )}
@@ -356,22 +372,22 @@ export default function CalendarioPage() {
             </div>
 
             {/* Próximos eventos */}
-            <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: '16px 20px' }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: '#0b1120', marginBottom: 10 }}>Próximos eventos</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 20px' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 10 }}>Próximos eventos</div>
               {loading ? (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 50, borderRadius: 8 }} />)}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 50, borderRadius: 'var(--r-md)' }} />)}</div>
               ) : upcoming.length === 0 ? (
-                <div style={{ padding: '24px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>Sem eventos próximos. Clica num dia para criar.</div>
+                <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--ink-5)', fontSize: 'var(--t-dado)' }}>Sem eventos próximos. Clica num dia para criar.</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {upcoming.map(e => {
                     const m = KIND_META[e.kind]
                     return (
-                      <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'white', border: `1px solid ${m.color}22`, borderLeft: `4px solid ${m.color}`, borderRadius: 9 }}>
-                        <span style={{ fontSize: 20, flexShrink: 0 }}>{m.icon}</span>
+                      <div key={e.id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'white', border: `1px solid ${m.color}22`, borderLeft: `4px solid ${m.color}`, borderRadius: 'var(--r-lg)' }}>
+                        <Icon name={m.icon} size={20} />
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
-                          <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
+                          <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{e.title}</div>
+                          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2, fontFamily: 'var(--font-mono)' }}>
                             {new Date(e.starts_at).toLocaleString('pt-PT', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                             {e.location ? ` · ${e.location}` : ''}
                           </div>
@@ -380,7 +396,7 @@ export default function CalendarioPage() {
                           ? <Link href="/mymeds" style={{ ...ghostBtn, textDecoration: 'none', display: 'inline-block' }}>Medicação</Link>
                           : <>
                               <button onClick={() => { setEdit(e); setShowForm(true) }} style={ghostBtn}>Editar</button>
-                              <button onClick={() => del(e.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', fontSize: 16, color: '#94a3b8', cursor: 'pointer' }}>×</button>
+                              <button onClick={() => del(e.id)} aria-label="Eliminar" style={{ background: 'none', border: 'none', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)', cursor: 'pointer' }}>×</button>
                             </>}
                       </div>
                     )
@@ -391,8 +407,8 @@ export default function CalendarioPage() {
           </>
         )}
 
-        <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 14, textAlign: 'center' }}>
-          <Link href="/guardados" style={{ color: '#1d4ed8', fontWeight: 600, textDecoration: 'none' }}>Ver guardados</Link>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 14, textAlign: 'center' }}>
+          <Link href="/guardados" style={{ color: 'var(--ink-2)', fontWeight: 'var(--peso-corpo)' as any, textDecoration: 'none' }}>Ver guardados</Link>
         </div>
       </div>
 
@@ -401,9 +417,9 @@ export default function CalendarioPage() {
         <div onMouseDown={ev => { if (ev.target === ev.currentTarget) { setShowForm(false); setEdit(null) } }}
           style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
           <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 520, maxHeight: '92vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: '#0b1120' }}>{(edit as any).id ? 'Editar evento' : 'Novo evento'}</div>
-              <button onClick={() => { setShowForm(false); setEdit(null) }} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: '50%', background: '#f1f5f9', border: 'none', cursor: 'pointer', fontSize: 16, color: '#64748b' }}>×</button>
+            <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)' }}>{(edit as any).id ? 'Editar evento' : 'Novo evento'}</div>
+              <button onClick={() => { setShowForm(false); setEdit(null) }} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-3)', border: 'none', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-4)' }}>×</button>
             </div>
             <div style={{ padding: '14px 20px 22px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 11 }}>
               <div>
@@ -418,8 +434,8 @@ export default function CalendarioPage() {
                     const active = edit.kind === k
                     return (
                       <button key={k} type="button" onClick={() => setEdit({ ...edit, kind: k })}
-                        style={{ padding: '6px 11px', borderRadius: 7, fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', border: `1.5px solid ${active ? m.color : '#e5e7eb'}`, background: active ? m.color + '14' : 'white', color: active ? m.color : '#64748b', cursor: 'pointer' }}>
-                        {m.icon} {m.label}
+                        style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', border: `1.5px solid ${active ? m.color : 'var(--border)'}`, background: active ? m.color + '14' : 'white', color: active ? m.color : 'var(--ink-4)', cursor: 'pointer' }}>
+                        <Icon name={m.icon} size={15} />  {m.label}
                       </button>
                     )
                   })}
@@ -455,21 +471,21 @@ export default function CalendarioPage() {
               </div>
               <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
                 {(edit as any).id && (
-                  <button onClick={() => del((edit as any).id)} style={{ padding: '11px 14px', background: 'white', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Eliminar</button>
+                  <button onClick={() => del((edit as any).id)} style={{ padding: '11px 14px', background: 'white', color: 'var(--red)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Eliminar</button>
                 )}
-                <button onClick={save} style={{ flex: 1, padding: '11px 14px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Guardar</button>
+                <button onClick={save} style={{ flex: 1, padding: '11px 14px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Guardar</button>
               </div>
             </div>
           </div>
         </div>
       )}
-    </div>
+    </Mesa>
   )
 }
 
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid #e5e7eb', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
-const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 700, color: '#64748b', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }
-const primaryBtn: React.CSSProperties = { padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
-const secondaryBtn: React.CSSProperties = { padding: '9px 14px', background: 'white', color: '#0b1120', border: '1px solid #e5e7eb', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
-const ghostBtn: React.CSSProperties = { padding: '6px 11px', background: 'white', color: '#64748b', border: '1px solid #e5e7eb', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
-const navBtn: React.CSSProperties = { width: 36, height: 36, borderRadius: 9, background: 'white', border: '1px solid #e5e7eb', cursor: 'pointer', fontSize: 18, color: '#475569' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const lbl: React.CSSProperties = { fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', marginBottom: 6, display: 'block', textTransform: 'uppercase', letterSpacing: '0.04em', fontFamily: 'var(--font-mono)' }
+const primaryBtn: React.CSSProperties = { padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
+const secondaryBtn: React.CSSProperties = { padding: '9px 14px', background: 'white', color: 'var(--ink)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
+const ghostBtn: React.CSSProperties = { padding: '6px 11px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }
+const navBtn: React.CSSProperties = { width: 36, height: 36, borderRadius: 'var(--r-lg)', background: 'white', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-3)' }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
+import Icon from '@/components/Icon'
 
 type AccessLevel = 'meds_only' | 'meds_vitals' | 'full'
 
@@ -15,9 +16,9 @@ interface LinkInfo {
 }
 
 const ACCESS_OPTIONS: { value: AccessLevel; label: string; desc: string; icon: string }[] = [
-  { value: 'meds_only', label: 'Só Medicação', desc: 'Mostra a lista de medicamentos e alergias', icon: '💊' },
-  { value: 'meds_vitals', label: 'Medicação + Sinais Vitais', desc: 'Inclui também tensão arterial, peso e outros registos', icon: '📊' },
-  { value: 'full', label: 'Perfil Completo', desc: 'Tudo: medicação, sinais vitais, condições e historial', icon: '🏥' },
+  { value: 'meds_only', label: 'Só Medicação', desc: 'Mostra a lista de medicamentos e alergias', icon: 'pill' },
+  { value: 'meds_vitals', label: 'Medicação + Sinais Vitais', desc: 'Inclui também tensão arterial, peso e outros registos', icon: 'chart' },
+  { value: 'full', label: 'Perfil Completo', desc: 'Tudo: medicação, sinais vitais, condições e historial', icon: 'building' },
 ]
 
 export default function LinkPage() {
@@ -143,7 +144,7 @@ export default function LinkPage() {
 
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 10 }} />)}
+            {[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--r-lg)' }} />)}
           </div>
         ) : link ? (
 
@@ -151,8 +152,8 @@ export default function LinkPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Link card */}
-            <div style={{ background: 'white', border: '2px solid #10b981', borderRadius: 16, overflow: 'hidden' }}>
-              <div style={{ background: '#10b981', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
+              <div style={{ background: 'var(--green)', padding: '14px 20px', display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 20 }}>🟢</span>
                 <div>
                   <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.85)', fontWeight: 600 }}>Link ativo</div>
@@ -166,12 +167,12 @@ export default function LinkPage() {
               <div style={{ padding: '16px 20px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <input readOnly value={linkUrl || ''} style={{
-                    flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 14px',
+                    flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 14px',
                     fontSize: 13, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', background: 'var(--bg-2)', outline: 'none',
                   }} />
                   <button onClick={copyLink} style={{
-                    padding: '10px 16px', background: copied ? '#10b981' : 'var(--green)', color: 'white',
-                    border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                    padding: '10px 16px', background: copied ? 'var(--green)' : 'var(--green)', color: 'white',
+                    border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
                   }}>
                     {copied ? '✓ Copiado' : '📋 Copiar'}
                   </button>
@@ -182,7 +183,7 @@ export default function LinkPage() {
                   <div style={{ textAlign: 'center', flexShrink: 0 }}>
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img src={`https://api.qrserver.com/v1/create-qr-code/?size=96x96&data=${encodeURIComponent(linkUrl || '')}`}
-                      alt="QR Phlox Link" style={{ width: 96, height: 96, borderRadius: 8, border: '2px solid var(--border)' }} />
+                      alt="QR Phlox Link" style={{ width: 96, height: 96, borderRadius: 'var(--r-md)', border: '2px solid var(--border)' }} />
                     <div style={{ fontSize: 9, color: 'var(--ink-5)', marginTop: 4, fontFamily: 'var(--font-mono)' }}>Digitalizar</div>
                   </div>
                   <div style={{ flex: 1 }}>
@@ -190,7 +191,7 @@ export default function LinkPage() {
                       O teu farmacêutico ou médico pode digitalizar este QR para aceder aos teus dados de saúde sem precisar de criar conta no Phlox.
                     </div>
                     {link.expires_at && (
-                      <div style={{ fontSize: 11, color: '#f59e0b', fontWeight: 600 }}>
+                      <div style={{ fontSize: 11, color: 'var(--amber)', fontWeight: 600 }}>
                         ⏱️ Expira em {new Date(link.expires_at).toLocaleDateString('pt-PT')}
                       </div>
                     )}
@@ -200,36 +201,36 @@ export default function LinkPage() {
             </div>
 
             {/* Access level control */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>🔒 Controlar o que é visível</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {ACCESS_OPTIONS.map(opt => (
                   <button key={opt.value} onClick={() => updateAccess(opt.value)} style={{
                     display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                    border: `2px solid ${link.access_level === opt.value ? '#10b981' : 'var(--border)'}`,
-                    borderRadius: 10, background: link.access_level === opt.value ? '#f0fdf4' : 'white',
+                    border: `2px solid ${link.access_level === opt.value ? 'var(--green)' : 'var(--border)'}`,
+                    borderRadius: 'var(--r-lg)', background: link.access_level === opt.value ? 'var(--badge-green-bg)' : 'white',
                     cursor: 'pointer', textAlign: 'left',
                   }}>
-                    <span style={{ fontSize: 20 }}>{opt.icon}</span>
+                    <Icon name={opt.icon} size={20} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{opt.label}</div>
                       <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{opt.desc}</div>
                     </div>
-                    {link.access_level === opt.value && <span style={{ color: '#10b981', fontWeight: 700, fontSize: 16 }}>✓</span>}
+                    {link.access_level === opt.value && <span style={{ color: 'var(--green)', fontWeight: 700, fontSize: 16 }}>✓</span>}
                   </button>
                 ))}
               </div>
             </div>
 
             {/* Revoke */}
-            <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 10, padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#991b1b' }}>Revogar link</div>
-                <div style={{ fontSize: 11, color: '#b91c1c' }}>O link deixa de funcionar imediatamente. Podes criar um novo a qualquer momento.</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--red)' }}>Revogar link</div>
+                <div style={{ fontSize: 11, color: 'var(--red)' }}>O link deixa de funcionar imediatamente. Podes criar um novo a qualquer momento.</div>
               </div>
               <button onClick={revoke} disabled={revoking} style={{
-                padding: '9px 16px', background: '#dc2626', color: 'white', border: 'none',
-                borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                padding: '9px 16px', background: 'var(--red)', color: 'white', border: 'none',
+                borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
               }}>
                 {revoking ? 'A revogar...' : '🗑️ Revogar'}
               </button>
@@ -239,7 +240,7 @@ export default function LinkPage() {
         ) : showSetup ? (
 
           /* ─── Setup form ─── */
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: 24 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
             <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>🔗 Criar Phlox Link</div>
             <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 20 }}>
               Escolhe o que partilhas e com quem. Podes alterar ou revogar a qualquer momento.
@@ -252,16 +253,16 @@ export default function LinkPage() {
                   {ACCESS_OPTIONS.map(opt => (
                     <button key={opt.value} onClick={() => setAccessLevel(opt.value)} style={{
                       display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px',
-                      border: `2px solid ${accessLevel === opt.value ? '#10b981' : 'var(--border)'}`,
-                      borderRadius: 10, background: accessLevel === opt.value ? '#f0fdf4' : 'white',
+                      border: `2px solid ${accessLevel === opt.value ? 'var(--green)' : 'var(--border)'}`,
+                      borderRadius: 'var(--r-lg)', background: accessLevel === opt.value ? 'var(--badge-green-bg)' : 'white',
                       cursor: 'pointer', textAlign: 'left',
                     }}>
-                      <span style={{ fontSize: 20 }}>{opt.icon}</span>
+                      <Icon name={opt.icon} size={20} />
                       <div style={{ flex: 1 }}>
                         <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{opt.label}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink-4)' }}>{opt.desc}</div>
                       </div>
-                      {accessLevel === opt.value && <span style={{ color: '#10b981', fontWeight: 700 }}>✓</span>}
+                      {accessLevel === opt.value && <span style={{ color: 'var(--green)', fontWeight: 700 }}>✓</span>}
                     </button>
                   ))}
                 </div>
@@ -270,13 +271,13 @@ export default function LinkPage() {
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Etiqueta (opcional)</div>
                 <input value={label} onChange={e => setLabel(e.target.value)} placeholder="Ex: Para o Dr. António Silva"
-                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                  style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
               </div>
 
               <div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>Expirar após (opcional)</div>
                 <select value={expireDays} onChange={e => setExpireDays(e.target.value ? Number(e.target.value) : '')}
-                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }}>
+                  style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }}>
                   <option value="">Sem expiração</option>
                   <option value="1">1 dia</option>
                   <option value="7">1 semana</option>
@@ -287,20 +288,20 @@ export default function LinkPage() {
             </div>
 
             {genError && (
-              <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 12, color: '#991b1b', marginTop: 8 }}>
+              <div style={{ padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 12, color: 'var(--red)', marginTop: 8 }}>
                 ⚠️ {genError}
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 20 }}>
               <button onClick={generate} disabled={generating} style={{
                 flex: 1, padding: '13px', background: 'var(--green)', color: 'white',
-                border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: generating ? 'wait' : 'pointer',
+                border: 'none', borderRadius: 'var(--r-lg)', fontSize: 15, fontWeight: 700, cursor: generating ? 'wait' : 'pointer',
               }}>
                 {generating ? 'A criar...' : '🔗 Criar Link'}
               </button>
               <button onClick={() => setShowSetup(false)} style={{
                 padding: '13px 16px', background: 'white', color: 'var(--ink-4)',
-                border: '1px solid var(--border)', borderRadius: 10, fontSize: 14, cursor: 'pointer',
+                border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 14, cursor: 'pointer',
               }}>
                 Cancelar
               </button>
@@ -311,7 +312,7 @@ export default function LinkPage() {
 
           /* ─── No link yet ─── */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: 32, textAlign: 'center' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 32, textAlign: 'center' }}>
               <div style={{ fontSize: 48, marginBottom: 16 }}>🔗</div>
               <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Nenhum link ativo</div>
               <div style={{ fontSize: 14, color: 'var(--ink-4)', marginBottom: 24, maxWidth: 420, margin: '0 auto 24px' }}>
@@ -319,24 +320,24 @@ export default function LinkPage() {
               </div>
               <button onClick={() => setShowSetup(true)} style={{
                 padding: '14px 28px', background: 'var(--green)', color: 'white',
-                border: 'none', borderRadius: 10, fontSize: 16, fontWeight: 700, cursor: 'pointer',
+                border: 'none', borderRadius: 'var(--r-lg)', fontSize: 16, fontWeight: 700, cursor: 'pointer',
               }}>
                 🔗 Criar o meu Phlox Link
               </button>
             </div>
 
             {/* How it works */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 20 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Como funciona</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {[
-                  { icon: '🔗', title: 'Crias um link único', desc: 'Recebes um código pessoal tipo PHL-4A2F e um QR code' },
-                  { icon: '🎯', title: 'Escolhes o que partilhas', desc: 'Só medicação, ou também sinais vitais, ou tudo — tu decides' },
+                  { icon: 'layers', title: 'Crias um link único', desc: 'Recebes um código pessoal tipo PHL-4A2F e um QR code' },
+                  { icon: 'target', title: 'Escolhes o que partilhas', desc: 'Só medicação, ou também sinais vitais, ou tudo — tu decides' },
                   { icon: '📲', title: 'O profissional digitaliza', desc: 'O teu farmacêutico ou médico abre o link e vê os teus dados sem conta' },
-                  { icon: '🔒', title: 'Revoga quando quiseres', desc: 'O link desativa-se imediatamente. Total controlo.' },
+                  { icon: 'shield', title: 'Revoga quando quiseres', desc: 'O link desativa-se imediatamente. Total controlo.' },
                 ].map(step => (
                   <div key={step.icon} style={{ display: 'flex', gap: 12, alignItems: 'flex-start' }}>
-                    <span style={{ fontSize: 20, flexShrink: 0 }}>{step.icon}</span>
+                    <Icon name={step.icon} size={20} />
                     <div>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{step.title}</div>
                       <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>{step.desc}</div>

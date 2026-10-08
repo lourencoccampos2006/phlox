@@ -36,33 +36,33 @@ export interface ModeTheme {
 }
 
 const NEUTRAL = {
-  pageBg: '#fbfaf7', surface: '#ffffff', surfaceMuted: '#f5f3ee', border: '#ece8e0',
-  ink: '#1a2b22', inkSoft: '#4f5a54', inkFaint: '#8a938d',
+  pageBg: 'var(--bg-2)', surface: 'var(--bg)', surfaceMuted: 'var(--amber-light)', border: 'var(--amber-light)',
+  ink: 'var(--green-3)', inkSoft: 'var(--ink-3)', inkFaint: 'var(--ink-4)',
   radius: 18, radiusLg: 24, greetWarm: true,
 } as const
 
 const PERSONAL: ModeTheme = {
   mode: 'personal', ...NEUTRAL,
-  accent: '#0d7a4d', accentSoft: '#e7f6ee', accentInk: '#0a5c3a',
-  heroFrom: '#0d7a4d', heroTo: '#0e8a6f',
+  accent: 'var(--green-3)', accentSoft: 'var(--green-light)', accentInk: 'var(--green-3)',
+  heroFrom: 'var(--green-3)', heroTo: 'var(--green-3)',
 }
 
 const CAREGIVER: ModeTheme = {
   mode: 'caregiver', ...NEUTRAL,
-  accent: '#b9690e', accentSoft: '#fdf1de', accentInk: '#8a4e0a',
-  heroFrom: '#bd6c10', heroTo: '#cf8a2a',
+  accent: 'var(--amber)', accentSoft: 'var(--amber-light)', accentInk: 'var(--badge-amber-fg)',
+  heroFrom: 'var(--amber)', heroTo: 'var(--amber)',
 }
 
 const STUDENT: ModeTheme = {
   mode: 'student', ...NEUTRAL,
-  accent: '#7c3aed', accentSoft: '#f1ecfe', accentInk: '#5b21b6',
-  heroFrom: '#7c3aed', heroTo: '#9d5cf0',
+  accent: 'var(--roxo)', accentSoft: 'var(--roxo-claro)', accentInk: 'var(--roxo-escuro)',
+  heroFrom: 'var(--roxo)', heroTo: 'var(--roxo)',
 }
 
 const CLINICAL: ModeTheme = {
   mode: 'clinical', ...NEUTRAL,
-  accent: '#2563eb', accentSoft: '#e8f0fe', accentInk: '#1d4ed8',
-  heroFrom: '#1d4ed8', heroTo: '#2563eb',
+  accent: 'var(--blue)', accentSoft: 'var(--blue-light)', accentInk: 'var(--blue)',
+  heroFrom: 'var(--blue)', heroTo: 'var(--blue)',
 }
 
 const THEMES: Record<ExperienceMode, ModeTheme> = {

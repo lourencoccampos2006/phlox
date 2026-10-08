@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from '@/components/AuthContext'
 import { reportError, MSG } from '@/lib/clientError'
 import InstallInstructions from '@/components/InstallInstructions'
+import Icon from '@/components/Icon'
 
 // ════════════════════════════════════════════════════════════════════════════
 //  ONBOARDING — a peça central. Igual para todos. Adapta a plataforma a cada um.
@@ -26,9 +27,9 @@ type Profile = 'personal' | 'caregiver' | 'student' | 'professional'
 // para o processo de vendas direto (Fernando), só deixou de estar acessível
 // a partir do onboarding genérico.
 const PROFILES: { id: Profile; label: string; desc: string; accent: string; bg: string; border: string }[] = [
-  { id: 'personal',     label: 'Uso pessoal',            desc: 'Gerir a minha saúde e medicação',                 accent: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0' },
-  { id: 'caregiver',    label: 'Cuidador familiar',      desc: 'Cuidar da saúde de um familiar',                  accent: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-  { id: 'student',      label: 'Estudante de saúde',     desc: 'Estudar e treinar para a minha área',             accent: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff' },
+  { id: 'personal',     label: 'Uso pessoal',            desc: 'Gerir a minha saúde e medicação',                 accent: 'var(--green)', bg: 'var(--green-light)', border: 'var(--green-mid)' },
+  { id: 'caregiver',    label: 'Cuidador familiar',      desc: 'Cuidar da saúde de um familiar',                  accent: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' },
+  { id: 'student',      label: 'Estudante de saúde',     desc: 'Estudar e treinar para a minha área',             accent: 'var(--roxo)', bg: 'var(--roxo-claro)', border: 'var(--roxo-borda)' },
 ]
 
 // Primeiras ações por perfil — o "valor em 60s". Em vez de despejar o utilizador
@@ -37,26 +38,26 @@ const PROFILES: { id: Profile; label: string; desc: string; accent: string; bg: 
 const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; href: string }[]> = {
   personal: [
     { icon: '📸', label: 'Adicionar a minha medicação', sub: 'Tira foto à caixa ou à receita', href: '/scan' },
-    { icon: '🔍', label: 'Verificar interações', sub: 'Vê se os teus medicamentos se dão bem', href: '/interactions' },
-    { icon: '🧬', label: 'Perceber análises', sub: 'Cada valor em linguagem simples', href: '/labs' },
+    { icon: 'search', label: 'Verificar interações', sub: 'Vê se os teus medicamentos se dão bem', href: '/interactions' },
+    { icon: 'flask', label: 'Perceber análises', sub: 'Cada valor em linguagem simples', href: '/labs' },
   ],
   caregiver: [
-    { icon: '👨‍👩‍👧', label: 'Criar o perfil do familiar', sub: 'Um espaço só para a saúde de quem cuidas', href: '/familia' },
+    { icon: 'family', label: 'Criar o perfil do familiar', sub: 'Um espaço só para a saúde de quem cuidas', href: '/familia' },
     { icon: '📸', label: 'Organizar a medicação dele/dela', sub: 'Foto da receita ou das caixas', href: '/scan' },
-    { icon: '📓', label: 'Registar como está', sub: 'Diário de sintomas e bem-estar', href: '/sintomas' },
+    { icon: 'book', label: 'Registar como está', sub: 'Diário de sintomas e bem-estar', href: '/sintomas' },
   ],
   student: [
-    { icon: '🏆', label: 'Entrar na Arena', sub: 'Treina casos e sobe de liga', href: '/arena' },
-    { icon: '🎯', label: 'Estudar', sub: 'Flashcards e quiz onde estás mais fraco', href: '/study' },
+    { icon: 'trophy', label: 'Entrar na Arena', sub: 'Treina casos e sobe de liga', href: '/arena' },
+    { icon: 'target', label: 'Estudar', sub: 'Flashcards e quiz onde estás mais fraco', href: '/study' },
     { icon: '🧑‍🏫', label: 'AI Tutor', sub: 'Explica conceitos passo a passo', href: '/tutor' },
   ],
   // Uma instituição NOVA ainda não tem organização criada — sem ela, /painel e
   // /patients ficam vazios ou atrás de paywall. O primeiro passo é sempre criar
   // a instituição (o /comecar-instituicao trata disso e depois leva ao resto).
   professional: [
-    { icon: '🏛️', label: 'Criar a minha instituição', sub: 'Dois minutos, e o painel fica montado', href: '/comecar-instituicao' },
-    { icon: '☀️', label: 'Abrir o meu painel', sub: 'O dia da tua instituição, montado de raiz', href: '/painel' },
-    { icon: '👥', label: 'Convidar a equipa', sub: 'Dá acesso aos funcionários', href: '/equipa' },
+    { icon: 'building', label: 'Criar a minha instituição', sub: 'Dois minutos, e o painel fica montado', href: '/comecar-instituicao' },
+    { icon: 'clock', label: 'Abrir o meu painel', sub: 'O dia da tua instituição, montado de raiz', href: '/painel' },
+    { icon: 'users', label: 'Convidar a equipa', sub: 'Dá acesso aos funcionários', href: '/equipa' },
   ],
 }
 
@@ -196,7 +197,7 @@ export default function OnboardingPage() {
   // ── Reusable bits ──
   const Chip = ({ on, label, onClick }: { on: boolean; label: string; onClick: () => void }) => (
     <button onClick={onClick} style={{
-      padding: '9px 15px', borderRadius: 9, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+      padding: '9px 15px', borderRadius: 'var(--r-lg)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
       border: `1.5px solid ${on ? accent : 'var(--border)'}`, background: on ? meta?.bg : 'white',
       color: on ? accent : 'var(--ink-3)', fontSize: 13, fontWeight: on ? 700 : 500,
     }}>{label}</button>
@@ -221,7 +222,7 @@ export default function OnboardingPage() {
         <div style={{ display: 'flex', gap: 8, marginBottom: 32, alignItems: 'center' }}>
           {STEP_TITLES.map((t, i) => (
             <div key={t} style={{ flex: 1 }}>
-              <div style={{ height: 3, borderRadius: 2, background: i <= step ? accent : 'var(--border)', transition: 'background 0.3s' }} />
+              <div style={{ height: 3, borderRadius: 'var(--r-sm)', background: i <= step ? accent : 'var(--border)', transition: 'background 0.3s' }} />
               <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: i <= step ? accent : 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginTop: 6 }}>{t}</div>
             </div>
           ))}
@@ -238,7 +239,7 @@ export default function OnboardingPage() {
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {PROFILES.map(p => (
-                  <button key={p.id} onClick={() => { setProfile(p.id); go(1) }} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 22px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 12, cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}
+                  <button key={p.id} onClick={() => { setProfile(p.id); go(1) }} style={{ display: 'flex', alignItems: 'center', gap: 16, padding: '18px 22px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', cursor: 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = p.accent; e.currentTarget.style.background = p.bg }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.background = 'white' }}>
                     <div style={{ width: 10, height: 10, borderRadius: '50%', background: p.accent, flexShrink: 0 }} />
@@ -268,7 +269,7 @@ export default function OnboardingPage() {
                   <SecLabel>Tipo de instituição</SecLabel>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 22 }}>
                     {INSTITUTIONS.map(i => (
-                      <button key={i.id} onClick={() => setInstType(i.id)} style={{ padding: '13px 14px', borderRadius: 10, border: `1.5px solid ${instType === i.id ? accent : 'var(--border)'}`, background: instType === i.id ? meta?.bg : 'white', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)' }}>
+                      <button key={i.id} onClick={() => setInstType(i.id)} style={{ padding: '13px 14px', borderRadius: 'var(--r-lg)', border: `1.5px solid ${instType === i.id ? accent : 'var(--border)'}`, background: instType === i.id ? meta?.bg : 'white', cursor: 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)' }}>
                         <div style={{ fontSize: 13.5, fontWeight: 700, color: instType === i.id ? accent : 'var(--ink)' }}>{i.label}</div>
                         <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 2 }}>{i.desc}</div>
                       </button>
@@ -303,7 +304,7 @@ export default function OnboardingPage() {
               {profile === 'personal' && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {PERSONAL_GOALS.map(g => (
-                    <button key={g.id} onClick={() => setSub(g.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderRadius: 10, border: `1.5px solid ${sub === g.id ? accent : 'var(--border)'}`, background: sub === g.id ? meta?.bg : 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                    <button key={g.id} onClick={() => setSub(g.id)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 18px', borderRadius: 'var(--r-lg)', border: `1.5px solid ${sub === g.id ? accent : 'var(--border)'}`, background: sub === g.id ? meta?.bg : 'white', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                       <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{g.label}</span>
                       {sub === g.id && <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={accent} strokeWidth="2.5" strokeLinecap="round"><path d="M20 6L9 17l-5-5"/></svg>}
                     </button>
@@ -312,8 +313,8 @@ export default function OnboardingPage() {
               )}
 
               <div style={{ display: 'flex', gap: 8, marginTop: 26 }}>
-                <button onClick={() => { go(0); setProfile(null); setInstType(''); setRole(''); setArea(''); setYear(''); setSub('') }} style={{ padding: '13px 18px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>← Voltar</button>
-                <button onClick={() => go(2)} disabled={!detailReady} style={{ flex: 1, padding: '13px', background: detailReady ? accent : 'var(--bg-3)', color: detailReady ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: detailReady ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Continuar</button>
+                <button onClick={() => { go(0); setProfile(null); setInstType(''); setRole(''); setArea(''); setYear(''); setSub('') }} style={{ padding: '13px 18px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>← Voltar</button>
+                <button onClick={() => go(2)} disabled={!detailReady} style={{ flex: 1, padding: '13px', background: detailReady ? accent : 'var(--bg-3)', color: detailReady ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: detailReady ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', textTransform: 'uppercase', letterSpacing: '0.02em' }}>Continuar</button>
               </div>
             </div>
           )}
@@ -332,8 +333,8 @@ export default function OnboardingPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9, maxWidth: 400, margin: '0 auto' }}>
                 {(FIRST_ACTIONS[profile || 'personal'] || FIRST_ACTIONS.personal).map(a => (
                   <button key={a.href} onClick={() => finish(a.href)} disabled={saving}
-                    style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', background: 'white', border: `1.5px solid ${meta.border}`, borderRadius: 12, cursor: saving ? 'wait' : 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
-                    <span style={{ fontSize: 22, flexShrink: 0 }}>{a.icon}</span>
+                    style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '13px 15px', background: 'white', border: `1.5px solid ${meta.border}`, borderRadius: 'var(--r-xl)', cursor: saving ? 'wait' : 'pointer', textAlign: 'left', width: '100%', transition: 'all 0.15s' }}>
+                    <Icon name={a.icon} size={22} />
                     <span style={{ flex: 1, minWidth: 0 }}>
                       <span style={{ display: 'block', fontSize: 14.5, fontWeight: 700, color: 'var(--ink)' }}>{a.label}</span>
                       <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{a.sub}</span>
@@ -355,7 +356,7 @@ export default function OnboardingPage() {
                 {showInstall && <InstallInstructions compact />}
               </div>
 
-              {finishErr && <div style={{ marginTop: 14, fontSize: 12.5, color: '#dc2626', fontWeight: 600 }}>{finishErr}</div>}
+              {finishErr && <div style={{ marginTop: 14, fontSize: 12.5, color: 'var(--red)', fontWeight: 600 }}>{finishErr}</div>}
               <div style={{ marginTop: 16, display: 'flex', gap: 16, justifyContent: 'center', alignItems: 'center' }}>
                 <button onClick={() => finish()} disabled={saving} style={{ background: 'none', border: 'none', fontSize: 13, color: accent, fontWeight: 600, cursor: saving ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A configurar…' : 'Só entrar →'}</button>
                 <button onClick={() => go(1)} style={{ background: 'none', border: 'none', fontSize: 12, color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>← Rever</button>

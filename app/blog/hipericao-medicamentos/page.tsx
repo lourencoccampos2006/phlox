@@ -30,7 +30,7 @@ export default function PostHipericao() {
         </div>
 
         <div style={{ marginBottom: 40 }}>
-          <div style={{ display: 'inline-block', background: '#fffbeb', color: '#b45309', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>SUPLEMENTOS</div>
+          <div style={{ display: 'inline-block', background: 'var(--badge-amber-bg)', color: 'var(--amber)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>SUPLEMENTOS</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 38, color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
             Hipericão — as interações que ninguém conta
           </h1>
@@ -42,9 +42,9 @@ export default function PostHipericao() {
           </div>
         </div>
 
-        <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderLeft: '4px solid #dc2626', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
-          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#7f1d1d', letterSpacing: '0.08em', marginBottom: 6 }}>⚠ INTERAÇÕES GRAVES</div>
-          <p style={{ fontSize: 14, color: '#742a2a', lineHeight: 1.7, margin: 0 }}>
+        <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderLeft: '4px solid var(--red)', borderRadius: '0 8px 8px 0', padding: '16px 20px', marginBottom: 36 }}>
+          <div style={{ fontSize: 12, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--red)', letterSpacing: '0.08em', marginBottom: 6 }}>⚠ INTERAÇÕES GRAVES</div>
+          <p style={{ fontSize: 14, color: 'var(--badge-red-fg)', lineHeight: 1.7, margin: 0 }}>
             O hipericão pode <strong>reduzir o efeito</strong> de muitos medicamentos (incluindo a pílula) e <strong>aumentar perigosamente</strong> o de outros. Se tomas medicação crónica, fala com o farmacêutico antes.
           </p>
         </div>
@@ -69,13 +69,13 @@ export default function PostHipericao() {
           <p style={P}>Se já tomas hipericão e algum medicamento crónico, <strong>não pares nada de repente</strong> — parar o hipericão também altera os níveis dos medicamentos. Fala com o farmacêutico ou médico para ajustar com segurança. E se pensas começar, verifica antes as interações com o que já tomas.</p>
         </div>
 
-        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+        <div style={{ marginTop: 48, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>O hipericão dá-se bem com a tua medicação?</div>
           <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>O verificador do Phlox inclui suplementos como o hipericão e diz-te o risco com cada medicamento que tomas.</p>
-          <Link href="/interactions" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Verificar interações grátis →</Link>
+          <Link href="/interactions" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Verificar interações grátis →</Link>
         </div>
 
-        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+        <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
           <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
             Este artigo destina-se a fins informativos e educativos. Não substitui o aconselhamento de um profissional de saúde. Não pares nem inicies suplementos sem falar com o teu médico ou farmacêutico. Base: EMA, INFARMED, NIH.
           </p>

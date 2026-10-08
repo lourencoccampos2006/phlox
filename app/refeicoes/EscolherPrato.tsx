@@ -87,10 +87,10 @@ export default function EscolherPrato({ pratos, valor, momento, aoEscolher, dest
         title={escolhido?.name || 'Escolher prato'}
         style={{
           width: '100%', minHeight: compacto ? 32 : 36, textAlign: 'left',
-          border: `1px solid ${destaque ? '#ddd6fe' : 'var(--border)'}`,
-          borderRadius: 7, padding: '5px 8px', background: 'var(--bg)',
+          border: `1px solid ${destaque ? 'var(--border)' : 'var(--border)'}`,
+          borderRadius: 'var(--r-md)', padding: '5px 8px', background: 'var(--bg)',
           fontFamily: 'inherit', fontSize: 12, cursor: 'pointer',
-          color: escolhido ? (destaque ? '#7c3aed' : 'var(--ink)') : 'var(--ink-5)',
+          color: escolhido ? (destaque ? 'var(--ink-3)' : 'var(--ink)') : 'var(--ink-5)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
         {escolhido ? escolhido.name : '—'}
@@ -100,7 +100,7 @@ export default function EscolherPrato({ pratos, valor, momento, aoEscolher, dest
         <div style={{
           position: 'absolute', top: '100%', left: 0, zIndex: 40, marginTop: 4,
           width: 'max(260px, 100%)', background: 'var(--bg)',
-          border: '1px solid var(--border-2)', borderRadius: 10,
+          border: '1px solid var(--border-2)', borderRadius: 'var(--r-lg)',
           boxShadow: '0 12px 32px rgba(0,0,0,0.14)', overflow: 'hidden',
         }}>
           <input
@@ -150,7 +150,7 @@ export default function EscolherPrato({ pratos, valor, momento, aoEscolher, dest
                       overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
                     }}>{p.name}</span>
                     <span style={{ ...MONO, display: 'block', marginTop: 2 }}>
-                      {!doMomento && <span style={{ color: '#b45309' }}>{p.course || 'prato'} · </span>}
+                      {!doMomento && <span style={{ color: 'var(--amber)' }}>{p.course || 'prato'} · </span>}
                       {p.category || ''}
                       {p.texture && p.texture !== 'Normal' ? `${p.category ? ' · ' : ''}${p.texture}` : ''}
                       {(p.allergens || []).length ? ` · alergénios: ${(p.allergens || []).join(', ')}` : ''}

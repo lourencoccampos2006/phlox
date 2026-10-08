@@ -42,9 +42,9 @@ export default function FaturacaoPage() {
     return (
       <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
         <div className="page-container page-body" style={{ maxWidth: 560 }}>
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Só o dono ou administrador</div>
-            <div style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6 }}>Esta área é financeira — só quem gere a instituição tem acesso.</div>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--amber)', marginBottom: 6 }}>Só o dono ou administrador</div>
+            <div style={{ fontSize: 13.5, color: 'var(--amber)', lineHeight: 1.6 }}>Esta área é financeira — só quem gere a instituição tem acesso.</div>
           </div>
         </div>
       </div>
@@ -58,9 +58,9 @@ export default function FaturacaoPage() {
         <div className="page-container page-body" style={{ maxWidth: 720 }}>
           <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Financeiro · {cfg.unitNoun}</div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 14px' }}>Distribuição interna</h1>
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 24, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 24, fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6 }}>
             A farmácia hospitalar não fatura ao doente — distribui internamente por serviço.
-            A gestão de existências, lotes e validade faz-se em <a href="/stock" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Stock &amp; Validades</a> e a dispensa em <a href="/atendimentos" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Atendimentos</a>.
+            A gestão de existências, lotes e validade faz-se em <a href="/stock" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Stock &amp; Validades</a> e a dispensa em <a href="/atendimentos" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Atendimentos</a>.
           </div>
         </div>
       </div>

@@ -21,31 +21,31 @@ Autorizo o tratamento dos meus dados nos termos acima descritos.`,
 }
 
 const IMAGEM: ConsentTemplate = {
-  kind: 'imagem', label: 'Captação de imagem', icon: '📷',
+  kind: 'imagem', label: 'Captação de imagem', icon: 'camera',
   body: `Eu, {NOME}, autorizo {INSTITUICAO} a captar e utilizar imagens (fotografia/vídeo) para fins exclusivamente clínicos e de registo no processo, com garantia de confidencialidade e não divulgação a terceiros sem novo consentimento.`,
 }
 
 const PROCEDIMENTO: ConsentTemplate = {
-  kind: 'procedimento', label: 'Procedimento / ato clínico', icon: '🩺',
+  kind: 'procedimento', label: 'Procedimento / ato clínico', icon: 'stethoscope',
   body: `Eu, {NOME}, declaro que me foi explicado, em linguagem que compreendi, o procedimento proposto, os seus benefícios, riscos, alternativas e consequências de não o realizar. Tive oportunidade de colocar questões e foram esclarecidas.
 
 Consinto livre e esclarecidamente na realização do procedimento em {INSTITUICAO}.`,
 }
 
 const VACINA: ConsentTemplate = {
-  kind: 'vacina', label: 'Administração de vacina', icon: '💉',
+  kind: 'vacina', label: 'Administração de vacina', icon: 'pill',
   body: `Eu, {NOME}, fui informado(a) sobre a vacina a administrar, os seus benefícios e possíveis reações adversas. Confirmei o meu estado de saúde atual e ausência de contraindicações conhecidas.
 
 Consinto na administração da vacina em {INSTITUICAO}.`,
 }
 
 const FARMACEUTICO: ConsentTemplate = {
-  kind: 'farmaceutico', label: 'Serviço farmacêutico / MTM', icon: '💊',
+  kind: 'farmaceutico', label: 'Serviço farmacêutico / MTM', icon: 'pill',
   body: `Eu, {NOME}, autorizo {INSTITUICAO} a registar e tratar os dados relativos à minha medicação no âmbito de serviços farmacêuticos (revisão da medicação, indicação, acompanhamento), com a finalidade de melhorar a segurança e eficácia da terapêutica.`,
 }
 
 const ERPI: ConsentTemplate = {
-  kind: 'erpi', label: 'Cuidados em ERPI / plano individual', icon: '🤝',
+  kind: 'erpi', label: 'Cuidados em ERPI / plano individual', icon: 'users',
   body: `Eu, {NOME} (ou representante legal), declaro ter sido informado(a) sobre o plano individual de cuidados, a partilha de informação clínica entre a equipa de {INSTITUICAO} e, quando autorizado, com a família designada.
 
 Consinto na prestação de cuidados e no tratamento dos dados necessários para o efeito.`,

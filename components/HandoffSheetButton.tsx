@@ -70,10 +70,10 @@ export default function HandoffSheetButton({ profileId, name, age, allergies, co
 
   return (
     <div>
-      <button onClick={build} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: '#fff7ed', color: '#9a3412', border: '1px solid #fed7aa', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
+      <button onClick={build} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: 'var(--amber-light)', color: 'var(--badge-red-fg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: loading ? 'wait' : 'pointer' }}>
         {loading ? '⏳ A preparar…' : '🏥 Ficha para o hospital'}
       </button>
-      {err && <div style={{ fontSize: 11, color: '#dc2626', marginTop: 4 }}>{err}</div>}
+      {err && <div style={{ fontSize: 11, color: 'var(--red)', marginTop: 4 }}>{err}</div>}
     </div>
   )
 }

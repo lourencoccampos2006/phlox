@@ -53,15 +53,15 @@ interface Bem {
 }
 
 const CATEGORIAS: Record<string, { label: string; cor: string }> = {
-  roupa:      { label: 'Roupa',      cor: '#5a6d7c' },
-  calcado:    { label: 'Calçado',    cor: '#7c6f5a' },
-  higiene:    { label: 'Higiene',    cor: '#5f7161' },
+  roupa:      { label: 'Roupa',      cor: 'var(--blue)' },
+  calcado:    { label: 'Calçado',    cor: 'var(--amber)' },
+  higiene:    { label: 'Higiene',    cor: 'var(--green)' },
   // Óculos, aparelho auditivo, prótese. Os que custam dinheiro a sério e os
   // que fazem falta no mesmo dia em que desaparecem.
-  saude:      { label: 'Saúde',      cor: '#a1544c' },
-  valor:      { label: 'De valor',   cor: '#8a6d3b' },
-  eletronico: { label: 'Eletrónico', cor: '#6b6a80' },
-  outro:      { label: 'Outro',      cor: '#7a5f70' },
+  saude:      { label: 'Saúde',      cor: 'var(--red)' },
+  valor:      { label: 'De valor',   cor: 'var(--amber)' },
+  eletronico: { label: 'Eletrónico', cor: 'var(--blue)' },
+  outro:      { label: 'Outro',      cor: 'var(--red)' },
 }
 const ORDEM = ['saude', 'valor', 'eletronico', 'roupa', 'calcado', 'higiene', 'outro']
 
@@ -173,7 +173,7 @@ export default function BensDoUtente({ pid, nome, cor }: { pid: string; nome: st
         </span>
       </div>
 
-      {erro && <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+      {erro && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
 
       {caEstao.length === 0 && !aAcrescentar && (
         <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, marginTop: 'var(--space-7)' }}>
@@ -187,13 +187,13 @@ export default function BensDoUtente({ pid, nome, cor }: { pid: string; nome: st
           const cat = CATEGORIAS[g.categoria] || CATEGORIAS.outro
           return (
             <div key={g.categoria}>
-              <div style={{ ...MONO, fontSize: 9.5, color: cat.cor, marginBottom: 7 }}>{cat.label}</div>
+              <div style={{ ...MONO, fontSize: 9.5, color: 'var(--ink-4)', marginBottom: 7 }}>{cat.label}</div>
               <div style={{ borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden' }}>
                 {g.bens.map((b, i) => (
                   <div key={b.id} style={{
                     display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px',
                     borderTop: i === 0 ? 'none' : '1px solid var(--bg-3)',
-                    borderLeft: `3px solid ${cat.cor}`,
+                    borderLeft: '3px solid var(--border-2)',
                   }}>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35 }}>
@@ -284,7 +284,7 @@ export default function BensDoUtente({ pid, nome, cor }: { pid: string; nome: st
             <button onClick={acrescentar} disabled={!form.descricao.trim()} style={{
               minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
               background: form.descricao.trim() ? cor : 'var(--bg-3)',
-              color: form.descricao.trim() ? '#fff' : 'var(--ink-5)',
+              color: form.descricao.trim() ? 'var(--bg)' : 'var(--ink-5)',
               fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
               cursor: form.descricao.trim() ? 'pointer' : 'default',
             }}>Registar</button>
@@ -347,7 +347,7 @@ function FolhaDeSaida({ b, cor, aoFechar, aoGravar }: {
         <div style={{ display: 'flex', gap: 8, marginTop: 14 }}>
           <button onClick={() => aoGravar(quem, motivo)} style={{
             flex: 1, minHeight: 44, borderRadius: 'var(--r-md)', border: 'none',
-            background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: 'pointer',
           }}>Marcar saída</button>
           <button onClick={aoFechar} style={{
             minHeight: 44, padding: '0 16px', borderRadius: 'var(--r-md)',

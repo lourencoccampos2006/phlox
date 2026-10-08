@@ -77,9 +77,9 @@ export function evaluateVital(field: VitalField, value: number, ctx: VitalContex
 }
 
 export const VITAL_LEVEL_COLOR: Record<VitalLevel, { color: string; bg: string; border: string }> = {
-  normal:   { color: '#0d6e42', bg: '#f0fdf4', border: '#bbf7d0' },
-  warning:  { color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-  critical: { color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' },
+  normal:   { color: 'var(--green)', bg: 'var(--green-light)', border: 'var(--green-mid)' },
+  warning:  { color: 'var(--amber)', bg: 'var(--amber-light)', border: 'var(--badge-amber-border)' },
+  critical: { color: 'var(--red)', bg: 'var(--red-light)', border: 'var(--red-light)' },
 }
 
 // Avalia um conjunto de campos de uma leitura e devolve só os que NÃO estão normais,

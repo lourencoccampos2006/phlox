@@ -89,13 +89,41 @@ try {
   /* ── O percurso completo ─────────────────────────────────────────────── */
   diz(!/ainda não estão disponíveis/.test(t), 'as tabelas existem e a página abriu a sério')
 
+  // A base de dados recusa alguma coisa? Apanha-se o motivo, em vez de o
+  // deixar sair como um `timeout` do Playwright a apontar para um botão.
+  const recusas = []
+  page.on('response', async r => {
+    if (!r.url().includes('inqueritos') || r.status() < 400) return
+    try { recusas.push(`${r.status()} ${JSON.parse(await r.text()).message || ''}`) }
+    catch { recusas.push(String(r.status())) }
+  })
+
   // 1. Criar
   await page.getByRole('button', { name: 'Novo inquérito' }).click()
   await assentar(page)
   await page.getByRole('button', { name: 'Famílias' }).click()
   await page.locator('input[inputmode="numeric"]').fill('20')
   await page.getByRole('button', { name: 'Criar' }).click()
-  const t2 = await esperarPor(page, ['lançar uma resposta em papel'])
+  const t2 = await esperarPor(page, ['lançar uma resposta em papel', 'não consegui criar'])
+
+  if (/não consegui criar/.test(t2) || recusas.length) {
+    // ── O erro que já aconteceu uma vez, e o que ele quer dizer ───────────
+    // Uma política de RLS que não deixa escrever não dá erro de sintaxe nem
+    // de coluna: a migração corre, a página abre, e só a criação é recusada.
+    // Dizer QUAL é a migração em falta poupa a volta inteira.
+    const rls = recusas.some(x => /row-level security|42501/.test(x))
+    diz(false, `a criação foi recusada: ${recusas.join(' | ') || '(sem resposta HTTP capturada)'}`)
+    if (rls) {
+      console.log('\n   ↳ É a RLS a recusar. Falta correr o sprint179 (políticas contra')
+      console.log('     `org_members` em vez de `team_members`) e o sprint153 outra vez')
+      console.log('     (é ele que traz o nível `qualidade.editar`).')
+    }
+    await page.screenshot({ path: `${OUT}/recusado.png` })
+    console.log(`\n✗ ${falhas.length} falha(s).`)
+    console.log(`Imagens em ${OUT}/`)
+    process.exit(1)
+  }
+
   diz(/lançar uma resposta em papel/.test(t2), 'o inquérito foi criado e abriu')
   diz(/ainda não há respostas/.test(t2), 'e diz que ainda não há respostas')
 

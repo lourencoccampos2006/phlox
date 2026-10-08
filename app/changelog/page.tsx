@@ -11,7 +11,7 @@ const RELEASES = [
     version: '3.2',
     date: '2026-05-31',
     tag: 'Mais recente',
-    tagColor: '#0d6e42',
+    tagColor: 'var(--green)',
     items: [
       { type: 'new', text: '/brief — sumário diário inteligente com KPIs do dia, itens a precisar de atenção, sugestão personalizada e novidades' },
       { type: 'new', text: '/calc — Calc Hub com 22 calculadoras clínicas determinísticas: CrCl, eGFR CKD-EPI 2021, IMC, BSA, CHA₂DS₂-VASc, HAS-BLED, qSOFA, NEWS2, Wells DVT/EP, MELD-Na, GCS, Centor, ABCD², Padua, Light, Bishop, e mais' },
@@ -27,7 +27,7 @@ const RELEASES = [
     version: '3.1',
     date: '2026-05-31',
     tag: null,
-    tagColor: '#0d6e42',
+    tagColor: 'var(--green)',
     items: [
       { type: 'new', text: '/reach — convites e referrals: cada utilizador tem o seu código, ambos ganham 1 mês quando o convidado faz upgrade' },
       { type: 'new', text: '/api/pulse (Server-Sent Events) — KPIs ao vivo no cockpit: receita do dia, fila, tarefas. Atualização em tempo real sem polling' },
@@ -39,7 +39,7 @@ const RELEASES = [
     version: '3.0',
     date: '2026-05-31',
     tag: null,
-    tagColor: '#0d6e42',
+    tagColor: 'var(--green)',
     items: [
       { type: 'new', text: '/trust — Trust Center: estado, segurança, RGPD, subprocessadores e descarga de DPA num único sítio' },
       { type: 'new', text: '/trust/dpa — gerador de Contrato de Subcontratante (Art. 28.º RGPD) personalizado por NIF, com cláusulas standard e subprocessadores' },
@@ -53,7 +53,7 @@ const RELEASES = [
     version: '2.9',
     date: '2026-05-30',
     tag: null,
-    tagColor: '#0d6e42',
+    tagColor: 'var(--green)',
     items: [
       { type: 'new', text: '/status — página pública de estado com verificação em tempo real da base de dados e da autenticação. Indicador vivo no rodapé' },
       { type: 'new', text: '/seguranca — modelo técnico de segurança: TLS 1.3, AES-256 em repouso, RLS por linha, hospedagem na União Europeia, política de backups e retenção' },
@@ -64,7 +64,7 @@ const RELEASES = [
     version: '2.8',
     date: '2026-05-29',
     tag: null,
-    tagColor: '#2563eb',
+    tagColor: 'var(--ink-2)',
     items: [
       { type: 'new', text: 'Motor fiscal — ATCUD, QR Code no formato oficial da AT, numeração sequencial atómica por série, cadeia SHA-256 entre documentos, SAF-T (PT) com a estrutura oficial' },
       { type: 'new', text: 'Notas de crédito — estorno do documento com cadeia, em vez de eliminação (exigência fiscal)' },
@@ -81,7 +81,7 @@ const RELEASES = [
     version: '2.7',
     date: '2026-05-20',
     tag: null,
-    tagColor: '#2563eb',
+    tagColor: 'var(--ink-2)',
     items: [
       { type: 'new', text: '/antibiotics — antibioterapia empírica: 1.ª/2.ª linha, cobertura MRSA/ESBL, step-down IV→oral, duração, ajuste renal, stewardship. Baseado em ESCMID/EUCAST 2024, IDSA, DGS PPCIRA' },
       { type: 'new', text: '/stopp-start — análise STOPP/START v3 (2023) + Beers 2023 com seleção de doente, 24 chips de diagnóstico, exportação e 3 painéis por critério' },
@@ -97,7 +97,7 @@ const RELEASES = [
     version: '2.6',
     date: '2026-05-20',
     tag: null,
-    tagColor: '#2563eb',
+    tagColor: 'var(--ink-2)',
     items: [
       { type: 'new', text: 'Nova página /nota-clinica — geração de nota SOAP estruturada com IA (tipos: SOAP, Evolução, Alta, Interconsulta)' },
       { type: 'new', text: 'Nova página /drug-info — monografia completa de fármacos: mecanismo, doses renais/hepáticas, interações, RAMs' },
@@ -118,7 +118,7 @@ const RELEASES = [
     version: '2.5',
     date: '2026-05-20',
     tag: null,
-    tagColor: '#059669',
+    tagColor: 'var(--green)',
     items: [
       { type: 'new', text: 'Dashboard de família (/familia) — resumo de todos os perfis com risco, STOPP e medicação' },
       { type: 'new', text: '/mymeds totalmente preparado para perfis familiares — dados, adição, remoção e lembretes por perfil' },
@@ -143,7 +143,7 @@ const RELEASES = [
     version: '2.4',
     date: '2026-05-20',
     tag: null,
-    tagColor: '#059669',
+    tagColor: 'var(--green)',
     items: [
       { type: 'new', text: 'Score de saúde pessoal com barra de progresso e streak de adesão' },
       { type: 'new', text: 'Trend arrows nos sinais vitais — comparação com leitura anterior' },
@@ -204,10 +204,10 @@ const RELEASES = [
 ]
 
 const TYPE_STYLE: Record<string, { label: string; color: string; bg: string }> = {
-  new:  { label: 'Novo',      color: '#059669', bg: '#d1fae5' },
-  fix:  { label: 'Fix',       color: '#2563eb', bg: '#dbeafe' },
-  perf: { label: 'Perf',      color: '#7c3aed', bg: '#ede9fe' },
-  dep:  { label: 'Depreciado',color: '#d97706', bg: '#fef9c3' },
+  new:  { label: 'Novo',      color: 'var(--green)', bg: 'var(--badge-green-bg)' },
+  fix:  { label: 'Fix',       color: 'var(--ink-2)', bg: 'var(--bg-3)' },
+  perf: { label: 'Perf',      color: 'var(--roxo)', bg: 'var(--roxo-claro)' },
+  dep:  { label: 'Depreciado',color: 'var(--amber)', bg: 'var(--amber-light)' },
 }
 
 export default function ChangelogPage() {
@@ -235,7 +235,7 @@ export default function ChangelogPage() {
                   v{release.version}
                 </div>
                 {release.tag && (
-                  <span style={{ fontSize: 10, fontWeight: 700, color: release.tagColor, background: `${release.tagColor}18`, border: `1px solid ${release.tagColor}40`, borderRadius: 20, padding: '2px 8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: 10, fontWeight: 700, color: release.tagColor, background: `${release.tagColor}18`, border: `1px solid ${release.tagColor}40`, borderRadius: 'var(--r-xl)', padding: '2px 8px', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
                     {release.tag}
                   </span>
                 )}
@@ -250,7 +250,7 @@ export default function ChangelogPage() {
                   const s = TYPE_STYLE[item.type] || TYPE_STYLE.fix
                   return (
                     <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                      <span style={{ fontSize: 9, fontWeight: 700, color: s.color, background: s.bg, borderRadius: 3, padding: '2px 6px', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0, marginTop: 2 }}>
+                      <span style={{ fontSize: 9, fontWeight: 700, color: s.color, background: s.bg, borderRadius: 'var(--r-sm)', padding: '2px 6px', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em', textTransform: 'uppercase', flexShrink: 0, marginTop: 2 }}>
                         {s.label}
                       </span>
                       <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.55 }}>{item.text}</span>

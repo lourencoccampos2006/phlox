@@ -40,6 +40,10 @@ import ProfileSelector from '@/components/ProfileSelector'
 import type { ActiveProfile } from '@/lib/profileContext'
 import { sendToTool } from '@/lib/toolBridge'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -75,18 +79,18 @@ interface LabReport {
 // ─── Status styles ────────────────────────────────────────────────────────────
 
 const STATUS_STYLE = {
-  NORMAL:        { bg: '#f0fdf4', border: '#86efac', color: '#14532d', dot: '#22c55e', label: 'Normal',         icon: '✓' },
-  ALTO:          { bg: '#fffbeb', border: '#fde68a', color: '#78350f', dot: '#f59e0b', label: 'Acima do normal', icon: '↑' },
-  BAIXO:         { bg: '#eff6ff', border: '#bfdbfe', color: '#1e3a5f', dot: '#3b82f6', label: 'Abaixo do normal', icon: '↓' },
-  CRITICO_ALTO:  { bg: '#fff5f5', border: '#fecaca', color: '#7f1d1d', dot: '#ef4444', label: 'Valor crítico ↑', icon: '↑↑' },
-  CRITICO_BAIXO: { bg: '#fff5f5', border: '#fecaca', color: '#7f1d1d', dot: '#ef4444', label: 'Valor crítico ↓', icon: '↓↓' },
+  NORMAL:        { bg: 'var(--badge-green-bg)', border: 'var(--badge-green-border)', color: 'var(--green-3)', dot: 'var(--green)', label: 'Normal',         icon: '✓' },
+  ALTO:          { bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', color: 'var(--amber)', dot: 'var(--amber)', label: 'Acima do normal', icon: '↑' },
+  BAIXO:         { bg: 'var(--bg-2)', border: 'var(--border)', color: 'var(--badge-blue-fg)', dot: 'var(--ink-3)', label: 'Abaixo do normal', icon: '↓' },
+  CRITICO_ALTO:  { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', dot: 'var(--red)', label: 'Valor crítico ↑', icon: '↑↑' },
+  CRITICO_BAIXO: { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', dot: 'var(--red)', label: 'Valor crítico ↓', icon: '↓↓' },
 }
 
 const OVERALL_STYLE = {
-  TUDO_NORMAL:            { bg: '#f0fdf4', border: '#86efac', color: '#14532d', bar: '#22c55e', emoji: '✓', label: 'Tudo dentro dos valores normais' },
-  ATENÇÃO:                { bg: '#fffbeb', border: '#fde68a', color: '#78350f', bar: '#f59e0b', emoji: '⚠', label: 'Alguns valores merecem atenção' },
-  CONSULTA_RECOMENDADA:   { bg: '#fff7ed', border: '#fdba74', color: '#7c2d12', bar: '#f97316', emoji: '!',  label: 'Recomendamos consulta médica' },
-  CONSULTA_URGENTE:       { bg: '#fff5f5', border: '#fecaca', color: '#7f1d1d', bar: '#ef4444', emoji: '!!', label: 'Consulta médica urgente' },
+  TUDO_NORMAL:            { bg: 'var(--badge-green-bg)', border: 'var(--badge-green-border)', color: 'var(--green-3)', bar: 'var(--green)', emoji: '✓', label: 'Tudo dentro dos valores normais' },
+  ATENÇÃO:                { bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', color: 'var(--amber)', bar: 'var(--amber)', emoji: '⚠', label: 'Alguns valores merecem atenção' },
+  CONSULTA_RECOMENDADA:   { bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', color: 'var(--badge-red-fg)', bar: 'var(--amber)', emoji: '!',  label: 'Recomendamos consulta médica' },
+  CONSULTA_URGENTE:       { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', bar: 'var(--red)', emoji: '!!', label: 'Consulta médica urgente' },
 }
 
 // ─── Upgrade gate ─────────────────────────────────────────────────────────────
@@ -97,45 +101,45 @@ function UpgradeGate({ plan }: { plan: string }) {
     <div style={{ maxWidth: 560, margin: '0 auto', textAlign: 'center', padding: '40px 20px' }}>
       {/* Blurred preview */}
       <div style={{ position: 'relative', marginBottom: 28, userSelect: 'none', pointerEvents: 'none' }}>
-        <div style={{ filter: 'blur(4px)', opacity: 0.5, background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', textAlign: 'left' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', marginBottom: 8 }}>RELATÓRIO DE ANÁLISES CLÍNICAS</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 16 }}>As tuas análises de Março 2026</div>
+        <div style={{ filter: 'blur(4px)', opacity: 0.5, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '20px', textAlign: 'left' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginBottom: 8 }}>RELATÓRIO DE ANÁLISES CLÍNICAS</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 16 }}>As tuas análises de Março 2026</div>
           {[
             { label: 'Colesterol LDL', value: '142 mg/dL', status: 'ALTO' },
             { label: 'Vitamina D', value: '18 ng/mL', status: 'BAIXO' },
             { label: 'Glicemia em jejum', value: '102 mg/dL', status: 'ATENÇÃO' },
           ].map(({ label, value, status }) => (
             <div key={label} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: '1px solid var(--bg-3)', alignItems: 'center' }}>
-              <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>{label}</span>
+              <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)' }}>{label}</span>
               <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                <span style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: status === 'NORMAL' ? 'var(--green)' : status === 'ALTO' ? '#d97706' : '#3b82f6' }}>{value}</span>
-                <span style={{ fontSize: 10, background: status === 'ALTO' ? '#fffbeb' : '#eff6ff', color: status === 'ALTO' ? '#78350f' : '#1e3a5f', border: `1px solid ${status === 'ALTO' ? '#fde68a' : '#bfdbfe'}`, borderRadius: 4, padding: '1px 6px', fontFamily: 'var(--font-mono)' }}>{status}</span>
+                <span style={{ fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', color: status === 'NORMAL' ? 'var(--green)' : status === 'ALTO' ? 'var(--amber)' : 'var(--ink-3)' }}>{value}</span>
+                <span style={{ fontSize: 'var(--t-micro)', background: status === 'ALTO' ? 'var(--badge-amber-bg)' : 'var(--bg-2)', color: status === 'ALTO' ? 'var(--amber)' : 'var(--badge-blue-fg)', border: `1px solid ${status === 'ALTO' ? 'var(--badge-amber-border)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '1px 6px', fontFamily: 'var(--font-mono)' }}>{status}</span>
               </div>
             </div>
           ))}
         </div>
-        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--green)', color: 'white', padding: '10px 20px', borderRadius: 6, fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
+        <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--green)', color: 'white', padding: '10px 20px', borderRadius: 'var(--r)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, whiteSpace: 'nowrap' }}>
           🔒 Disponível no plano Plus
         </div>
       </div>
 
-      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
+      <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', marginBottom: 12, letterSpacing: '-0.01em' }}>
         O teu médico explica os resultados em 10 minutos.<br />
         <em style={{ color: 'var(--green-2)', fontStyle: 'italic' }}>O Phlox explica tudo.</em>
       </h2>
-      <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 8 }}>
+      <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 8 }}>
         Faz upload do PDF das tuas análises. Recebe uma interpretação completa — o que está fora do normal, o que significa, o que perguntar ao médico, e o que podes fazer já.
       </p>
-      <p style={{ fontSize: 13, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 28 }}>
+      <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 28 }}>
         Com o teu plano {plan === 'free' ? 'Plus — 3,99€/mês' : 'Pro — 12,99€/mês'}.
       </p>
 
       <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-        <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
+        <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any }}>
           {isLoggedIn ? 'Fazer upgrade →' : 'Começar — 3,99€/mês →'}
         </Link>
         {!isLoggedIn && (
-          <Link href="/login" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '12px 20px', borderRadius: 6, fontSize: 14, border: '1px solid var(--border-2)' }}>
+          <Link href="/login" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '12px 20px', borderRadius: 'var(--r)', fontSize: 'var(--t-corpo)', border: '1px solid var(--border-2)' }}>
             Já tenho conta
           </Link>
         )}
@@ -153,30 +157,30 @@ function LabValueRow({ val }: { val: LabValue }) {
   return (
     <div style={{ borderBottom: '1px solid var(--border)' }}>
       <button onClick={() => setOpen(!open)} style={{ width: '100%', background: 'none', border: 'none', padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, textAlign: 'left' }}>
-        <div style={{ width: 28, height: 28, borderRadius: '50%', background: s.dot, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, color: 'white', fontWeight: 700, flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
+        <div style={{ width: 28, height: 28, borderRadius: '50%', background: s.dot, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', color: 'white', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0, fontFamily: 'var(--font-mono)' }}>
           {s.icon}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', marginBottom: 2 }}>{val.name}</div>
-          <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Ref: {val.reference}</div>
+          <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginBottom: 2 }}>{val.name}</div>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>Ref: {val.reference}</div>
         </div>
         <div style={{ textAlign: 'right', flexShrink: 0 }}>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, fontWeight: 700, color: s.color }}>{val.value}</div>
-          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: val.unit ? 'var(--ink-4)' : 'transparent' }}>{val.unit || '—'}</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: s.color }}>{val.value}</div>
+          <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: val.unit ? 'var(--ink-4)' : 'transparent' }}>{val.unit || '—'}</div>
         </div>
-        <span style={{ color: 'var(--ink-4)', fontSize: 14, flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ color: 'var(--ink-4)', fontSize: 'var(--t-corpo)', flexShrink: 0 }}>{open ? '▲' : '▼'}</span>
       </button>
 
       {open && (
         <div style={{ padding: '0 16px 14px 56px', background: s.bg }}>
-          <p style={{ fontSize: 13, color: s.color, lineHeight: 1.7, margin: '0 0 8px' }}>{val.interpretation}</p>
+          <p style={{ fontSize: 'var(--t-dado)', color: s.color, lineHeight: 1.7, margin: '0 0 8px' }}>{val.interpretation}</p>
           {val.drug_connection && (
-            <div style={{ padding: '8px 12px', background: 'white', border: `1px solid ${s.border}`, borderRadius: 4, fontSize: 12, color: 'var(--ink-2)', marginBottom: 6 }}>
+            <div style={{ padding: '8px 12px', background: 'white', border: `1px solid ${s.border}`, borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', color: 'var(--ink-2)', marginBottom: 6 }}>
               💊 {val.drug_connection}
             </div>
           )}
           {val.follow_up && (
-            <div style={{ fontSize: 12, color: 'var(--ink-4)', fontStyle: 'italic' }}>→ {val.follow_up}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontStyle: 'italic' }}>→ {val.follow_up}</div>
           )}
         </div>
       )}
@@ -244,52 +248,52 @@ function ReportView({ report }: { report: LabReport }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10, gap: 6, flexWrap: 'wrap' }}>
         {abnormal.length > 0 && (
           <button onClick={askPharmacist}
-            style={{ padding: '8px 14px', background: 'white', color: '#1d4ed8', border: '1.5px solid #bfdbfe', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            style={{ padding: '8px 14px', background: 'white', color: 'var(--ink-2)', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
             💬 Perguntar ao Farmacêutico AI sobre estes valores
           </button>
         )}
         <button onClick={saveToVault} disabled={savedToVault || savingVault}
-          style={{ padding: '8px 14px', background: savedToVault ? '#f0fdf4' : 'white', color: savedToVault ? '#16a34a' : '#0d6e42', border: `1.5px solid ${savedToVault ? '#bbf7d0' : '#bbf7d0'}`, borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: savedToVault || savingVault ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          style={{ padding: '8px 14px', background: savedToVault ? 'var(--badge-green-bg)' : 'white', color: savedToVault ? 'var(--green)' : 'var(--green)', border: `1.5px solid ${savedToVault ? 'var(--green-mid)' : 'var(--green-mid)'}`, borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: savedToVault || savingVault ? 'default' : 'pointer', fontFamily: 'var(--font-sans)' }}>
           {savedToVault ? '✓ No cofre' : savingVault ? 'A guardar…' : '🔒 Guardar no cofre'}
         </button>
       </div>
 
       {/* Overall status */}
-      <div style={{ background: overall.bg, border: `2px solid ${overall.bar}`, borderRadius: 8, padding: '20px 22px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
-        <div style={{ width: 48, height: 48, borderRadius: '50%', background: overall.bar, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, color: 'white', fontWeight: 700, flexShrink: 0 }}>
+      <div style={{ background: overall.bg, border: `2px solid ${overall.bar}`, borderRadius: 'var(--r-md)', padding: '20px 22px', marginBottom: 16, display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: overall.bar, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)', color: 'white', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>
           {overall.emoji}
         </div>
         <div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: overall.color, fontWeight: 700, marginBottom: 4 }}>{overall.label}</div>
-          <div style={{ fontSize: 13, color: overall.color, opacity: 0.8 }}>{report.patient_summary}</div>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: overall.color, fontWeight: 'var(--peso-forte)' as any, marginBottom: 4 }}>{overall.label}</div>
+          <div style={{ fontSize: 'var(--t-dado)', color: overall.color, opacity: 0.8 }}>{report.patient_summary}</div>
         </div>
       </div>
 
       {/* Desde a última análise guardada — contexto que só o Phlox tem, não um chat genérico */}
       {previous && (
-        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 16px', marginBottom: 16, fontSize: 12.5, color: 'var(--ink-3)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px 16px', marginBottom: 16, fontSize: 'var(--t-meta)', color: 'var(--ink-3)', display: 'flex', gap: 8, alignItems: 'flex-start' }}>
           <span>📈</span>
-          <span>Última análise guardada — <strong>{new Date(previous.issued_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>{previous.notes ? `: ${previous.notes}` : ''}. Compara os valores abaixo com o que guardaste no <Link href="/vault" style={{ color: '#0d6e42', fontWeight: 600 }}>cofre</Link>.</span>
+          <span>Última análise guardada — <strong>{new Date(previous.issued_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</strong>{previous.notes ? `: ${previous.notes}` : ''}. Compara os valores abaixo com o que guardaste no <Link href="/vault" style={{ color: 'var(--green)', fontWeight: 'var(--peso-corpo)' as any }}>cofre</Link>.</span>
         </div>
       )}
 
       {/* Reassurance for normal results */}
       {report.reassurance && (
-        <div style={{ background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 6, padding: '14px 18px', marginBottom: 16 }}>
-          <p style={{ fontSize: 14, color: '#14532d', lineHeight: 1.7, margin: 0 }}>{report.reassurance}</p>
+        <div style={{ background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 16 }}>
+          <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--green-3)', lineHeight: 1.7, margin: 0 }}>{report.reassurance}</p>
         </div>
       )}
 
       {/* Key findings */}
       {report.key_findings.length > 0 && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '18px 20px', marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '18px 20px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
             📋 O que é mais importante saber
           </div>
           {report.key_findings.map((f, i) => (
             <div key={i} style={{ display: 'flex', gap: 10, padding: '8px 0', borderBottom: i < report.key_findings.length - 1 ? '1px solid var(--bg-3)' : 'none', alignItems: 'flex-start' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--green-2)', fontWeight: 700, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
-              <span style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.6 }}>{f}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--green-2)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0, marginTop: 1 }}>{i + 1}.</span>
+              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.6 }}>{f}</span>
             </div>
           ))}
         </div>
@@ -297,9 +301,9 @@ function ReportView({ report }: { report: LabReport }) {
 
       {/* Values — abnormal first */}
       {abnormal.length > 0 && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 12 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 12 }}>
           <div style={{ padding: '12px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
               Valores fora do normal ({abnormal.length})
             </div>
           </div>
@@ -308,9 +312,9 @@ function ReportView({ report }: { report: LabReport }) {
       )}
 
       {normal.length > 0 && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', marginBottom: 16 }}>
           <div style={{ padding: '12px 16px', background: 'var(--bg-2)', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
               Valores normais ({normal.length})
             </div>
           </div>
@@ -320,14 +324,14 @@ function ReportView({ report }: { report: LabReport }) {
 
       {/* Drug interactions found */}
       {report.drug_interactions_found?.length > 0 && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '18px 20px', marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#92400e', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '18px 20px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--amber)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
             💊 Ligação à tua medicação
           </div>
           {report.drug_interactions_found.map((d, i) => (
-            <div key={i} style={{ padding: '10px 0', borderBottom: i < report.drug_interactions_found.length - 1 ? '1px solid #fde68a' : 'none' }}>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#78350f', marginBottom: 4 }}>{d.drug} → {d.affected_value}</div>
-              <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>{d.explanation}</div>
+            <div key={i} style={{ padding: '10px 0', borderBottom: i < report.drug_interactions_found.length - 1 ? '1px solid var(--badge-amber-border)' : 'none' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--amber)', marginBottom: 4 }}>{d.drug} → {d.affected_value}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--amber)', lineHeight: 1.6 }}>{d.explanation}</div>
             </div>
           ))}
         </div>
@@ -335,13 +339,13 @@ function ReportView({ report }: { report: LabReport }) {
 
       {/* Questions for doctor */}
       {report.questions_for_doctor.length > 0 && (
-        <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 8, padding: '18px 20px', marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div style={{ background: 'white', border: '2px solid var(--green)', borderRadius: 'var(--r-md)', padding: '18px 20px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--green-2)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
             💬 Perguntas para levar ao médico
           </div>
           {report.questions_for_doctor.map((q, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: i < report.questions_for_doctor.length - 1 ? '1px solid var(--border)' : 'none', fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.5 }}>
-              <span style={{ color: 'var(--green-2)', fontWeight: 700, flexShrink: 0 }}>{i + 1}.</span>
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 0', borderBottom: i < report.questions_for_doctor.length - 1 ? '1px solid var(--border)' : 'none', fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.5 }}>
+              <span style={{ color: 'var(--green-2)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>{i + 1}.</span>
               {q}
             </div>
           ))}
@@ -350,12 +354,12 @@ function ReportView({ report }: { report: LabReport }) {
 
       {/* Lifestyle suggestions */}
       {report.lifestyle_suggestions?.length > 0 && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '18px 20px', marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '18px 20px', marginBottom: 16 }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 12 }}>
             🌱 O que podes fazer já
           </div>
           {report.lifestyle_suggestions.map((s, i) => (
-            <div key={i} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < report.lifestyle_suggestions.length - 1 ? '1px solid var(--bg-3)' : 'none', fontSize: 13, color: 'var(--ink-2)' }}>
+            <div key={i} style={{ display: 'flex', gap: 10, padding: '6px 0', borderBottom: i < report.lifestyle_suggestions.length - 1 ? '1px solid var(--bg-3)' : 'none', fontSize: 'var(--t-dado)', color: 'var(--ink-2)' }}>
               <span style={{ color: 'var(--green-2)', flexShrink: 0 }}>→</span>{s}
             </div>
           ))}
@@ -363,12 +367,12 @@ function ReportView({ report }: { report: LabReport }) {
       )}
 
       {/* When to repeat */}
-      <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '14px 18px', marginBottom: 12 }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.08em', marginBottom: 4 }}>PRÓXIMAS ANÁLISES</div>
-        <p style={{ fontSize: 14, color: 'var(--ink-2)', margin: 0, lineHeight: 1.6 }}>{report.when_to_repeat}</p>
+      <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '14px 18px', marginBottom: 12 }}>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', letterSpacing: '0.08em', marginBottom: 4 }}>PRÓXIMAS ANÁLISES</div>
+        <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', margin: 0, lineHeight: 1.6 }}>{report.when_to_repeat}</p>
       </div>
 
-      <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textAlign: 'center', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', textAlign: 'center', lineHeight: 1.6 }}>
         ⚕️ Esta interpretação destina-se a fins educativos. Partilha com o teu médico antes de tomar qualquer decisão clínica.
       </div>
     </div>
@@ -501,22 +505,32 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-      <div className="page-container page-body">
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--roxo)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Análises</span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Cole o resultado tal como vem do laboratório</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            A interpretação é de apoio — quem decide o que fazer com ela é o médico
+          </span>
+        </BarraDeEstado>
+      }
+    >
         <div className="interactions-layout">
 
           {/* LEFT */}
           <div className="sticky-panel">
-            <div style={{ marginBottom: 20 }}>
-              <div style={{ display: 'inline-block', background: '#ede9fe', border: '1px solid #ddd6fe', borderRadius: 20, padding: '3px 12px', marginBottom: 10 }}>
-                <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#7c3aed', fontWeight: 700 }}>STUDENT+</span>
-              </div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 6 }}>Interpretação de Análises</h1>
-              <p style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.5 }}>
-                Cola os resultados das tuas análises clínicas. Recebe uma interpretação completa em linguagem humana.
-              </p>
-            </div>
+            {/* A etiqueta «STUDENT+», o título em serifa e o parágrafo estavam
+                no cimo do painel ESQUERDO — que é precisamente onde se cola o
+                resultado. Oitenta pixéis entre abrir a página e poder colar. */}
 
             {/* Profile selector */}
             {user && (
@@ -525,16 +539,16 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
               </div>
             )}
             {profileCtxNote && (
-              <div style={{ background: '#ede9fe', border: '1px solid #ddd6fe', borderRadius: 6, padding: '8px 12px', marginBottom: 12, fontSize: 12, color: '#5b21b6', fontFamily: 'var(--font-mono)' }}>
+              <div style={{ background: 'var(--roxo-claro)', border: '1px solid var(--roxo-meio)', borderRadius: 'var(--r)', padding: '8px 12px', marginBottom: 12, fontSize: 'var(--t-meta)', color: 'var(--roxo-escuro)', fontFamily: 'var(--font-mono)' }}>
                 {profileCtxNote}
               </div>
             )}
 
             {/* Input mode toggle */}
-            <div style={{ display: 'flex', background: 'white', border: '1px solid var(--border)', borderRadius: 6, padding: 4, gap: 4, marginBottom: 12 }}>
+            <div style={{ display: 'flex', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: 4, gap: 4, marginBottom: 12 }}>
               {(['text', 'file'] as const).map(m => (
                 <button key={m} onClick={() => setInputMode(m)}
-                  style={{ flex: 1, background: inputMode === m ? 'var(--green)' : 'transparent', color: inputMode === m ? 'white' : 'var(--ink-3)', border: 'none', borderRadius: 4, padding: '7px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                  style={{ flex: 1, background: inputMode === m ? 'var(--green)' : 'transparent', color: inputMode === m ? 'white' : 'var(--ink-3)', border: 'none', borderRadius: 'var(--r)', padding: '7px', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                   {m === 'text' ? '📋 Colar texto' : '📄 PDF ou ficheiro'}
                 </button>
               ))}
@@ -547,10 +561,10 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
                   onChange={e => setText(e.target.value)}
                   placeholder={'Cola aqui os resultados das tuas análises...\n\nEx:\nGlicemia: 108 mg/dL (ref: 70-99)\nColesterol LDL: 147 mg/dL (ref: <130)\n...'}
                   rows={12}
-                  style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 6, padding: '12px', fontSize: 12, fontFamily: 'var(--font-mono)', outline: 'none', resize: 'vertical', lineHeight: 1.7, color: 'var(--ink)' }}
+                  style={{ width: '100%', border: '1px solid var(--border-2)', borderRadius: 'var(--r)', padding: '12px', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', outline: 'none', resize: 'vertical', lineHeight: 1.7, color: 'var(--ink)' }}
                 />
                 <button onClick={() => setText(DEMO_LABS)}
-                  style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--green-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', padding: '4px 0' }}>
+                  style={{ background: 'none', border: 'none', fontSize: 'var(--t-meta)', color: 'var(--green-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', padding: '4px 0' }}>
                   Usar exemplo →
                 </button>
               </div>
@@ -559,12 +573,12 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
                 <div onClick={() => fileRef.current?.click()}
                   onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileRef.current?.click() } }}
                   role="button" tabIndex={0} aria-label="Selecionar ficheiro"
-                  style={{ border: '2px dashed var(--border-2)', borderRadius: 6, padding: '32px 16px', textAlign: 'center', cursor: 'pointer', background: file ? 'var(--green-light)' : 'white' }}>
-                  <div style={{ fontSize: 28, marginBottom: 8 }}>📄</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', marginBottom: 4 }}>
+                  style={{ border: '2px dashed var(--border-2)', borderRadius: 'var(--r)', padding: '32px 16px', textAlign: 'center', cursor: 'pointer', background: file ? 'var(--green-light)' : 'white' }}>
+                  <div style={{ fontSize: 'var(--t-numero)', marginBottom: 8 }}>📄</div>
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-2)', marginBottom: 4 }}>
                     {file ? file.name : 'Clica para seleccionar ficheiro'}
                   </div>
-                  <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>PDF, .txt — as tuas análises do laboratório</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>PDF, .txt — as tuas análises do laboratório</div>
                 </div>
                 <input ref={fileRef} type="file" accept=".pdf,.txt,.csv" style={{ display: 'none' }}
                   onChange={e => { const f = e.target.files?.[0]; if (f) setFile(f) }} />
@@ -574,12 +588,12 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
             <button
               onClick={analyse}
               disabled={(!text.trim() && !file) || loading}
-              style={{ width: '100%', background: (text.trim() || file) && !loading ? 'var(--green)' : 'var(--bg-3)', color: (text.trim() || file) && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 6, padding: '13px', fontSize: 14, fontWeight: 600, cursor: (text.trim() || file) && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+              style={{ width: '100%', background: (text.trim() || file) && !loading ? 'var(--green)' : 'var(--bg-3)', color: (text.trim() || file) && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r)', padding: '13px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, cursor: (text.trim() || file) && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
               {loading ? 'A interpretar...' : 'Interpretar análises →'}
             </button>
 
-            <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', letterSpacing: '0.1em', marginBottom: 10 }}>O QUE ANALISAMOS</div>
+            <div style={{ marginTop: 20, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', letterSpacing: '0.1em', marginBottom: 10 }}>O QUE ANALISAMOS</div>
               {[
                 '📊 Hemograma completo',
                 '🩸 Bioquímica geral',
@@ -590,7 +604,7 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
                 '☀️ Vitaminas e minerais',
                 '💊 Ligação à tua medicação',
               ].map(item => (
-                <div key={item} style={{ fontSize: 12, color: 'var(--ink-3)', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>{item}</div>
+                <div key={item} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>{item}</div>
               ))}
             </div>
           </div>
@@ -598,7 +612,7 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
           {/* RIGHT */}
           <div>
             {loading && (
-              <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+              <div className="fade-in" style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
                 <div style={{ background: 'var(--bg-3)', padding: '20px 22px' }}>
                   <div className="skeleton" style={{ height: 10, width: 200, marginBottom: 12 }} />
                   <div className="skeleton" style={{ height: 24, width: 300, marginBottom: 8 }} />
@@ -606,25 +620,24 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
                 </div>
                 <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {[0,1,2,3,4,5].map(i => (
-                    <div key={i} className="skeleton" style={{ height: 48, borderRadius: 4 }} />
+                    <div key={i} className="skeleton" style={{ height: 48, borderRadius: 'var(--r)' }} />
                   ))}
                 </div>
               </div>
             )}
 
             {error && (
-              <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 6, padding: '20px' }}>
-                <p style={{ fontSize: 14, color: '#742a2a', margin: 0 }}>{error}</p>
+              <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r)', padding: '20px' }}>
+                <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--badge-red-fg)', margin: 0 }}>{error}</p>
               </div>
             )}
 
             {!report && !loading && !error && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '60px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 48, marginBottom: 16 }}>🔬</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink-2)', marginBottom: 10 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '60px 24px', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink-2)', marginBottom: 10 }}>
                   As tuas análises, em português
                 </div>
-                <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 340, margin: '0 auto' }}>
+                <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 340, margin: '0 auto' }}>
                   Cola os resultados das tuas análises clínicas e recebe uma interpretação completa — o que está fora do normal, o que significa para a tua saúde, e as perguntas certas para levar ao médico.
                 </p>
               </div>
@@ -634,7 +647,6 @@ Ferro sérico: 72 µg/dL (ref: 60-170)`
             <NaoEDispositivoMedico />
           </div>
         </div>
-      </div>
-    </div>
+    </Mesa>
   )
 }

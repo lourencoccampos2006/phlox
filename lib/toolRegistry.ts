@@ -25,18 +25,18 @@ export interface Tool {
 }
 
 export const TOOL_CATEGORIES: Record<string, { label: string; color: string }> = {
-  meds:        { label: 'Medicação',           color: '#0d9488' },
-  health:      { label: 'A minha saúde',       color: '#e11d48' },
-  understand:  { label: 'Perceber',            color: '#2563eb' },
-  family:      { label: 'Família',             color: '#b45309' },
-  study:       { label: 'Estudar & treinar',   color: '#7c3aed' },
+  meds:        { label: 'Medicação',           color: 'var(--green-3)' },
+  health:      { label: 'A minha saúde',       color: 'var(--red)' },
+  understand:  { label: 'Perceber',            color: 'var(--blue)' },
+  family:      { label: 'Família',             color: 'var(--amber)' },
+  study:       { label: 'Estudar & treinar',   color: 'var(--roxo)' },
   // ── Clínico ────────────────────────────────────────────────────────────
-  clinical_daily:    { label: 'Fluxo de trabalho',     color: '#1d4ed8' },
-  clinical_decision: { label: 'Decisão clínica',       color: '#0f766e' },
-  clinical_tools:    { label: 'Ferramentas pro',       color: '#7c3aed' },
-  clinical_ops:      { label: 'Operações & equipa',    color: '#b45309' },
-  clinical_quality:  { label: 'Qualidade & farmacovigilância', color: '#dc2626' },
-  clinical_legal:    { label: 'Legal & documentos',    color: '#475569' },
+  clinical_daily:    { label: 'Fluxo de trabalho',     color: 'var(--blue)' },
+  clinical_decision: { label: 'Decisão clínica',       color: 'var(--green-3)' },
+  clinical_tools:    { label: 'Ferramentas pro',       color: 'var(--roxo)' },
+  clinical_ops:      { label: 'Operações & equipa',    color: 'var(--amber)' },
+  clinical_quality:  { label: 'Qualidade & farmacovigilância', color: 'var(--red)' },
+  clinical_legal:    { label: 'Legal & documentos',    color: 'var(--blue)' },
 }
 
 // Defaults por instituição usados quando criamos a lista de "extras a ligar".
@@ -151,7 +151,7 @@ export function defaultClinicalToolIds(inst: InstType): string[] {
 
 export const PLAN_BADGE: Record<ToolPlan, { label: string; color: string; bg: string } | null> = {
   free: null,
-  free_limited: { label: 'Grátis · limitado', color: '#0d9488', bg: '#ccfbf1' },
-  student: { label: 'Plus', color: '#7c3aed', bg: '#ede9fe' },
-  pro: { label: 'Pro', color: '#1d4ed8', bg: '#dbeafe' },
+  free_limited: { label: 'Grátis · limitado', color: 'var(--green-3)', bg: 'var(--green-light)' },
+  student: { label: 'Plus', color: 'var(--roxo)', bg: 'var(--roxo-claro)' },
+  pro: { label: 'Pro', color: 'var(--blue)', bg: 'var(--blue-light)' },
 }

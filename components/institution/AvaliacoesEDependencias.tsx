@@ -48,8 +48,8 @@ const MONO: React.CSSProperties = {
 }
 
 const GRAVIDADE = {
-  urgente: { fundo: '#fee2e2', borda: '#fca5a5', texto: '#991b1b' },
-  atencao: { fundo: '#fffbeb', borda: '#fde68a', texto: '#92400e' },
+  urgente: { fundo: 'var(--badge-red-bg)', borda: 'var(--badge-red-border)', texto: 'var(--red)' },
+  atencao: { fundo: 'var(--badge-amber-bg)', borda: 'var(--badge-amber-border)', texto: 'var(--amber)' },
   informa: { fundo: 'var(--bg-2)', borda: 'var(--border)', texto: 'var(--ink-3)' },
 }
 
@@ -172,7 +172,7 @@ export default function AvaliacoesEDependencias({ pid, nome, cor, planoId }: {
       {erro && (
         <div style={{
           marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
+          background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', color: 'var(--red)',
           fontSize: 13, fontWeight: 600,
         }}>{erro}</div>
       )}
@@ -289,7 +289,7 @@ export default function AvaliacoesEDependencias({ pid, nome, cor, planoId }: {
                   {podeEditar && !feito && (s.servico || s.etiqueta || (s.objetivo && planoId)) && (
                     <button onClick={() => aceitar(s, chave)} style={{
                       marginTop: 11, minHeight: 40, padding: '0 16px', borderRadius: 'var(--r-md)',
-                      border: 'none', background: cor, color: '#fff',
+                      border: 'none', background: cor, color: 'var(--bg)',
                       fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
                     }}>
                       {s.servico && s.objetivo ? 'Acrescentar o cuidado e o objetivo'

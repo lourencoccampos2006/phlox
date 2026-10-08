@@ -74,7 +74,7 @@ export default function DrugAutocomplete({
   // Estilo default do input — caller pode sobrepor com inputStyle
   const defaultInput: React.CSSProperties = {
     width: '100%', boxSizing: 'border-box',
-    border: '1.5px solid var(--border)', borderRadius: 10,
+    border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)',
     padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none',
     background: 'white',
   }
@@ -99,7 +99,7 @@ export default function DrugAutocomplete({
       {showList && (
         <div style={{
           position: 'absolute', top: 'calc(100% + 4px)', left: 0, right: 0, zIndex: 60,
-          background: 'white', border: '1px solid var(--border)', borderRadius: 10,
+          background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
           boxShadow: '0 12px 28px rgba(0,0,0,0.12)', overflow: 'hidden',
         }}>
           {suggestions.map((s, i) => (

@@ -49,29 +49,29 @@ interface Props {
 }
 
 const STATUS_STYLE = {
-  BOM:                   { color: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0', label: 'Estado geral bom' },
-  ATENÇÃO:               { color: '#b45309', bg: '#fffbeb', border: '#fde68a', label: 'Atenção recomendada' },
-  CONSULTA_RECOMENDADA:  { color: '#d97706', bg: '#fff7ed', border: '#fed7aa', label: 'Consulta recomendada' },
-  CONSULTA_URGENTE:      { color: '#dc2626', bg: '#fee2e2', border: '#fca5a5', label: 'Consulta urgente' },
+  BOM:                   { color: 'var(--green)', bg: 'var(--green-light)', border: 'var(--green-mid)', label: 'Estado geral bom' },
+  ATENÇÃO:               { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', label: 'Atenção recomendada' },
+  CONSULTA_RECOMENDADA:  { color: 'var(--amber)', bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', label: 'Consulta recomendada' },
+  CONSULTA_URGENTE:      { color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', label: 'Consulta urgente' },
 }
 
 const PRIORITY_DOT = {
-  ALTA:  '#dc2626',
-  MEDIA: '#d97706',
-  BAIXA: '#64748b',
+  ALTA:  'var(--red)',
+  MEDIA: 'var(--amber)',
+  BAIXA: 'var(--ink-4)',
 }
 
 const TREND_ICON = {
-  improving: { icon: '↑', color: '#0d6e42' },
-  worsening: { icon: '↓', color: '#dc2626' },
-  stable:    { icon: '→', color: '#64748b' },
-  new:       { icon: '·', color: '#1d4ed8' },
+  improving: { icon: '↑', color: 'var(--green)' },
+  worsening: { icon: '↓', color: 'var(--red)' },
+  stable:    { icon: '→', color: 'var(--ink-4)' },
+  new:       { icon: '·', color: 'var(--ink-2)' },
 }
 
 const URGENCY_STYLE = {
-  IMEDIATA:         { color: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
-  PROXIMA_CONSULTA: { color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
-  PROXIMAS_ANALISES:{ color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+  IMEDIATA:         { color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)' },
+  PROXIMA_CONSULTA: { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' },
+  PROXIMAS_ANALISES:{ color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)' },
 }
 
 export default function HealthInsights({ profileId = null, trigger = 'manual', compact = false }: Props) {
@@ -113,7 +113,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
 
   if (compact && !context && !loading) return (
     <button onClick={analyse}
-      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s', fontFamily: 'var(--font-sans)' }}
+      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', cursor: 'pointer', textAlign: 'left', transition: 'border-color 0.15s', fontFamily: 'var(--font-sans)' }}
       onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--green)')}
       onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border)')}>
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
@@ -126,7 +126,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
   )
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ flex: 1 }}>
@@ -142,7 +142,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
           )}
         </div>
         <button onClick={analyse} disabled={loading}
-          style={{ padding: '7px 14px', background: loading ? 'var(--bg-3)' : 'var(--green)', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, cursor: loading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+          style={{ padding: '7px 14px', background: loading ? 'var(--bg-3)' : 'var(--green)', color: loading ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: loading ? 'not-allowed' : 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
           {loading ? (
             <>
               <div style={{ width: 10, height: 10, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'var(--green)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
@@ -153,7 +153,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
       </div>
 
       {error && (
-        <div style={{ padding: '12px 18px', background: '#fee2e2', borderBottom: '1px solid #fca5a5', fontSize: 13, color: '#991b1b' }}>{error}</div>
+        <div style={{ padding: '12px 18px', background: 'var(--badge-red-bg)', borderBottom: '1px solid var(--badge-red-border)', fontSize: 13, color: 'var(--red)' }}>{error}</div>
       )}
 
       {loading && !context && (
@@ -193,7 +193,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
                   <div style={{ fontSize: 13, color: 'var(--ink-4)', textAlign: 'center', padding: '16px 0' }}>Sem insights adicionais. Adiciona mais dados para uma análise mais completa.</div>
                 )}
                 {context.insights?.map((ins, i) => (
-                  <div key={i} style={{ padding: '12px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderLeft: `3px solid ${PRIORITY_DOT[ins.priority]}`, borderRadius: 8 }}>
+                  <div key={i} style={{ padding: '12px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderLeft: `3px solid ${PRIORITY_DOT[ins.priority]}`, borderRadius: 'var(--r-md)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                       <div style={{ width: 6, height: 6, borderRadius: '50%', background: PRIORITY_DOT[ins.priority], flexShrink: 0 }} />
                       <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{ins.title}</span>
@@ -214,7 +214,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
                   <div style={{ marginTop: 8 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Conexões encontradas</div>
                     {context.connections.map((c, i) => (
-                      <div key={i} style={{ padding: '8px 12px', background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 6, fontSize: 12, color: '#5b21b6', lineHeight: 1.6, marginBottom: 5 }}>
+                      <div key={i} style={{ padding: '8px 12px', background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--roxo-escuro)', lineHeight: 1.6, marginBottom: 5 }}>
                         {c}
                       </div>
                     ))}
@@ -226,7 +226,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
                   <div style={{ marginTop: 4 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Medicação ↔ Análises</div>
                     {context.medication_lab_connections.map((c, i) => (
-                      <div key={i} style={{ padding: '8px 12px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, fontSize: 12, color: '#1e40af', lineHeight: 1.6, marginBottom: 5 }}>
+                      <div key={i} style={{ padding: '8px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 5 }}>
                         {c}
                       </div>
                     ))}
@@ -243,7 +243,7 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
                 {context.lab_trends?.map((t, i) => {
                   const ti = TREND_ICON[t.trend] || TREND_ICON.stable
                   return (
-                    <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, alignItems: 'flex-start' }}>
+                    <div key={i} style={{ display: 'flex', gap: 12, padding: '10px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', alignItems: 'flex-start' }}>
                       <div style={{ width: 24, height: 24, borderRadius: '50%', background: `${ti.color}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, color: ti.color, fontWeight: 700, flexShrink: 0 }}>
                         {ti.icon}
                       </div>
@@ -268,9 +268,9 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
                 {context.next_actions?.map((a, i) => {
                   const us = URGENCY_STYLE[a.urgency] || URGENCY_STYLE.PROXIMA_CONSULTA
                   return (
-                    <div key={i} style={{ padding: '12px 14px', background: us.bg, border: `1px solid ${us.border}`, borderRadius: 8 }}>
+                    <div key={i} style={{ padding: '12px 14px', background: us.bg, border: `1px solid ${us.border}`, borderRadius: 'var(--r-md)' }}>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginBottom: 4 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: us.color, background: `${us.color}15`, padding: '2px 7px', borderRadius: 3, textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, marginTop: 1 }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: us.color, background: `${us.color}15`, padding: '2px 7px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase', letterSpacing: '0.08em', flexShrink: 0, marginTop: 1 }}>
                           {a.urgency === 'IMEDIATA' ? 'Urgente' : a.urgency === 'PROXIMA_CONSULTA' ? 'Próx. consulta' : 'Próx. análises'}
                         </span>
                         <span style={{ fontSize: 13, fontWeight: 700, color: us.color }}>{a.action}</span>
@@ -285,8 +285,8 @@ export default function HealthInsights({ profileId = null, trigger = 'manual', c
                   <div style={{ marginTop: 8 }}>
                     <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>Monitorização em falta</div>
                     {context.missing_monitoring.map((m, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 5 }}>
-                        <span style={{ color: '#d97706', flexShrink: 0 }}>?</span>{m}
+                      <div key={i} style={{ display: 'flex', gap: 8, padding: '7px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', fontSize: 12, color: 'var(--ink-3)', lineHeight: 1.5, marginBottom: 5 }}>
+                        <span style={{ color: 'var(--amber)', flexShrink: 0 }}>?</span>{m}
                       </div>
                     ))}
                   </div>

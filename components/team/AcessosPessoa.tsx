@@ -27,7 +27,7 @@ import {
   type Nivel,
 } from '@/lib/permissoes'
 
-const ACCENT = '#0d9488'
+const ACCENT = 'var(--green-3)'
 
 interface Pessoa {
   user_id: string
@@ -110,14 +110,14 @@ export default function AcessosPessoa({
   return (
     <div onClick={aoFechar} style={estiloFundoModal}>
       <div onClick={e => e.stopPropagation()} style={{
-        background: 'white', borderRadius: 14, width: 620, maxWidth: '100%',
+        background: 'white', borderRadius: 'var(--r-xl)', width: 620, maxWidth: '100%',
         maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden',
       }}>
         {/* ── Quem ─────────────────────────────────────────────────────── */}
-        <div style={{ padding: '16px 20px', borderBottom: '1px solid #e5e7eb' }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: '#0b1120' }}>{pessoa.nome}</div>
+        <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--ink)' }}>{pessoa.nome}</div>
           {pessoa.email && (
-            <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{pessoa.email}</div>
+            <div style={{ fontSize: 12, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{pessoa.email}</div>
           )}
         </div>
 
@@ -125,7 +125,7 @@ export default function AcessosPessoa({
           {/* ── O papel ─────────────────────────────────────────────────── */}
           <div style={{
             fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
-            textTransform: 'uppercase', color: '#94a3b8', marginBottom: 9,
+            textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 9,
           }}>O que faz na casa</div>
 
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
@@ -133,22 +133,22 @@ export default function AcessosPessoa({
               <button key={p.id} onClick={() => { setPapel(p.id); setAfinar(false) }} style={{
                 padding: '7px 13px', borderRadius: 999, cursor: 'pointer', fontFamily: 'inherit',
                 fontSize: 13, fontWeight: 650,
-                border: `1.5px solid ${papel === p.id ? ACCENT : '#e2e8f0'}`,
+                border: `1.5px solid ${papel === p.id ? ACCENT : 'var(--border)'}`,
                 background: papel === p.id ? ACCENT : 'white',
-                color: papel === p.id ? 'white' : '#475569',
+                color: papel === p.id ? 'white' : 'var(--ink-3)',
               }}>{p.label}</button>
             ))}
           </div>
-          <div style={{ fontSize: 12.5, color: '#64748b', lineHeight: 1.55, marginBottom: 18 }}>
+          <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 18 }}>
             {POR_PAPEL.get(papel as any)?.descricao}
           </div>
 
           {/* ── A frase ─────────────────────────────────────────────────── */}
           <div style={{
-            background: '#f0fdfa', border: '1px solid #99f6e4', borderRadius: 10,
+            background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-lg)',
             padding: '14px 16px', marginBottom: 16,
           }}>
-            <div style={{ fontSize: 14, color: '#115e59', lineHeight: 1.65 }}>{frase}</div>
+            <div style={{ fontSize: 14, color: 'var(--green-3)', lineHeight: 1.65 }}>{frase}</div>
           </div>
 
           <button onClick={() => setAfinar(v => !v)} style={{
@@ -159,13 +159,13 @@ export default function AcessosPessoa({
           {/* ── A matriz ────────────────────────────────────────────────── */}
           {afinar && detalhesTirados(marcadas).length > 0 && (
             <div style={{
-              marginTop: 14, padding: '11px 13px', borderRadius: 9,
-              background: '#fef2f2', border: '1px solid #fecaca',
+              marginTop: 14, padding: '11px 13px', borderRadius: 'var(--r-lg)',
+              background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)',
             }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#991b1b', marginBottom: 5 }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--red)', marginBottom: 5 }}>
                 Não vai ver, dentro das ferramentas a que tem acesso:
               </div>
-              <div style={{ fontSize: 12.5, color: '#991b1b', lineHeight: 1.6 }}>
+              <div style={{ fontSize: 12.5, color: 'var(--red)', lineHeight: 1.6 }}>
                 {detalhesTirados(marcadas).map(d => d.label.toLowerCase()).join(' · ')}
               </div>
             </div>
@@ -173,7 +173,7 @@ export default function AcessosPessoa({
 
           {afinar && (
             <div style={{ marginTop: 16 }}>
-              <div style={{ fontSize: 12, color: '#64748b', lineHeight: 1.55, marginBottom: 14, maxWidth: '58ch' }}>
+              <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55, marginBottom: 14, maxWidth: '58ch' }}>
                 Marque o que esta pessoa pode fazer em cada área. Se voltar a bater
                 certo com o papel, deixa de ser uma exceção e volta a seguir o papel.
               </div>
@@ -185,14 +185,14 @@ export default function AcessosPessoa({
                   <div key={g} style={{ marginBottom: 20 }}>
                     <div style={{
                       fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.14em',
-                      textTransform: 'uppercase', color: '#94a3b8',
+                      textTransform: 'uppercase', color: 'var(--ink-5)',
                     }}>{GRUPOS[g].label}</div>
-                    <div style={{ fontSize: 11.5, color: '#cbd5e1', marginBottom: 8 }}>{GRUPOS[g].nota}</div>
+                    <div style={{ fontSize: 11.5, color: 'var(--border-2)', marginBottom: 8 }}>{GRUPOS[g].nota}</div>
 
                     <div style={{
                       display: 'flex', flexDirection: 'column', gap: 1,
-                      background: '#e5e7eb', border: '1px solid #e5e7eb',
-                      borderRadius: 9, overflow: 'hidden',
+                      background: 'var(--border)', border: '1px solid var(--border)',
+                      borderRadius: 'var(--r-lg)', overflow: 'hidden',
                     }}>
                       {doGrupo.map(a => (
                         <div key={a.id} style={{
@@ -200,8 +200,8 @@ export default function AcessosPessoa({
                           display: 'flex', alignItems: 'flex-start', gap: 12, flexWrap: 'wrap',
                         }}>
                           <div style={{ flex: '1 1 210px', minWidth: 0 }}>
-                            <div style={{ fontSize: 13.5, fontWeight: 650, color: '#0b1120' }}>{a.label}</div>
-                            <div style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.45, marginTop: 2 }}>{a.descricao}</div>
+                            <div style={{ fontSize: 13.5, fontWeight: 650, color: 'var(--ink)' }}>{a.label}</div>
+                            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', lineHeight: 1.45, marginTop: 2 }}>{a.descricao}</div>
                           </div>
                           <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
                             {a.niveis.map(n => {
@@ -212,11 +212,11 @@ export default function AcessosPessoa({
                                 <button key={n} onClick={() => alternar(a.id, n)}
                                   aria-pressed={on}
                                   style={{
-                                    padding: '5px 11px', borderRadius: 7, cursor: 'pointer',
+                                    padding: '5px 11px', borderRadius: 'var(--r-md)', cursor: 'pointer',
                                     fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
-                                    border: `1.5px solid ${on ? (perigoso ? '#dc2626' : ACCENT) : '#e2e8f0'}`,
-                                    background: on ? (perigoso ? '#fef2f2' : '#f0fdfa') : 'white',
-                                    color: on ? (perigoso ? '#dc2626' : '#115e59') : '#94a3b8',
+                                    border: `1.5px solid ${on ? (perigoso ? 'var(--red)' : ACCENT) : 'var(--border)'}`,
+                                    background: on ? (perigoso ? 'var(--badge-red-bg)' : 'var(--green-light)') : 'white',
+                                    color: on ? (perigoso ? 'var(--red)' : 'var(--green-3)') : 'var(--ink-5)',
                                   }}>{rotulo}</button>
                               )
                             })}
@@ -236,9 +236,9 @@ export default function AcessosPessoa({
                           {marcadas.includes(chave(a.id, 'ver')) && (DETALHES_POR_AREA[a.id] || []).length > 0 && (
                             <div style={{
                               flexBasis: '100%', marginTop: 4, paddingTop: 10,
-                              borderTop: '1px dashed #e5e7eb',
+                              borderTop: '1px dashed var(--border)',
                             }}>
-                              <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 7 }}>
+                              <div style={{ fontSize: 11, color: 'var(--ink-5)', marginBottom: 7 }}>
                                 Dentro desta ferramenta, esconder:
                               </div>
                               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
@@ -248,11 +248,11 @@ export default function AcessosPessoa({
                                     <button key={d.id} onClick={() => alternarDetalhe(d.id)}
                                       title={d.descricao} aria-pressed={escondido}
                                       style={{
-                                        padding: '5px 10px', borderRadius: 7, cursor: 'pointer',
+                                        padding: '5px 10px', borderRadius: 'var(--r-md)', cursor: 'pointer',
                                         fontFamily: 'inherit', fontSize: 11, fontWeight: escondido ? 700 : 500,
-                                        border: `1.5px solid ${escondido ? '#dc2626' : '#e2e8f0'}`,
-                                        background: escondido ? '#fef2f2' : 'white',
-                                        color: escondido ? '#dc2626' : '#94a3b8',
+                                        border: `1.5px solid ${escondido ? 'var(--red)' : 'var(--border)'}`,
+                                        background: escondido ? 'var(--badge-red-bg)' : 'white',
+                                        color: escondido ? 'var(--red)' : 'var(--ink-5)',
                                       }}>
                                       {escondido ? '✕ ' : ''}{d.label}
                                     </button>
@@ -272,8 +272,8 @@ export default function AcessosPessoa({
 
           {erro && (
             <div style={{
-              marginTop: 14, padding: '10px 13px', background: '#fff5f5',
-              border: '1px solid #fed7d7', borderRadius: 8, fontSize: 12.5, color: '#c53030',
+              marginTop: 14, padding: '10px 13px', background: 'var(--badge-red-bg)',
+              border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--red)',
             }}>{erro}</div>
           )}
         </div>
@@ -281,17 +281,17 @@ export default function AcessosPessoa({
         {/* ── Ações ──────────────────────────────────────────────────────── */}
         <div style={{
           flexShrink: 0, display: 'flex', gap: 8, justifyContent: 'flex-end',
-          padding: '12px 20px', borderTop: '1px solid #e5e7eb', background: 'white',
+          padding: '12px 20px', borderTop: '1px solid var(--border)', background: 'white',
           paddingBottom: 'calc(12px + env(safe-area-inset-bottom, 0px))',
         }}>
           <button onClick={aoFechar} style={{
-            padding: '11px 16px', background: 'white', color: '#475569',
-            border: '1px solid #e5e7eb', borderRadius: 8, fontSize: 13.5,
+            padding: '11px 16px', background: 'white', color: 'var(--ink-3)',
+            border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13.5,
             fontWeight: 600, cursor: 'pointer', minHeight: 44, fontFamily: 'inherit',
           }}>Cancelar</button>
           <button onClick={guardar} disabled={aGuardar} style={{
-            padding: '11px 20px', background: aGuardar ? '#cbd5e1' : ACCENT, color: 'white',
-            border: 'none', borderRadius: 8, fontSize: 13.5, fontWeight: 800,
+            padding: '11px 20px', background: aGuardar ? 'var(--border-2)' : ACCENT, color: 'white',
+            border: 'none', borderRadius: 'var(--r-md)', fontSize: 13.5, fontWeight: 800,
             cursor: aGuardar ? 'wait' : 'pointer', minHeight: 44, fontFamily: 'inherit',
           }}>{aGuardar ? 'A guardar…' : 'Guardar acessos'}</button>
         </div>

@@ -20,8 +20,14 @@ import OwnerPerformance from '@/components/owner/OwnerPerformance'
 import OwnerInsights from '@/components/owner/OwnerInsights'
 import PatientTimeline from '@/components/PatientTimeline'
 import PainelAdmin from './PainelAdmin'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho,
+  Botao, Seletor, Vazio, ACarregar, Aviso, MONO, ROTULO,
+} from '@/components/ui/mesa'
 
-const ACCENT = '#0d9488'
+/* Era o turquesa que saiu de toda a aplicacao a 2026-10-07. O acento desta
+   casa e o verde, como em todo o resto. */
+const ACCENT = 'var(--green)'
 
 interface Ev { kind: string; icon: string; at: string; who: string; patient: string; detail: string; shift?: string; severity?: string }
 
@@ -175,7 +181,13 @@ export default function PainelDonoPage() {
 
   if (!user) return null
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '18px 20px' }
+  /* A moldura de um bloco deste painel. Era `background: white` com
+     `--r-xl` e uma borda propria; passa a falar a lingua da mesa — fundo do
+     sistema, raio medio, filete fino. */
+  const card: React.CSSProperties = {
+    background: 'var(--bg)', border: '1px solid var(--border)',
+    borderRadius: 'var(--r-md)', padding: '14px 16px',
+  }
   const staffRows = Object.entries(byStaff).sort((a, b) => b[1] - a[1])
   // Personalização real da instituição (2026-08-09): se o dono definiu uma cor
   // de marca em Equipa → Definições, o cabeçalho usa-a — senão fica o teal do
@@ -184,60 +196,81 @@ export default function PainelDonoPage() {
   // contraste/legibilidade sem revisão — o eyebrow+título já assinam a página.
   const bizAccent = biz?.org?.accentColor || ACCENT
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Eram 330px antes do primeiro número: um cabeçalho com logótipo, migalha,
+     título em serifa de 32px e uma frase de duas linhas; uma grelha de SEIS
+     atalhos em cartões; seis separadores; e, dentro do painel, mais cinco.
+
+     Os seis atalhos são um MENU — e um menu não é o que se vem ver a um
+     painel administrativo. Vem-se ver os números. Passam para o fim, que é
+     onde se vai a seguir depois de olhar.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const ATALHOS = [
+    { href: '/equipa', icon: 'users', title: 'Equipa e acessos', desc: 'Convidar e gerir funcionários' },
+    { href: '/faturacao', icon: 'euro', title: 'Faturação', desc: 'Mensalidades, despesas, receitas' },
+    { href: '/stock', icon: 'package', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
+    { href: '/equipa?tab=mural', icon: 'megaphone', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
+    { href: '/radar', icon: 'clipboard', title: 'A vigiar', desc: 'O que merece atenção hoje' },
+    { href: '/equipa?tab=definicoes', icon: 'sliders', title: 'Definições', desc: 'Nome, tipo, lotação e mensalidade' },
+  ]
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      {/* O painel precisa das doze colunas do desenho; os relatórios são
-          listas e leem-se melhor estreitos. A largura segue o separador. */}
-      <div style={{ maxWidth: tab === 'painel' ? 1240 : 860, margin: '0 auto', padding: '24px clamp(14px,3vw,28px) 70px' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          {biz?.org?.logoUrl && (
+            <img src={biz.org.logoUrl} alt="" style={{
+              width: 26, height: 26, borderRadius: 'var(--r-sm)', objectFit: 'cover',
+              border: '1px solid var(--border)', flexShrink: 0,
+            }} />
+          )}
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Administrativo</span>
 
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-            {biz?.org?.logoUrl && (
-              <img src={biz.org.logoUrl} alt="" style={{ width: 48, height: 48, borderRadius: 12, objectFit: 'cover', border: '1px solid #e9eaec', flexShrink: 0 }} />
-            )}
-            <div>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: bizAccent, fontWeight: 700, marginBottom: 6 }}>Painel administrativo</div>
-              <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 400, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>{biz?.org?.name || 'Registo de tudo'}</h1>
-              <p style={{ fontSize: 13.5, color: '#64748b', margin: '6px 0 0', maxWidth: 540, lineHeight: 1.5 }}>A casa inteira num sítio: quem cá está e quem espera, o cuidado, a equipa, o dinheiro e o que uma inspeção pede.</p>
-            </div>
-          </div>
-        </div>
+          <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>
+            {biz?.org?.name || 'A casa'}
+          </span>
 
-        {/* HUB de gestão — os destinos que o dono precisa, a um toque. É daqui que
-            se gere a instituição; /equipa é agora uma destas secções. Aparece
-            SEMPRE (mesmo que os dados de negócio falhem), para poder navegar. */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 10, marginBottom: 22 }}>
-          {[
-            { href: '/equipa', icon: 'users', title: 'Equipa & acessos', desc: 'Convidar e gerir funcionários' },
-            { href: '/faturacao', icon: 'euro', title: 'Faturação', desc: 'Mensalidades, despesas, receitas' },
-            { href: '/stock', icon: 'package', title: 'Stock', desc: 'Consumíveis, ruturas, encomendas' },
-            { href: '/equipa?tab=mural', icon: 'megaphone', title: 'Mural da equipa', desc: 'Recados e avisos, com push' },
-            { href: '/radar', icon: 'clipboard', title: 'A vigiar', desc: 'O que merece atenção hoje' },
-            { href: '/equipa?tab=definicoes', icon: 'sliders', title: 'Definições', desc: 'Nome, tipo, lotação e mensalidade' },
-          ].map(h => (
-            <Link key={h.href} href={h.href} style={{ ...card, padding: '14px 16px', textDecoration: 'none', display: 'flex', flexDirection: 'column', gap: 6, borderColor: '#e2e8f0' }}>
-              <Icon name={h.icon} size={20} color={ACCENT} />
-              <span style={{ fontSize: 13.5, fontWeight: 800, color: '#0b1120' }}>{h.title}</span>
-              <span style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.4 }}>{h.desc}</span>
-            </Link>
-          ))}
-        </div>
+          <Seletor
+            opcoes={[
+              { id: 'painel', rotulo: 'Painel' },
+              { id: 'negocio', rotulo: 'Números do mês' },
+              { id: 'desempenho', rotulo: 'Desempenho' },
+              { id: 'qualidade', rotulo: 'Qualidade' },
+              { id: 'comparar', rotulo: 'Comparar' },
+              { id: 'registos', rotulo: 'Registos' },
+            ]}
+            ativa={tab} aoMudar={k => setTab(k as any)} />
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>A casa inteira num sítio</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Quem cá está e quem espera, o cuidado, a equipa, o dinheiro e o que uma
+            inspeção pede
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && (
+        <Aviso tom="mau">
+          {err}
+          {err.includes('dono') && (
+            <>{' '}<Link href="/equipa" style={{ color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+              Voltar à equipa
+            </Link></>
+          )}
+        </Aviso>
+      )}
 
-        {err && (
-          <div style={{ ...card, background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b' }}>
-            {err} {err.includes('dono') && <Link href="/equipa" style={{ color: '#991b1b', fontWeight: 700 }}>· Voltar à equipa</Link>}
-          </div>
-        )}
-
-        {!err && (
-          <>
-            {/* Separadores: Visão geral | Qualidade | Registos */}
-            <div style={{ display: 'flex', gap: 6, marginBottom: 18, borderBottom: '1px solid #eceef0', flexWrap: 'wrap' }}>
-              {([['painel', 'Painel'], ['negocio', 'Números do mês'], ['desempenho', 'Desempenho'], ['qualidade', 'Qualidade'], ['comparar', 'Comparar'], ['registos', 'Registos & auditoria']] as const).map(([k, l]) => (
-                <button key={k} onClick={() => setTab(k)} style={{ padding: '9px 16px', background: 'none', border: 'none', borderBottom: `2.5px solid ${tab === k ? ACCENT : 'transparent'}`, cursor: 'pointer', fontSize: 14, fontWeight: tab === k ? 800 : 600, color: tab === k ? ACCENT : '#64748b', marginBottom: -1, fontFamily: 'inherit' }}>{l}</button>
-              ))}
-            </div>
-
+      {!err && (
+        <>
             {/* ── O PAINEL ──────────────────────────────────────────────
                 Cinco vistas da casa, feitas com as MESMAS peças do /painel
                 (app/painel/painelPecas.tsx): os mesmos cartões, a mesma
@@ -249,26 +282,26 @@ export default function PainelDonoPage() {
             {tab === 'negocio' && biz && (() => {
               const k = biz.kpis
               const eur = (n: number) => n.toLocaleString('pt-PT', { minimumFractionDigits: 0 }) + ' €'
-              const KCard = ({ big, label, sub, color = '#0b1120' }: any) => (
+              const KCard = ({ big, label, sub, color = 'var(--ink)' }: any) => (
                 <div style={{ ...card }}>
-                  <div style={{ fontSize: 26, fontWeight: 800, color, lineHeight: 1 }}>{big}</div>
-                  <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 5, fontWeight: 600 }}>{label}</div>
-                  {sub && <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>{sub}</div>}
+                  <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color, lineHeight: 1 }}>{big}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 5, fontWeight: 'var(--peso-corpo)' as any }}>{label}</div>
+                  {sub && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>{sub}</div>}
                 </div>
               )
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(150px,1fr))', gap: 12 }}>
                     <KCard big={k.patients} label={biz.org.kind === 'day_care' ? 'utentes ativos' : 'pessoas'} sub={k.capacity ? `de ${k.capacity} lugares` : 'lotação não definida'} color={ACCENT} />
-                    {k.occupancy != null && <KCard big={`${k.occupancy}%`} label="ocupação" sub={k.occupancy >= 90 ? 'quase cheio' : k.occupancy >= 60 ? 'saudável' : 'há lugares'} color={k.occupancy >= 60 ? '#16a34a' : '#b45309'} />}
+                    {k.occupancy != null && <KCard big={`${k.occupancy}%`} label="ocupação" sub={k.occupancy >= 90 ? 'quase cheio' : k.occupancy >= 60 ? 'saudável' : 'há lugares'} color={k.occupancy >= 60 ? 'var(--green)' : 'var(--amber)'} />}
                     {k.revenueEstimate != null
-                      ? <KCard big={eur(k.revenueEstimate)} label="receita estimada/mês" sub="utentes × mensalidade" color="#0d6e42" />
+                      ? <KCard big={eur(k.revenueEstimate)} label="receita estimada/mês" sub="utentes × mensalidade" color="var(--green)" />
                       : <KCard big="—" label="receita/mês" sub="defina a mensalidade nas Definições" />}
                     <KCard big={k.presentToday} label="presentes hoje" sub="com registo do dia" />
-                    <KCard big={k.teamSize} label="na equipa" sub={<Link href="/equipa" style={{ color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>gerir →</Link>} />
-                    {k.logAdherence != null && <KCard big={`${k.logAdherence}%`} label="registos feitos (7 dias)" sub="adesão da equipa" color={k.logAdherence >= 80 ? '#16a34a' : '#b45309'} />}
-                    <KCard big={k.marGivenMonth} label="tomas dadas (mês)" sub={k.marHomeMonth ? `${k.marHomeMonth} em casa pela família` : 'no centro'} color="#dc2626" />
-                    <KCard big={k.familiesEngaged} label="famílias ativas (7 dias)" sub={`${k.familyReplies} respostas das famílias`} color="#7c3aed" />
+                    <KCard big={k.teamSize} label="na equipa" sub={<Link href="/equipa" style={{ color: ACCENT, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>gerir →</Link>} />
+                    {k.logAdherence != null && <KCard big={`${k.logAdherence}%`} label="registos feitos (7 dias)" sub="adesão da equipa" color={k.logAdherence >= 80 ? 'var(--green)' : 'var(--amber)'} />}
+                    <KCard big={k.marGivenMonth} label="tomas dadas (mês)" sub={k.marHomeMonth ? `${k.marHomeMonth} em casa pela família` : 'no centro'} color="var(--red)" />
+                    <KCard big={k.familiesEngaged} label="famílias ativas (7 dias)" sub={`${k.familyReplies} respostas das famílias`} color="var(--ink-3)" />
                   </div>
 
                   {/* ── RESULTADO DO MÊS: mensalidades recebidas + outras receitas − despesas ── */}
@@ -276,15 +309,15 @@ export default function PainelDonoPage() {
                     <div style={{ ...card }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>Resultado do mês</div>
-                          <div style={{ fontSize: 12, color: '#64748b' }}>{biz.finance.monthLabel} · <Link href="/faturacao" style={{ color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>abrir faturação →</Link></div>
+                          <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Resultado do mês</div>
+                          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{biz.finance.monthLabel} · <Link href="/faturacao" style={{ color: ACCENT, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>abrir faturação →</Link></div>
                         </div>
-                        <div style={{ fontSize: 26, fontWeight: 800, color: biz.finance.result >= 0 ? '#16a34a' : '#dc2626', lineHeight: 1 }}>{eur(biz.finance.result)}</div>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: biz.finance.result >= 0 ? 'var(--green)' : 'var(--red)', lineHeight: 1 }}>{eur(biz.finance.result)}</div>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 10 }}>
-                        <div><div style={{ fontSize: 17, fontWeight: 700, color: '#16a34a' }}>{eur(biz.finance.feesReceived)}</div><div style={{ fontSize: 11.5, color: '#64748b' }}>mensalidades recebidas</div></div>
-                        <div><div style={{ fontSize: 17, fontWeight: 700, color: '#16a34a' }}>{eur(biz.finance.otherIncome)}</div><div style={{ fontSize: 11.5, color: '#64748b' }}>outras receitas</div></div>
-                        <div><div style={{ fontSize: 17, fontWeight: 700, color: '#dc2626' }}>−{eur(biz.finance.expenses)}</div><div style={{ fontSize: 11.5, color: '#64748b' }}>despesas</div></div>
+                        <div><div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)' }}>{eur(biz.finance.feesReceived)}</div><div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>mensalidades recebidas</div></div>
+                        <div><div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)' }}>{eur(biz.finance.otherIncome)}</div><div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>outras receitas</div></div>
+                        <div><div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)' }}>−{eur(biz.finance.expenses)}</div><div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>despesas</div></div>
                       </div>
                     </div>
                   )}
@@ -304,39 +337,39 @@ export default function PainelDonoPage() {
                       })
                     }
                     return (
-                      <div style={{ ...card, background: 'linear-gradient(135deg,#f0fdfa,#ffffff)', border: '1px solid #99f6e4' }}>
+                      <div style={{ ...card, background: 'var(--green-light)', border: '1px solid var(--green-mid)' }}>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                           <div>
-                            <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120' }}>O que o Phlox organizou este mês</div>
-                            <div style={{ fontSize: 12, color: '#64748b' }}>{biz.ledger.monthLabel} · números reais, prontos a mostrar</div>
+                            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>O que o Phlox organizou este mês</div>
+                            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{biz.ledger.monthLabel} · números reais, prontos a mostrar</div>
                           </div>
-                          {led.lines.length > 0 && <button onClick={exportLedger} style={{ padding: '8px 14px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}55`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Exportar A4</button>}
+                          {led.lines.length > 0 && <button onClick={exportLedger} style={{ padding: '8px 14px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}55`, borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>Exportar A4</button>}
                         </div>
                         {led.lines.length === 0 ? (
-                          <div style={{ fontSize: 13, color: '#64748b' }}>{led.note}</div>
+                          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>{led.note}</div>
                         ) : (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                             {led.lines.map((l, i) => (
                               <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 10 }}>
-                                <span style={{ fontSize: 16 }}>{l.icon}</span>
-                                <span style={{ fontSize: 18, fontWeight: 800, color: l.tone === 'good' ? '#0d6e42' : '#0b1120', fontVariantNumeric: 'tabular-nums', minWidth: 54 }}>{l.value}</span>
-                                <span style={{ fontSize: 13, color: '#475569', lineHeight: 1.4 }}>{l.label}</span>
+                                <Icon name={l.icon} size={16} />
+                                <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: l.tone === 'good' ? 'var(--green)' : 'var(--ink)', fontVariantNumeric: 'tabular-nums', minWidth: 54 }}>{l.value}</span>
+                                <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.4 }}>{l.label}</span>
                               </div>
                             ))}
-                            <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 6, lineHeight: 1.5 }}>{led.note}</div>
+                            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 6, lineHeight: 1.5 }}>{led.note}</div>
                           </div>
                         )}
                         {led.lines.length > 0 && (
-                          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #99f6e4' }}>
+                          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--green-mid)' }}>
                             {!narrative && !loadingNarrative && (
-                              <button onClick={() => genNarrative(led)} style={{ padding: '8px 14px', background: '#5b21b6', color: 'white', border: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>✨ Resumo em palavras (IA)</button>
+                              <button onClick={() => genNarrative(led)} style={{ padding: '8px 14px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>✨ Resumo em palavras (IA)</button>
                             )}
-                            {loadingNarrative && <div style={{ fontSize: 12.5, color: '#64748b' }}>A escrever o resumo…</div>}
-                            {narrativeErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{narrativeErr}</div>}
+                            {loadingNarrative && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>A escrever o resumo…</div>}
+                            {narrativeErr && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)' }}>{narrativeErr}</div>}
                             {narrative && (
                               <div>
-                                <p style={{ fontSize: 13.5, color: '#1e293b', lineHeight: 1.7, margin: 0 }}>{narrative}</p>
-                                <button onClick={() => setNarrative('')} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 11.5, color: '#5b21b6', fontWeight: 600, cursor: 'pointer' }}>gerar de novo</button>
+                                <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', lineHeight: 1.7, margin: 0 }}>{narrative}</p>
+                                <button onClick={() => setNarrative('')} style={{ marginTop: 8, background: 'none', border: 'none', padding: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-2)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer' }}>gerar de novo</button>
                               </div>
                             )}
                           </div>
@@ -346,24 +379,24 @@ export default function PainelDonoPage() {
                   })()}
 
                   {k.incidentsOpen > 0 && (
-                    <div style={{ ...card, background: k.incidentsGrave > 0 ? '#fef2f2' : '#fffbeb', border: `1px solid ${k.incidentsGrave > 0 ? '#fecaca' : '#fde68a'}` }}>
-                      <span style={{ fontSize: 13.5, color: k.incidentsGrave > 0 ? '#991b1b' : '#92400e', fontWeight: 700 }}>
+                    <div style={{ ...card, background: k.incidentsGrave > 0 ? 'var(--badge-red-bg)' : 'var(--badge-amber-bg)', border: `1px solid ${k.incidentsGrave > 0 ? 'var(--badge-red-border)' : 'var(--badge-amber-border)'}` }}>
+                      <span style={{ fontSize: 'var(--t-dado)', color: k.incidentsGrave > 0 ? 'var(--red)' : 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
                         ⚠ {k.incidentsOpen} {k.incidentsOpen === 1 ? 'ocorrência em aberto' : 'ocorrências em aberto'}
                         {k.incidentsGrave > 0 && ` · ${k.incidentsGrave} grave${k.incidentsGrave === 1 ? '' : 's'}`}
                       </span>
-                      <Link href="/incidents" style={{ marginLeft: 8, fontSize: 12.5, color: '#b45309', fontWeight: 700 }}>resolver →</Link>
+                      <Link href="/incidents" style={{ marginLeft: 8, fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>resolver →</Link>
                     </div>
                   )}
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {ownerLinks(biz.org.kind).map(([href, ic, l]) => (
-                      <Link key={href} href={href} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', background: 'white', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 13, fontWeight: 700, color: '#0b1120', textDecoration: 'none' }}><Icon name={ic} size={15} color={ACCENT} /> {l}</Link>
+                      <Link key={href} href={href} style={{ display: 'inline-flex', alignItems: 'center', gap: 7, padding: '9px 14px', background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textDecoration: 'none' }}><Icon name={ic} size={15} color={ACCENT} /> {l}</Link>
                     ))}
                   </div>
-                  <p style={{ fontSize: 11.5, color: '#94a3b8', lineHeight: 1.6 }}>Defina a lotação e a mensalidade em <Link href="/equipa" style={{ color: ACCENT, fontWeight: 700 }}>Equipa → Definições da instituição</Link> para ver ocupação e receita.</p>
+                  <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.6 }}>Defina a lotação e a mensalidade em <Link href="/equipa" style={{ color: ACCENT, fontWeight: 'var(--peso-forte)' as any }}>Equipa → Definições da instituição</Link> para ver ocupação e receita.</p>
                 </div>
               )
             })()}
-            {tab === 'negocio' && !biz && <div style={{ ...card, color: '#94a3b8' }}>A carregar indicadores…</div>}
+            {tab === 'negocio' && !biz && <div style={{ ...card, color: 'var(--ink-5)' }}>A carregar indicadores…</div>}
 
             {/* ── DESEMPENHO (era /roi): receita, atividade e tendências reais ── */}
             {tab === 'desempenho' && <OwnerPerformance />}
@@ -377,52 +410,52 @@ export default function PainelDonoPage() {
               const k = biz.kpis; const led = biz.ledger || {}
               const QRow = ({ label, value, good, hint }: any) => (
                 <div style={{ ...card, display: 'flex', alignItems: 'center', gap: 14 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: good == null ? '#cbd5e1' : good ? '#16a34a' : '#d97706', flexShrink: 0 }} />
+                  <span style={{ width: 10, height: 10, borderRadius: '50%', background: good == null ? 'var(--border-2)' : good ? 'var(--green)' : 'var(--amber)', flexShrink: 0 }} />
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{label}</div>
-                    {hint && <div style={{ fontSize: 12, color: '#94a3b8' }}>{hint}</div>}
+                    <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{label}</div>
+                    {hint && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{hint}</div>}
                   </div>
-                  <div style={{ fontSize: 20, fontWeight: 800, color: good == null ? '#64748b' : good ? '#16a34a' : '#b45309' }}>{value}</div>
+                  <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: good == null ? 'var(--ink-4)' : good ? 'var(--green)' : 'var(--amber)' }}>{value}</div>
                 </div>
               )
               return (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <div style={{ fontSize: 12.5, color: '#64748b', marginBottom: 2 }}>Indicadores do mês ({led.monthLabel || '—'}), calculados a partir do que a equipa registou. Prontos a mostrar numa inspeção.</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 2 }}>Indicadores do mês ({led.monthLabel || '—'}), calculados a partir do que a equipa registou. Prontos a mostrar numa inspeção.</div>
                   <QRow label="Adesão da medicação" value={led.marAdherence != null ? `${led.marAdherence}%` : '—'} good={led.marAdherence != null ? led.marAdherence >= 90 : null} hint="Tomas dadas / previstas" />
                   <QRow label="Registos do dia feitos" value={k.logAdherence != null ? `${k.logAdherence}%` : '—'} good={k.logAdherence != null ? k.logAdherence >= 80 : null} hint="Adesão da equipa (7 dias)" />
                   <QRow label="Ocorrências com seguimento" value={led.incidentsMonth ? `${led.incidentsFollowed}/${led.incidentsMonth}` : '0'} good={led.incidentsMonth ? led.incidentsFollowed >= led.incidentsMonth : null} hint="Fechadas / abertas no mês" />
                   <QRow label="Avaliações (escalas) feitas" value={String(led.assessmentsMonth || 0)} good={(led.assessmentsMonth || 0) > 0} hint="Barthel, MNA, Braden…" />
                   <QRow label="Ocorrências graves em aberto" value={String(k.incidentsGrave || 0)} good={(k.incidentsGrave || 0) === 0} hint="A resolver com prioridade" />
                   <div style={{ marginTop: 6 }}>
-                    <button onClick={printDossier} style={{ padding: '10px 16px', background: ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>🗂 Relatório de qualidade para inspeção (A4)</button>
+                    <button onClick={printDossier} style={{ padding: '10px 16px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>🗂 Relatório de qualidade para inspeção (A4)</button>
                   </div>
-                  <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Números reais e auditáveis. Não constitui avaliação clínica — organiza o que foi registado.</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>Números reais e auditáveis. Não constitui avaliação clínica — organiza o que foi registado.</div>
                 </div>
               )
-            })() : <div style={{ ...card, color: '#94a3b8' }}>A carregar indicadores…</div>)}
+            })() : <div style={{ ...card, color: 'var(--ink-5)' }}>A carregar indicadores…</div>)}
 
             {/* ── REGISTOS (o que existia: auditoria) ── */}
             {tab === 'registos' && <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 12, flexWrap: 'wrap' }}>
-              <button onClick={printDossier} style={{ padding: '9px 15px', background: ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>🗂 Gerar dossier para inspeção</button>
+              <button onClick={printDossier} style={{ padding: '9px 15px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>🗂 Gerar dossier para inspeção</button>
               {/* Intervalo único: controla a lista abaixo E a exportação Excel.
                   Antes eram dois controlos diferentes — um dia único aqui, um
                   intervalo só para o Excel — por isso os registos de vários
                   dias só apareciam no ficheiro descarregado, nunca no ecrã. */}
               <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} max={expTo} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
-                <span style={{ fontSize: 12.5, color: '#94a3b8' }}>até</span>
-                <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} min={expFrom} max={new Date().toISOString().slice(0, 10)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 12px', fontSize: 13, fontFamily: 'inherit', outline: 'none' }} />
+                <input type="date" value={expFrom} onChange={e => setExpFrom(e.target.value)} max={expTo} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '8px 12px', fontSize: 'var(--t-dado)', fontFamily: 'inherit', outline: 'none' }} />
+                <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>até</span>
+                <input type="date" value={expTo} onChange={e => setExpTo(e.target.value)} min={expFrom} max={new Date().toISOString().slice(0, 10)} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '8px 12px', fontSize: 'var(--t-dado)', fontFamily: 'inherit', outline: 'none' }} />
               </div>
             </div>
 
             {/* Exportar — mesmo intervalo escolhido acima, só muda o tipo de registo. */}
             <div style={{ ...card, marginBottom: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Exportar para Excel</div>
+              <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Exportar para Excel</div>
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 <div>
-                  <label style={{ display: 'block', fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>Tipo de registo</label>
-                  <select value={expSource} onChange={e => setExpSource(e.target.value)} style={{ border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '8px 10px', fontSize: 13, fontFamily: 'inherit', outline: 'none', background: 'white' }}>
+                  <label style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginBottom: 4 }}>Tipo de registo</label>
+                  <select value={expSource} onChange={e => setExpSource(e.target.value)} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '8px 10px', fontSize: 'var(--t-dado)', fontFamily: 'inherit', outline: 'none', background: 'white' }}>
                     <option value="medicacao">Medicação (MAR)</option>
                     <option value="registos">Registo do dia</option>
                     <option value="ocorrencias">Ocorrências</option>
@@ -430,22 +463,22 @@ export default function PainelDonoPage() {
                     <option value="atividades">Atividades</option>
                   </select>
                 </div>
-                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? '#94a3b8' : ACCENT, color: 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : `Exportar ${expFrom} a ${expTo}`}</button>
+                <button onClick={exportRange} disabled={exporting} style={{ padding: '9px 16px', background: exporting ? 'var(--ink-5)' : ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: exporting ? 'default' : 'pointer' }}>{exporting ? 'A gerar…' : `Exportar ${expFrom} a ${expTo}`}</button>
               </div>
-              {expErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{expErr}</div>}
-              <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 10, lineHeight: 1.5 }}>Todos os registos ficam guardados para sempre — útil para responder a uma inspeção que peça um mês inteiro de uma vez.</div>
+              {expErr && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginTop: 8 }}>{expErr}</div>}
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>Todos os registos ficam guardados para sempre — útil para responder a uma inspeção que peça um mês inteiro de uma vez.</div>
             </div>
 
             {/* Resumo do dia */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(120px,1fr))', gap: 12, marginBottom: 16 }}>
               {[
-                { n: totals.meds, l: 'tomas de medicação', c: '#dc2626' },
+                { n: totals.meds, l: 'tomas de medicação', c: 'var(--red)' },
                 { n: totals.care, l: 'registos do dia', c: ACCENT },
-                { n: totals.incidents, l: 'ocorrências', c: '#b45309' },
+                { n: totals.incidents, l: 'ocorrências', c: 'var(--amber)' },
               ].map(s => (
                 <div key={s.l} style={{ ...card, borderLeft: `3px solid ${s.c}` }}>
-                  <div style={{ fontSize: 28, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>{s.n}</div>
-                  <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 4 }}>{s.l}</div>
+                  <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', lineHeight: 1 }}>{s.n}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 4 }}>{s.l}</div>
                 </div>
               ))}
             </div>
@@ -453,13 +486,13 @@ export default function PainelDonoPage() {
             {/* Por funcionário */}
             {staffRows.length > 0 && (
               <div style={{ ...card, marginBottom: 16 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Atividade por funcionário</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Atividade por funcionário</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {staffRows.map(([name, n]) => (
                     <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                      <span style={{ width: 30, height: 30, borderRadius: '50%', background: '#f0fdfa', color: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: 12, flexShrink: 0 }}>{(name || '?')[0].toUpperCase()}</span>
-                      <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: '#0b1120' }}>{name}</span>
-                      <span style={{ fontSize: 12.5, color: '#64748b' }}>{n} {n === 1 ? 'registo' : 'registos'}</span>
+                      <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--green-light)', color: ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-meta)', flexShrink: 0 }}>{(name || '?')[0].toUpperCase()}</span>
+                      <span style={{ flex: 1, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{name}</span>
+                      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{n} {n === 1 ? 'registo' : 'registos'}</span>
                     </div>
                   ))}
                 </div>
@@ -469,26 +502,26 @@ export default function PainelDonoPage() {
             {/* Linha do tempo */}
             <div style={card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Linha do tempo · {expFrom === expTo ? expFrom : `${expFrom} a ${expTo}`}</div>
-                {totalEvents > 0 && <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{totalEvents} {totalEvents === 1 ? 'registo' : 'registos'}</div>}
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Linha do tempo · {expFrom === expTo ? expFrom : `${expFrom} a ${expTo}`}</div>
+                {totalEvents > 0 && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{totalEvents} {totalEvents === 1 ? 'registo' : 'registos'}</div>}
               </div>
               {truncated && (
-                <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '9px 12px', fontSize: 12, color: '#92400e', marginBottom: 12 }}>
+                <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-meta)', color: 'var(--amber)', marginBottom: 12 }}>
                   A mostrar os {events.length} mais recentes de {totalEvents}. Reduz o intervalo de datas para ver todos no ecrã, ou usa "Exportar para Excel" acima para o intervalo completo.
                 </div>
               )}
-              {loading ? <div style={{ color: '#94a3b8', fontSize: 13 }}>A carregar…</div>
-              : events.length === 0 ? <div style={{ color: '#94a3b8', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>Sem registos neste intervalo.</div>
+              {loading ? <div style={{ color: 'var(--ink-5)', fontSize: 'var(--t-dado)' }}>A carregar…</div>
+              : events.length === 0 ? <div style={{ color: 'var(--ink-5)', fontSize: 'var(--t-dado)', textAlign: 'center', padding: '20px 0' }}>Sem registos neste intervalo.</div>
               : <div style={{ display: 'flex', flexDirection: 'column' }}>
                   {events.map((e, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 12, padding: '11px 0', borderBottom: i < events.length - 1 ? '1px solid #f1f5f9' : 'none' }}>
-                      <span style={{ fontSize: 18, flexShrink: 0 }}>{e.icon}</span>
+                    <div key={i} style={{ display: 'flex', gap: 12, padding: '11px 0', borderBottom: i < events.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
+                      <Icon name={e.icon} size={16} />
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, color: '#0b1120', lineHeight: 1.5 }}>
+                        <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', lineHeight: 1.5 }}>
                           <strong>{e.who}</strong> {e.detail} {e.kind !== 'care' && <>a <strong>{e.patient}</strong></>}{e.kind === 'care' && <> de <strong>{e.patient}</strong></>}
-                          {e.severity && <span style={{ marginLeft: 6, fontSize: 11, fontWeight: 700, color: e.severity === 'high' || e.severity === 'grave' ? '#dc2626' : '#b45309' }}>· {e.severity}</span>}
+                          {e.severity && <span style={{ marginLeft: 6, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: e.severity === 'high' || e.severity === 'grave' ? 'var(--red)' : 'var(--amber)' }}>· {e.severity}</span>}
                         </div>
-                        <div style={{ fontSize: 11.5, color: '#94a3b8', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
                           {e.at ? (expFrom === expTo ? new Date(e.at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : new Date(e.at).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })) : '—'}{e.shift ? ` · turno ${e.shift}` : ''}
                         </div>
                       </div>
@@ -504,9 +537,9 @@ export default function PainelDonoPage() {
                 impressão A4 — sem ter de abrir a ficha um a um. Reutiliza o mesmo
                 componente da ficha, não é uma versão nova. */}
             <div style={{ ...card, marginTop: 16 }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Linha do tempo por utente</div>
+              <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 12 }}>Linha do tempo por utente</div>
               <select value={timelinePatientId} onChange={e => setTimelinePatientId(e.target.value)}
-                style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: timelinePatientId ? 14 : 0 }}>
+                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px', fontSize: 'var(--t-dado)', fontFamily: 'inherit', outline: 'none', background: 'white', marginBottom: timelinePatientId ? 14 : 0 }}>
                 <option value="">Escolher utente…</option>
                 {patients.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
@@ -516,13 +549,44 @@ export default function PainelDonoPage() {
               )}
             </div>
 
-            <p style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 14, lineHeight: 1.6 }}>
-              Este registo serve a responsabilidade do serviço e a segurança dos utentes. O acesso é exclusivo do dono e administradores da instituição (RGPD — responsável pelo tratamento).
+            <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 14, lineHeight: 1.6 }}>
+              Este registo serve a responsabilidade do serviço e a segurança dos utentes.
+              O acesso é exclusivo do dono e administradores da instituição
+              (RGPD — responsável pelo tratamento).
             </p>
             </>}
-          </>
-        )}
-      </div>
-    </div>
+        </>
+      )}
+
+      {/* ── PARA ONDE SE VAI A SEGUIR ──────────────────────────────────────
+          Estes seis eram uma grelha de cartões NO TOPO, antes do primeiro
+          número. São um menu — e um menu não é o que se vem ver a um painel
+          administrativo. Ficam no fim, que é onde se vai depois de olhar. */}
+      <Painel cabeca={<Cabecalho><span style={{ ...ROTULO, flex: 1 }}>Gerir a casa</span></Cabecalho>}>
+        {ATALHOS.map(h => (
+          <Link key={h.href} href={h.href} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 12px', borderBottom: '1px solid var(--border)',
+            textDecoration: 'none', color: 'var(--ink)',
+          }}>
+            <span style={{ width: 20, flexShrink: 0, display: 'flex' }}>
+              <Icon name={h.icon} size={16} color="var(--ink-4)" />
+            </span>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{
+                display: 'block', fontSize: 'var(--t-dado)',
+                fontWeight: 'var(--peso-corpo)' as any,
+              }}>{h.title}</span>
+              <span style={{
+                display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)',
+              }}>{h.desc}</span>
+            </span>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-meta)', color: 'var(--green)', flexShrink: 0,
+            }}>→</span>
+          </Link>
+        ))}
+      </Painel>
+    </Mesa>
   )
 }

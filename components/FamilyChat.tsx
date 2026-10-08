@@ -32,7 +32,7 @@ interface FamilyChatProps {
   otherLabel?: string
 }
 
-export default function FamilyChat({ messages, mySide, onSend, title, height = 380, accent = '#b45309', otherLabel = 'a instituição' }: FamilyChatProps) {
+export default function FamilyChat({ messages, mySide, onSend, title, height = 380, accent = 'var(--amber)', otherLabel = 'a instituição' }: FamilyChatProps) {
   const [text, setText] = useState('')
   const [photo, setPhoto] = useState<string | null>(null)
   const [sending, setSending] = useState(false)
@@ -62,26 +62,26 @@ export default function FamilyChat({ messages, mySide, onSend, title, height = 3
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', background: 'white', border: '1px solid #e9eaec', borderRadius: 16, overflow: 'hidden' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
       {title && (
-        <div style={{ padding: '11px 16px', borderBottom: '1px solid #f1f5f9', fontSize: 14, fontWeight: 800, color: '#0b1120' }}>{title}</div>
+        <div style={{ padding: '11px 16px', borderBottom: '1px solid var(--bg-3)', fontSize: 14, fontWeight: 800, color: 'var(--ink)' }}>{title}</div>
       )}
 
       {/* Mensagens */}
-      <div style={{ height, overflowY: 'auto', padding: '14px 14px 6px', display: 'flex', flexDirection: 'column', gap: 8, background: '#fbfaf8' }}>
+      <div style={{ height, overflowY: 'auto', padding: '14px 14px 6px', display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-2)' }}>
         {sorted.length === 0 ? (
-          <div style={{ margin: 'auto', textAlign: 'center', color: '#94a3b8', padding: 20 }}>
+          <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--ink-5)', padding: 20 }}>
             <div style={{ fontSize: 30, marginBottom: 8 }}>💬</div>
-            <div style={{ fontSize: 13.5, fontWeight: 600, color: '#64748b' }}>Ainda sem mensagens</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink-4)' }}>Ainda sem mensagens</div>
             <div style={{ fontSize: 12.5, marginTop: 2 }}>Escreva a primeira mensagem a {otherLabel}.</div>
           </div>
         ) : sorted.map(m => {
           const mine = m.author_side === mySide
           return (
             <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
-              <div style={{ maxWidth: '78%', background: mine ? accent : 'white', color: mine ? 'white' : '#0b1120', border: mine ? 'none' : '1px solid #e9eaec', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: m.photo_url ? 4 : '9px 13px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
+              <div style={{ maxWidth: '78%', background: mine ? accent : 'white', color: mine ? 'white' : 'var(--ink)', border: mine ? 'none' : '1px solid var(--border)', borderRadius: mine ? '14px 14px 4px 14px' : '14px 14px 14px 4px', padding: m.photo_url ? 4 : '9px 13px', boxShadow: '0 1px 2px rgba(0,0,0,0.04)' }}>
                 {!mine && m.author_name && <div style={{ fontSize: 11, fontWeight: 700, color: accent, padding: m.photo_url ? '5px 9px 2px' : '0 0 2px' }}>{m.author_name}</div>}
-                {m.photo_url && <img src={m.photo_url} alt="" style={{ display: 'block', maxWidth: '100%', borderRadius: 10, marginBottom: m.content ? 6 : 0 }} />}
+                {m.photo_url && <img src={m.photo_url} alt="" style={{ display: 'block', maxWidth: '100%', borderRadius: 'var(--r-lg)', marginBottom: m.content ? 6 : 0 }} />}
                 {m.content && <div style={{ fontSize: 14, lineHeight: 1.45, padding: m.photo_url ? '0 9px 6px' : 0, whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>{m.content}</div>}
                 <div style={{ fontSize: 10, opacity: 0.7, textAlign: 'right', padding: m.photo_url ? '0 9px 6px' : '3px 0 0' }}>{new Date(m.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}</div>
               </div>
@@ -93,24 +93,24 @@ export default function FamilyChat({ messages, mySide, onSend, title, height = 3
 
       {/* Pré-visualização da foto escolhida */}
       {photo && (
-        <div style={{ padding: '8px 12px', borderTop: '1px solid #f1f5f9', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <img src={photo} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 8 }} />
-          <span style={{ fontSize: 12.5, color: '#64748b', flex: 1 }}>Foto pronta a enviar</span>
-          <button aria-label="Fechar" onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: '#94a3b8', cursor: 'pointer', fontSize: 18 }}>×</button>        </div>
+        <div style={{ padding: '8px 12px', borderTop: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 10 }}>
+          <img src={photo} alt="" style={{ width: 44, height: 44, objectFit: 'cover', borderRadius: 'var(--r-md)' }} />
+          <span style={{ fontSize: 12.5, color: 'var(--ink-4)', flex: 1 }}>Foto pronta a enviar</span>
+          <button aria-label="Fechar" onClick={() => setPhoto(null)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 18 }}>×</button>        </div>
       )}
 
       {/* Barra de envio */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderTop: '1px solid #f1f5f9' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderTop: '1px solid var(--bg-3)' }}>
         <input ref={fileRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) pickPhoto(f); e.target.value = '' }} />
-        <button onClick={() => fileRef.current?.click()} aria-label="Anexar foto" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid #e9eaec', background: 'white', cursor: 'pointer', fontSize: 18, flexShrink: 0, color: '#64748b' }}>＋</button>
+        <button onClick={() => fileRef.current?.click()} aria-label="Anexar foto" style={{ width: 38, height: 38, borderRadius: '50%', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 18, flexShrink: 0, color: 'var(--ink-4)' }}>＋</button>
         <input
           value={text}
           onChange={e => setText(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
           placeholder="Escreva uma mensagem…"
-          style={{ flex: 1, minWidth: 0, border: '1.5px solid #e9eaec', borderRadius: 22, padding: '10px 16px', fontSize: 14, outline: 'none', background: '#f8fafc' }}
+          style={{ flex: 1, minWidth: 0, border: '1.5px solid var(--border)', borderRadius: 22, padding: '10px 16px', fontSize: 14, outline: 'none', background: 'var(--bg-2)' }}
         />
-        <button onClick={send} disabled={sending || (!text.trim() && !photo)} style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: sending || (!text.trim() && !photo) ? '#e2e8f0' : accent, color: 'white', cursor: sending || (!text.trim() && !photo) ? 'default' : 'pointer', fontSize: 17, flexShrink: 0, fontWeight: 700 }}>↑</button>
+        <button onClick={send} disabled={sending || (!text.trim() && !photo)} style={{ width: 40, height: 40, borderRadius: '50%', border: 'none', background: sending || (!text.trim() && !photo) ? 'var(--border)' : accent, color: 'white', cursor: sending || (!text.trim() && !photo) ? 'default' : 'pointer', fontSize: 17, flexShrink: 0, fontWeight: 700 }}>↑</button>
       </div>
     </div>
   )

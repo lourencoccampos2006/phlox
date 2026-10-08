@@ -5,6 +5,10 @@ import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { printDoc } from '@/lib/print'
 import TherapeuticProtocolGenerator from '@/components/protocols/TherapeuticProtocolGenerator'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Step { text: string; critical?: boolean }
 interface Protocol {
@@ -13,16 +17,16 @@ interface Protocol {
 }
 
 const CATS: Record<string, { label: string; color: string }> = {
-  fall:           { label: 'Quedas', color: '#dc2626' },
-  pressure_ulcer: { label: 'Úlceras de pressão', color: '#b45309' },
-  emergency:      { label: 'Emergência', color: '#991b1b' },
-  admission:      { label: 'Admissão', color: '#0d6e42' },
-  infection:      { label: 'Infeção / IACS', color: '#7c3aed' },
-  restraint:      { label: 'Contenção', color: '#0891b2' },
-  medication:     { label: 'Medicação', color: '#2563eb' },
-  end_of_life:    { label: 'Fim de vida', color: '#64748b' },
-  nutrition:      { label: 'Nutrição', color: '#16a34a' },
-  other:          { label: 'Outro', color: '#374151' },
+  fall:           { label: 'Quedas', color: 'var(--red)' },
+  pressure_ulcer: { label: 'Úlceras de pressão', color: 'var(--amber)' },
+  emergency:      { label: 'Emergência', color: 'var(--red)' },
+  admission:      { label: 'Admissão', color: 'var(--green)' },
+  infection:      { label: 'Infeção / IACS', color: 'var(--roxo)' },
+  restraint:      { label: 'Contenção', color: 'var(--green)' },
+  medication:     { label: 'Medicação', color: 'var(--ink-2)' },
+  end_of_life:    { label: 'Fim de vida', color: 'var(--ink-4)' },
+  nutrition:      { label: 'Nutrição', color: 'var(--green)' },
+  other:          { label: 'Outro', color: 'var(--ink-3)' },
 }
 const CAT_KEYS = Object.keys(CATS)
 
@@ -95,8 +99,8 @@ const TEMPLATES: Omit<Protocol, 'id' | 'active'>[] = [
   ]},
 ]
 
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
-const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 export default function ProtocolosPage() {
   const { user, supabase } = useAuth() as any
@@ -191,26 +195,37 @@ export default function ProtocolosPage() {
   const removeStep = (i: number) => setForm(f => ({ ...f, steps: f.steps.filter((_, j) => j !== i) }))
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Protocolos</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div className="page-container page-body" style={{ maxWidth: 880 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Governança clínica</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Protocolos</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Procedimentos da tua instituição, ou gera um protocolo terapêutico por IA para um doente.</p>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Gestão · Governança clínica</div>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, letterSpacing: '-0.02em', margin: 0 }}>Protocolos</h1>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: '5px 0 0' }}>Procedimentos da tua instituição, ou gera um protocolo terapêutico por IA para um doente.</p>
           </div>
           {tab === 'inst' && (
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <button onClick={() => setShowTemplates(true)} style={{ padding: '9px 15px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>Modelos</button>
-              <button onClick={openNew} style={{ padding: '9px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Protocolo</button>
+              <button onClick={() => setShowTemplates(true)} style={{ padding: '9px 15px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>Modelos</button>
+              <button onClick={openNew} style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Protocolo</button>
             </div>
           )}
         </div>
 
         <div style={{ display: 'flex', gap: 6, marginBottom: 18 }}>
-          {([{ k: 'inst', l: '📋 Protocolos institucionais' }, { k: 'ai', l: '✨ Protocolo terapêutico (IA)' }] as const).map(x => (
+          {([{ k: 'inst', l: 'Protocolos institucionais' }, { k: 'ai', l: 'Protocolo terapêutico (IA)' }] as const).map(x => (
             <button key={x.k} onClick={() => setTab(x.k)}
-              style={{ padding: '9px 16px', borderRadius: 8, border: `1.5px solid ${tab === x.k ? '#0d6e42' : 'var(--border)'}`, background: tab === x.k ? '#0d6e42' : 'white', color: tab === x.k ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              style={{ padding: '9px 16px', borderRadius: 'var(--r-md)', border: `1.5px solid ${tab === x.k ? 'var(--green)' : 'var(--border)'}`, background: tab === x.k ? 'var(--green)' : 'white', color: tab === x.k ? 'white' : 'var(--ink-3)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
               {x.l}
             </button>
           ))}
@@ -219,34 +234,34 @@ export default function ProtocolosPage() {
         {tab === 'ai' ? <TherapeuticProtocolGenerator /> : <>
 
         {tableMissing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
+            <div style={{ fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)', color: 'var(--amber)', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--amber)', lineHeight: 1.6 }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 12 }} />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 'var(--r-xl)' }} />)}</div>
         ) : protocols.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 44, textAlign: 'center' }}>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>Sem protocolos ainda</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>Começa a partir de modelos clínicos prontos e adapta-os à tua instituição.</div>
-            <button onClick={() => setShowTemplates(true)} style={{ padding: '10px 20px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 700, fontSize: 13, fontFamily: 'var(--font-sans)' }}>Ver modelos</button>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 44, textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 8 }}>Sem protocolos ainda</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 16 }}>Começa a partir de modelos clínicos prontos e adapta-os à tua instituição.</div>
+            <button onClick={() => setShowTemplates(true)} style={{ padding: '10px 20px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)' }}>Ver modelos</button>
           </div>
         ) : (
           orderedCats.map(cat => (
             <div key={cat} style={{ marginBottom: 18 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', background: CATS[cat].color }} />
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{CATS[cat].label}</span>
+                <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{CATS[cat].label}</span>
                 <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {byCat.get(cat)!.map(p => (
-                  <div key={p.id} onClick={() => setView(p)} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${CATS[cat].color}`, borderRadius: 10, padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, opacity: p.active ? 1 : 0.55 }}>
+                  <div key={p.id} onClick={() => setView(p)} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${CATS[cat].color}`, borderRadius: 'var(--r-lg)', padding: '12px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, opacity: p.active ? 1 : 0.55 }}>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.title}{!p.active && <span style={{ fontSize: 10, color: 'var(--ink-5)', marginLeft: 8 }}>(inativo)</span>}</div>
-                      <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{p.steps.length} passos{p.description ? ` · ${p.description}` : ''}</div>
+                      <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.title}{!p.active && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginLeft: 8 }}>(inativo)</span>}</div>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 1 }}>{p.steps.length} passos{p.description ? ` · ${p.description}` : ''}</div>
                     </div>
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
                   </div>
                 ))}
               </div>
@@ -260,37 +275,37 @@ export default function ProtocolosPage() {
       {tab === 'inst' && view && (
         <Modal title={view.title} onClose={() => setView(null)} wide>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: CATS[view.category]?.color, background: (CATS[view.category]?.color || '#000') + '14', padding: '3px 10px', borderRadius: 6 }}>{CATS[view.category]?.label}</span>
+            <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: CATS[view.category]?.color, background: (CATS[view.category]?.color || 'var(--ink)') + '14', padding: '3px 10px', borderRadius: 'var(--r)' }}>{CATS[view.category]?.label}</span>
             <div style={{ flex: 1 }} />
-            <button onClick={() => printProtocol(view)} style={{ padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Imprimir</button>
-            <button onClick={() => { openEdit(view); setView(null) }} style={{ padding: '7px 13px', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', color: '#1d4ed8', fontFamily: 'var(--font-sans)' }}>Editar</button>
-            <button onClick={() => toggleActive(view)} style={{ padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{view.active ? 'Desativar' : 'Ativar'}</button>
+            <button onClick={() => printProtocol(view)} style={{ padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>Imprimir</button>
+            <button onClick={() => { openEdit(view); setView(null) }} style={{ padding: '7px 13px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink-2)', fontFamily: 'var(--font-sans)' }}>Editar</button>
+            <button onClick={() => toggleActive(view)} style={{ padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{view.active ? 'Desativar' : 'Ativar'}</button>
           </div>
-          {view.description && <p style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 14 }}>{view.description}</p>}
+          {view.description && <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 14 }}>{view.description}</p>}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {view.steps.map((s, i) => (
-              <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '10px 12px', background: s.critical ? '#fef2f2' : 'var(--bg-2)', border: `1px solid ${s.critical ? '#fca5a5' : 'var(--border)'}`, borderRadius: 9 }}>
-                <span style={{ width: 22, height: 22, borderRadius: '50%', background: s.critical ? '#dc2626' : 'var(--ink-3)', color: 'white', fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
-                <span style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5 }}>{s.text}{s.critical && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', marginLeft: 6 }}>CRÍTICO</span>}</span>
+              <div key={i} style={{ display: 'flex', gap: 11, alignItems: 'flex-start', padding: '10px 12px', background: s.critical ? 'var(--badge-red-bg)' : 'var(--bg-2)', border: `1px solid ${s.critical ? 'var(--badge-red-border)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)' }}>
+                <span style={{ width: 22, height: 22, borderRadius: '50%', background: s.critical ? 'var(--red)' : 'var(--ink-3)', color: 'white', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>{i + 1}</span>
+                <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', lineHeight: 1.5 }}>{s.text}{s.critical && <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)', marginLeft: 6 }}>CRÍTICO</span>}</span>
               </div>
             ))}
           </div>
-          <button onClick={() => remove(view)} style={{ marginTop: 16, padding: '8px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, color: '#dc2626', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Eliminar protocolo</button>
+          <button onClick={() => remove(view)} style={{ marginTop: 16, padding: '8px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', color: 'var(--red)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Eliminar protocolo</button>
         </Modal>
       )}
 
       {/* TEMPLATES */}
       {showTemplates && (
         <Modal title="Modelos de protocolo" onClose={() => setShowTemplates(false)} wide>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 14 }}>Modelos clínicos prontos (Portugal). Escolhe um, adapta e guarda como teu.</div>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 14 }}>Modelos clínicos prontos (Portugal). Escolhe um, adapta e guarda como teu.</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {TEMPLATES.map(t => (
-              <button key={t.title} onClick={() => useTemplate(t)} style={{ textAlign: 'left', background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${CATS[t.category]?.color}`, borderRadius: 10, padding: '12px 16px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+              <button key={t.title} onClick={() => useTemplate(t)} style={{ textAlign: 'left', background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${CATS[t.category]?.color}`, borderRadius: 'var(--r-lg)', padding: '12px 16px', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{t.title}</span>
-                  <span style={{ fontSize: 10, fontWeight: 700, color: CATS[t.category]?.color }}>{CATS[t.category]?.label}</span>
+                  <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{t.title}</span>
+                  <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: CATS[t.category]?.color }}>{CATS[t.category]?.label}</span>
                 </div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 2 }}>{t.steps.length} passos · {t.description}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>{t.steps.length} passos · {t.description}</div>
               </button>
             ))}
           </div>
@@ -302,15 +317,15 @@ export default function ProtocolosPage() {
         <Modal title={editId ? 'Editar protocolo' : 'Novo protocolo'} onClose={() => setShowEditor(false)} wide>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             {!editId && (
-              <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 14px' }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: '#6b21a8', marginBottom: 8 }}>✨ Gerar com IA</div>
+              <div style={{ background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-lg)', padding: '12px 14px' }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--roxo-escuro)', marginBottom: 8 }}>Gerar com IA</div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <input value={aiTopic} onChange={e => setAiTopic(e.target.value)} onKeyDown={e => e.key === 'Enter' && generateAI()} placeholder="Ex: gestão de comportamento agitado, surto de gastroenterite…"
-                    style={{ flex: 1, border: '1.5px solid #e9d5ff', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
-                  <button onClick={generateAI} disabled={aiBusy || !aiTopic.trim()} style={{ padding: '0 16px', background: aiTopic.trim() && !aiBusy ? '#7c3aed' : 'var(--bg-3)', color: aiTopic.trim() && !aiBusy ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: aiTopic.trim() && !aiBusy ? 'pointer' : 'default', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>{aiBusy ? 'A gerar…' : 'Gerar'}</button>
+                    style={{ flex: 1, border: '1.5px solid var(--roxo-borda)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box' }} />
+                  <button onClick={generateAI} disabled={aiBusy || !aiTopic.trim()} style={{ padding: '0 16px', background: aiTopic.trim() && !aiBusy ? 'var(--roxo)' : 'var(--bg-3)', color: aiTopic.trim() && !aiBusy ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: aiTopic.trim() && !aiBusy ? 'pointer' : 'default', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>{aiBusy ? 'A gerar…' : 'Gerar'}</button>
                 </div>
-                {aiErr && <div style={{ fontSize: 12, color: '#991b1b', marginTop: 6 }}>{aiErr}</div>}
-                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 6 }}>Gera um rascunho que podes rever e adaptar antes de guardar.</div>
+                {aiErr && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginTop: 6 }}>{aiErr}</div>}
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 6 }}>Gera um rascunho que podes rever e adaptar antes de guardar.</div>
               </div>
             )}
             <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
@@ -323,21 +338,21 @@ export default function ProtocolosPage() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
                 {form.steps.map((s, i) => (
                   <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: 'var(--ink-5)', width: 16, flexShrink: 0 }}>{i + 1}.</span>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', width: 16, flexShrink: 0 }}>{i + 1}.</span>
                     <input value={s.text} onChange={e => updateStep(i, { text: e.target.value })} placeholder="Descreve o passo..." style={{ ...inp, flex: 1 }} />
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11, color: s.critical ? '#dc2626' : 'var(--ink-5)', cursor: 'pointer', flexShrink: 0 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 'var(--t-meta)', color: s.critical ? 'var(--red)' : 'var(--ink-5)', cursor: 'pointer', flexShrink: 0 }}>
                       <input type="checkbox" checked={!!s.critical} onChange={e => updateStep(i, { critical: e.target.checked })} /> crítico
                     </label>
-                    <button aria-label="Eliminar" onClick={() => removeStep(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16, flexShrink: 0 }}>×</button>                  </div>
+                    <button aria-label="Eliminar" onClick={() => removeStep(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-destaque)', flexShrink: 0 }}>×</button>                  </div>
                 ))}
               </div>
-              <button onClick={addStep} style={{ marginTop: 8, padding: '6px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>+ Adicionar passo</button>
+              <button onClick={addStep} style={{ marginTop: 8, padding: '6px 12px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>+ Adicionar passo</button>
             </div>
-            <button onClick={save} disabled={saving || !form.title.trim()} style={{ padding: '11px', background: (!form.title.trim() || saving) ? 'var(--bg-3)' : '#0d6e42', color: (!form.title.trim() || saving) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: (!form.title.trim() || saving) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A guardar…' : 'Guardar protocolo'}</button>
+            <button onClick={save} disabled={saving || !form.title.trim()} style={{ padding: '11px', background: (!form.title.trim() || saving) ? 'var(--bg-3)' : 'var(--green)', color: (!form.title.trim() || saving) ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: (!form.title.trim() || saving) ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>{saving ? 'A guardar…' : 'Guardar protocolo'}</button>
           </div>
         </Modal>
       )}
-    </div>
+    </Mesa>
   )
 }
 
@@ -346,8 +361,8 @@ function Modal({ title, onClose, children, wide }: { title: string; onClose: () 
     <div onMouseDown={e => { if (e.target === e.currentTarget) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: wide ? 620 : 520, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 36px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>{title}</h2>
-          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
+          <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, margin: 0 }}>{title}</h2>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-4)', lineHeight: 1 }}>×</button>
         </div>
         {children}
       </div>

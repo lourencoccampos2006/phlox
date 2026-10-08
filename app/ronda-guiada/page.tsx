@@ -20,16 +20,20 @@ import {
 } from '@/lib/ronda'
 import { registoEmCampos } from '@/lib/registoEmPalavras'
 import { ehParaHoje } from '@/lib/plano'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso as Caixa, CAIXA, MONO, ROTULO,
+} from '@/components/ui/mesa'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 interface Assignment { id: string; patient_id: string; assigned_to: string; assigned_name: string; status: 'pending' | 'done' | 'skipped'; attended_by?: string | null; attended_name?: string | null; outcome?: string | null }
 interface Member { user_id: string; name: string }
 interface Patient { id: string; name: string }
 
 const OUTCOMES = [
-  { id: 'estavel', label: 'Estável', color: '#16a34a', bg: '#f0fdf4' },
-  { id: 'vigiar', label: 'Vigiar', color: '#d97706', bg: '#fffbeb' },
-  { id: 'alerta', label: 'Alerta', color: '#dc2626', bg: '#fef2f2' },
+  { id: 'estavel', label: 'Estável', color: 'var(--green)', bg: 'var(--badge-green-bg)' },
+  { id: 'vigiar', label: 'Vigiar', color: 'var(--amber)', bg: 'var(--badge-amber-bg)' },
+  { id: 'alerta', label: 'Alerta', color: 'var(--red)', bg: 'var(--badge-red-bg)' },
 ]
 
 export default function RondaCoordenadaPage() {
@@ -286,59 +290,102 @@ export default function RondaCoordenadaPage() {
   function onTouchMove(e: React.TouchEvent) { if (touchStart.current != null) setSwipe(e.touches[0].clientX - touchStart.current) }
   function onTouchEnd() { const dx = swipe; touchStart.current = null; setSwipe(0); if (dx > 90 && current) attend(current) }
 
+  /* A MOLDURA DA RONDA — refeita (2026-10-07).
+     Tinha 80px de cabeçalho: uma migalha em mono e um título em serifa de
+     30px, por cima de uma barra lateral que já diz onde se está. Numa página
+     que se usa de pé, a parte de cima do ecrã é a que mais importa.
+
+     Ao contrário do resto da aplicação, a ronda NÃO fica densa: é uma pessoa
+     de cada vez, com alvos grandes. Ver a nota do /guardiao — o que se aplica
+     é a linguagem, não a densidade. */
   const shell = (children: React.ReactNode) => (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 620, margin: '0 auto', padding: '22px clamp(14px,3vw,24px) 50px' }}>
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Ronda</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,4vw,30px)', fontWeight: 400, color: '#0b1120', margin: '0 0 14px' }}>Ronda coordenada</h1>
-        {err && <div style={{ background: '#fef2f2', border: '1px solid #fecaca', color: '#991b1b', borderRadius: 10, padding: '10px 14px', fontSize: 13, marginBottom: 14 }}>{err}</div>}
-        {children}
-      </div>
-    </div>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Ronda</span>
+          {round && (
+            <>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {doneCount} DE {assignments.length} FEITOS
+              </span>
+              <span style={{
+                ...MONO, fontSize: 'var(--t-meta)',
+                color: mine.length ? 'var(--amber)' : 'var(--green)',
+                fontWeight: 'var(--peso-forte)' as any,
+              }}>{mine.length} NA MINHA FILA</span>
+              <div style={{ marginLeft: 'auto' }}>
+                <Botao feitio="calmo" onClick={() => setShowEndSummary(true)}>TERMINAR A RONDA</Botao>
+              </div>
+            </>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Quem atender fica com o registo</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Os avisos vêm das fichas, das feridas e da ronda anterior — nenhum é escrito aqui
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && <Caixa tom="mau">{err}</Caixa>}
+      {children}
+    </Mesa>
   )
 
-  if (loading) return shell(<div style={{ color: '#94a3b8', fontSize: 13 }}>A carregar…</div>)
-  if (needsSetup) { console.error('[phlox:ronda-guiada] rounds tables not set up'); return shell(<div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '12px 15px', fontSize: 13, color: '#92400e' }}>As rondas coordenadas ainda não estão disponíveis nesta conta. Fala connosco e ativamos.</div>) }
+  if (loading) return shell(<Painel><ACarregar oQue="A preparar a ronda…" /></Painel>)
+  if (needsSetup) {
+    console.error('[phlox:ronda-guiada] rounds tables not set up')
+    return shell(
+      <Painel>
+        <Vazio titulo="As rondas coordenadas ainda não estão disponíveis nesta conta."
+          oQueFazer="Fale connosco e ativamos. Entretanto, a ronda pode fazer-se pelo «O dia» e pelo registo do dia." />
+      </Painel>
+    )
+  }
 
   if (!round) return shell(
-    <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: 20 }}>
-      <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 6 }}>Quem faz a ronda?</div>
-      <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 14px' }}>Os {cfg.personNounPlural.toLowerCase()} dividem-se pelos escolhidos — cada um aparece a um só. Quem atender fica com o registo.</p>
+    <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 20 }}>
+      <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 6 }}>Quem faz a ronda?</div>
+      <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: '0 0 14px' }}>Os {cfg.personNounPlural.toLowerCase()} dividem-se pelos escolhidos — cada um aparece a um só. Quem atender fica com o registo.</p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
         {members.map(m => {
           const on = chosen.has(m.user_id)
           return (
             <button key={m.user_id} onClick={() => setChosen(prev => { const n = new Set(prev); n.has(m.user_id) ? n.delete(m.user_id) : n.add(m.user_id); return n })}
-              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 10, border: `1.5px solid ${on ? ACCENT : '#e2e8f0'}`, background: on ? '#f0fdf4' : 'white', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
-              <span style={{ width: 20, height: 20, borderRadius: 6, border: `2px solid ${on ? ACCENT : '#cbd5e1'}`, background: on ? ACCENT : 'white', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800 }}>{on ? '✓' : ''}</span>
-              <span style={{ fontSize: 14, fontWeight: 600, color: '#0b1120' }}>{m.name}{m.user_id === user?.id ? ' (eu)' : ''}</span>
+              style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', borderRadius: 'var(--r-lg)', border: `1.5px solid ${on ? ACCENT : 'var(--border)'}`, background: on ? 'var(--badge-green-bg)' : 'white', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
+              <span style={{ width: 20, height: 20, borderRadius: 'var(--r)', border: `2px solid ${on ? ACCENT : 'var(--border-2)'}`, background: on ? ACCENT : 'white', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>{on ? '✓' : ''}</span>
+              <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{m.name}{m.user_id === user?.id ? ' (eu)' : ''}</span>
             </button>
           )
         })}
       </div>
-      <button onClick={startRound} disabled={busy || chosen.size === 0} style={{ width: '100%', padding: 13, background: chosen.size ? ACCENT : '#e2e8f0', color: chosen.size ? 'white' : '#94a3b8', border: 'none', borderRadius: 10, fontSize: 14.5, fontWeight: 800, cursor: chosen.size ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>{busy ? 'A preparar…' : `Começar ronda (${chosen.size})`}</button>
+      <button onClick={startRound} disabled={busy || chosen.size === 0} style={{ width: '100%', padding: 13, background: chosen.size ? ACCENT : 'var(--border)', color: chosen.size ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: chosen.size ? 'pointer' : 'not-allowed', fontFamily: 'inherit' }}>{busy ? 'A preparar…' : `Começar ronda (${chosen.size})`}</button>
     </div>
   )
 
   const total = assignments.length
   return shell(
     <>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 10, flexWrap: 'wrap' }}>
-        <div style={{ fontSize: 13, color: '#475569' }}><b>{doneCount}</b>/{total} feitos · <b>{mine.length}</b> na minha fila</div>
-        <button onClick={() => setShowEndSummary(true)} style={{ fontSize: 12.5, fontWeight: 700, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer' }}>Terminar ronda</button>
-      </div>
-      <div style={{ height: 6, background: '#eceef0', borderRadius: 3, overflow: 'hidden', marginBottom: 14 }}><div style={{ height: '100%', width: `${total ? Math.round((doneCount / total) * 100) : 0}%`, background: ACCENT, borderRadius: 3, transition: 'width 0.3s' }} /></div>
+      {/* O contador subiu para a barra de trabalho, onde fica sempre à vista
+          em vez de desaparecer ao rolar. Aqui fica só a forma. */}
+      <div style={{ height: 6, background: 'var(--border)', borderRadius: 'var(--r-sm)', overflow: 'hidden', marginBottom: 14 }}><div style={{ height: '100%', width: `${total ? Math.round((doneCount / total) * 100) : 0}%`, background: ACCENT, borderRadius: 'var(--r-sm)', transition: 'width 0.3s' }} /></div>
 
       <div style={{ position: 'relative', marginBottom: 14 }}>
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Atender outro utente (pesquisar)…" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 13px', fontSize: 14, outline: 'none', background: 'white' }} />
+        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Atender outro utente (pesquisar)…" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 13px', fontSize: 'var(--t-corpo)', outline: 'none', background: 'white' }} />
         {searchHits.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4, background: 'white', border: '1px solid #e2e8f0', borderRadius: 10, boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, marginTop: 4, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', boxShadow: '0 8px 24px rgba(0,0,0,0.12)', overflow: 'hidden' }}>
             {searchHits.slice(0, 6).map(a => {
               const mineAlready = a.assigned_to === user?.id
               return (
-                <button key={a.id} onClick={() => { setSearch(''); attend(a) }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 13px', border: 'none', borderBottom: '1px solid #f1f5f9', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <span style={{ flex: 1, fontSize: 13.5, fontWeight: 600, color: '#0b1120' }}>{patients[a.patient_id]?.name || 'Utente'}</span>
-                  <span style={{ fontSize: 11, color: mineAlready ? '#16a34a' : '#d97706', fontWeight: 700 }}>{mineAlready ? 'minha' : `de ${a.assigned_name?.split(' ')[0] || 'colega'} → atender`}</span>
+                <button key={a.id} onClick={() => { setSearch(''); attend(a) }} style={{ display: 'flex', alignItems: 'center', gap: 10, width: '100%', textAlign: 'left', padding: '10px 13px', border: 'none', borderBottom: '1px solid var(--bg-3)', background: 'white', cursor: 'pointer', fontFamily: 'inherit' }}>
+                  <span style={{ flex: 1, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{patients[a.patient_id]?.name || 'Utente'}</span>
+                  <span style={{ fontSize: 'var(--t-meta)', color: mineAlready ? 'var(--green)' : 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>{mineAlready ? 'minha' : `de ${a.assigned_name?.split(' ')[0] || 'colega'} → atender`}</span>
                 </button>
               )
             })}
@@ -347,25 +394,25 @@ export default function RondaCoordenadaPage() {
       </div>
 
       {mine.length === 0 ? (
-        <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: 34, textAlign: 'center' }}>
-          <div style={{ fontSize: 34, marginBottom: 8 }}>✓</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120' }}>A tua fila está feita</div>
-          <div style={{ fontSize: 13, color: '#64748b', marginTop: 4 }}>{total - doneCount > 0 ? `Faltam ${total - doneCount} com colegas — podes pesquisar para ajudar.` : 'Ronda completa!'}</div>
+        <div style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 34, textAlign: 'center' }}>
+          <div style={{ fontSize: 'var(--t-numero)', marginBottom: 8 }}>✓</div>
+          <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>A tua fila está feita</div>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginTop: 4 }}>{total - doneCount > 0 ? `Faltam ${total - doneCount} com colegas — podes pesquisar para ajudar.` : 'Ronda completa!'}</div>
         </div>
       ) : (
         <>
           <div onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-            style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, overflow: 'hidden', transform: swipe ? `translateX(${swipe}px)` : undefined, transition: swipe ? 'none' : 'transform 0.25s', touchAction: 'pan-y' }}>
-            <div style={{ padding: '18px 20px', borderBottom: '1px solid #f1f5f9', background: '#f8fafc' }}>
+            style={{ background: 'var(--bg)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden', transform: swipe ? `translateX(${swipe}px)` : undefined, transition: swipe ? 'none' : 'transform 0.25s', touchAction: 'pan-y' }}>
+            <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--bg-3)', background: 'var(--bg-2)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120' }}>{curName}</div>
+                  <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{curName}</div>
                   {resumoDoQueFalta && (
-                    <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 2 }}>{resumoDoQueFalta}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>{resumoDoQueFalta}</div>
                   )}
                 </div>
-                <Link href={`/patients/${current.patient_id}`} style={{ fontSize: 12, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Ficha →</Link>
-                <Link href={`/care-log?patient=${current.patient_id}`} style={{ fontSize: 12, color: ACCENT, fontWeight: 700, textDecoration: 'none' }}>Registo do dia →</Link>
+                <Link href={`/patients/${current.patient_id}`} style={{ fontSize: 'var(--t-meta)', color: ACCENT, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>Ficha →</Link>
+                <Link href={`/care-log?patient=${current.patient_id}`} style={{ fontSize: 'var(--t-meta)', color: ACCENT, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>Registo do dia →</Link>
               </div>
             </div>
 
@@ -378,21 +425,21 @@ export default function RondaCoordenadaPage() {
                 Tudo isto ja estava guardado. Nenhum destes dados foi criado
                 agora — o que faltava era ir busca-los. */}
             {avisos.length > 0 && (
-              <div style={{ padding: '13px 20px', borderBottom: '1px solid #f1f5f9' }}>
+              <div style={{ padding: '13px 20px', borderBottom: '1px solid var(--bg-3)' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {avisosAMostrar.map(av => {
                     const c = CORES_AVISO[av.nivel]
                     return (
                       <div key={av.id} title={av.origem} style={{
                         display: 'flex', alignItems: 'flex-start', gap: 9,
-                        padding: '8px 11px', borderRadius: 9,
+                        padding: '8px 11px', borderRadius: 'var(--r-lg)',
                         background: c.fundo, border: `1px solid ${c.cor}33`,
                       }}>
                         <span style={{
-                          width: 6, height: 6, borderRadius: 3, background: c.cor,
+                          width: 6, height: 6, borderRadius: 'var(--r-sm)', background: c.cor,
                           marginTop: 6, flexShrink: 0,
                         }} />
-                        <span style={{ flex: 1, fontSize: 13, fontWeight: av.nivel === 'critico' ? 700 : 600, color: c.cor, lineHeight: 1.45 }}>
+                        <span style={{ flex: 1, fontSize: 'var(--t-dado)', fontWeight: av.nivel === 'critico' ? 700 : 600, color: c.cor, lineHeight: 1.45 }}>
                           {av.texto}
                         </span>
                       </div>
@@ -404,7 +451,7 @@ export default function RondaCoordenadaPage() {
                 {avisos.length > avisosAMostrar.length && (
                   <button onClick={() => setTodosOsAvisos(true)} style={{
                     marginTop: 7, background: 'none', border: 'none', padding: 0,
-                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: '#94a3b8',
+                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--t-meta)', color: 'var(--ink-5)',
                   }}>
                     mais {avisos.length - avisosAMostrar.length} — ver tudo
                   </button>
@@ -412,7 +459,7 @@ export default function RondaCoordenadaPage() {
                 {todosOsAvisos && avisos.length > 2 && (
                   <button onClick={() => setTodosOsAvisos(false)} style={{
                     marginTop: 7, background: 'none', border: 'none', padding: 0,
-                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 12, color: '#94a3b8',
+                    cursor: 'pointer', fontFamily: 'inherit', fontSize: 'var(--t-meta)', color: 'var(--ink-5)',
                   }}>mostrar menos</button>
                 )}
               </div>
@@ -424,9 +471,9 @@ export default function RondaCoordenadaPage() {
                 joelho» muda a ronda. Sem isto cada turno comeca do zero e a
                 queixa perde-se entre pessoas. */}
             {daAnterior && (
-              <div style={{ padding: '11px 20px', borderBottom: '1px solid #f1f5f9', background: '#fbfcfe' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Da ronda anterior</div>
-                <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.5 }}>{daAnterior}</div>
+              <div style={{ padding: '11px 20px', borderBottom: '1px solid var(--bg-3)', background: 'var(--bg-2)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Da ronda anterior</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.5 }}>{daAnterior}</div>
               </div>
             )}
 
@@ -435,12 +482,12 @@ export default function RondaCoordenadaPage() {
                 e o resumo a familia usam. Sem ele isto saia «[object
                 Object]», que era o bug que ele reportou. */}
             {camposDeHoje.length > 0 && (
-              <div style={{ padding: '11px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Já registado hoje</div>
+              <div style={{ padding: '11px 20px', borderBottom: '1px solid var(--bg-3)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Já registado hoje</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
                   {camposDeHoje.map(c => (
-                    <span key={c.rotulo} style={{ fontSize: 12.5, color: '#64748b' }}>
-                      <span style={{ color: '#94a3b8' }}>{c.rotulo}:</span> {c.valor}
+                    <span key={c.rotulo} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                      <span style={{ color: 'var(--ink-5)' }}>{c.rotulo}:</span> {c.valor}
                     </span>
                   ))}
                 </div>
@@ -449,20 +496,20 @@ export default function RondaCoordenadaPage() {
 
             {/* Medicação — dar a partir da ronda (escreve no /mar). */}
             {panel && panel.meds.length > 0 && (
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Medicação deste turno</div>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--bg-3)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Medicação deste turno</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {panel.meds.map((m: any) => {
                     const given = medGiven(m.id); const busyM = medBusy === m.id
                     return (
                       <button key={m.id} onClick={() => giveMed(m.id)} disabled={busyM}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 9, cursor: busyM ? 'wait' : 'pointer',
-                          border: `1.5px solid ${given ? '#bbf7d0' : '#e5e7eb'}`, background: given ? '#f0fdf4' : 'white', fontFamily: 'inherit' }}>
-                        <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800,
-                          border: `2px solid ${given ? '#16a34a' : '#cbd5e1'}`, background: given ? '#16a34a' : 'white', color: 'white' }}>{given ? '✓' : ''}</span>
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 'var(--r-lg)', cursor: busyM ? 'wait' : 'pointer',
+                          border: `1.5px solid ${given ? 'var(--badge-green-border)' : 'var(--border)'}`, background: given ? 'var(--badge-green-bg)' : 'white', fontFamily: 'inherit' }}>
+                        <span style={{ width: 20, height: 20, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+                          border: `2px solid ${given ? 'var(--green)' : 'var(--border-2)'}`, background: given ? 'var(--green)' : 'white', color: 'white' }}>{given ? '✓' : ''}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}><Icon name="pill" size={14} color="#0d9488" /> {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
-                          <span style={{ display: 'block', fontSize: 11, color: given ? '#16a34a' : '#94a3b8' }}>{busyM ? 'A guardar…' : given ? 'Dada — toque para desmarcar' : (m.frequency || 'Toque para dar')}</span>
+                          <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}><Icon name="pill" size={14} color="var(--green)" /> {m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
+                          <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: given ? 'var(--green)' : 'var(--ink-5)' }}>{busyM ? 'A guardar…' : given ? 'Dada — toque para desmarcar' : (m.frequency || 'Toque para dar')}</span>
                         </span>
                       </button>
                     )
@@ -475,18 +522,18 @@ export default function RondaCoordenadaPage() {
                 tarefas recorrentes (banho, higiene, mobilização) direto na ronda,
                 sem ter de abrir outra ferramenta para riscar o que já se fez. */}
             {panel && panel.tasks.length > 0 && (
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Cuidados de hoje</div>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--bg-3)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Cuidados de hoje</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {panel.tasks.map((t: any) => {
                     const done = taskDone(t.id); const busyT = taskBusy === t.id
                     return (
                       <button key={t.id} onClick={() => toggleTask(t.id)} disabled={busyT}
-                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 9, cursor: busyT ? 'wait' : 'pointer',
-                          border: `1.5px solid ${done ? '#bbf7d0' : '#e5e7eb'}`, background: done ? '#f0fdf4' : 'white', fontFamily: 'inherit' }}>
-                        <span style={{ width: 20, height: 20, borderRadius: 6, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800,
-                          border: `2px solid ${done ? '#16a34a' : '#cbd5e1'}`, background: done ? '#16a34a' : 'white', color: 'white' }}>{done ? '✓' : ''}</span>
-                        <span style={{ flex: 1, minWidth: 0, fontSize: 13.5, fontWeight: 600, color: '#0b1120', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>{t.title}</span>
+                        style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '9px 11px', borderRadius: 'var(--r-lg)', cursor: busyT ? 'wait' : 'pointer',
+                          border: `1.5px solid ${done ? 'var(--badge-green-border)' : 'var(--border)'}`, background: done ? 'var(--badge-green-bg)' : 'white', fontFamily: 'inherit' }}>
+                        <span style={{ width: 20, height: 20, borderRadius: 'var(--r)', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+                          border: `2px solid ${done ? 'var(--green)' : 'var(--border-2)'}`, background: done ? 'var(--green)' : 'white', color: 'white' }}>{done ? '✓' : ''}</span>
+                        <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>{t.title}</span>
                       </button>
                     )
                   })}
@@ -500,8 +547,8 @@ export default function RondaCoordenadaPage() {
                 Aqui aparece a parte, com o motivo e quantas ja levou hoje —
                 porque a pergunta na ronda e sempre «ja lhe deram alguma?». */}
             {panel && panel.sos.length > 0 && (
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Se for preciso (SOS)</div>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--bg-3)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Se for preciso (SOS)</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {panel.sos.map((m: any) => {
                     const dadas = sosHoje(m.id)
@@ -509,15 +556,15 @@ export default function RondaCoordenadaPage() {
                     return (
                       <div key={m.id} style={{
                         display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '9px 11px', borderRadius: 9,
-                        border: '1.5px solid #e5e7eb', background: '#fcfdfe',
+                        padding: '9px 11px', borderRadius: 'var(--r-lg)',
+                        border: '1.5px solid var(--border)', background: 'var(--bg-2)',
                       }}>
                         <span style={{ flex: 1, minWidth: 0 }}>
-                          <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>
+                          <span style={{ display: 'block', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
                             {m.name}{m.dose ? ` · ${m.dose}` : ''}
                           </span>
                           {m.sos_para && (
-                            <span style={{ display: 'block', fontSize: 11.5, color: '#94a3b8' }}>
+                            <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                               para {m.sos_para}
                             </span>
                           )}
@@ -526,13 +573,13 @@ export default function RondaCoordenadaPage() {
                             uma dose a mais e quem esta ali, e um ecra que
                             recusa fa-los dar na mesma e nao registar. */}
                         <span style={{
-                          fontFamily: 'var(--font-mono)', fontSize: 11, lineHeight: 1.1,
-                          color: tecto && dadas >= tecto ? '#d97706' : '#94a3b8',
+                          fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', lineHeight: 1.1,
+                          color: tecto && dadas >= tecto ? 'var(--amber)' : 'var(--ink-5)',
                         }}>
                           {dadas > 0 ? `${dadas} hoje` : 'nenhuma hoje'}{tecto ? ` · máx ${tecto}` : ''}
                         </span>
                         <Link href={`/patients/${current.patient_id}?aba=hoje`} style={{
-                          fontSize: 11.5, color: ACCENT, fontWeight: 700, textDecoration: 'none',
+                          fontSize: 'var(--t-meta)', color: ACCENT, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none',
                           whiteSpace: 'nowrap',
                         }}>Dar →</Link>
                       </div>
@@ -548,34 +595,34 @@ export default function RondaCoordenadaPage() {
                 por conta propria, a mesma acao aparecia num sitio e nao no
                 outro, e a equipa deixava de confiar nos dois. */}
             {acoesDeHoje.length > 0 && (
-              <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Do plano, para hoje</div>
+              <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--bg-3)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Do plano, para hoje</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {acoesDeHoje.map((a: any) => {
                     const feita = acaoFeita(a.id)
                     return (
                       <div key={a.id} style={{
                         display: 'flex', alignItems: 'center', gap: 9,
-                        fontSize: 13, color: feita ? '#94a3b8' : '#334155',
+                        fontSize: 'var(--t-dado)', color: feita ? 'var(--ink-5)' : 'var(--ink-3)',
                         textDecoration: feita ? 'line-through' : 'none',
                       }}>
                         <span style={{
-                          width: 15, height: 15, borderRadius: 5, flexShrink: 0,
-                          display: 'grid', placeItems: 'center', fontSize: 10, color: 'white',
-                          border: `1.5px solid ${feita ? '#16a34a' : '#cbd5e1'}`,
-                          background: feita ? '#16a34a' : 'white',
+                          width: 15, height: 15, borderRadius: 'var(--r)', flexShrink: 0,
+                          display: 'grid', placeItems: 'center', fontSize: 'var(--t-micro)', color: 'white',
+                          border: `1.5px solid ${feita ? 'var(--green)' : 'var(--border-2)'}`,
+                          background: feita ? 'var(--green)' : 'white',
                         }}>{feita ? '✓' : ''}</span>
                         <span style={{ flex: 1, minWidth: 0 }}>{a.o_que}</span>
                         {a.quem && (
-                          <span style={{ fontSize: 11, color: '#cbd5e1' }}>{a.quem}</span>
+                          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--border-2)' }}>{a.quem}</span>
                         )}
                       </div>
                     )
                   })}
                 </div>
                 <Link href={`/patients/${current.patient_id}?aba=plano`} style={{
-                  display: 'inline-block', marginTop: 8, fontSize: 11.5,
-                  color: ACCENT, fontWeight: 700, textDecoration: 'none',
+                  display: 'inline-block', marginTop: 8, fontSize: 'var(--t-meta)',
+                  color: ACCENT, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none',
                 }}>Abrir o plano →</Link>
               </div>
             )}
@@ -584,15 +631,15 @@ export default function RondaCoordenadaPage() {
                 Fechado por omissao: a maior parte das rondas nao mede nada, e
                 seis caixas sempre abertas fazem o painel parecer um
                 formulario. Abre-se com um toque. */}
-            <div style={{ padding: '14px 20px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ padding: '14px 20px', borderBottom: '1px solid var(--bg-3)' }}>
               {!aMedir ? (
                 <button onClick={() => setAMedir(true)} style={{
                   background: 'none', border: 'none', padding: 0, cursor: 'pointer',
-                  fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: ACCENT,
+                  fontFamily: 'inherit', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: ACCENT,
                 }}>+ Medir sinais vitais</button>
               ) : (
                 <>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Sinais vitais</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Sinais vitais</div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 9 }}>
                     {CAMPOS_VITAIS.map(c => {
                       const cru = vitais[c.id] || ''
@@ -601,7 +648,7 @@ export default function RondaCoordenadaPage() {
                       const impossivel = !!cru && (!Number.isFinite(n) || n < c.min || n > c.max)
                       return (
                         <div key={c.id}>
-                          <label style={{ display: 'block', fontSize: 10.5, color: '#94a3b8', marginBottom: 3 }}>
+                          <label style={{ display: 'block', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginBottom: 3 }}>
                             {c.rotulo}
                           </label>
                           <input value={cru} inputMode="decimal"
@@ -609,19 +656,19 @@ export default function RondaCoordenadaPage() {
                             placeholder={c.unidade}
                             style={{
                               width: '100%', boxSizing: 'border-box', padding: '8px 9px',
-                              borderRadius: 8, fontSize: 14, fontFamily: 'var(--font-mono)',
-                              border: `1.5px solid ${impossivel ? '#dc2626' : aviso ? '#d97706' : '#e2e8f0'}`,
-                              background: impossivel ? '#fef2f2' : 'white',
+                              borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontFamily: 'var(--font-mono)',
+                              border: `1.5px solid ${impossivel ? 'var(--red)' : aviso ? 'var(--amber)' : 'var(--border)'}`,
+                              background: impossivel ? 'var(--badge-red-bg)' : 'white',
                             }} />
                           {/* Um valor impossivel avisa ANTES de se gravar. Um
                               engano de dedo (1200 em vez de 120) gravado fica
                               na ficha para sempre e ninguem sabe de onde veio. */}
                           {impossivel ? (
-                            <span style={{ display: 'block', fontSize: 10, color: '#dc2626', marginTop: 2 }}>
+                            <span style={{ display: 'block', fontSize: 'var(--t-micro)', color: 'var(--red)', marginTop: 2 }}>
                               fora do possível — não vai ser guardado
                             </span>
                           ) : aviso ? (
-                            <span style={{ display: 'block', fontSize: 10, color: '#d97706', marginTop: 2 }}>
+                            <span style={{ display: 'block', fontSize: 'var(--t-micro)', color: 'var(--amber)', marginTop: 2 }}>
                               {aviso}
                             </span>
                           ) : null}
@@ -634,20 +681,20 @@ export default function RondaCoordenadaPage() {
             </div>
 
             <div style={{ padding: 20 }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Como está</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 9 }}>Como está</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 14 }}>
                 {OUTCOMES.map(o => (
-                  <button key={o.id} onClick={() => setOutcome(outcome === o.id ? null : o.id)} style={{ padding: '13px 8px', borderRadius: 12, cursor: 'pointer', fontFamily: 'inherit', border: `2px solid ${outcome === o.id ? o.color : '#e2e8f0'}`, background: outcome === o.id ? o.bg : 'white', color: outcome === o.id ? o.color : '#475569', fontSize: 14, fontWeight: outcome === o.id ? 700 : 600 }}>{o.label}</button>
+                  <button key={o.id} onClick={() => setOutcome(outcome === o.id ? null : o.id)} style={{ padding: '13px 8px', borderRadius: 'var(--r-xl)', cursor: 'pointer', fontFamily: 'inherit', border: `2px solid ${outcome === o.id ? o.color : 'var(--border)'}`, background: outcome === o.id ? o.bg : 'white', color: outcome === o.id ? o.color : 'var(--ink-3)', fontSize: 'var(--t-corpo)', fontWeight: outcome === o.id ? 700 : 600 }}>{o.label}</button>
                 ))}
               </div>
-              <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Nota rápida (opcional)…" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '11px 13px', fontSize: 14, fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
+              <textarea value={note} onChange={e => setNote(e.target.value)} rows={2} placeholder="Nota rápida (opcional)…" style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 13px', fontSize: 'var(--t-corpo)', fontFamily: 'inherit', outline: 'none', resize: 'vertical' }} />
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
-            <button onClick={() => { setOutcome(null); setNote('') }} style={{ flex: 1, padding: 14, background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', color: '#64748b' }}>Limpar</button>
-            <button onClick={() => current && attend(current)} disabled={busy} style={{ flex: 2, padding: 14, background: ACCENT, color: 'white', border: 'none', borderRadius: 12, fontSize: 14, fontWeight: 700, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{busy ? 'A guardar…' : 'Registar e seguinte →'}</button>
+            <button onClick={() => { setOutcome(null); setNote('') }} style={{ flex: 1, padding: 14, background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--ink-4)' }}>Limpar</button>
+            <button onClick={() => current && attend(current)} disabled={busy} style={{ flex: 2, padding: 14, background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-xl)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: busy ? 'wait' : 'pointer', fontFamily: 'inherit' }}>{busy ? 'A guardar…' : 'Registar e seguinte →'}</button>
           </div>
-          <div style={{ textAlign: 'center', marginTop: 10, fontSize: 11.5, color: '#94a3b8' }}>Arraste o cartão → para registar</div>
+          <div style={{ textAlign: 'center', marginTop: 10, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>Arraste o cartão → para registar</div>
         </>
       )}
 
@@ -659,24 +706,24 @@ export default function RondaCoordenadaPage() {
         const pending = total - doneCount
         return (
           <div onClick={e => { if (e.target === e.currentTarget) setShowEndSummary(false) }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-            <div style={{ background: 'white', borderRadius: 16, padding: 24, width: '100%', maxWidth: 420 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: '#0b1120', marginBottom: 4 }}>Resumo do turno</div>
-              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 16px' }}>Confirma antes de terminar a ronda.</p>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 420 }}>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Resumo do turno</div>
+              <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: '0 0 16px' }}>Confirma antes de terminar a ronda.</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 18 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: '#64748b' }}>Atendidos</span><b>{doneCount}/{total}</b></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--t-dado)' }}><span style={{ color: 'var(--ink-4)' }}>Atendidos</span><b>{doneCount}/{total}</b></div>
                 {OUTCOMES.map(o => byOutcome[o.id] ? (
-                  <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: o.color, fontWeight: 700 }}>{o.label}</span><b>{byOutcome[o.id]}</b></div>
+                  <div key={o.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--t-dado)' }}><span style={{ color: o.color, fontWeight: 'var(--peso-forte)' as any }}>{o.label}</span><b>{byOutcome[o.id]}</b></div>
                 ) : null)}
-                {pending > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13.5 }}><span style={{ color: '#b45309' }}>Por atender</span><b>{pending}</b></div>}
+                {pending > 0 && <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--t-dado)' }}><span style={{ color: 'var(--amber)' }}>Por atender</span><b>{pending}</b></div>}
               </div>
               {alertCount > 0 && (
-                <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '10px 13px', fontSize: 12.5, color: '#991b1b', marginBottom: 16 }}>
+                <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: '10px 13px', fontSize: 'var(--t-meta)', color: 'var(--red)', marginBottom: 16 }}>
                   {alertCount} {alertCount === 1 ? 'utente marcado' : 'utentes marcados'} como "Alerta" — confirma que o turno seguinte sabe.
                 </div>
               )}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={() => setShowEndSummary(false)} style={{ flex: 1, padding: 12, background: 'white', border: '1.5px solid #e2e8f0', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', color: '#64748b' }}>Continuar ronda</button>
-                <button onClick={confirmEndRound} style={{ flex: 1, padding: 12, background: '#dc2626', color: 'white', border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Terminar</button>
+                <button onClick={() => setShowEndSummary(false)} style={{ flex: 1, padding: 12, background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'inherit', color: 'var(--ink-4)' }}>Continuar ronda</button>
+                <button onClick={confirmEndRound} style={{ flex: 1, padding: 12, background: 'var(--red)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'inherit' }}>Terminar</button>
               </div>
             </div>
           </div>

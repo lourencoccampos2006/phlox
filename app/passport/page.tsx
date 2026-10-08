@@ -13,6 +13,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Med { id: string; name: string; dose: string | null; frequency: string | null; indication: string | null; started_at: string | null }
 interface EmergencyCard { name: string; allergies: string; blood_type: string; emergency_contact: string; token: string; active?: boolean }
@@ -229,21 +233,41 @@ export default function PassportPage() {
   const secsLeft = session ? Math.max(0, Math.floor((new Date(session.expires_at).getTime() - now) / 1000) % 60) : 0
   const shareExpired = session && new Date(session.expires_at).getTime() < now
 
-  const panel: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
+  const panel: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px' }
   const today = new Date().toLocaleDateString(lang === 'PT' ? 'pt-PT' : 'en-GB', { day: '2-digit', month: 'long', year: 'numeric' })
 
   if (!user) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Passaporte de saúde</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div className="page-container page-body" style={{ textAlign: 'center', paddingTop: 60 }}>
-        <div style={{ fontSize: 36, marginBottom: 16 }}>🪪</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Passaporte de Saúde</div>
-        <div style={{ fontSize: 14, color: 'var(--ink-4)', marginBottom: 24 }}>Inicia sessão para criar o teu passaporte de saúde personalizado.</div>
+        <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 8 }}>Passaporte de Saúde</div>
+        <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', marginBottom: 24 }}>Inicia sessão para criar o teu passaporte de saúde personalizado.</div>
       </div>
-    </div>
+    </Mesa>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Passaporte</span>
+        </BarraDeTrabalho>
+      }
+    >
 
       {/* Controls — hidden on print */}
       <div className="no-print">
@@ -251,8 +275,8 @@ export default function PassportPage() {
           <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
               <div>
-                <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Passaporte de Saúde</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)' }}>O teu documento de saúde completo</div>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Passaporte de Saúde</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)' }}>O teu documento de saúde completo</div>
               </div>
               <ProfileSelector onChange={(p) => setActiveProfile(p)} />
             </div>
@@ -260,11 +284,11 @@ export default function PassportPage() {
             {/* Separadores */}
             <div style={{ display: 'flex', gap: 6, marginTop: 16 }}>
               {([
-                { k: 'doc', label: '🪪 Documento' },
-                { k: 'share', label: '📲 Partilha temporária' },
+                { k: 'doc', label: 'Documento' },
+                { k: 'share', label: 'Partilha temporária' },
               ] as const).map(x => (
                 <button key={x.k} onClick={() => setTab(x.k)}
-                  style={{ padding: '9px 16px', borderRadius: 8, border: `1.5px solid ${tab === x.k ? 'var(--green)' : 'var(--border)'}`, background: tab === x.k ? 'var(--green)' : 'white', color: tab === x.k ? 'white' : 'var(--ink-3)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  style={{ padding: '9px 16px', borderRadius: 'var(--r-md)', border: `1.5px solid ${tab === x.k ? 'var(--green)' : 'var(--border)'}`, background: tab === x.k ? 'var(--green)' : 'white', color: tab === x.k ? 'white' : 'var(--ink-3)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   {x.label}
                 </button>
               ))}
@@ -273,40 +297,40 @@ export default function PassportPage() {
             {tab === 'doc' && (
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginTop: 14 }}>
                 <button onClick={() => setLang(l => l === 'PT' ? 'EN' : 'PT')}
-                  style={{ padding: '9px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                  style={{ padding: '9px 14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)' }}>
                   {lang === 'PT' ? '🇬🇧 EN' : '🇵🇹 PT'}
                 </button>
                 <button onClick={() => setEditing(true)}
-                  style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                  style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)' }}>
                   ✏️ {t.edit}
                 </button>
                 {emergencyUrl && (
                   <button onClick={() => navigator.clipboard?.writeText(emergencyUrl)}
-                    style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                    style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)' }}>
                     🔗 {t.share}
                   </button>
                 )}
                 {emergencyQrUrl && (
                   <a href={emergencyQrUrl} download="phlox-emergency-qr.png"
-                    style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none' }}>
+                    style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)', textDecoration: 'none' }}>
                     ↓ QR
                   </a>
                 )}
                 <button onClick={savePassportToVault}
-                  style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                  style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)' }}>
                   🔒 Cofre
                 </button>
                 <button onClick={() => { document.body.classList.add('passport-pocket'); window.print(); document.body.classList.remove('passport-pocket') }}
-                  style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)' }}>
+                  style={{ padding: '9px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)' }}>
                   👛 Versão bolso
                 </button>
                 <button onClick={() => window.print()}
-                  style={{ padding: '9px 18px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
+                  style={{ padding: '9px 18px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>
                   🖨️ {t.print}
                 </button>
                 {card && card.active !== false && (
                   <button onClick={deactivateCard} disabled={deactivating}
-                    style={{ padding: '9px 14px', background: 'none', border: 'none', color: '#94a3b8', fontSize: 12.5, cursor: 'pointer' }}>
+                    style={{ padding: '9px 14px', background: 'none', border: 'none', color: 'var(--ink-5)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>
                     {deactivating ? 'A desativar…' : 'Desativar cartão'}
                   </button>
                 )}
@@ -320,79 +344,79 @@ export default function PassportPage() {
       <div className="page-container page-body" style={{ maxWidth: 720 }}>
         {loading ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 10 }} />)}
+            {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--r-lg)' }} />)}
           </div>
         ) : (
 
         /* ─── PASSPORT CARD ─── */
-        <div className="passport-card" style={{ background: 'white', border: '2px solid var(--border)', borderRadius: 16, overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
+        <div className="passport-card" style={{ background: 'white', border: '2px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', boxShadow: '0 4px 24px rgba(0,0,0,0.06)' }}>
 
-          <div style={{ background: '#0f172a', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ background: 'var(--ink)', padding: '20px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Phlox · {t.title}</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'white', fontWeight: 400 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Phlox · {t.title}</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'white', fontWeight: 'var(--peso-normal)' as any }}>
                 {form.name || '—'}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>🪪</div>
+              <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,0.1)', border: '2px solid rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-numero)' }}>🪪</div>
             </div>
           </div>
 
           <div className="passport-critical-row" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', borderBottom: '1px solid var(--border)' }}>
-            <div style={{ padding: '14px 18px', borderRight: '1px solid var(--border)', background: form.blood_type ? '#eff6ff' : 'var(--bg-2)' }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{t.blood}</div>
-              <div style={{ fontSize: 20, fontWeight: 700, color: form.blood_type ? '#1d4ed8' : 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
+            <div style={{ padding: '14px 18px', borderRight: '1px solid var(--border)', background: form.blood_type ? 'var(--bg-2)' : 'var(--bg-2)' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{t.blood}</div>
+              <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: form.blood_type ? 'var(--ink-2)' : 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
                 {form.blood_type || '—'}
               </div>
             </div>
-            <div style={{ padding: '14px 18px', borderRight: '1px solid var(--border)', background: form.allergies ? '#fee2e2' : 'var(--bg-2)' }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{t.allergies}</div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: form.allergies ? '#991b1b' : 'var(--ink-5)', lineHeight: 1.4 }}>
+            <div style={{ padding: '14px 18px', borderRight: '1px solid var(--border)', background: form.allergies ? 'var(--badge-red-bg)' : 'var(--bg-2)' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{t.allergies}</div>
+              <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: form.allergies ? 'var(--red)' : 'var(--ink-5)', lineHeight: 1.4 }}>
                 {form.allergies || t.no_allergies}
               </div>
             </div>
             <div style={{ padding: '14px 18px', background: 'var(--bg-2)' }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{t.emergency}</div>
-              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>{t.emergency}</div>
+              <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', lineHeight: 1.4 }}>
                 {form.emergency_contact || '—'}
               </div>
             </div>
           </div>
 
           {form.conditions && (
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', background: '#fffbeb' }}>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{t.conditions}</div>
-              <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.55 }}>{form.conditions}</div>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', background: 'var(--badge-amber-bg)' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>{t.conditions}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', lineHeight: 1.55 }}>{form.conditions}</div>
             </div>
           )}
 
           <div style={{ padding: '18px 18px 0' }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>
               {t.medications} ({meds.length})
             </div>
             {meds.length === 0 ? (
-              <div style={{ fontSize: 13, color: 'var(--ink-5)', fontStyle: 'italic', padding: '12px 0' }}>{t.no_meds}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', fontStyle: 'italic', padding: '12px 0' }}>{t.no_meds}</div>
             ) : (
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--t-meta)' }}>
                 <thead>
                   <tr style={{ borderBottom: '2px solid var(--border)' }}>
-                    <th style={{ textAlign: 'left', padding: '6px 0', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>Medicamento</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>{t.dose}</th>
-                    <th style={{ textAlign: 'left', padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700 }}>{t.freq}</th>
-                    <th style={{ textAlign: 'left', padding: '6px 0', fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 700, display: 'table-cell' }} className="passport-since">{t.since}</th>
+                    <th style={{ textAlign: 'left', padding: '6px 0', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any }}>Medicamento</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any }}>{t.dose}</th>
+                    <th style={{ textAlign: 'left', padding: '6px 8px', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any }}>{t.freq}</th>
+                    <th style={{ textAlign: 'left', padding: '6px 0', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', letterSpacing: '0.1em', textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any, display: 'table-cell' }} className="passport-since">{t.since}</th>
                   </tr>
                 </thead>
                 <tbody>
                   {meds.map((m, i) => (
                     <tr key={m.id} style={{ borderBottom: i < meds.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
-                      <td style={{ padding: '9px 0', fontWeight: 700, color: 'var(--ink)' }}>
+                      <td style={{ padding: '9px 0', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
                         {m.name}
-                        {m.indication && <div style={{ fontSize: 10, color: 'var(--ink-5)', fontWeight: 400, fontStyle: 'italic', marginTop: 1 }}>{m.indication}</div>}
+                        {m.indication && <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontWeight: 'var(--peso-normal)' as any, fontStyle: 'italic', marginTop: 1 }}>{m.indication}</div>}
                       </td>
                       <td style={{ padding: '9px 8px', color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>{m.dose || '—'}</td>
-                      <td style={{ padding: '9px 8px', color: 'var(--ink-3)', fontSize: 11 }}>{m.frequency || '—'}</td>
-                      <td style={{ padding: '9px 0', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', fontSize: 10 }} className="passport-since">
+                      <td style={{ padding: '9px 8px', color: 'var(--ink-3)', fontSize: 'var(--t-meta)' }}>{m.frequency || '—'}</td>
+                      <td style={{ padding: '9px 0', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)' }} className="passport-since">
                         {m.started_at ? new Date(m.started_at).toLocaleDateString(lang === 'PT' ? 'pt-PT' : 'en-GB') : '—'}
                       </td>
                     </tr>
@@ -408,13 +432,13 @@ export default function PassportPage() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={emergencyQrUrl}
                   alt="QR de emergência" className="passport-qr"
-                  style={{ width: 160, height: 160, borderRadius: 8, border: '3px solid white', background: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }} />
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', marginTop: 8, lineHeight: 1.45, fontWeight: 600 }}>{t.scan}</div>
+                  style={{ width: 160, height: 160, borderRadius: 'var(--r-md)', border: '3px solid white', background: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.08)' }} />
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', marginTop: 8, lineHeight: 1.45, fontWeight: 'var(--peso-corpo)' as any }}>{t.scan}</div>
               </div>
             )}
             <div style={{ textAlign: 'center', borderTop: emergencyUrl ? '1px solid var(--border)' : 'none', paddingTop: emergencyUrl ? 10 : 0 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>{t.generated} {today} · {t.via}</div>
-              {emergencyUrl && <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', marginTop: 3, wordBreak: 'break-all' }}>{emergencyUrl}</div>}
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)' }}>{t.generated} {today} · {t.via}</div>
+              {emergencyUrl && <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', marginTop: 3, wordBreak: 'break-all' }}>{emergencyUrl}</div>}
             </div>
           </div>
         </div>
@@ -423,24 +447,24 @@ export default function PassportPage() {
       ) : (
       /* ─── PARTILHA TEMPORÁRIA (era /health-pass) ─── */
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
-        {shareErr && <div style={{ ...panel, marginBottom: 14, background: '#fffbeb', borderColor: '#fde68a', color: '#92400e', fontSize: 13 }}>{shareErr}</div>}
+        {shareErr && <div style={{ ...panel, marginBottom: 14, background: 'var(--badge-amber-bg)', borderColor: 'var(--badge-amber-border)', color: 'var(--amber)', fontSize: 'var(--t-dado)' }}>{shareErr}</div>}
 
-        <p style={{ fontSize: 13.5, color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.6 }}>
+        <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 16, lineHeight: 1.6 }}>
           Gera um QR + PIN temporário para mostrar a um profissional — sem precisar de conta do lado dele. Escolhe o que partilhar e por quanto tempo.
         </p>
 
         {returns.length > 0 && (
-          <div style={{ ...panel, marginBottom: 14, borderColor: '#bfdbfe', background: '#eff6ff' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8', marginBottom: 10 }}>📥 O profissional enviou-te {returns.length} item(s)</div>
+          <div style={{ ...panel, marginBottom: 14, borderColor: 'var(--border)', background: 'var(--bg-2)' }}>
+            <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', marginBottom: 10 }}>O profissional enviou-te {returns.length} item(s)</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {returns.map(r => (
-                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, background: 'white', border: '1px solid #bfdbfe', borderRadius: 9, padding: '9px 12px' }}>
-                  <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-                    <strong>{r.kind === 'medication' ? '💊 Medicação' : r.kind === 'appointment' ? '📅 Consulta' : '📝 Nota'}</strong>
+                <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px' }}>
+                  <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)' }}>
+                    <strong>{r.kind === 'medication' ? 'Medicação' : r.kind === 'appointment' ? 'Consulta' : 'Nota'}</strong>
                     {r.from_professional ? ` · ${r.from_professional}` : ''}
-                    <div style={{ fontSize: 12.5, color: 'var(--ink-3)', marginTop: 2 }}>{r.payload?.text || r.payload?.name || JSON.stringify(r.payload)}</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 2 }}>{r.payload?.text || r.payload?.name || JSON.stringify(r.payload)}</div>
                   </div>
-                  <button onClick={() => dismissReturn(r.id)} style={{ flexShrink: 0, fontSize: 12, color: '#64748b', background: 'none', border: 'none', cursor: 'pointer' }}>Arquivar</button>
+                  <button onClick={() => dismissReturn(r.id)} style={{ flexShrink: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-4)', background: 'none', border: 'none', cursor: 'pointer' }}>Arquivar</button>
                 </div>
               ))}
             </div>
@@ -449,57 +473,57 @@ export default function PassportPage() {
 
         {session && !shareExpired ? (
           <div style={{ ...panel, textAlign: 'center', marginBottom: 14 }}>
-            <div style={{ display: 'inline-block', background: 'white', padding: 10, borderRadius: 12, border: '1px solid var(--border)' }}>
+            <div style={{ display: 'inline-block', background: 'white', padding: 10, borderRadius: 'var(--r-xl)', border: '1px solid var(--border)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(shareUrl)}`} alt="QR" style={{ width: 200, height: 200, display: 'block' }} />
             </div>
-            <div style={{ marginTop: 14, fontSize: 12, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700 }}>Código para o profissional</div>
-            <div style={{ fontSize: 40, fontWeight: 800, color: '#0f172a', letterSpacing: '0.15em', fontFamily: 'var(--font-mono)' }}>{session.pin}</div>
-            <div style={{ fontSize: 13, color: minsLeft <= 2 ? '#dc2626' : 'var(--ink-4)', marginTop: 4 }}>Expira em {minsLeft}:{String(secsLeft).padStart(2, '0')}</div>
+            <div style={{ marginTop: 14, fontSize: 'var(--t-meta)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 'var(--peso-forte)' as any }}>Código para o profissional</div>
+            <div style={{ ...MONO, fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '0.15em', fontFamily: 'var(--font-mono)' }}>{session.pin}</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: minsLeft <= 2 ? 'var(--red)' : 'var(--ink-4)', marginTop: 4 }}>Expira em {minsLeft}:{String(secsLeft).padStart(2, '0')}</div>
             <div style={{ display: 'flex', gap: 8, justifyContent: 'center', marginTop: 16, flexWrap: 'wrap' }}>
-              <button onClick={() => navigator.clipboard?.writeText(shareUrl)} style={{ padding: '9px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: 'var(--ink-2)' }}>Copiar link</button>
-              <button onClick={revokeShare} style={{ padding: '9px 16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: '#dc2626' }}>Terminar partilha</button>
+              <button onClick={() => navigator.clipboard?.writeText(shareUrl)} style={{ padding: '9px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', color: 'var(--ink-2)' }}>Copiar link</button>
+              <button onClick={revokeShare} style={{ padding: '9px 16px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--red)' }}>Terminar partilha</button>
             </div>
-            <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 12 }}>A partilhar: {session.sections.map(s => SHARE_SECTIONS.find(x => x.k === s)?.label || s).join(' · ')}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 12 }}>A partilhar: {session.sections.map(s => SHARE_SECTIONS.find(x => x.k === s)?.label || s).join(' · ')}</div>
           </div>
         ) : (
           <div style={{ ...panel, marginBottom: 14 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>O que queres partilhar?</div>
-            <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 12 }}>Alergias e medicação vão sempre. Escolhe o resto.</div>
+            <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>O que queres partilhar?</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 12 }}>Alergias e medicação vão sempre. Escolhe o resto.</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
               {SHARE_SECTIONS.map(s => {
                 const on = s.always || chosen.includes(s.k)
                 return (
                   <button key={s.k} onClick={() => !s.always && toggleSection(s.k)} disabled={s.always}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${on ? '#0d6e42' : 'var(--border)'}`, background: on ? '#eef6f1' : 'white', cursor: s.always ? 'default' : 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)' }}>
-                    <span style={{ width: 18, height: 18, borderRadius: 5, background: on ? '#0d6e42' : 'white', border: `1.5px solid ${on ? '#0d6e42' : 'var(--border)'}`, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }}>{on ? '✓' : ''}</span>
-                    <span style={{ fontSize: 14, color: 'var(--ink)', fontWeight: on ? 600 : 400 }}>{s.label}</span>
-                    {s.always && <span style={{ marginLeft: 'auto', fontSize: 10, color: 'var(--ink-5)', textTransform: 'uppercase' }}>sempre</span>}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 'var(--r-lg)', border: `1.5px solid ${on ? 'var(--green)' : 'var(--border)'}`, background: on ? 'var(--green-light)' : 'white', cursor: s.always ? 'default' : 'pointer', textAlign: 'left', fontFamily: 'var(--font-sans)' }}>
+                    <span style={{ width: 18, height: 18, borderRadius: 'var(--r)', background: on ? 'var(--green)' : 'white', border: `1.5px solid ${on ? 'var(--green)' : 'var(--border)'}`, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', flexShrink: 0 }}>{on ? '✓' : ''}</span>
+                    <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', fontWeight: on ? 600 : 400 }}>{s.label}</span>
+                    {s.always && <span style={{ marginLeft: 'auto', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', textTransform: 'uppercase' }}>sempre</span>}
                   </button>
                 )
               })}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-              <span style={{ fontSize: 13, color: 'var(--ink-4)' }}>Expira em</span>
-              {[15, 30, 60].map(m => <button key={m} onClick={() => setMinutes(m)} style={{ padding: '6px 12px', borderRadius: 7, border: `1.5px solid ${minutes === m ? '#0d6e42' : 'var(--border)'}`, background: minutes === m ? '#eef6f1' : 'white', color: minutes === m ? '#0d6e42' : 'var(--ink-4)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{m} min</button>)}
+              <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>Expira em</span>
+              {[15, 30, 60].map(m => <button key={m} onClick={() => setMinutes(m)} style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', border: `1.5px solid ${minutes === m ? 'var(--green)' : 'var(--border)'}`, background: minutes === m ? 'var(--green-light)' : 'white', color: minutes === m ? 'var(--green)' : 'var(--ink-4)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{m} min</button>)}
             </div>
-            <button onClick={createShare} disabled={creating} style={{ width: '100%', padding: 14, background: '#0d6e42', color: 'white', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{creating ? 'A gerar…' : 'Gerar QR de partilha'}</button>
+            <button onClick={createShare} disabled={creating} style={{ width: '100%', padding: 14, background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{creating ? 'A gerar…' : 'Gerar QR de partilha'}</button>
           </div>
         )}
 
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '4px 0 8px' }}>Histórico de visitas</div>
-        {shareLoading ? <div className="skeleton" style={{ height: 60, borderRadius: 10 }} /> : visits.length === 0 ? (
-          <div style={{ ...panel, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem visitas registadas. Quando um profissional abrir o teu QR e registar a visita, aparece aqui.</div>
+        <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '4px 0 8px' }}>Histórico de visitas</div>
+        {shareLoading ? <div className="skeleton" style={{ height: 60, borderRadius: 'var(--r-lg)' }} /> : visits.length === 0 ? (
+          <div style={{ ...panel, textAlign: 'center', color: 'var(--ink-4)', fontSize: 'var(--t-dado)' }}>Sem visitas registadas. Quando um profissional abrir o teu QR e registar a visita, aparece aqui.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {visits.map(v => (
               <div key={v.id} style={{ ...panel, padding: '12px 16px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{v.reason || 'Consulta'}</span>
-                  <span style={{ fontSize: 12, color: 'var(--ink-5)' }}>{new Date(v.at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
+                  <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{v.reason || 'Consulta'}</span>
+                  <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{new Date(v.at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}</span>
                 </div>
-                <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2 }}>{[v.institution, v.professional_name].filter(Boolean).join(' · ')}</div>
-                {v.notes && <div style={{ fontSize: 13, color: 'var(--ink-2)', marginTop: 6, lineHeight: 1.5, background: 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>{v.notes}</div>}
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>{[v.institution, v.professional_name].filter(Boolean).join(' · ')}</div>
+                {v.notes && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', marginTop: 6, lineHeight: 1.5, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px' }}>{v.notes}</div>}
               </div>
             ))}
           </div>
@@ -511,33 +535,33 @@ export default function PassportPage() {
       {editing && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }} className="no-print"
           onClick={() => setEditing(false)}>
-          <div style={{ background: 'white', borderRadius: 14, padding: 24, width: '100%', maxWidth: 440 }} onClick={e => e.stopPropagation()}>
-            <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--ink)', marginBottom: 20 }}>✏️ {t.edit}</div>
+          <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 24, width: '100%', maxWidth: 440 }} onClick={e => e.stopPropagation()}>
+            <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 20 }}>{t.edit}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <input value={form.name} onChange={e => setForm(p => ({ ...p, name: e.target.value }))} placeholder={t.name + ' *'}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 'var(--t-corpo)', outline: 'none', fontFamily: 'var(--font-sans)' }} />
               <input value={form.blood_type} onChange={e => setForm(p => ({ ...p, blood_type: e.target.value }))} placeholder={t.blood + ' (ex: A+, O-)'}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 'var(--t-corpo)', outline: 'none', fontFamily: 'var(--font-sans)' }} />
               <input value={form.allergies} onChange={e => setForm(p => ({ ...p, allergies: e.target.value }))} placeholder={t.allergies + ' (ex: penicilina, AAS)'}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 'var(--t-corpo)', outline: 'none', fontFamily: 'var(--font-sans)' }} />
               <input value={form.emergency_contact} onChange={e => setForm(p => ({ ...p, emergency_contact: e.target.value }))} placeholder={t.emergency}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 'var(--t-corpo)', outline: 'none', fontFamily: 'var(--font-sans)' }} />
               <textarea value={form.conditions} onChange={e => setForm(p => ({ ...p, conditions: e.target.value }))} placeholder={t.conditions + ' (ex: HTA, DM2, FA)'}
                 rows={2}
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, outline: 'none', fontFamily: 'var(--font-sans)', resize: 'none' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 'var(--t-corpo)', outline: 'none', fontFamily: 'var(--font-sans)', resize: 'none' }} />
             </div>
             {saveError && (
-              <div style={{ marginTop: 10, padding: '8px 12px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 12, color: '#991b1b' }}>
+              <div style={{ marginTop: 10, padding: '8px 12px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: 'var(--red)' }}>
                 ⚠️ {saveError}
               </div>
             )}
             <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
               <button onClick={save} disabled={!form.name.trim() || saving}
-                style={{ flex: 1, padding: '12px', background: form.name.trim() ? 'var(--green)' : 'var(--bg-3)', color: form.name.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: form.name.trim() ? 'pointer' : 'default' }}>
+                style={{ flex: 1, padding: '12px', background: form.name.trim() ? 'var(--green)' : 'var(--bg-3)', color: form.name.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: form.name.trim() ? 'pointer' : 'default' }}>
                 {saving ? 'A guardar...' : 'Guardar'}
               </button>
               <button onClick={() => setEditing(false)}
-                style={{ padding: '12px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, fontSize: 14, cursor: 'pointer' }}>
+                style={{ padding: '12px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', cursor: 'pointer' }}>
                 Cancelar
               </button>
             </div>
@@ -549,7 +573,7 @@ export default function PassportPage() {
         @media print {
           .no-print { display: none !important }
           body { background: white !important }
-          .passport-card { box-shadow: none !important; border: 1px solid #ccc !important }
+          .passport-card { box-shadow: none !important; border: 1px solid var(--border-2) !important }
           .page-container { padding: 12px !important; max-width: 100% !important }
         }
         @media (max-width: 520px) {
@@ -571,6 +595,6 @@ export default function PassportPage() {
         }
         @page { margin: 8mm }
       `}</style>
-    </div>
+    </Mesa>
   )
 }

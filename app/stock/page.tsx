@@ -23,21 +23,34 @@ interface Item {
   supplier_name?: string | null; supplier_contact?: string | null; buy_url?: string | null; unit_cost?: number | null
 }
 
-const CATS: Record<string, { label: string; icon: string; color: string }> = {
-  medicamento:   { label: 'Medicamento',   icon: '💊', color: '#2563eb' },
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, Campo, Grupo, Folha, CAIXA,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
+/* AS CATEGORIAS NAO SAO UM CODIGO DE CORES (2026-10-07)
+   Eram seis emoji e seis cores — duas delas inventadas aqui (`var(--red)` rosa,
+   `var(--green)` azul) e uma o turquesa que ja saiu de todo o resto.
+
+   E a cor da categoria pintava a BORDA ESQUERDA de cada linha: o mesmo sitio
+   onde o vermelho do stock baixo tem de aparecer. Uma luva e um medicamento
+   com cores diferentes, e nenhuma delas a dizer «falta isto».
+
+   A categoria le-se em quatro letras. A borda fica para o que e urgente. */
+const CATS: Record<string, { label: string; codigo: string }> = {
+  medicamento:   { label: 'Medicamento',    codigo: 'MED' },
   // Categoria própria (2026-08-11) — fraldas/pensos/resguardos viviam
   // indistinguíveis de qualquer outro "consumível" (luvas, compressas). Um
   // lar que anuncia "stock de fraldas, pensos e resguardos" como serviço
   // precisa de conseguir ver e repor isto à parte, não perdido no meio de tudo.
-  incontinencia: { label: 'Fraldas/Pensos', icon: '🩹', color: '#db2777' },
-  consumivel:    { label: 'Consumível',    icon: '🧴', color: '#0d9488' },
-  epi:           { label: 'EPI',           icon: '🧤', color: '#7c3aed' },
-  limpeza:       { label: 'Limpeza',       icon: '🧹', color: '#0891b2' },
-  geral:         { label: 'Geral',         icon: '📦', color: '#64748b' },
+  incontinencia: { label: 'Fraldas/Pensos', codigo: 'INCO' },
+  consumivel:    { label: 'Consumível',     codigo: 'CONS' },
+  epi:           { label: 'EPI',            codigo: 'EPI' },
+  limpeza:       { label: 'Limpeza',        codigo: 'LIMP' },
+  geral:         { label: 'Geral',          codigo: 'GER' },
 }
 const CAT_KEYS = Object.keys(CATS)
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
-const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 function expiryDays(d?: string | null) { return d ? Math.floor((new Date(d + 'T12:00').getTime() - Date.now()) / 86400000) : null }
 
@@ -49,6 +62,7 @@ export default function StockPage() {
   const podeEditar = scope.pode('stock', 'editar')
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
+  const largo = useLargo()
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
@@ -234,7 +248,7 @@ export default function StockPage() {
       records: low.map<PrintRecord>(i => ({
         title: i.name,
         meta: i.location ? `Local: ${i.location}` : '',
-        tags: [{ label: i.quantity === 0 ? 'ESGOTADO' : 'Stock baixo', color: '#b91c1c' }],
+        tags: [{ label: i.quantity === 0 ? 'ESGOTADO' : 'Stock baixo', color: 'var(--red)' }],
         fields: [{ label: 'Em stock', value: fmtQty(i) }, { label: 'Mínimo', value: String(i.min_quantity) }, { label: 'A repor', value: String(Math.max(0, i.min_quantity - i.quantity)) }, { label: 'Categoria', value: i.category || '—' }],
       })),
     })
@@ -242,7 +256,7 @@ export default function StockPage() {
       heading: `Fora de validade — retirar (${expired.length})`,
       records: expired.map<PrintRecord>(i => ({
         title: i.name,
-        tags: [{ label: 'EXPIRADO', color: '#7f1d1d' }],
+        tags: [{ label: 'EXPIRADO', color: 'var(--red)' }],
         fields: [{ label: 'Validade', value: i.expiry_date || '—' }, { label: 'Quantidade', value: fmtQty(i) }, { label: 'Local', value: i.location || '—' }],
       })),
     })
@@ -252,7 +266,7 @@ export default function StockPage() {
         const d = expiryDays(i.expiry_date)
         return {
           title: i.name,
-          tags: [{ label: `${d} dias`, color: '#b45309' }],
+          tags: [{ label: `${d} dias`, color: 'var(--amber)' }],
           fields: [{ label: 'Validade', value: i.expiry_date || '—' }, { label: 'Quantidade', value: fmtQty(i) }, { label: 'Local', value: i.location || '—' }],
         }
       }),
@@ -275,268 +289,551 @@ export default function StockPage() {
     })
   }
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px' }
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Eram quatro cartões de estatística com fundo de cor — três deles verdes
+     quando estão a zero. Um «Expirados: 0» pintado de verde-vivo é ruído:
+     ensina a ignorar a cor exactamente onde ela é precisa.
+
+     E cada produto era um cartão que crescia para 200px quando tinha uma
+     reposição em curso. Com sessenta produtos o inventário é um quilómetro.
+
+     Passa a tabela. A quantidade fica com o −1/+1 ao lado, que é o gesto que
+     se faz cem vezes por dia e tem de estar à mão.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const linha = (it: Item) => (
+    <StockItemCard key={it.id} it={it} scope={scope} consume={consume} adjust={adjust}
+      del={del} reorder={reorder} daysLeft={daysLeft[it.id]} patients={patients} largo={largo} />
+  )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body" style={{ maxWidth: 940 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14, gap: 12, flexWrap: 'wrap' }}>
-          <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 5 }}>Operações</div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Stock & validades</h1>
-            <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Existências, ruturas e prazos — de medicamentos a EPI e produtos de limpeza.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={printStockReport} title="Relatório A4 de ruturas e validades — para encomendas e auditoria"
-              style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Relatório</button>
-            <button onClick={() => { setImporting(true); setPreview(null); setImportMsg('') }} style={{ padding: '10px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#374151', fontFamily: 'var(--font-sans)' }}>Importar CSV</button>
-            <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Produto</button>
-          </div>
-        </div>
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Stock</span>
 
-        {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Stock ainda por ativar</div>
-            <div style={{ fontSize: 13, color: '#92400e', lineHeight: 1.6 }}>
-              Esta parte ainda não está disponível nesta conta. Fala connosco e ativamos — tudo o resto continua a funcionar normalmente.
-            </div>
+          <select value={filter} onChange={e => setFilter(e.target.value)}
+            aria-label="Categoria" style={{ ...CAIXA, width: 170 }}>
+            <option value="all">Todas as categorias</option>
+            {CAT_KEYS.map(k => <option key={k} value={k}>{CATS[k].label}</option>)}
+          </select>
+
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {items.length} PRODUTO{items.length === 1 ? '' : 'S'}
+              </span>
+              {/* Só aparece o que é um problema. Um «Expirados 0» a verde
+                  ensina a ignorar a cor onde ela é precisa. */}
+              {low.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                  {low.length} EM FALTA
+                </span>
+              )}
+              {expired.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                  {expired.length} EXPIRADO{expired.length === 1 ? '' : 'S'}
+                </span>
+              )}
+              {expiringSoon.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)' }}>
+                  {expiringSoon.length} A EXPIRAR EM 30 DIAS
+                </span>
+              )}
+              {low.length === 0 && expired.length === 0 && expiringSoon.length === 0 && items.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--green)' }}>
+                  NADA EM FALTA NEM FORA DE PRAZO
+                </span>
+              )}
+            </span>
+          )}
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <Botao onClick={printStockReport}
+              titulo="Relatório A4 de ruturas e validades — para encomendas e auditoria">
+              RELATÓRIO
+            </Botao>
+            <Botao onClick={() => { setImporting(true); setPreview(null); setImportMsg('') }}>
+              IMPORTAR CSV
+            </Botao>
+            {podeEditar && (
+              <Botao feitio="principal" onClick={() => { setForm(blank); setErr(''); setShowForm(true) }}>
+                + PRODUTO
+              </Botao>
+            )}
           </div>
-        ) : (
-          <>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
-              {[
-                { n: items.length, l: 'Produtos', c: '#0b1120', bg: '#f9fafb', bd: '#e5e7eb' },
-                { n: low.length, l: 'Stock baixo', c: low.length ? '#dc2626' : '#16a34a', bg: low.length ? '#fef2f2' : '#f0fdf4', bd: low.length ? '#fecaca' : '#bbf7d0' },
-                { n: expiringSoon.length, l: 'Validade ≤30d', c: expiringSoon.length ? '#d97706' : '#16a34a', bg: expiringSoon.length ? '#fffbeb' : '#f0fdf4', bd: expiringSoon.length ? '#fde68a' : '#bbf7d0' },
-                { n: expired.length, l: 'Expirados', c: expired.length ? '#dc2626' : '#16a34a', bg: expired.length ? '#fef2f2' : '#f0fdf4', bd: expired.length ? '#fecaca' : '#bbf7d0' },
-              ].map(s => (
-                <div key={s.l} style={{ flex: '1 1 110px', background: s.bg, border: `1.5px solid ${s.bd}`, borderRadius: 12, padding: '13px 16px' }}>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.n}</div>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 4 }}>{s.l}</div>
-                </div>
-              ))}
-            </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>Abaixo do mínimo, ou fora de prazo</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>A acabar, ou validade curta</span>
+          <span style={MONO}>«Dura» é pelo ritmo real dos últimos 30 dias, não pelo mínimo</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Existências, ruturas e prazos — de medicamentos a EPI e produtos de limpeza
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {missing ? (
+        <Painel>
+          <Vazio titulo="O stock ainda não está disponível nesta conta."
+            oQueFazer="Fale connosco e ativamos — tudo o resto continua a funcionar normalmente." />
+        </Painel>
+      ) : (
+        <>
+          {err && <Aviso tom="mau">{err}</Aviso>}
 
-            <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
-              <button onClick={() => setFilter('all')} style={{ padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${filter === 'all' ? '#0b1120' : 'var(--border)'}`, background: filter === 'all' ? '#0b112010' : 'white', color: filter === 'all' ? '#0b1120' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>Todos</button>
-              {CAT_KEYS.map(k => (
-                <button key={k} onClick={() => setFilter(k)} style={{ padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${filter === k ? CATS[k].color : 'var(--border)'}`, background: filter === k ? CATS[k].color + '12' : 'white', color: filter === k ? CATS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{CATS[k].icon} {CATS[k].label}</button>
-              ))}
-            </div>
-            {err && !missing && <div style={{ marginBottom: 12, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, color: '#991b1b', fontSize: 13, padding: '12px 16px' }}>{err}</div>}
+          {/* Quem está a ficar sem o quê, primeiro. Ninguém abre trinta fichas
+              para descobrir que faltam fraldas a duas pessoas — a reposição
+              faz-se aqui, com a lista de compras à frente.
 
+              A peça traz o seu próprio painel e devolve `null` quando não há
+              ninguém a acabar — envolvê-la num `Painel` aqui deixava uma caixa
+              vazia com título em todas as casas onde está tudo bem. */}
+          {!loading && <StockDosUtentes cor="var(--green)" />}
+
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>Produto</span>
+                <span style={{ ...ROTULO, width: 48 }}>Tipo</span>
+                <span style={{ ...ROTULO, width: 120, textAlign: 'center' }}>Quantidade</span>
+                <span style={{ ...ROTULO, width: 56, textAlign: 'right' }}>Mínimo</span>
+                <span style={{ ...ROTULO, width: 84, textAlign: 'right' }}>Validade</span>
+                <span style={{ ...ROTULO, width: 58, textAlign: 'right' }}>Dura</span>
+                <span style={{ ...ROTULO, width: 110 }}> </span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{shown.length} de {items.length}</span>}
+          >
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 10 }} />)}</div>
+              <ACarregar oQue="A contar o que há…" />
             ) : shown.length === 0 ? (
-              <div style={{ ...card, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem produtos. Adiciona o primeiro com “+ Produto”.</div>
+              <Vazio
+                titulo={items.length === 0 ? 'Ainda não há produtos no inventário.' : 'Nenhum nesta categoria.'}
+                oQueFazer={items.length === 0
+                  ? 'Com um mínimo definido, cada produto passa a avisar sozinho quando chega lá — e, ao fim de um mês de uso, a dizer quantos dias ainda dura ao ritmo a que está a ser gasto.'
+                  : 'Experimente outra categoria, ou «Todas».'}
+                acao={items.length === 0 && podeEditar
+                  ? <Botao feitio="principal" onClick={() => { setForm(blank); setErr(''); setShowForm(true) }}>+ PRODUTO</Botao>
+                  : undefined} />
             ) : (
               <>
-                {/* Quem esta a ficar sem o que, primeiro. Ninguem abre trinta
-                    fichas para descobrir que faltam fraldas a duas pessoas —
-                    a reposicao faz-se aqui, com a lista de compras a frente. */}
-                <StockDosUtentes cor="var(--accent, #0d9488)" />
-
                 {attention.length > 0 && (
-                  <div style={{ marginBottom: rest.length > 0 ? 22 : 0 }}>
-                    <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Precisa de atenção ({attention.length})</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                      {attention.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} patients={patients} />)}
+                  <>
+                    <div style={{
+                      padding: '5px 12px', background: 'var(--bg-2)',
+                      borderBottom: '1px solid var(--border)',
+                      position: 'sticky', top: 0, zIndex: 1,
+                    }}>
+                      <span style={{ ...ROTULO, color: 'var(--red)' }}>
+                        Precisa de atenção · {attention.length}
+                      </span>
                     </div>
-                  </div>
+                    {attention.map(linha)}
+                  </>
                 )}
                 {rest.length > 0 && (
-                  <div>
+                  <>
                     {attention.length > 0 && (
-                      <button onClick={() => setShowRest(v => !v)} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8, padding: 0 }}>
-                        {showRest ? '▾' : '▸'} Resto do inventário ({rest.length})
+                      <button onClick={() => setShowRest(v => !v)} style={{
+                        display: 'flex', alignItems: 'center', gap: 6, width: '100%',
+                        padding: '5px 12px', background: 'var(--bg-2)', textAlign: 'left',
+                        border: 'none', borderTop: '1px solid var(--border-2)',
+                        borderBottom: '1px solid var(--border)', cursor: 'pointer',
+                        fontFamily: 'inherit', position: 'sticky', top: 0, zIndex: 1,
+                      }}>
+                        <span style={ROTULO}>
+                          {showRest ? '▾' : '▸'} Resto do inventário · {rest.length}
+                        </span>
                       </button>
                     )}
-                    {(showRest || attention.length === 0) && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {rest.map(it => <StockItemCard key={it.id} it={it} card={card} scope={scope} consume={consume} adjust={adjust} del={del} reorder={reorder} daysLeft={daysLeft[it.id]} patients={patients} />)}
-                      </div>
-                    )}
-                  </div>
+                    {(showRest || attention.length === 0) && rest.map(linha)}
+                  </>
                 )}
               </>
             )}
+          </Painel>
+        </>
+      )}
+    </Mesa>
+
+    {/* ── NOVO PRODUTO ───────────────────────────────────────────────────── */}
+    {showForm && (
+      <Folha titulo="Novo produto" aoFechar={() => setShowForm(false)}>
+        <Campo rotulo="Nome" para="stock-name" obrigatorio>
+          <input id="stock-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })}
+            placeholder="Ex: Luvas nitrilo M, Paracetamol 1g…" style={{ ...CAIXA, width: '100%' }} autoFocus />
+        </Campo>
+
+        <Campo rotulo="Categoria" para="stock-cat">
+          <select id="stock-cat" value={form.category}
+            onChange={e => setForm({ ...form, category: e.target.value })} style={{ ...CAIXA, width: '100%' }}>
+            {CAT_KEYS.map(k => <option key={k} value={k}>{CATS[k].label}</option>)}
+          </select>
+        </Campo>
+
+        <Campo rotulo="Quantidade, mínimo e unidade"
+          ajuda="O mínimo é o que faz este produto avisar sozinho. Sem ele, só se dá pela falta quando acaba.">
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
+            <input aria-label="Quantidade" type="number" inputMode="numeric" placeholder="Quantos"
+              value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} style={CAIXA} />
+            <input aria-label="Mínimo" type="number" inputMode="numeric" placeholder="Mínimo"
+              value={form.min_quantity} onChange={e => setForm({ ...form, min_quantity: e.target.value })} style={CAIXA} />
+            <input aria-label="Unidade" placeholder="cx, un…"
+              value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} style={CAIXA} />
+          </div>
+        </Campo>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          <Campo rotulo="Validade" para="stock-expiry">
+            <input id="stock-expiry" type="date" value={form.expiry}
+              onChange={e => setForm({ ...form, expiry: e.target.value })} style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+          <Campo rotulo="Onde está" para="stock-location">
+            <input id="stock-location" value={form.location}
+              onChange={e => setForm({ ...form, location: e.target.value })}
+              placeholder="Ex: Armário A2" style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
+        </div>
+
+        <Grupo titulo="Reposição e fornecedor">
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.5 }}>
+            Opcional. O custo por unidade lança a despesa sozinho quando se marcar «recebido».
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Campo rotulo="Fornecedor" para="stock-supplier-name">
+              <input id="stock-supplier-name" value={form.supplier_name}
+                onChange={e => setForm({ ...form, supplier_name: e.target.value })}
+                placeholder="Ex: Distribuidora X" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+            <Campo rotulo="Contacto" para="stock-supplier-contact">
+              <input id="stock-supplier-contact" value={form.supplier_contact}
+                onChange={e => setForm({ ...form, supplier_contact: e.target.value })}
+                placeholder="Telefone ou email" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
+            <Campo rotulo="Link de compra" para="stock-buy-url">
+              <input id="stock-buy-url" value={form.buy_url}
+                onChange={e => setForm({ ...form, buy_url: e.target.value })}
+                placeholder="https://…" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+            <Campo rotulo="Custo por unidade (€)" para="stock-unit-cost">
+              <input id="stock-unit-cost" type="number" inputMode="decimal" value={form.unit_cost}
+                onChange={e => setForm({ ...form, unit_cost: e.target.value })}
+                placeholder="0.00" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+          </div>
+        </Grupo>
+
+        <div style={{ marginTop: 16 }}>
+          <Botao feitio="principal" onClick={add} esperando={saving} disabled={!form.name.trim()}>
+            ADICIONAR O PRODUTO
+          </Botao>
+        </div>
+      </Folha>
+    )}
+
+    {/* ── IMPORTAR DE UM CSV ─────────────────────────────────────────────── */}
+    {importing && (
+      <Folha titulo="Importar produtos de um CSV" aoFechar={() => !importBusy && setImporting(false)}>
+        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.55, margin: '10px 0 0' }}>
+          Aceita exports do <strong>Sifarma</strong>, de ERP genéricos ou de Excel guardado como CSV.
+          As colunas são detetadas sozinhas (CNP/EAN, designação, PVP, IVA, stock). O que já existe
+          é actualizado pelo código de barras; o resto é criado.
+        </p>
+
+        <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={onFile} style={{ display: 'none' }} />
+        <div style={{ marginTop: 12 }}>
+          <button type="button" onClick={() => fileRef.current?.click()} className="mesa-botao" style={{
+            width: '100%', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-md)',
+            background: 'var(--bg-2)', cursor: 'pointer',
+            ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em', color: 'var(--ink-3)',
+          }}>ESCOLHER O FICHEIRO CSV</button>
+        </div>
+
+        {importMsg && (
+          <div style={{ marginTop: 10 }}>
+            <Aviso tom={/Não|falharam/.test(importMsg) ? 'mau' : 'bom'}>{importMsg}</Aviso>
+          </div>
+        )}
+
+        {preview && preview.products.length > 0 && (
+          <>
+            <div style={{ ...ROTULO, marginTop: 12 }}>
+              Colunas detetadas: {preview.cols.join(', ') || 'posicional'}
+            </div>
+            <div style={{
+              marginTop: 6, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+              overflow: 'hidden', maxHeight: 240, overflowY: 'auto',
+            }}>
+              {preview.products.slice(0, 30).map((p, i) => (
+                <div key={i} style={{
+                  display: 'flex', justifyContent: 'space-between', gap: 8,
+                  padding: '6px 11px', borderBottom: '1px solid var(--border)',
+                  fontSize: 'var(--t-dado)',
+                }}>
+                  <span style={{ minWidth: 0, color: 'var(--ink-2)' }}>
+                    {p.name}
+                    {p.barcode && <span style={{ ...MONO, color: 'var(--ink-5)' }}> · {p.barcode}</span>}
+                  </span>
+                  <span style={{ ...MONO, flexShrink: 0, fontWeight: 'var(--peso-forte)' as any }}>
+                    {p.price != null ? `${p.price.toFixed(2)}€` : '—'}
+                  </span>
+                </div>
+              ))}
+              {preview.products.length > 30 && (
+                <div style={{
+                  padding: '6px 11px', ...MONO, fontSize: 'var(--t-meta)',
+                  color: 'var(--ink-5)', textAlign: 'center',
+                }}>+{preview.products.length - 30} mais</div>
+              )}
+            </div>
+            <div style={{ marginTop: 14 }}>
+              <Botao feitio="principal" onClick={runImport} esperando={importBusy}>
+                IMPORTAR {preview.products.length} PRODUTO{preview.products.length === 1 ? '' : 'S'}
+              </Botao>
+            </div>
           </>
         )}
-      </div>
-
-      {showForm && (
-        <div onMouseDown={ev => { if (ev.target === ev.currentTarget) setShowForm(false) }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 480, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Novo produto</h2>
-              <button aria-label="Fechar" onClick={() => setShowForm(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
-              <div><label htmlFor="stock-name" style={lbl}>Nome</label><input id="stock-name" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Ex: Luvas nitrilo M, Paracetamol 1g…" style={inp} autoFocus /></div>
-              <div>
-                <span id="stock-category-label" style={lbl}>Categoria</span>
-                <div role="group" aria-labelledby="stock-category-label" style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {CAT_KEYS.map(k => <button key={k} onClick={() => setForm({ ...form, category: k })} style={{ padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.category === k ? CATS[k].color : 'var(--border)'}`, background: form.category === k ? CATS[k].color + '12' : 'white', color: form.category === k ? CATS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{CATS[k].icon} {CATS[k].label}</button>)}
-                </div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
-                <div><label htmlFor="stock-qty" style={lbl}>Quantidade</label><input id="stock-qty" type="number" value={form.quantity} onChange={e => setForm({ ...form, quantity: e.target.value })} style={inp} /></div>
-                <div><label htmlFor="stock-min" style={lbl}>Mínimo</label><input id="stock-min" type="number" value={form.min_quantity} onChange={e => setForm({ ...form, min_quantity: e.target.value })} style={inp} /></div>
-                <div><label htmlFor="stock-unit" style={lbl}>Unidade</label><input id="stock-unit" value={form.unit} onChange={e => setForm({ ...form, unit: e.target.value })} placeholder="cx, un…" style={inp} /></div>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div><label htmlFor="stock-expiry" style={lbl}>Validade</label><input id="stock-expiry" type="date" value={form.expiry} onChange={e => setForm({ ...form, expiry: e.target.value })} style={inp} /></div>
-                <div><label htmlFor="stock-location" style={lbl}>Localização</label><input id="stock-location" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="Ex: Armário A2" style={inp} /></div>
-              </div>
-              {/* Reposição & fornecedor — alimenta os avisos e as despesas do dono */}
-              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 2 }}>
-                <span style={{ ...lbl, marginBottom: 8 }}>Reposição & fornecedor (opcional)</span>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                  <div><label htmlFor="stock-supplier-name" style={lbl}>Fornecedor</label><input id="stock-supplier-name" value={form.supplier_name} onChange={e => setForm({ ...form, supplier_name: e.target.value })} placeholder="Ex: Distribuidora X" style={inp} /></div>
-                  <div><label htmlFor="stock-supplier-contact" style={lbl}>Contacto</label><input id="stock-supplier-contact" value={form.supplier_contact} onChange={e => setForm({ ...form, supplier_contact: e.target.value })} placeholder="Telefone / email" style={inp} /></div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10 }}>
-                  <div><label htmlFor="stock-buy-url" style={lbl}>Link de compra</label><input id="stock-buy-url" value={form.buy_url} onChange={e => setForm({ ...form, buy_url: e.target.value })} placeholder="https://…" style={inp} /></div>
-                  <div><label htmlFor="stock-unit-cost" style={lbl}>Custo/unidade (€)</label><input id="stock-unit-cost" type="number" value={form.unit_cost} onChange={e => setForm({ ...form, unit_cost: e.target.value })} placeholder="0.00" style={inp} /></div>
-                </div>
-                <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 6 }}>O custo/unidade lança a despesa automaticamente quando marcares "recebido".</div>
-              </div>
-              <button onClick={add} disabled={saving} style={{ padding: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : 'Adicionar produto'}</button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {importing && (
-        <div onMouseDown={ev => { if (ev.target === ev.currentTarget && !importBusy) setImporting(false) }} style={{ position: 'fixed', inset: 0, zIndex: 1900, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-          <div style={{ background: 'white', borderRadius: '16px 16px 0 0', width: '100%', maxWidth: 560, maxHeight: '92vh', overflowY: 'auto', padding: '20px 22px 34px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', fontWeight: 400, margin: 0 }}>Importar produtos (CSV)</h2>
-              <button aria-label="Fechar" onClick={() => !importBusy && setImporting(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-4)' }}>×</button>            </div>
-            <p style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.5, margin: '0 0 14px' }}>Aceita exports de <strong>Sifarma</strong>, ERP genéricos ou Excel guardado como CSV. Deteta automaticamente as colunas (CNP/EAN, designação, PVP, IVA, stock). Atualiza por código de barras; novos são criados.</p>
-
-            <input ref={fileRef} type="file" accept=".csv,text/csv,text/plain" onChange={onFile} style={{ display: 'none' }} />
-            <button onClick={() => fileRef.current?.click()} style={{ width: '100%', padding: 14, border: '1.5px dashed var(--border)', borderRadius: 10, background: 'var(--bg-2)', cursor: 'pointer', fontSize: 13.5, fontWeight: 600, color: '#374151', fontFamily: 'var(--font-sans)' }}>
-              Escolher ficheiro CSV
-            </button>
-
-            {importMsg && <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: importMsg.includes('Não') || importMsg.includes('falharam') ? '#dc2626' : '#16a34a' }}>{importMsg}</div>}
-
-            {preview && preview.products.length > 0 && (
-              <>
-                <div style={{ marginTop: 12, fontSize: 11, color: 'var(--ink-5)' }}>Colunas detetadas: {preview.cols.join(', ') || 'posicional'}</div>
-                <div style={{ marginTop: 8, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', maxHeight: 240, overflowY: 'auto' }}>
-                  {preview.products.slice(0, 30).map((p, i) => (
-                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '7px 12px', borderBottom: '1px solid var(--bg-2)', fontSize: 12.5 }}>
-                      <span style={{ minWidth: 0, color: 'var(--ink-2)' }}>{p.name}{p.barcode ? <span style={{ color: 'var(--ink-5)' }}> · {p.barcode}</span> : ''}</span>
-                      <span style={{ flexShrink: 0, fontWeight: 700, color: '#0d6e42' }}>{p.price != null ? `${p.price.toFixed(2)}€` : '—'}</span>
-                    </div>
-                  ))}
-                  {preview.products.length > 30 && <div style={{ padding: '7px 12px', fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center' }}>+{preview.products.length - 30} mais</div>}
-                </div>
-                <button onClick={runImport} disabled={importBusy} style={{ width: '100%', marginTop: 14, padding: 13, background: importBusy ? 'var(--bg-3)' : '#0d6e42', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: importBusy ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
-                  {importBusy ? 'A importar…' : `Importar ${preview.products.length} produto(s)`}
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-      <style>{`
-        @media (max-width: 768px) {
-          .stock-adjust-btn { width: 44px !important; height: 44px !important; }
-        }
-      `}</style>
-    </div>
+      </Folha>
+    )}
+    </>
   )
 }
 
 // Extraído de dentro do map original (2026-08-07) para poder ser reutilizado
 // nas duas secções ("Precisa de atenção" + "Resto do inventário") sem
-// duplicar a marcação — mesmo comportamento de sempre, só reorganizado.
-function StockItemCard({ it, card, scope, consume, adjust, del, reorder, daysLeft, patients }: {
-  it: Item; card: React.CSSProperties; scope: ReturnType<typeof useOrgScope>
-  consume: (it: Item, qty?: number, patientId?: string) => void; adjust: (it: Item, delta: number) => void
-  del: (id: string) => void; reorder: (it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) => void
+// duplicar a marcação. Refeito na linguagem da mesa em 2026-10-07: era um
+// cartão de 80px que crescia para 200px, com seis emoji no corpo e três
+// botões quadrados sem rótulo nenhum.
+function StockItemCard({ it, scope, consume, adjust, del, reorder, daysLeft, patients, largo }: {
+  it: Item; scope: ReturnType<typeof useOrgScope>
+  consume: (it: Item, qty?: number, patientId?: string) => void
+  adjust: (it: Item, delta: number) => void
+  del: (id: string) => void
+  reorder: (it: Item, action: 'request' | 'ordered' | 'received', extra?: { qty?: number; note?: string }) => void
   daysLeft?: number
   patients: { id: string; name: string }[]
+  largo: boolean
 }) {
   const cat = CATS[it.category] || CATS.geral
   // Módulo 11: só na categoria de incontinência é que saber PARA QUEM tem
-  // valor clínico (variação de consumo por pessoa é o sinal). Nas outras, o
-  // "Usar 1" fica exatamente como estava — um toque, sem perguntas.
+  // valor clínico (a variação de consumo por pessoa é o sinal). Nas outras, o
+  // "Usar 1" fica exactamente como estava — um toque, sem perguntas.
   const [pickFor, setPickFor] = useState(false)
   const attributable = it.category === 'incontinencia' && patients.length > 0
   const isLow = it.min_quantity > 0 && it.quantity <= it.min_quantity
   const d = expiryDays(it.expiry_date)
-  const expColor = d === null ? null : d < 0 ? '#dc2626' : d <= 30 ? '#d97706' : '#16a34a'
+  const expirado = d !== null && d < 0
+  const expiraCedo = d !== null && d >= 0 && d <= 30
   const runsOutSoon = daysLeft != null && daysLeft <= 14
+  const podeEditar = scope.pode('stock', 'editar')
+  const precisaReposicao = isLow || runsOutSoon || (it.reorder_status && it.reorder_status !== 'ok')
+
+  /* A quantidade com o −1/+1 ao lado. É o gesto que se faz cem vezes por dia:
+     fica junto ao número, e com a altura de alvo do sistema — que no
+     telemóvel são 44px, não os 28 que aqui estavam escritos à mão. */
+  const quantidade = (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+      <button type="button" aria-label={`Tirar uma unidade de ${it.name}`} className="mesa-botao"
+        onClick={() => adjust(it, -1)} disabled={!podeEditar}
+        style={{
+          width: 26, padding: 0, borderRadius: 'var(--r-sm)',
+          border: '1px solid var(--border-2)', background: 'var(--bg)',
+          cursor: podeEditar ? 'pointer' : 'default', color: 'var(--ink-3)',
+          fontFamily: 'inherit', fontSize: 'var(--t-corpo)', lineHeight: 1,
+        }}>−</button>
+      <span style={{
+        ...MONO, minWidth: 46, textAlign: 'center',
+        fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
+        color: isLow ? 'var(--red)' : 'var(--ink)',
+      }}>
+        {it.quantity}
+        {it.unit && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}> {it.unit}</span>}
+      </span>
+      <button type="button" aria-label={`Juntar uma unidade de ${it.name}`} className="mesa-botao"
+        onClick={() => adjust(it, 1)} disabled={!podeEditar}
+        style={{
+          width: 26, padding: 0, borderRadius: 'var(--r-sm)',
+          border: '1px solid var(--border-2)', background: 'var(--bg)',
+          cursor: podeEditar ? 'pointer' : 'default', color: 'var(--ink-3)',
+          fontFamily: 'inherit', fontSize: 'var(--t-corpo)', lineHeight: 1,
+        }}>+</button>
+    </span>
+  )
+
   return (
-    <div style={{ ...card, padding: '11px 15px', borderLeft: `3px solid ${isLow ? '#dc2626' : cat.color}` }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 14, fontWeight: 700, color: '#0b1120' }}>{cat.icon} {it.name}</span>
-            {isLow && <span style={{ fontSize: 10, fontWeight: 700, color: '#dc2626', background: '#fef2f2', padding: '1px 6px', borderRadius: 4 }}>Stock baixo</span>}
-          </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 3, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            {it.price ? <span style={{ color: '#0d6e42', fontWeight: 700 }}>{(Math.round(it.price * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}€</span> : null}
-            {it.barcode && <span>▮ {it.barcode}</span>}
-            {it.location && <span>📍 {it.location}</span>}
-            {it.min_quantity > 0 && <span>mín. {it.min_quantity}{it.unit ? ` ${it.unit}` : ''}</span>}
-            {d !== null && <span style={{ color: expColor!, fontWeight: 600 }}>{d < 0 ? `expirado há ${-d}d` : `validade em ${d}d`}</span>}
-            {/* Previsão pelo ritmo real de consumo (últimos 30 dias) — não é só "abaixo do mínimo". */}
-            {runsOutSoon && !isLow && <span style={{ color: daysLeft! <= 7 ? '#dc2626' : '#d97706', fontWeight: 600 }}>⏱ aos números atuais, acaba em ~{Math.max(1, Math.round(daysLeft!))}d</span>}
-          </div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {/* USAR 1 — o toque frequente (uma luva, uma fralda): grande e rápido. */}
-          <button onClick={() => attributable ? setPickFor(v => !v) : consume(it, 1)} title="Usei uma unidade" style={{ padding: '7px 14px', borderRadius: 9, border: 'none', background: cat.color, color: 'white', cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>Usar 1</button>
-          <button aria-label="Diminuir" className="stock-adjust-btn" onClick={() => adjust(it, -1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>−</button>
-          <span style={{ minWidth: 48, textAlign: 'center', fontSize: 15, fontWeight: 800, color: isLow ? '#dc2626' : '#0b1120' }}>{it.quantity}{it.unit ? <span style={{ fontSize: 10, fontWeight: 500, color: '#9ca3af' }}> {it.unit}</span> : ''}</span>
-          <button aria-label="Aumentar" className="stock-adjust-btn" onClick={() => adjust(it, 1)} style={{ width: 28, height: 28, borderRadius: 7, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 16, color: 'var(--ink-3)' }}>+</button>
-          <button aria-label="Eliminar" onClick={() => del(it.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer', marginLeft: 2 }}>×</button>
-        </div>
+    <div style={{
+      borderBottom: '1px solid var(--border)',
+      borderLeft: `3px solid ${isLow || expirado ? 'var(--red)' : expiraCedo || runsOutSoon ? 'var(--amber)' : 'transparent'}`,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: largo ? 'center' : 'flex-start', gap: 10,
+        flexDirection: largo ? 'row' : 'column',
+        padding: largo ? '7px 12px' : '10px 12px',
+      }}>
+        <span style={{ minWidth: 0, flex: largo ? 1 : undefined, width: largo ? undefined : '100%' }}>
+          <span style={{
+            display: 'block', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{it.name}</span>
+          <span style={{
+            display: 'block', ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)',
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
+            {[
+              it.location,
+              it.barcode,
+              it.price ? `${(Math.round(it.price * 100) / 100).toLocaleString('pt-PT', { minimumFractionDigits: 2 })}€` : null,
+            ].filter(Boolean).join(' · ') || '—'}
+          </span>
+        </span>
+
+        {largo ? (
+          <>
+            <span style={{ width: 48, flexShrink: 0 }}><Codigo texto={cat.codigo} /></span>
+            <span style={{ width: 120, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>{quantidade}</span>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-dado)', width: 56, textAlign: 'right',
+              flexShrink: 0, color: it.min_quantity > 0 ? 'var(--ink-4)' : 'var(--ink-5)',
+            }}>{it.min_quantity > 0 ? it.min_quantity : '—'}</span>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-dado)', width: 84, textAlign: 'right', flexShrink: 0,
+              fontWeight: (expirado || expiraCedo ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+              color: expirado ? 'var(--red)' : expiraCedo ? 'var(--amber)' : 'var(--ink-4)',
+            }}>
+              {d === null ? '—' : expirado ? `há ${-d}d` : `${d}d`}
+            </span>
+            {/* Pelo ritmo real dos últimos 30 dias — não é só «abaixo do mínimo». */}
+            <span style={{
+              ...MONO, fontSize: 'var(--t-dado)', width: 58, textAlign: 'right', flexShrink: 0,
+              fontWeight: (runsOutSoon ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+              color: daysLeft == null ? 'var(--ink-5)'
+                : daysLeft <= 7 ? 'var(--red)' : daysLeft <= 14 ? 'var(--amber)' : 'var(--ink-4)',
+            }}>{daysLeft == null ? '—' : `${Math.max(1, Math.round(daysLeft))}d`}</span>
+            <span style={{ width: 110, flexShrink: 0, display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+              {podeEditar && (
+                <Botao feitio="principal" titulo="Usei uma unidade"
+                  onClick={() => attributable ? setPickFor(v => !v) : consume(it, 1)}>
+                  USAR 1
+                </Botao>
+              )}
+              {podeEditar && <Botao feitio="calmo" onClick={() => del(it.id)}>×</Botao>}
+            </span>
+          </>
+        ) : (
+          <>
+            <span style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', marginTop: 4 }}>
+              <Codigo texto={cat.codigo} />
+              {quantidade}
+              {it.min_quantity > 0 && (
+                <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={ROTULO}>Mín</span>
+                  <span style={{ ...MONO, fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>{it.min_quantity}</span>
+                </span>
+              )}
+              {d !== null && (
+                <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={ROTULO}>Validade</span>
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-dado)',
+                    fontWeight: (expirado || expiraCedo ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+                    color: expirado ? 'var(--red)' : expiraCedo ? 'var(--amber)' : 'var(--ink-4)',
+                  }}>{expirado ? `há ${-d}d` : `${d}d`}</span>
+                </span>
+              )}
+              {daysLeft != null && (
+                <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
+                  <span style={ROTULO}>Dura</span>
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-dado)',
+                    fontWeight: (runsOutSoon ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+                    color: daysLeft <= 7 ? 'var(--red)' : daysLeft <= 14 ? 'var(--amber)' : 'var(--ink-4)',
+                  }}>{Math.max(1, Math.round(daysLeft))}d</span>
+                </span>
+              )}
+            </span>
+            {podeEditar && (
+              <span style={{ display: 'flex', gap: 6, marginTop: 6 }}>
+                <Botao feitio="principal" onClick={() => attributable ? setPickFor(v => !v) : consume(it, 1)}>
+                  USAR 1
+                </Botao>
+                <Botao feitio="calmo" onClick={() => del(it.id)}>APAGAR</Botao>
+              </span>
+            )}
+          </>
+        )}
       </div>
 
       {/* Para quem? (só incontinência) — atribuir é o que permite ler a
-          variação por pessoa como sinal. "Sem atribuir" existe sempre: a
+          variação por pessoa como sinal. «Sem atribuir» existe sempre: a
           equipa nunca fica bloqueada por não saber ou não querer dizer. */}
       {pickFor && attributable && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)' }}>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginBottom: 7 }}>Para quem foi?</div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+        <div style={{ padding: '0 12px 10px 12px' }}>
+          <div style={{ ...ROTULO, marginBottom: 5 }}>Para quem foi?</div>
+          <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
             {patients.map(p => (
-              <button key={p.id} onClick={() => { consume(it, 1, p.id); setPickFor(false) }}
-                style={{ padding: '6px 11px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-2)', fontFamily: 'var(--font-sans)' }}>
+              <Botao key={p.id} onClick={() => { consume(it, 1, p.id); setPickFor(false) }}>
                 {p.name}
-              </button>
+              </Botao>
             ))}
-            <button onClick={() => { consume(it, 1); setPickFor(false) }}
-              style={{ padding: '6px 11px', borderRadius: 8, border: '1.5px dashed var(--border)', background: 'white', cursor: 'pointer', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>
-              Sem atribuir
-            </button>
+            <Botao feitio="calmo" onClick={() => { consume(it, 1); setPickFor(false) }}>
+              SEM ATRIBUIR
+            </Botao>
           </div>
         </div>
       )}
 
       {/* Fluxo de reposição: ok → pedido → encomendado → repor. Sem re-pedidos. */}
-      {(isLow || runsOutSoon || (it.reorder_status && it.reorder_status !== 'ok')) && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--bg-3)', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+      {precisaReposicao && (
+        <div style={{
+          padding: '7px 12px 9px', display: 'flex', alignItems: 'center',
+          gap: 8, flexWrap: 'wrap', borderTop: '1px solid var(--border)',
+        }}>
           {it.reorder_status === 'requested' ? (
             <>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#d97706' }}>📦 Pedido de encomenda enviado à equipa</span>
-              {scope.pode('stock', 'editar') && <button onClick={() => reorder(it, 'ordered')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bfdbfe', background: '#eff6ff', color: '#1d4ed8', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Marcar encomendado</button>}
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+                PEDIDO ENVIADO À EQUIPA
+              </span>
+              {podeEditar && <Botao onClick={() => reorder(it, 'ordered')}>MARCAR ENCOMENDADO</Botao>}
             </>
           ) : it.reorder_status === 'ordered' ? (
             <>
-              <span style={{ fontSize: 12, fontWeight: 700, color: '#1d4ed8' }}>✅ Encomendado — a caminho</span>
-              {scope.pode('stock', 'editar') && <button onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Recebido — repor</button>}
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-forte)' as any }}>
+                ENCOMENDADO — A CAMINHO
+              </span>
+              {podeEditar && (
+                <Botao feitio="principal"
+                  onClick={() => reorder(it, 'received', { qty: Math.max(1, (it.min_quantity || 1) * 2) })}>
+                  RECEBIDO — REPOR
+                </Botao>
+              )}
             </>
-          ) : (
-            scope.pode('stock', 'editar') && <button onClick={() => reorder(it, 'request')} style={{ padding: '5px 12px', borderRadius: 7, border: '1px solid #fecaca', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Avisar equipa — falta este</button>
+          ) : podeEditar ? (
+            <Botao onClick={() => reorder(it, 'request')}>AVISAR A EQUIPA — FALTA ESTE</Botao>
+          ) : null}
+
+          {it.buy_url && (
+            <a href={it.buy_url} target="_blank" rel="noreferrer" style={{
+              ...MONO, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+              color: 'var(--green)', textDecoration: 'none',
+            }}>COMPRAR →</a>
           )}
-          {it.buy_url && <a href={it.buy_url} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', textDecoration: 'none' }}>Comprar →</a>}
-          {it.supplier_name && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{it.supplier_name}{it.supplier_contact ? ` · ${it.supplier_contact}` : ''}</span>}
+          {it.supplier_name && (
+            <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+              {it.supplier_name}{it.supplier_contact ? ` · ${it.supplier_contact}` : ''}
+            </span>
+          )}
         </div>
       )}
     </div>

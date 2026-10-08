@@ -57,20 +57,20 @@ export type Marca = {
 }
 
 export const ORIGENS: { id: Origem; rotulo: string; cor: string; auto: boolean }[] = [
-  { id: 'aniversario', rotulo: 'Aniversários',        cor: '#db2777', auto: true },
-  { id: 'entrada',     rotulo: 'Anos de casa',        cor: '#7c3aed', auto: true },
-  { id: 'atividade',   rotulo: 'Atividades',          cor: '#0d9488', auto: true },
-  { id: 'visita',      rotulo: 'Visitas',             cor: '#2563eb', auto: true },
-  { id: 'consulta',    rotulo: 'Consultas',           cor: '#0891b2', auto: true },
-  { id: 'prazo',       rotulo: 'Prazos por fechar',   cor: '#dc2626', auto: true },
-  { id: 'validade',    rotulo: 'Validades de stock',  cor: '#d97706', auto: true },
-  { id: 'documento',   rotulo: 'Documentos a caducar',cor: '#b45309', auto: true },
-  { id: 'inscricao',   rotulo: 'Entradas previstas',  cor: '#65a30d', auto: true },
-  { id: 'feriado',     rotulo: 'Feriados',            cor: '#94a3b8', auto: true },
-  { id: 'manual',      rotulo: 'Marcado à mão',       cor: '#0b1120', auto: false },
+  { id: 'aniversario', rotulo: 'Aniversários',        cor: 'var(--red)', auto: true },
+  { id: 'entrada',     rotulo: 'Anos de casa',        cor: 'var(--roxo)', auto: true },
+  { id: 'atividade',   rotulo: 'Atividades',          cor: 'var(--green-3)', auto: true },
+  { id: 'visita',      rotulo: 'Visitas',             cor: 'var(--blue)', auto: true },
+  { id: 'consulta',    rotulo: 'Consultas',           cor: 'var(--green)', auto: true },
+  { id: 'prazo',       rotulo: 'Prazos por fechar',   cor: 'var(--red)', auto: true },
+  { id: 'validade',    rotulo: 'Validades de stock',  cor: 'var(--amber)', auto: true },
+  { id: 'documento',   rotulo: 'Documentos a caducar',cor: 'var(--amber)', auto: true },
+  { id: 'inscricao',   rotulo: 'Entradas previstas',  cor: 'var(--green)', auto: true },
+  { id: 'feriado',     rotulo: 'Feriados',            cor: 'var(--badge-blue-border)', auto: true },
+  { id: 'manual',      rotulo: 'Marcado à mão',       cor: 'var(--badge-blue-fg)', auto: false },
 ]
 
-export const corDe = (o: Origem) => ORIGENS.find(x => x.id === o)?.cor || '#94a3b8'
+export const corDe = (o: Origem) => ORIGENS.find(x => x.id === o)?.cor || 'var(--badge-blue-border)'
 export const rotuloDe = (o: Origem) => ORIGENS.find(x => x.id === o)?.rotulo || 'Outro'
 
 // ── A aritmética ─────────────────────────────────────────────────────────────

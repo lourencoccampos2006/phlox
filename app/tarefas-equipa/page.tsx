@@ -10,6 +10,7 @@ import { useAuth } from '@/components/AuthContext'
 import { useLiveData } from '@/lib/useLiveData'
 import { registar, ACOES } from '@/lib/registo'
 import { useOrgScope } from '@/lib/orgScope'
+import Icon from '@/components/Icon'
 
 // Fundido em /equipa (aba "Escalas & Turnos" → sub-aba "Tarefas", TarefasTool
 // reutilizado). A rota /tarefas-equipa redireciona p/ não partir links antigos.
@@ -26,24 +27,24 @@ interface Task {
 }
 
 const AREAS: Record<string, { label: string; icon: string; color: string }> = {
-  clinica:    { label: 'Clínica',    icon: '🩺', color: '#dc2626' },
-  secretaria: { label: 'Secretaria', icon: '🗂️', color: '#0d9488' },
-  farmacia:   { label: 'Farmácia',   icon: '💊', color: '#2563eb' },
-  cozinha:    { label: 'Cozinha',    icon: '🍽️', color: '#d97706' },
-  limpeza:    { label: 'Limpeza',    icon: '🧹', color: '#0891b2' },
-  manutencao: { label: 'Manutenção', icon: '🔧', color: '#7c3aed' },
-  geral:      { label: 'Geral',      icon: '📌', color: '#64748b' },
+  clinica:    { label: 'Clínica',    icon: 'stethoscope', color: 'var(--red)' },
+  secretaria: { label: 'Secretaria', icon: 'layers', color: 'var(--green-3)' },
+  farmacia:   { label: 'Farmácia',   icon: 'pill', color: 'var(--ink-2)' },
+  cozinha:    { label: 'Cozinha',    icon: 'meal', color: 'var(--amber)' },
+  limpeza:    { label: 'Limpeza',    icon: 'package', color: 'var(--green)' },
+  manutencao: { label: 'Manutenção', icon: '🔧', color: 'var(--roxo)' },
+  geral:      { label: 'Geral',      icon: 'pin', color: 'var(--ink-4)' },
 }
 const AREA_KEYS = Object.keys(AREAS)
 const COLS: { id: Task['status']; label: string; color: string }[] = [
-  { id: 'todo', label: 'A fazer', color: '#64748b' },
-  { id: 'doing', label: 'A decorrer', color: '#2563eb' },
-  { id: 'done', label: 'Feito', color: '#16a34a' },
+  { id: 'todo', label: 'A fazer', color: 'var(--ink-4)' },
+  { id: 'doing', label: 'A decorrer', color: 'var(--ink-2)' },
+  { id: 'done', label: 'Feito', color: 'var(--green)' },
 ]
 const PRI: Record<string, { label: string; color: string }> = {
-  alta: { label: 'Alta', color: '#dc2626' }, normal: { label: 'Normal', color: '#2563eb' }, baixa: { label: 'Baixa', color: '#9ca3af' },
+  alta: { label: 'Alta', color: 'var(--red)' }, normal: { label: 'Normal', color: 'var(--ink-2)' }, baixa: { label: 'Baixa', color: 'var(--ink-5)' },
 }
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 export function TarefasTool() {
@@ -171,57 +172,57 @@ export function TarefasTool() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Tarefas da equipa</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Da secretaria à limpeza, cozinha e manutenção — tudo o que mantém a instituição a funcionar.{overdue > 0 ? ` ${overdue} em atraso.` : ''}</p>
           </div>
-          <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#2563eb', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Tarefa</button>
+          <button onClick={() => { setForm(blank); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Tarefa</button>
         </div>
 
         {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24 }}>
-            <div style={{ fontWeight: 700, fontSize: 15, color: '#92400e', marginBottom: 6 }}>Indisponível de momento</div>
-            <div style={{ fontSize: 13, color: '#92400e' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24 }}>
+            <div style={{ fontWeight: 700, fontSize: 15, color: 'var(--amber)', marginBottom: 6 }}>Indisponível de momento</div>
+            <div style={{ fontSize: 13, color: 'var(--amber)' }}>Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.</div>
           </div>
         ) : (
           <>
             <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
-              <button onClick={() => setFilter('all')} style={{ padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${filter === 'all' ? '#0b1120' : 'var(--border)'}`, background: filter === 'all' ? '#0b112010' : 'white', color: filter === 'all' ? '#0b1120' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>Todas</button>
+              <button onClick={() => setFilter('all')} style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${filter === 'all' ? 'var(--ink)' : 'var(--border)'}`, background: filter === 'all' ? '#0b112010' : 'white', color: filter === 'all' ? 'var(--ink)' : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>Todas</button>
               {AREA_KEYS.map(k => (
-                <button key={k} onClick={() => setFilter(k)} style={{ padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${filter === k ? AREAS[k].color : 'var(--border)'}`, background: filter === k ? AREAS[k].color + '12' : 'white', color: filter === k ? AREAS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{AREAS[k].icon} {AREAS[k].label}</button>
+                <button key={k} onClick={() => setFilter(k)} style={{ padding: '6px 12px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${filter === k ? AREAS[k].color : 'var(--border)'}`, background: filter === k ? AREAS[k].color + '12' : 'white', color: filter === k ? AREAS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{AREAS[k].icon} {AREAS[k].label}</button>
               ))}
             </div>
-            {err && !missing && <div style={{ marginBottom: 12, background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, color: '#991b1b', fontSize: 13, padding: '12px 16px' }}>{err}</div>}
+            {err && !missing && <div style={{ marginBottom: 12, background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)', color: 'var(--red)', fontSize: 13, padding: '12px 16px' }}>{err}</div>}
 
             {loading ? (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 10 }} />)}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 64, borderRadius: 'var(--r-lg)' }} />)}</div>
             ) : (
               <div className="tasks-board" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12, alignItems: 'start' }}>
                 {COLS.map(col => {
                   const items = shown.filter(t => t.status === col.id)
                   return (
-                    <div key={col.id} style={{ background: 'var(--bg-2)', borderRadius: 12, padding: 10, minHeight: 120 }}>
+                    <div key={col.id} style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-xl)', padding: 10, minHeight: 120 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '4px 6px 10px' }}>
                         <span style={{ width: 8, height: 8, borderRadius: '50%', background: col.color }} />
-                        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#0b1120' }}>{col.label}</span>
-                        <span style={{ fontSize: 11, color: '#9ca3af', fontWeight: 600 }}>{items.length}</span>
+                        <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink)' }}>{col.label}</span>
+                        <span style={{ fontSize: 11, color: 'var(--ink-5)', fontWeight: 600 }}>{items.length}</span>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-                        {items.length === 0 && <div style={{ fontSize: 12, color: '#cbd5e1', textAlign: 'center', padding: '14px 0' }}>—</div>}
+                        {items.length === 0 && <div style={{ fontSize: 12, color: 'var(--border-2)', textAlign: 'center', padding: '14px 0' }}>—</div>}
                         {items.map(t => {
                           const a = AREAS[t.area] || AREAS.geral
                           const isOverdue = t.status !== 'done' && t.due_date && t.due_date < new Date().toISOString().slice(0, 10)
                           return (
-                            <div key={t.id} style={{ background: 'white', border: `1px solid ${isOverdue ? '#fca5a5' : 'var(--border)'}`, borderRadius: 10, padding: '10px 11px' }}>
+                            <div key={t.id} style={{ background: 'white', border: `1px solid ${isOverdue ? 'var(--badge-red-border)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '10px 11px' }}>
                               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6, alignItems: 'flex-start' }}>
-                                <span style={{ fontSize: 13, fontWeight: 600, color: '#0b1120', lineHeight: 1.35 }}>{t.title}</span>
-                                <button aria-label="Eliminar" onClick={() => del(t.id)} style={{ fontSize: 14, color: '#cbd5e1', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}>×</button>                              </div>
+                                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35 }}>{t.title}</span>
+                                <button aria-label="Eliminar" onClick={() => del(t.id)} style={{ fontSize: 14, color: 'var(--border-2)', background: 'none', border: 'none', cursor: 'pointer', lineHeight: 1, flexShrink: 0 }}>×</button>                              </div>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginTop: 7 }}>
-                                <span style={{ fontSize: 10, fontWeight: 700, color: a.color, background: a.color + '12', padding: '1px 6px', borderRadius: 4 }}>{a.icon} {a.label}</span>
+                                <span style={{ fontSize: 10, fontWeight: 700, color: a.color, background: a.color + '12', padding: '1px 6px', borderRadius: 'var(--r)' }}><Icon name={a.icon} size={15} />  {a.label}</span>
                                 {t.priority !== 'normal' && <span style={{ fontSize: 10, fontWeight: 700, color: PRI[t.priority].color }}>{PRI[t.priority].label}</span>}
-                                {t.assignee && <span style={{ fontSize: 10.5, color: '#6b7280' }}>· {t.assignee}</span>}
-                                {t.recurring && <span style={{ fontSize: 10.5, color: '#6b7280' }}>🔁 {t.recurring}</span>}
-                                {t.due_date && <span style={{ fontSize: 10.5, color: isOverdue ? '#dc2626' : '#9ca3af', fontWeight: isOverdue ? 700 : 400 }}>📅 {new Date(t.due_date + 'T12:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</span>}
+                                {t.assignee && <span style={{ fontSize: 10.5, color: 'var(--ink-4)' }}>· {t.assignee}</span>}
+                                {t.recurring && <span style={{ fontSize: 10.5, color: 'var(--ink-4)' }}>🔁 {t.recurring}</span>}
+                                {t.due_date && <span style={{ fontSize: 10.5, color: isOverdue ? 'var(--red)' : 'var(--ink-5)', fontWeight: isOverdue ? 700 : 400 }}>📅 {new Date(t.due_date + 'T12:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</span>}
                               </div>
                               <div style={{ display: 'flex', gap: 6, marginTop: 9 }}>
-                                {col.id !== 'todo' && <button onClick={() => move(t, col.id === 'done' ? 'doing' : 'todo')} style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>←</button>}
-                                {col.id !== 'done' && <button onClick={() => move(t, col.id === 'todo' ? 'doing' : 'done')} style={{ flex: 2, fontSize: 11, fontWeight: 700, color: '#fff', background: col.id === 'todo' ? '#2563eb' : '#16a34a', border: 'none', borderRadius: 6, padding: '5px 0', cursor: 'pointer' }}>{col.id === 'todo' ? 'Iniciar' : 'Concluir'}</button>}
+                                {col.id !== 'todo' && <button onClick={() => move(t, col.id === 'done' ? 'doing' : 'todo')} style={{ flex: 1, fontSize: 11, fontWeight: 600, color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '5px 0', cursor: 'pointer' }}>←</button>}
+                                {col.id !== 'done' && <button onClick={() => move(t, col.id === 'todo' ? 'doing' : 'done')} style={{ flex: 2, fontSize: 11, fontWeight: 700, color: 'var(--bg)', background: col.id === 'todo' ? 'var(--ink-2)' : 'var(--green)', border: 'none', borderRadius: 'var(--r)', padding: '5px 0', cursor: 'pointer' }}>{col.id === 'todo' ? 'Iniciar' : 'Concluir'}</button>}
                               </div>
                             </div>
                           )
@@ -247,7 +248,7 @@ export function TarefasTool() {
               <div>
                 <span style={lbl}>Área</span>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {AREA_KEYS.map(k => <button key={k} onClick={() => setForm({ ...form, area: k })} style={{ padding: '6px 10px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.area === k ? AREAS[k].color : 'var(--border)'}`, background: form.area === k ? AREAS[k].color + '12' : 'white', color: form.area === k ? AREAS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{AREAS[k].icon} {AREAS[k].label}</button>)}
+                  {AREA_KEYS.map(k => <button key={k} onClick={() => setForm({ ...form, area: k })} style={{ padding: '6px 10px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, cursor: 'pointer', border: `1.5px solid ${form.area === k ? AREAS[k].color : 'var(--border)'}`, background: form.area === k ? AREAS[k].color + '12' : 'white', color: form.area === k ? AREAS[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{AREAS[k].icon} {AREAS[k].label}</button>)}
                 </div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -258,12 +259,12 @@ export function TarefasTool() {
                 <div>
                   <span style={lbl}>Prioridade</span>
                   <div style={{ display: 'flex', gap: 5 }}>
-                    {(['alta', 'normal', 'baixa'] as const).map(k => <button key={k} onClick={() => setForm({ ...form, priority: k })} style={{ flex: 1, padding: '7px 0', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${form.priority === k ? PRI[k].color : 'var(--border)'}`, background: form.priority === k ? PRI[k].color + '12' : 'white', color: form.priority === k ? PRI[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{PRI[k].label}</button>)}
+                    {(['alta', 'normal', 'baixa'] as const).map(k => <button key={k} onClick={() => setForm({ ...form, priority: k })} style={{ flex: 1, padding: '7px 0', borderRadius: 'var(--r-md)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${form.priority === k ? PRI[k].color : 'var(--border)'}`, background: form.priority === k ? PRI[k].color + '12' : 'white', color: form.priority === k ? PRI[k].color : 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>{PRI[k].label}</button>)}
                   </div>
                 </div>
                 <div><span style={lbl}>Recorrência</span><input value={form.recurring} onChange={e => setForm({ ...form, recurring: e.target.value })} placeholder="Ex: diária, semanal" style={inp} /></div>
               </div>
-              <button onClick={add} disabled={saving} style={{ padding: 12, background: '#2563eb', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : 'Adicionar tarefa'}</button>
+              <button onClick={add} disabled={saving} style={{ padding: 12, background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A guardar…' : 'Adicionar tarefa'}</button>
             </div>
           </div>
         </div>

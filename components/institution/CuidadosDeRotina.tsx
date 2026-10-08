@@ -153,7 +153,7 @@ export default function CuidadosDeRotina({ pid, nome, cor }: { pid: string; nome
         )}
       </div>
 
-      {erro && <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+      {erro && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
 
       {atribuidos.length === 0 && (
         <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, marginTop: 'var(--space-7)' }}>
@@ -175,7 +175,7 @@ export default function CuidadosDeRotina({ pid, nome, cor }: { pid: string; nome
               background: 'var(--bg-2)', overflow: 'hidden',
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 11, padding: '11px 13px' }}>
-                <span aria-hidden style={{ fontSize: 17, flexShrink: 0 }}>{cat.icone}</span>
+                
                 <span style={{ minWidth: 0, flex: 1 }}>
                   <span style={{ display: 'block', fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{s.nome}</span>
                   <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-4)', marginTop: 2 }}>
@@ -235,8 +235,8 @@ export default function CuidadosDeRotina({ pid, nome, cor }: { pid: string; nome
               const cat = CATEGORIAS[categoria] || CATEGORIAS.outro
               return (
                 <div key={categoria} style={{ marginBottom: 14 }}>
-                  <div style={{ ...MONO, fontSize: 9.5, color: cat.cor, marginBottom: 7 }}>
-                    {cat.icone} {cat.label}
+                  <div style={{ ...MONO, fontSize: 9.5, color: 'var(--ink-4)', marginBottom: 7 }}>
+                    {cat.label}
                   </div>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                     {servicos.map(s => (
@@ -310,7 +310,7 @@ function Afinador({ a, cor, aoMudar, supabase, orgId, euId }: {
                   style={{
                     minWidth: 42, minHeight: 36, borderRadius: 'var(--r-md)', cursor: 'pointer',
                     border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
-                    background: on ? cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
+                    background: on ? cor : 'transparent', color: on ? 'var(--bg)' : 'var(--ink-3)',
                     fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
                   }}>{d.curto}</button>
               )

@@ -44,14 +44,15 @@ import { nomesDe } from '@/lib/perfisVisiveis'
 import { Bolha } from '@/components/institution/Responsavel'
 import {
   montarPassagem, comNotas, resumoDaPassagem, turnoSeguinte,
-  ROTULO_ORIGEM, COR_ORIGEM,
+  ROTULO_ORIGEM, CODIGO_ORIGEM,
   type Entrada, type Passagem, type NotaDePessoa,
 } from '@/lib/passagemDeTurno'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo, Bandeira,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Grupo, CAIXA, CAIXA_TEXTO,
+  MONO as MONO_MESA, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
-const MONO: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
-  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700,
-}
 const ROTULO_TURNO: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
 
 /** O turno ANTERIOR a este, e em que dia caiu. */
@@ -122,6 +123,7 @@ export default function PassagemDeTurno() {
   const [erro, setErro] = useState('')
   const [indisponivel, setIndisponivel] = useState(false)
 
+  const largo = useLargo()
   const anteriorRef = useMemo(() => turnoAnterior(turno, hoje, temNoite), [turno, hoje, temNoite])
 
   // ── Carregar ──────────────────────────────────────────────────────────────
@@ -371,315 +373,285 @@ export default function PassagemDeTurno() {
 
   if (indisponivel) {
     return (
-      <div style={{ padding: 'var(--space-14)', maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>
-          A passagem de turno ainda não está montada
-        </div>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-          Falta um passo de configuração desta casa. Assim que estiver feito, esta página
-          passa a juntar sozinha o que aconteceu em cada turno.
-        </p>
-      </div>
+      <Mesa>
+        <Painel>
+          <Vazio titulo="A passagem de turno ainda não está montada."
+            oQueFazer="Falta um passo de configuração desta casa. Assim que estiver feito, esta página passa a juntar sozinha o que aconteceu em cada turno." />
+        </Painel>
+      </Mesa>
     )
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Era uma coluna de 820px com a leitura em cima e a escrita em baixo. Isso
+     obriga a escolher: ou se vê o que o turno anterior deixou, ou se vê o que
+     se está a escrever. Nunca os dois — e é exactamente para responder ao
+     primeiro que se escreve o segundo.
+
+     Passa a duas colunas, que é o gesto da passagem:
+
+       ESQUERDA   o que ficou   — ler, e marcar que se leu
+       DIREITA    o que fica    — o que entra sozinho, e o que falta escrever
+
+     No telemóvel voltam a empilhar, porque não há outra maneira; a de ler
+     continua em primeiro, que é o primeiro gesto de quem chega.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const porLer = !!anterior && !euLi
+  const aCarregar = carregando || !jaCarregou
+
   return (
-    <div style={{ padding: 'var(--space-11) clamp(16px,3vw,32px) var(--space-18)', maxWidth: 820, margin: '0 auto' }}>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{ ...MONO_MESA, color: 'var(--green)' }}>Passagem</span>
 
-      <header style={{ marginBottom: 'var(--space-9)' }}>
-        <span style={{ ...MONO, color: cor }}>Passagem de turno</span>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,38px)', fontWeight: 500,
-          color: 'var(--ink)', letterSpacing: '-0.025em', margin: 'var(--space-4) 0 0', lineHeight: 1.1,
-        }}>{ROTULO_TURNO[turno] || turno}</h1>
-        <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: 'var(--space-5) 0 0', lineHeight: 1.55 }}>
-          {carregando ? 'A juntar o que aconteceu…' : resumoDaPassagem(entradas)}
-        </p>
-      </header>
+          <Seletor
+            opcoes={turnos.map(t => ({ id: t, rotulo: ROTULO_TURNO[t] || t }))}
+            ativa={turno}
+            aoMudar={t => { setTurnoTocado(true); setTurno(t as Shift) }} />
 
-      {erro && (
-        <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
-          fontSize: 13, fontWeight: 600,
-        }}>{erro}</div>
-      )}
+          <span style={{ ...MONO_MESA, color: 'var(--ink-4)' }}>
+            {hoje.slice(8, 10)}/{hoje.slice(5, 7)}
+          </span>
 
-      <div style={{ display: 'flex', gap: 5, marginBottom: 'var(--space-9)' }}>
-        {turnos.map(s => {
-          const on = turno === s
-          return (
-            <button key={s} onClick={() => { setTurnoTocado(true); setTurno(s) }} style={{
-              minHeight: 40, padding: '0 15px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-              border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
-              background: on ? cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-            }}>{ROTULO_TURNO[s] || s}</button>
-          )
-        })}
-      </div>
+          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            {aCarregar ? 'A juntar o que aconteceu…' : resumoDaPassagem(entradas)}
+          </span>
 
-      {/* ══ O QUE O TURNO ANTERIOR DEIXOU ══════════════════════════════════ */}
-      {/* Vem primeiro, e vem aberto. É o primeiro gesto de quem chega — e um
-          programa que ponha a escrita à frente acaba com passagens escritas
-          que ninguém leu. */}
-      {anterior && (
-        <section style={{
-          marginBottom: 'var(--space-11)',
-          borderRadius: 'var(--r-xl)',
-          border: `1.5px solid ${euLi ? 'var(--border)' : cor}`,
-          background: 'var(--bg)', overflow: 'hidden',
-        }}>
-          <header style={{
-            padding: 'var(--space-7) var(--space-8)', borderBottom: '1px solid var(--border)',
-            background: euLi ? 'transparent' : 'var(--bg-2)',
-            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
-          }}>
-            <div>
-              <span style={{ ...MONO, fontSize: 9.5, color: euLi ? 'var(--ink-4)' : cor }}>
-                Deixado pelo turno da {(ROTULO_TURNO[anteriorRef.turno] || '').toLowerCase()}
-              </span>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginTop: 4 }}>
-                {anterior.autor_nome || 'Turno anterior'}
-              </div>
-            </div>
-            {!euLi && (
-              <button onClick={marcarLida} style={{
-                minHeight: 40, padding: '0 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-                border: 'none', background: cor, color: '#fff',
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-              }}>Li a passagem</button>
-            )}
-          </header>
-
-          <div style={{ padding: 'var(--space-8)' }}>
-            {anterior.general_notes && (
-              <p style={{
-                fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.65, margin: '0 0 var(--space-7)',
-                whiteSpace: 'pre-wrap',
-              }}>{anterior.general_notes}</p>
-            )}
-
-            {entradasAnterior.length === 0 && !anterior.general_notes ? (
-              <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: 0 }}>
-                O turno anterior não deixou nada a assinalar.
-              </p>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {entradasAnterior.map(e => <LinhaEntrada key={e.chave} e={e} />)}
-              </div>
-            )}
-
-            {/* Quem já leu. É o «read receipt» que os programas ingleses
-                vendem — e no dia em que alguma coisa correr mal, é a única
-                forma de responder a «mas isso estava na passagem?». */}
-            {leram.length > 0 && (
-              <div style={{
-                marginTop: 'var(--space-8)', paddingTop: 'var(--space-6)',
-                borderTop: '1px solid var(--bg-3)',
-                display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap',
-              }}>
-                <span style={{ ...MONO, fontSize: 9.5 }}>Leram</span>
-                {leram.map(l => <Bolha key={l.id} id={l.id} nome={l.nome} compacto />)}
-                <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>
-                  {leram.map(l => l.nome.split(' ')[0]).join(', ')}
-                </span>
-              </div>
-            )}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8, alignItems: 'center' }}>
+            {fechada ? (
+              <Codigo texto="ENTREGUE" cor="var(--green)" />
+            ) : scope.canEdit ? (
+              <>
+                <Botao onClick={() => gravar(false)} esperando={gravando}>GUARDAR RASCUNHO</Botao>
+                <Botao feitio="principal" onClick={() => gravar(true)} esperando={gravando}>
+                  ENTREGAR À {(ROTULO_TURNO[seguinte] || '').toUpperCase()}
+                </Botao>
+              </>
+            ) : null}
           </div>
-        </section>
-      )}
-
-      {/* ══ O QUE ESTE TURNO DEIXA ═════════════════════════════════════════ */}
-      <section>
-        <div style={{
-          display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-          gap: 'var(--space-7)', paddingBottom: 'var(--space-5)', borderBottom: '1px solid var(--ink)',
-        }}>
-          <span style={MONO}>Para o turno da {(ROTULO_TURNO[seguinte] || '').toLowerCase()}</span>
-          {fechada && (
-            <span style={{ ...MONO, color: 'var(--badge-green-fg)' }}>Entregue</span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO_MESA}>O código diz de onde veio a entrada</span>
+          <span style={{ ...MONO_MESA, color: 'var(--amber)' }}>ATENÇÃO = o turno seguinte tem de saber</span>
+          <span style={{ ...MONO_MESA, color: 'var(--ink-5)' }}>
+            Entra sozinho de Ocorrências, Medicação, O dia e do mural
+          </span>
+          {porLer && (
+            <span style={{ ...MONO_MESA, color: 'var(--red)', marginLeft: 'auto' }}>
+              AINDA NÃO MARCOU QUE LEU
+            </span>
           )}
-        </div>
+        </BarraDeEstado>
+      }
+    >
+      {erro && <Aviso tom="mau">{erro}</Aviso>}
 
-        {/* O que entra sozinho. Aparece antes da caixa de escrita de propósito:
-            quem vê que a queda já lá está não a reescreve — e percebe que o
-            que falta escrever é só o resto. */}
-        <div style={{ marginTop: 'var(--space-8)' }}>
-          {carregando || !jaCarregou ? (
-            <p style={{ fontSize: 13.5, color: 'var(--ink-4)' }}>A carregar…</p>
-          ) : entradas.length === 0 ? (
-            <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-              Nada registado neste turno até agora. As ocorrências, as tomas recusadas e o que
-              ficar por fazer entram aqui sozinhas — não é preciso escrevê-las.
-            </p>
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(360px, 1fr) minmax(400px, 1fr)' : '1fr',
+      }}>
+        {/* ══ O QUE FICOU ═══════════════════════════════════════════════════
+            Primeiro, e sempre visível. Um programa que ponha a escrita à
+            frente acaba com passagens escritas que ninguém leu. */}
+        <Painel
+          cabeca={
+            <Cabecalho>
+              <span style={{ ...ROTULO, flex: 1 }}>
+                Deixado pelo turno da {(ROTULO_TURNO[anteriorRef.turno] || '').toLowerCase()}
+                {anteriorRef.dia !== hoje ? ' · ontem' : ''}
+              </span>
+              {anterior?.autor_nome && (
+                <span style={{ ...MONO_MESA, color: 'var(--ink-4)' }}>{anterior.autor_nome}</span>
+              )}
+              {porLer && <Codigo texto="POR LER" cor="var(--red)" />}
+            </Cabecalho>
+          }
+          rodape={
+            anterior ? (
+              <>
+                {leram.length > 0 ? (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                    <span style={MONO_MESA}>Leram {leram.length}</span>
+                    {leram.slice(0, 6).map(l => <Bolha key={l.id} id={l.id} nome={l.nome} compacto />)}
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                      {leram.map(l => l.nome.split(' ')[0]).join(', ')}
+                    </span>
+                  </span>
+                ) : (
+                  <span style={MONO_MESA}>Ninguém marcou que leu</span>
+                )}
+                {!euLi && (
+                  <span style={{ marginLeft: 'auto' }}>
+                    <Botao feitio="principal" onClick={marcarLida}>LI A PASSAGEM</Botao>
+                  </span>
+                )}
+              </>
+            ) : null
+          }
+        >
+          {aCarregar ? (
+            <ACarregar oQue="A ler a passagem anterior…" />
+          ) : !anterior ? (
+            <Vazio titulo={`O turno da ${(ROTULO_TURNO[anteriorRef.turno] || '').toLowerCase()} não entregou passagem.`}
+              oQueFazer="Pode ter sido um turno sem nada a assinalar, ou pode não ter sido escrita. O que foi registado continua em Ocorrências e na Medicação." />
           ) : (
             <>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {entradas.map(e => <LinhaEntrada key={e.chave} e={e} />)}
-              </div>
-              <p style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 'var(--space-6)', lineHeight: 1.5 }}>
-                Isto entra sozinho, do que a equipa registou. Se corrigir uma ocorrência ou uma
-                toma, a passagem acompanha — não há aqui uma segunda cópia.
-              </p>
+              {anterior.general_notes && (
+                <div style={{
+                  padding: '12px 14px', borderBottom: '1px solid var(--border)',
+                  background: 'var(--bg-2)',
+                }}>
+                  <div style={{ ...ROTULO, marginBottom: 5 }}>O que mais ninguém sabia</div>
+                  <p style={{
+                    fontSize: 'var(--t-corpo)', color: 'var(--ink)', lineHeight: 1.6,
+                    margin: 0, whiteSpace: 'pre-wrap',
+                  }}>{anterior.general_notes}</p>
+                </div>
+              )}
+              {entradasAnterior.length === 0 && !anterior.general_notes ? (
+                <Vazio titulo="O turno anterior não deixou nada a assinalar." />
+              ) : (
+                entradasAnterior.map(e => <LinhaEntrada key={e.chave} e={e} />)
+              )}
             </>
           )}
-        </div>
+        </Painel>
 
-        {scope.canEdit && !fechada && (
-          <>
-            <div style={{ marginTop: 'var(--space-10)' }}>
-              <span style={{ ...MONO, display: 'block', marginBottom: 7 }}>
-                O que mais ninguém sabe
+        {/* ══ O QUE FICA ════════════════════════════════════════════════════ */}
+        <Painel
+          cabeca={
+            <Cabecalho>
+              <span style={{ ...ROTULO, flex: 1 }}>
+                Para o turno da {(ROTULO_TURNO[seguinte] || '').toLowerCase()}
               </span>
-              <textarea
-                value={texto} onChange={e => setTexto(e.target.value)}
-                rows={4}
-                placeholder="O que não está registado em mais lado nenhum. Ex.: a família do Sr. António liga amanhã de manhã; o frigorífico da copa está a fazer barulho."
-                style={{
-                  width: '100%', boxSizing: 'border-box', padding: '12px 14px',
-                  borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
-                  fontFamily: 'inherit', fontSize: 14, lineHeight: 1.6,
-                  background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical',
-                }} />
-            </div>
+              <span style={{ ...MONO_MESA, color: 'var(--ink-4)' }}>
+                {entradas.length} AUTOMÁTICA{entradas.length === 1 ? '' : 'S'}
+              </span>
+              {notas.length > 0 && <Codigo texto={`${notas.length} NOTA${notas.length === 1 ? '' : 'S'}`} />}
+            </Cabecalho>
+          }
+        >
+          {/* O que entra sozinho vem ANTES da caixa de escrita, de propósito:
+              quem vê que a queda já lá está não a reescreve — e percebe que o
+              que falta escrever é só o resto. */}
+          {aCarregar ? (
+            <ACarregar oQue="A juntar o turno…" />
+          ) : entradas.length === 0 ? (
+            <Vazio titulo="Nada registado neste turno até agora."
+              oQueFazer="As ocorrências, as tomas recusadas e o que ficar por fazer entram aqui sozinhas — não é preciso escrevê-las." />
+          ) : (
+            entradas.map(e => <LinhaEntrada key={e.chave} e={e} />)
+          )}
 
-            {/* A síntese por IA. Fica DEBAIXO da caixa, e não por cima: quem
-                abre a página tem de ver primeiro um sítio para escrever, e só
-                depois a hipótese de não ter de o fazer. Ao contrário, a
-                primeira coisa que a equipa aprende é a carregar no botão. */}
-            {entradas.length > 0 && (
-              <div style={{ marginTop: 'var(--space-6)' }}>
-                {!sintese && (
-                  <button onClick={resumirComIa} disabled={aPensar} style={{
-                    minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
-                    border: '1px solid var(--border-2)', background: 'transparent',
-                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
-                    color: 'var(--ink-4)', cursor: aPensar ? 'default' : 'pointer',
-                    opacity: aPensar ? 0.6 : 1,
-                  }}>{aPensar ? 'A resumir…' : 'Resumir o turno com IA'}</button>
-                )}
+          {scope.canEdit && !fechada && (
+            <div style={{ padding: '12px 14px', borderTop: '1px solid var(--border-2)' }}>
+              <label htmlFor="passagem-texto" style={{ ...ROTULO, display: 'block', marginBottom: 6 }}>
+                O que mais ninguém sabe
+              </label>
+              <textarea id="passagem-texto"
+                value={texto} onChange={e => setTexto(e.target.value)} rows={4}
+                placeholder="O que não está registado em mais lado nenhum. Ex.: a família de um dos residentes liga amanhã de manhã; o frigorífico da copa está a fazer barulho."
+                style={{ ...CAIXA_TEXTO, width: '100%' }} />
 
-                {erroIa && (
-                  <p style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 7, lineHeight: 1.5 }}>{erroIa}</p>
-                )}
-
-                {sintese && (
-                  <div style={{
-                    marginTop: 8, padding: '12px 14px', borderRadius: 'var(--r-md)',
-                    border: '1px dashed var(--border-2)', background: 'var(--bg-2)',
-                  }}>
-                    <span style={{ ...MONO, fontSize: 9.5, display: 'block', marginBottom: 7 }}>
-                      Proposta — leia antes de usar
-                    </span>
-                    <p style={{
-                      fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.6, margin: 0,
-                      whiteSpace: 'pre-wrap',
-                    }}>{sintese}</p>
-                    <div style={{ display: 'flex', gap: 8, marginTop: 11, flexWrap: 'wrap' }}>
-                      <button onClick={() => { setTexto(t => (t.trim() ? t.trim() + '\n\n' : '') + sintese); setSintese('') }}
-                        style={{
-                          minHeight: 34, padding: '0 12px', borderRadius: 'var(--r-sm)',
-                          border: 'none', background: cor, color: '#fff',
-                          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, cursor: 'pointer',
-                        }}>Usar isto</button>
-                      <button onClick={() => setSintese('')} style={{
-                        minHeight: 34, padding: '0 12px', borderRadius: 'var(--r-sm)',
-                        border: '1px solid var(--border-2)', background: 'transparent',
-                        fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
-                        color: 'var(--ink-4)', cursor: 'pointer',
-                      }}>Deitar fora</button>
+              {/* A síntese por IA fica DEBAIXO da caixa, e não por cima: quem
+                  abre a página tem de ver primeiro um sítio para escrever, e
+                  só depois a hipótese de não ter de o fazer. */}
+              {entradas.length > 0 && (
+                <div style={{ marginTop: 8 }}>
+                  {!sintese && (
+                    <Botao onClick={resumirComIa} esperando={aPensar}>
+                      {aPensar ? 'A RESUMIR…' : 'RESUMIR O TURNO COM IA'}
+                    </Botao>
+                  )}
+                  {erroIa && (
+                    <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 6, lineHeight: 1.5 }}>{erroIa}</p>
+                  )}
+                  {sintese && (
+                    <div style={{
+                      marginTop: 8, padding: '10px 12px', borderRadius: 'var(--r-sm)',
+                      border: '1px dashed var(--border-2)', background: 'var(--bg-2)',
+                    }}>
+                      <div style={{ ...ROTULO, marginBottom: 5 }}>Proposta — leia antes de usar</div>
+                      <p style={{
+                        fontSize: 'var(--t-dado)', color: 'var(--ink-2)', lineHeight: 1.6,
+                        margin: 0, whiteSpace: 'pre-wrap',
+                      }}>{sintese}</p>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 9, flexWrap: 'wrap' }}>
+                        <Botao feitio="principal"
+                          onClick={() => { setTexto(t => (t.trim() ? t.trim() + '\n\n' : '') + sintese); setSintese('') }}>
+                          USAR ISTO
+                        </Botao>
+                        <Botao onClick={() => setSintese('')}>DEITAR FORA</Botao>
+                      </div>
                     </div>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
 
-            {/* Uma nota por pessoa, e só para quem precisa. Uma lista com
-                trinta caixas de texto abertas é uma lista que ninguém enche —
-                e as que ficam por encher fazem a passagem parecer por
-                acabar. */}
-            <NotasPorPessoa
-              pessoas={pessoas} notas={notas} cor={cor} aoMudar={mudarNota} />
+              {/* Uma nota por pessoa, e só para quem precisa. Uma lista com
+                  trinta caixas abertas é uma lista que ninguém enche. */}
+              <NotasPorPessoa pessoas={pessoas} notas={notas} aoMudar={mudarNota} />
 
-            <div style={{ display: 'flex', gap: 9, flexWrap: 'wrap', marginTop: 'var(--space-9)' }}>
-              <button onClick={() => gravar(false)} disabled={gravando} style={{
-                minHeight: 44, padding: '0 18px', borderRadius: 'var(--r-md)',
-                border: '1.5px solid var(--border-2)', background: 'transparent',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-                color: 'var(--ink-3)', cursor: gravando ? 'default' : 'pointer', opacity: gravando ? 0.6 : 1,
-              }}>Guardar rascunho</button>
-
-              <button onClick={() => gravar(true)} disabled={gravando} style={{
-                minHeight: 44, padding: '0 20px', borderRadius: 'var(--r-md)',
-                border: 'none', background: cor, color: '#fff',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-                cursor: gravando ? 'default' : 'pointer', opacity: gravando ? 0.6 : 1,
-              }}>Entregar ao turno seguinte</button>
+              <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>
+                Enquanto for rascunho é só seu. Depois de entregue, quem entrar ao turno
+                seguinte vê-a e marca que a leu.
+              </p>
             </div>
+          )}
 
-            <p style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 'var(--space-6)', lineHeight: 1.5 }}>
-              Enquanto for rascunho é só seu. Depois de entregue, quem entrar ao turno seguinte
-              vê-a e marca que a leu.
-            </p>
-          </>
-        )}
-
-        {fechada && (
-          <div style={{
-            marginTop: 'var(--space-9)', padding: '13px 15px', borderRadius: 'var(--r-md)',
-            background: 'var(--bg-2)', border: '1px solid var(--border)',
-            fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55,
-          }}>
-            Entregue{minha?.autor_nome ? ` por ${minha.autor_nome}` : ''}. O turno da{' '}
-            {(ROTULO_TURNO[seguinte] || '').toLowerCase()} vai encontrá-la ao abrir esta página.
-          </div>
-        )}
-      </section>
-
-      <p style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 'var(--space-12)', lineHeight: 1.6 }}>
-        O que aparece aqui vem de <Link href="/incidents" style={{ color: cor, fontWeight: 700 }}>Ocorrências</Link>,{' '}
-        <Link href="/mar" style={{ color: cor, fontWeight: 700 }}>Medicação</Link>,{' '}
-        <Link href="/o-dia" style={{ color: cor, fontWeight: 700 }}>O dia</Link> e do mural.
-        Registe lá, e a passagem escreve-se quase sozinha.
-      </p>
-    </div>
+          {fechada && (
+            <div style={{
+              padding: '12px 14px', borderTop: '1px solid var(--border-2)',
+              fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55,
+            }}>
+              Entregue{minha?.autor_nome ? ` por ${minha.autor_nome}` : ''}. O turno
+              da {(ROTULO_TURNO[seguinte] || '').toLowerCase()} vai encontrá-la ao abrir esta página.
+            </div>
+          )}
+        </Painel>
+      </div>
+    </Mesa>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+/* UMA ENTRADA DA PASSAGEM
+   Era um cartão com borda, raio e uma barra de cor à esquerda — e a cor saía
+   de `COR_ORIGEM`, seis tons surdos, um por tipo. Seis cores que ninguém
+   decora, e nenhuma delas é uma das três com significado: o olho lê-as como
+   estado e engana-se.
+
+   Passa a uma linha de tabela com um CÓDIGO em mono. Quatro letras lêem-se;
+   um tom de castanho-avermelhado adivinha-se. */
 function LinhaEntrada({ e }: { e: Entrada }) {
-  const cor = COR_ORIGEM[e.origem]
   const conteudo = (
     <>
-      <span aria-hidden style={{
-        width: 3, alignSelf: 'stretch', flexShrink: 0, borderRadius: 2, background: cor,
-      }} />
-      <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35 }}>
-          {e.titulo}
-        </div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45 }}>
-          <span style={{ color: cor, fontWeight: 700 }}>{ROTULO_ORIGEM[e.origem]}</span>
-          {e.detalhe && <span> · {e.detalhe}</span>}
-        </div>
-      </div>
-      {e.gravidade === 'alta' && (
+      <span style={{ width: 54, flexShrink: 0 }}>
+        <Codigo texto={CODIGO_ORIGEM[e.origem]} />
+      </span>
+      <span style={{ flex: 1, minWidth: 0 }}>
         <span style={{
-          flexShrink: 0, alignSelf: 'center', fontSize: 10, fontWeight: 700,
-          padding: '3px 8px', borderRadius: 999,
-          background: 'var(--badge-amber-bg)', color: 'var(--badge-amber-fg)',
-          border: '1px solid var(--badge-amber-border)',
-        }}>atenção</span>
-      )}
+          display: 'block', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any,
+          color: 'var(--ink)', lineHeight: 1.35,
+        }}>{e.titulo}</span>
+        <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>
+          {ROTULO_ORIGEM[e.origem]}{e.detalhe ? ` · ${e.detalhe}` : ''}
+        </span>
+      </span>
+      {e.gravidade === 'alta' && <Bandeira texto="ATENÇÃO" tom="atencao" />}
     </>
   )
 
   const estilo: React.CSSProperties = {
-    display: 'flex', gap: 11, padding: '10px 12px',
-    borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
-    background: 'var(--bg)', textDecoration: 'none',
+    display: 'flex', alignItems: 'center', gap: 10, padding: '8px 12px',
+    borderBottom: '1px solid var(--border)', textDecoration: 'none',
+    color: 'var(--ink)',
   }
 
   return e.href
@@ -687,83 +659,86 @@ function LinhaEntrada({ e }: { e: Entrada }) {
     : <div style={estilo}>{conteudo}</div>
 }
 
-/** Uma nota sobre uma pessoa em concreto. */
-function NotasPorPessoa({ pessoas, notas, cor, aoMudar }: {
+/* UMA NOTA SOBRE ALGUEM EM PARTICULAR
+   Eram cartoes com borda e raio; passam a linhas com um filete, como tudo o
+   resto. E a lista de quem acrescentar passa a ter pesquisa: num lar de
+   sessenta pessoas, rolar sessenta botoes para achar um nome e pior do que
+   escrever tres letras. */
+function NotasPorPessoa({ pessoas, notas, aoMudar }: {
   pessoas: { id: string; name: string }[]
   notas: NotaDePessoa[]
-  cor: string
   aoMudar: (patientId: string, nome: string, nota: string) => void
 }) {
   const [aEscolher, setAEscolher] = useState(false)
+  const [procura, setProcura] = useState('')
   const comNota = new Set(notas.map(n => n.patient_id))
-  const disponiveis = pessoas.filter(p => !comNota.has(p.id))
+  const disponiveis = pessoas
+    .filter(p => !comNota.has(p.id))
+    .filter(p => !procura.trim() || p.name.toLowerCase().includes(procura.trim().toLowerCase()))
 
   return (
-    <div style={{ marginTop: 'var(--space-9)' }}>
-      <span style={{ ...MONO, display: 'block', marginBottom: 7 }}>Sobre alguém em particular</span>
+    <div style={{ marginTop: 14 }}>
+      <div style={{ ...ROTULO, marginBottom: 6 }}>Sobre alguém em particular</div>
 
       {notas.length === 0 && !aEscolher && (
-        <p style={{ fontSize: 12.5, color: 'var(--ink-5)', lineHeight: 1.55, margin: '0 0 9px' }}>
-          Só para quem precisar. A maior parte das noites não precisa de nenhuma.
+        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.55, margin: '0 0 8px' }}>
+          Só para quem precisar. A maior parte dos turnos não precisa de nenhuma.
         </p>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
-        {notas.map(n => (
-          <div key={n.patient_id} style={{
-            borderRadius: 'var(--r-md)', border: '1px solid var(--border)', padding: '10px 12px',
+      {notas.map(n => (
+        <div key={n.patient_id} style={{
+          borderTop: '1px solid var(--border)', padding: '8px 0',
+        }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            gap: 10, marginBottom: 5,
           }}>
-            <div style={{
-              display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 7,
-            }}>
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{n.nome}</span>
-              <button onClick={() => aoMudar(n.patient_id, n.nome, '')} style={{
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700, color: 'var(--ink-5)',
-                minHeight: 32, padding: '0 6px',
-              }}>Tirar</button>
-            </div>
-            <textarea
-              value={n.nota} onChange={e => aoMudar(n.patient_id, n.nome, e.target.value)}
-              rows={2}
-              placeholder="Ex.: passou a noite inquieta; comeu pouco ao jantar."
-              style={{
-                width: '100%', boxSizing: 'border-box', padding: '9px 11px',
-                borderRadius: 'var(--r-sm)', border: '1px solid var(--border)',
-                fontFamily: 'inherit', fontSize: 13.5, lineHeight: 1.55,
-                background: 'var(--bg)', color: 'var(--ink)', resize: 'vertical',
-              }} />
+            <span style={{
+              fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)',
+            }}>{n.nome}</span>
+            <Botao feitio="calmo" onClick={() => aoMudar(n.patient_id, n.nome, '')}>TIRAR</Botao>
           </div>
-        ))}
-      </div>
+          <textarea
+            value={n.nota} onChange={e => aoMudar(n.patient_id, n.nome, e.target.value)}
+            rows={2} aria-label={`Nota sobre ${n.nome}`}
+            placeholder="Ex.: passou a noite inquieta; comeu pouco ao jantar."
+            style={{ ...CAIXA_TEXTO, width: '100%' }} />
+        </div>
+      ))}
 
       {aEscolher ? (
         <div style={{
-          marginTop: 9, maxHeight: 240, overflowY: 'auto',
-          borderRadius: 'var(--r-md)', border: '1px solid var(--border)', padding: 5,
+          marginTop: 8, border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+          overflow: 'hidden',
         }}>
-          {disponiveis.length === 0 && (
-            <div style={{ padding: '10px 12px', fontSize: 12.5, color: 'var(--ink-4)' }}>
-              Já escreveu sobre toda a gente.
-            </div>
-          )}
-          {disponiveis.map(p => (
-            <button key={p.id}
-              onClick={() => { aoMudar(p.id, p.name, ' '); setAEscolher(false) }}
-              style={{
-                display: 'block', width: '100%', textAlign: 'left',
-                minHeight: 38, padding: '0 10px', borderRadius: 'var(--r-sm)',
-                border: 'none', background: 'transparent', cursor: 'pointer',
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: 'var(--ink)',
-              }}>{p.name}</button>
-          ))}
+          <div style={{ padding: 6, borderBottom: '1px solid var(--border)' }}>
+            <input value={procura} onChange={e => setProcura(e.target.value)} autoFocus
+              placeholder="Procurar pelo nome…" aria-label="Procurar a pessoa"
+              style={{ ...CAIXA, width: '100%' }} />
+          </div>
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            {disponiveis.length === 0 && (
+              <div style={{ padding: '9px 11px', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {procura.trim() ? 'Ninguém com esse nome.' : 'Já escreveu sobre toda a gente.'}
+              </div>
+            )}
+            {disponiveis.map(p => (
+              <button key={p.id} type="button" className="mesa-botao"
+                onClick={() => { aoMudar(p.id, p.name, ' '); setAEscolher(false); setProcura('') }}
+                style={{
+                  display: 'block', width: '100%', textAlign: 'left', padding: '0 11px',
+                  border: 'none', borderBottom: '1px solid var(--border)',
+                  background: 'transparent', cursor: 'pointer', fontFamily: 'inherit',
+                  fontSize: 'var(--t-dado)', color: 'var(--ink)',
+                }}>{p.name}</button>
+            ))}
+          </div>
         </div>
       ) : (
-        <button onClick={() => setAEscolher(true)} style={{
-          marginTop: 9, minHeight: 40, padding: '0 14px', borderRadius: 'var(--r-md)',
-          border: `1.5px dashed ${cor}`, background: 'transparent',
-          fontFamily: 'inherit', fontSize: 13, fontWeight: 700, color: cor, cursor: 'pointer',
-        }}>+ Escrever sobre alguém</button>
+        <div style={{ marginTop: 8 }}>
+          <Botao onClick={() => setAEscolher(true)}>+ ESCREVER SOBRE ALGUÉM</Botao>
+        </div>
       )}
     </div>
   )

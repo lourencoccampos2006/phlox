@@ -29,14 +29,14 @@ export default function InstallInstructions({ compact }: { compact?: boolean }) 
 
   if (platform === 'installed') {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 9 }}>
-        <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#059669', flexShrink: 0 }} />
-        <div style={{ fontSize: 12.5, fontWeight: 600, color: '#059669' }}>Já está a usar o Phlox instalado no ecrã principal.</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px', background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)', borderRadius: 'var(--r-lg)' }}>
+        <div style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />
+        <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--green)' }}>Já está a usar o Phlox instalado no ecrã principal.</div>
       </div>
     )
   }
 
-  const box: React.CSSProperties = { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 10, padding: compact ? '12px 14px' : '14px 16px' }
+  const box: React.CSSProperties = { background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: compact ? '12px 14px' : '14px 16px' }
   const step: React.CSSProperties = { display: 'flex', gap: 10, fontSize: 12.5, color: 'var(--ink-2)', lineHeight: 1.55 }
   const num: React.CSSProperties = { width: 18, height: 18, borderRadius: '50%', background: 'var(--ink)', color: 'white', fontSize: 10.5, fontWeight: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }
 

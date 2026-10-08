@@ -19,6 +19,11 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+import Icon from '@/components/Icon'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -72,33 +77,33 @@ interface OSCEFeedback {
 }
 
 const COURSES: { id: Course; label: string; icon: string; color: string }[] = [
-  { id: 'medicine',      label: 'Medicina',       icon: '⚕️', color: '#dc2626' },
-  { id: 'pharmacy',      label: 'Farmácia',        icon: '💊', color: '#0d6e42' },
-  { id: 'nursing',       label: 'Enfermagem',      icon: '💉', color: '#7c3aed' },
-  { id: 'nutrition',     label: 'Nutrição',        icon: '🥗', color: '#65a30d' },
-  { id: 'physiotherapy', label: 'Fisioterapia',    icon: '🏃', color: '#0891b2' },
-  { id: 'dentistry',     label: 'Medicina Dentária',icon: '🦷',color: '#d97706' },
+  { id: 'medicine',      label: 'Medicina',       icon: '⚕️', color: 'var(--red)' },
+  { id: 'pharmacy',      label: 'Farmácia',        icon: 'pill', color: 'var(--green)' },
+  { id: 'nursing',       label: 'Enfermagem',      icon: 'pill', color: 'var(--roxo)' },
+  { id: 'nutrition',     label: 'Nutrição',        icon: 'meal', color: 'var(--green)' },
+  { id: 'physiotherapy', label: 'Fisioterapia',    icon: 'target', color: 'var(--green)' },
+  { id: 'dentistry',     label: 'Medicina Dentária',icon: 'grid',color: 'var(--amber)' },
 ]
 
 const STATION_TYPES = {
   history_taking: { label: 'Anamnese',              icon: '🗣' },
-  physical_exam:  { label: 'Exame físico',           icon: '🩺' },
-  counselling:    { label: 'Aconselhamento',         icon: '💬' },
-  procedure:      { label: 'Procedimento',           icon: '🔬' },
-  communication:  { label: 'Comunicação de más notícias', icon: '❤️' },
+  physical_exam:  { label: 'Exame físico',           icon: 'stethoscope' },
+  counselling:    { label: 'Aconselhamento',         icon: 'chat' },
+  procedure:      { label: 'Procedimento',           icon: 'flask' },
+  communication:  { label: 'Comunicação de más notícias', icon: 'heart' },
 }
 
 const DIFF_META = {
-  basic:        { label: 'Básico',        color: '#0d6e42', bg: '#d1fae5' },
-  intermediate: { label: 'Intermédio',    color: '#d97706', bg: '#fef9c3' },
-  advanced:     { label: 'Avançado',      color: '#dc2626', bg: '#fee2e2' },
+  basic:        { label: 'Básico',        color: 'var(--green)', bg: 'var(--badge-green-bg)' },
+  intermediate: { label: 'Intermédio',    color: 'var(--amber)', bg: 'var(--amber-light)' },
+  advanced:     { label: 'Avançado',      color: 'var(--red)', bg: 'var(--badge-red-bg)' },
 }
 
 const GRADE_META: Record<string, { color: string; label: string; emoji: string }> = {
-  'A': { color: '#0d6e42', label: 'Excelente', emoji: '🏆' },
-  'B': { color: '#16a34a', label: 'Muito bom',  emoji: '⭐' },
-  'C': { color: '#d97706', label: 'Suficiente', emoji: '📚' },
-  'D': { color: '#dc2626', label: 'Insuficiente',emoji: '💪' },
+  'A': { color: 'var(--green)', label: 'Excelente', emoji: 'trophy' },
+  'B': { color: 'var(--green)', label: 'Muito bom',  emoji: 'trophy' },
+  'C': { color: 'var(--amber)', label: 'Suficiente', emoji: 'book' },
+  'D': { color: 'var(--red)', label: 'Insuficiente',emoji: '💪' },
 }
 
 // ─── Timer ────────────────────────────────────────────────────────────────────
@@ -118,16 +123,16 @@ function OSCETimer({ totalSeconds, onExpire }: { totalSeconds: number; onExpire:
   }, [onExpire])
 
   const pct = (remaining / totalSeconds) * 100
-  const color = pct > 50 ? '#0d6e42' : pct > 25 ? '#d97706' : '#dc2626'
+  const color = pct > 50 ? 'var(--green)' : pct > 25 ? 'var(--amber)' : 'var(--red)'
   const m = Math.floor(remaining / 60)
   const s = remaining % 60
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <div style={{ flex: 1, height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 3, transition: 'width 1s linear' }} />
+      <div style={{ flex: 1, height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+        <div style={{ height: '100%', width: `${pct}%`, background: color, borderRadius: 'var(--r-sm)', transition: 'width 1s linear' }} />
       </div>
-      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 700, color, minWidth: 44, textAlign: 'right' }}>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color, minWidth: 44, textAlign: 'right' }}>
         {m}:{s.toString().padStart(2, '0')}
       </span>
     </div>
@@ -312,13 +317,12 @@ export default function OSCEPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
 
       <div className="page-container page-body" style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: 52, marginBottom: 16 }}>🩺</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', marginBottom: 12 }}>Phlox OSCE</div>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 28, maxWidth: 440, margin: '0 auto 28px' }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '48px 32px', textAlign: 'center' }}>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', marginBottom: 12 }}>Phlox OSCE</div>
+          <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.8, marginBottom: 28, maxWidth: 440, margin: '0 auto 28px' }}>
             Simulação de OSCE para todos os cursos de saúde. Medicina, Farmácia, Enfermagem, Nutrição, Fisioterapia. A AI faz de doente. Tu fazes de profissional. Com timer e feedback estação por estação.
           </p>
-          <Link href="/pricing" style={{ display: 'inline-block', background: '#7c3aed', color: 'white', textDecoration: 'none', padding: '13px 32px', borderRadius: 8, fontSize: 15, fontWeight: 700 }}>
+          <Link href="/pricing" style={{ display: 'inline-block', background: 'var(--roxo)', color: 'white', textDecoration: 'none', padding: '13px 32px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>
             Ver plano Plus →
           </Link>
         </div>
@@ -327,7 +331,28 @@ export default function OSCEPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--roxo)', fontWeight: 'var(--peso-forte)' as any,
+          }}>OSCE</span>
+          <span style={{ ...MONO, color: 'var(--ink-4)' }}>
+            {phase === 'setup' ? 'ESCOLHER A ESTAÇÃO' : phase === 'feedback' ? 'RESULTADO' : 'EM CURSO'}
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Uma estação de cada vez, como no exame</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Sair a meio não perde o que já fez — retoma-se onde ficou
+          </span>
+        </BarraDeEstado>
+      }
+    >
 
 
       {/* Setup */}
@@ -336,37 +361,34 @@ export default function OSCEPage() {
           {/* Estação por acabar — sair a meio (anamnese, checklist…) já não perde
               tudo; convida a retomar em vez de aplicar em silêncio. */}
           {resumable && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 16px', marginBottom: 20, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 20 }}>⏳</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-lg)', padding: '12px 16px', marginBottom: 20, flexWrap: 'wrap' }}>
+
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>Tem uma estação por acabar</div>
-                <div style={{ fontSize: 12.5, color: '#6b7280' }}>{resumable.station?.title || 'Estação OSCE'}</div>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Tem uma estação por acabar</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{resumable.station?.title || 'Estação OSCE'}</div>
               </div>
-              <button onClick={resumeSession} style={{ padding: '8px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Continuar →</button>
-              <button onClick={discardResumable} style={{ padding: '8px 14px', background: 'white', color: '#6b7280', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, cursor: 'pointer' }}>Começar de novo</button>
+              <button onClick={resumeSession} style={{ padding: '8px 16px', background: 'var(--roxo)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>Continuar →</button>
+              <button onClick={discardResumable} style={{ padding: '8px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Começar de novo</button>
             </div>
           )}
-          <div style={{ marginBottom: 28 }}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#7c3aed', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ width: 10, height: 2, background: '#7c3aed', borderRadius: 1 }} />Phlox OSCE · Plus
-            </div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, marginBottom: 8 }}>
-              Simulação de OSCE
-            </h1>
-            <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, maxWidth: 520 }}>
+          {/* A migalha «PHLOX OSCE · PLUS» e o título em serifa de 30px
+              saíram: numa página que é um simulador, o que interessa é
+              chegar à estação. O nome está na barra. */}
+          <div style={{ marginBottom: 16 }}>
+            <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.7, maxWidth: 520 }}>
               Escolhe o teu curso, o tipo de estação e a dificuldade. A AI gera a estação, faz de doente, e avalia o teu desempenho item por item — exactamente como num OSCE real.
             </p>
           </div>
 
           {/* Course */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Curso</div>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Curso</div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%,160px),1fr))', gap: 8 }}>
               {COURSES.map(c => (
                 <button key={c.id} onClick={() => setCourse(c.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: `1.5px solid ${course === c.id ? c.color : 'var(--border)'}`, borderRadius: 8, background: course === c.id ? `${c.color}10` : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
-                  <span style={{ fontSize: 20 }}>{c.icon}</span>
-                  <span style={{ fontSize: 13, fontWeight: course === c.id ? 700 : 500, color: course === c.id ? c.color : 'var(--ink)' }}>{c.label}</span>
+                  style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 14px', border: `1.5px solid ${course === c.id ? c.color : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: course === c.id ? `${c.color}10` : 'white', cursor: 'pointer', textAlign: 'left', transition: 'all 0.15s' }}>
+                  <Icon name={c.icon} size={16} />
+                  <span style={{ fontSize: 'var(--t-dado)', fontWeight: course === c.id ? 700 : 500, color: course === c.id ? c.color : 'var(--ink)' }}>{c.label}</span>
                 </button>
               ))}
             </div>
@@ -374,12 +396,12 @@ export default function OSCEPage() {
 
           {/* Station type */}
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tipo de estação</div>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tipo de estação</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {Object.entries(STATION_TYPES).map(([id, meta]) => (
                 <button key={id} onClick={() => setStationType(id as any)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: `1.5px solid ${stationType === id ? selectedCourse.color : 'var(--border)'}`, borderRadius: 8, background: stationType === id ? `${selectedCourse.color}10` : 'white', cursor: 'pointer', fontSize: 12, fontWeight: stationType === id ? 700 : 400, color: stationType === id ? selectedCourse.color : 'var(--ink-3)', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}>
-                  <span>{meta.icon}</span>{meta.label}
+                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', border: `1.5px solid ${stationType === id ? selectedCourse.color : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: stationType === id ? `${selectedCourse.color}10` : 'white', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: stationType === id ? 700 : 400, color: stationType === id ? selectedCourse.color : 'var(--ink-3)', fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}>
+                  <span><Icon name={meta.icon} size={16} /></span>{meta.label}
                 </button>
               ))}
             </div>
@@ -387,11 +409,11 @@ export default function OSCEPage() {
 
           {/* Difficulty */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Dificuldade</div>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Dificuldade</div>
             <div style={{ display: 'flex', gap: 8 }}>
               {Object.entries(DIFF_META).map(([id, meta]) => (
                 <button key={id} onClick={() => setDifficulty(id as any)}
-                  style={{ flex: 1, padding: '10px', border: `1.5px solid ${difficulty === id ? meta.color : 'var(--border)'}`, borderRadius: 8, background: difficulty === id ? meta.bg : 'white', cursor: 'pointer', fontSize: 13, fontWeight: difficulty === id ? 700 : 400, color: difficulty === id ? meta.color : 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
+                  style={{ flex: 1, padding: '10px', border: `1.5px solid ${difficulty === id ? meta.color : 'var(--border)'}`, borderRadius: 'var(--r-md)', background: difficulty === id ? meta.bg : 'white', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: difficulty === id ? 700 : 400, color: difficulty === id ? meta.color : 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>
                   {meta.label}
                 </button>
               ))}
@@ -400,18 +422,18 @@ export default function OSCEPage() {
 
           {/* Tema à escolha (opcional) — se escrito, a estação é sobre este assunto */}
           <div style={{ marginBottom: 24 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tema (opcional)</div>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Tema (opcional)</div>
             <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
               placeholder="Deixa em branco para tema aleatório, ou escreve (ex: cetoacidose, DPOC…)"
-              style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 8, padding: '11px 14px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
+              style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '11px 14px', fontSize: 'var(--t-corpo)', fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }} />
           </div>
 
           {genError && (
-            <div style={{ marginBottom: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: 13 }}>{genError}</div>
+            <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', color: 'var(--red)', fontSize: 'var(--t-dado)' }}>{genError}</div>
           )}
           <button onClick={generateStation} disabled={loading}
-            style={{ width: '100%', padding: '14px', background: loading ? 'var(--bg-3)' : selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: loading ? 'wait' : 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            {loading ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A gerar estação OSCE...</> : `${selectedCourse.icon} Iniciar estação OSCE →`}
+            style={{ width: '100%', padding: '14px', background: loading ? 'var(--bg-3)' : selectedCourse.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: loading ? 'wait' : 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            {loading ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A gerar estação OSCE...</> : `$<Icon name={selectedCourse.icon} size={15} />  Iniciar estação OSCE →`}
           </button>
         </div>
       )}
@@ -420,16 +442,16 @@ export default function OSCEPage() {
       {phase === 'briefing' && station && (
         <div className="page-container page-body" style={{ maxWidth: 680 }}>
           <div style={{ background: selectedCourse.color, borderRadius: '12px 12px 0 0', padding: '24px 28px', color: 'white' }}>
-            <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, opacity: 0.7 }}>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6, opacity: 0.7 }}>
               OSCE · {selectedCourse.label} · {STATION_TYPES[station.station_type].label} · {DIFF_META[station.difficulty].label}
             </div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, fontWeight: 400, marginBottom: 4 }}>{station.title}</div>
-            <div style={{ fontSize: 12, opacity: 0.7, fontFamily: 'var(--font-mono)' }}>{station.duration_minutes} minutos · {station.checklist_items.length} items na checklist</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-normal)' as any, marginBottom: 4 }}>{station.title}</div>
+            <div style={{ fontSize: 'var(--t-meta)', opacity: 0.7, fontFamily: 'var(--font-mono)' }}>{station.duration_minutes} minutos · {station.checklist_items.length} items na checklist</div>
           </div>
           <div style={{ background: 'white', border: '1px solid var(--border)', borderTop: 'none', borderRadius: '0 0 12px 12px', padding: '24px 28px' }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>📋 Briefing do examinador</div>
-            <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '16px 18px', marginBottom: 20 }}>
-              <p style={{ fontSize: 15, color: '#78350f', lineHeight: 1.8, margin: 0, fontFamily: 'var(--font-serif)' }}>{station.patient_briefing}</p>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>📋 Briefing do examinador</div>
+            <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '16px 18px', marginBottom: 20 }}>
+              <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--amber)', lineHeight: 1.8, margin: 0, fontFamily: 'var(--font-serif)' }}>{station.patient_briefing}</p>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 24 }}>
@@ -439,12 +461,12 @@ export default function OSCEPage() {
                 `📊 Avaliação por checklist + diagnóstico`,
                 '🤖 A AI responde como o doente em tempo real',
               ].map((item, i) => (
-                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13, color: 'var(--ink-3)' }}>{item}</div>
+                <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>{item}</div>
               ))}
             </div>
 
             <button onClick={() => setPhase('anamnesis')}
-              style={{ width: '100%', padding: '14px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 15, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              style={{ width: '100%', padding: '14px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
               Entrar na estação →
             </button>
           </div>
@@ -458,15 +480,15 @@ export default function OSCEPage() {
           <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '12px 0', flexShrink: 0 }}>
             <div className="page-container" style={{ display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{station.title}</div>
-                <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{selectedCourse.label} · {STATION_TYPES[station.station_type].label}</div>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{station.title}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{selectedCourse.label} · {STATION_TYPES[station.station_type].label}</div>
               </div>
               <div style={{ minWidth: 200 }}>
                 {!timerExpired && <OSCETimer totalSeconds={station.duration_minutes * 60} onExpire={() => { setTimerExpired(true); setPhase('checklist') }} />}
-                {timerExpired && <span style={{ fontSize: 12, color: '#dc2626', fontFamily: 'var(--font-mono)', fontWeight: 700 }}>⏰ Tempo esgotado</span>}
+                {timerExpired && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any }}>⏰ Tempo esgotado</span>}
               </div>
               <button onClick={() => setPhase('checklist')}
-                style={{ padding: '8px 16px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                style={{ padding: '8px 16px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
                 Avançar →
               </button>
             </div>
@@ -477,27 +499,27 @@ export default function OSCEPage() {
             <div className="page-container" style={{ maxWidth: 680, display: 'flex', flexDirection: 'column', gap: 10 }}>
               {/* Patient intro */}
               <div style={{ display: 'flex', gap: 10 }}>
-                <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🧑‍⚕️</div>
+                <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--badge-red-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)', flexShrink: 0 }}>🧑‍⚕️</div>
                 <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 12px 12px 12px', padding: '12px 14px', maxWidth: '80%' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Doente</div>
-                  <div style={{ fontSize: 14, color: 'var(--ink)', lineHeight: 1.6 }}>Olá, bom dia. Estou aqui porque {station.patient_briefing.toLowerCase().includes('dor') ? 'tenho tido muitas dores' : 'não me tenho sentido bem'}...</div>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Doente</div>
+                  <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', lineHeight: 1.6 }}>Olá, bom dia. Estou aqui porque {station.patient_briefing.toLowerCase().includes('dor') ? 'tenho tido muitas dores' : 'não me tenho sentido bem'}...</div>
                 </div>
               </div>
 
               {anamnesisMessages.map((msg, i) => (
                 <div key={i} style={{ display: 'flex', justifyContent: msg.role === 'student' ? 'flex-end' : 'flex-start', gap: 10 }}>
-                  {msg.role === 'patient' && <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🧑‍⚕️</div>}
+                  {msg.role === 'patient' && <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--badge-red-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)', flexShrink: 0 }}>🧑‍⚕️</div>}
                   <div style={{ maxWidth: '78%', padding: '12px 14px', background: msg.role === 'student' ? selectedCourse.color : 'white', border: msg.role === 'patient' ? '1px solid var(--border)' : 'none', borderRadius: msg.role === 'student' ? '12px 12px 4px 12px' : '4px 12px 12px 12px', color: msg.role === 'student' ? 'white' : 'var(--ink)' }}>
-                    {msg.role === 'patient' && <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Doente</div>}
-                    <div style={{ fontSize: 14, lineHeight: 1.6 }}>{msg.content}</div>
+                    {msg.role === 'patient' && <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Doente</div>}
+                    <div style={{ fontSize: 'var(--t-corpo)', lineHeight: 1.6 }}>{msg.content}</div>
                   </div>
-                  {msg.role === 'student' && <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${selectedCourse.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: selectedCourse.color, flexShrink: 0 }}>Tu</div>}
+                  {msg.role === 'student' && <div style={{ width: 36, height: 36, borderRadius: '50%', background: `${selectedCourse.color}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: selectedCourse.color, flexShrink: 0 }}>Tu</div>}
                 </div>
               ))}
 
               {loading && (
                 <div style={{ display: 'flex', gap: 10 }}>
-                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🧑‍⚕️</div>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'var(--badge-red-bg)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)', flexShrink: 0 }}>🧑‍⚕️</div>
                   <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '4px 12px 12px 12px', padding: '14px', display: 'flex', gap: 5 }}>
                     {[0,1,2].map(i => <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--ink-4)', animation: `bounce 0.9s ease ${i * 0.2}s infinite` }} />)}
                   </div>
@@ -513,9 +535,9 @@ export default function OSCEPage() {
               <input value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && sendAnamnesisMessage()}
                 placeholder="Faz uma pergunta ao doente..." disabled={loading}
-                style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 16px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 16px', fontSize: 'var(--t-corpo)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
               <button onClick={sendAnamnesisMessage} disabled={!input.trim() || loading}
-                style={{ padding: '12px 20px', background: input.trim() && !loading ? selectedCourse.color : 'var(--bg-3)', color: input.trim() && !loading ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 10, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}>
+                style={{ padding: '12px 20px', background: input.trim() && !loading ? selectedCourse.color : 'var(--bg-3)', color: input.trim() && !loading ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-lg)', cursor: 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', transition: 'all 0.15s' }}>
                 Enviar
               </button>
             </div>
@@ -527,8 +549,8 @@ export default function OSCEPage() {
       {phase === 'checklist' && station && (
         <div className="page-container page-body" style={{ maxWidth: 680 }}>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Checklist de avaliação</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Marca os itens que realizaste durante a estação</div>
+            <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Checklist de avaliação</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>Marca os itens que realizaste durante a estação</div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 20 }}>
@@ -536,13 +558,13 @@ export default function OSCEPage() {
               <div key={i} role="checkbox" aria-checked={item.done} tabIndex={0}
                 onClick={() => setChecklistResults(p => p.map((x, j) => j === i ? { ...x, done: !x.done } : x))}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setChecklistResults(p => p.map((x, j) => j === i ? { ...x, done: !x.done } : x)) } }}
-                style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: 'white', border: `1.5px solid ${item.done ? '#6ee7b7' : 'var(--border)'}`, borderRadius: 8, cursor: 'pointer', transition: 'all 0.15s' }}>
-                <div style={{ width: 22, height: 22, borderRadius: 5, border: `2px solid ${item.done ? '#0d6e42' : 'var(--border)'}`, background: item.done ? '#d1fae5' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                  {item.done && <span style={{ fontSize: 12, color: '#0d6e42' }}>✓</span>}
+                style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', background: 'white', border: `1.5px solid ${item.done ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', cursor: 'pointer', transition: 'all 0.15s' }}>
+                <div style={{ width: 22, height: 22, borderRadius: 'var(--r)', border: `2px solid ${item.done ? 'var(--green)' : 'var(--border)'}`, background: item.done ? 'var(--badge-green-bg)' : 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                  {item.done && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--green)' }}>✓</span>}
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{item.item}</div>
-                  <div style={{ fontSize: 10, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', lineHeight: 1.5 }}>{item.item}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 2 }}>
                     {item.marks} ponto{item.marks !== 1 ? 's' : ''}{item.mandatory ? ' · obrigatório' : ''}
                   </div>
                 </div>
@@ -551,15 +573,15 @@ export default function OSCEPage() {
           </div>
 
           {/* Score preview */}
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '12px 14px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Itens completados</span>
-            <span style={{ fontSize: 16, fontWeight: 700, color: selectedCourse.color }}>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px 14px', marginBottom: 16, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>Itens completados</span>
+            <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: selectedCourse.color }}>
               {checklistResults.filter(x => x.done).length}/{checklistResults.length}
             </span>
           </div>
 
           <button onClick={() => setPhase('diagnosis')}
-            style={{ width: '100%', padding: '13px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+            style={{ width: '100%', padding: '13px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
             Avançar para diagnóstico →
           </button>
         </div>
@@ -569,32 +591,32 @@ export default function OSCEPage() {
       {phase === 'diagnosis' && station && (
         <div className="page-container page-body" style={{ maxWidth: 680 }}>
           <div style={{ marginBottom: 20 }}>
-            <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Diagnóstico e plano</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Com base na tua avaliação, formula o diagnóstico e o plano de actuação</div>
+            <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 4 }}>Diagnóstico e plano</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>Com base na tua avaliação, formula o diagnóstico e o plano de actuação</div>
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>
                 {course === 'pharmacy' ? 'Problema farmacoterapêutico / Recomendação' : course === 'nursing' ? 'Diagnóstico de enfermagem / Intervenção' : course === 'nutrition' ? 'Estado nutricional / Plano dietético' : 'Diagnóstico'}
               </div>
               <textarea value={diagnosis} onChange={e => setDiagnosis(e.target.value)}
                 placeholder="Formula o teu diagnóstico com base na anamnese..."
-                rows={3} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '12px 14px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
+                rows={3} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px 14px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
             </div>
             <div>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Plano de actuação</div>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Plano de actuação</div>
               <textarea value={plan} onChange={e => setPlan(e.target.value)}
                 placeholder="Descreve o que recomendas — tratamento, monitorização, seguimento, educação do doente..."
-                rows={4} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '12px 14px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
+                rows={4} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '12px 14px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical', lineHeight: 1.6 }} />
             </div>
           </div>
 
           {genError && (
-            <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: 13 }}>{genError}</div>
+            <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', color: 'var(--red)', fontSize: 'var(--t-dado)' }}>{genError}</div>
           )}
           <button onClick={submitForFeedback} disabled={loading || !diagnosis.trim()}
-            style={{ marginTop: 16, width: '100%', padding: '13px', background: diagnosis.trim() && !loading ? selectedCourse.color : 'var(--bg-3)', color: diagnosis.trim() && !loading ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            style={{ marginTop: 16, width: '100%', padding: '13px', background: diagnosis.trim() && !loading ? selectedCourse.color : 'var(--bg-3)', color: diagnosis.trim() && !loading ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
             {loading ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />A avaliar...</> : 'Submeter e ver avaliação →'}
           </button>
         </div>
@@ -604,26 +626,28 @@ export default function OSCEPage() {
       {phase === 'feedback' && feedback && station && (
         <div className="page-container page-body" style={{ maxWidth: 700 }}>
           {/* Score header */}
-          <div style={{ background: selectedCourse.color, borderRadius: 12, padding: '24px 28px', marginBottom: 14, color: 'white', textAlign: 'center' }}>
-            <div style={{ fontSize: 52, marginBottom: 8 }}>{GRADE_META[feedback.grade]?.emoji || '📊'}</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 48, fontWeight: 400, marginBottom: 4 }}>{feedback.percentage}%</div>
-            <div style={{ fontSize: 18, fontWeight: 700, opacity: 0.9, marginBottom: 4 }}>
+          <div style={{ background: selectedCourse.color, borderRadius: 'var(--r-xl)', padding: '24px 28px', marginBottom: 14, color: 'white', textAlign: 'center' }}>
+            {/* A NOTA: era serifa de 48px por baixo de um emoji de 52px.
+                Uma nota é um número que se compara com a da vez anterior —
+                lê-se em mono tabular, não em serifa editorial. */}
+            <div style={{ ...MONO, fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, marginBottom: 4 }}>{feedback.percentage}%</div>
+            <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, opacity: 0.9, marginBottom: 4 }}>
               {GRADE_META[feedback.grade]?.label || 'Avaliado'} — Classificação {feedback.grade}
             </div>
-            <div style={{ fontSize: 13, opacity: 0.7 }}>{feedback.total_score}/{feedback.max_score} pontos</div>
+            <div style={{ fontSize: 'var(--t-dado)', opacity: 0.7 }}>{feedback.total_score}/{feedback.max_score} pontos</div>
           </div>
 
           {/* Breakdown */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10, marginBottom: 14 }}>
             {[
               { label: 'Anamnese', score: feedback.anamnesis_score, icon: '🗣' },
-              { label: 'Checklist', score: feedback.checklist_score, icon: '📋' },
-              { label: 'Diagnóstico', score: feedback.diagnosis_score, icon: '🔬' },
+              { label: 'Checklist', score: feedback.checklist_score, icon: 'clipboard' },
+              { label: 'Diagnóstico', score: feedback.diagnosis_score, icon: 'flask' },
             ].map(s => (
-              <div key={s.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '14px', textAlign: 'center' }}>
-                <div style={{ fontSize: 20, marginBottom: 4 }}>{s.icon}</div>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: s.score >= 70 ? '#0d6e42' : s.score >= 50 ? '#d97706' : '#dc2626' }}>{s.score}%</div>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{s.label}</div>
+              <div key={s.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '14px', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--t-destaque)', marginBottom: 4 }}><Icon name={s.icon} size={16} /></div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: s.score >= 70 ? 'var(--green)' : s.score >= 50 ? 'var(--amber)' : 'var(--red)' }}>{s.score}%</div>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginTop: 2 }}>{s.label}</div>
               </div>
             ))}
           </div>
@@ -634,59 +658,59 @@ export default function OSCEPage() {
             { label: 'Checklist', feedback: feedback.checklist_feedback, score: feedback.checklist_score },
             { label: 'Diagnóstico', feedback: feedback.diagnosis_feedback, score: feedback.diagnosis_score },
           ].map(item => (
-            <div key={item.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', marginBottom: 10 }}>
+            <div key={item.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
-                <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: item.score >= 70 ? '#0d6e42' : item.score >= 50 ? '#d97706' : '#dc2626' }}>{item.score}%</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{item.label}</div>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: item.score >= 70 ? 'var(--green)' : item.score >= 50 ? 'var(--amber)' : 'var(--red)' }}>{item.score}%</div>
               </div>
-              <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.7 }}>{item.feedback}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', lineHeight: 1.7 }}>{item.feedback}</div>
             </div>
           ))}
 
           {/* Strengths + improvements */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 14 }}>
-            <div style={{ background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>✓ Pontos fortes</div>
-              {(feedback.strengths || []).map((s, i) => <div key={i} style={{ fontSize: 12, color: '#14532d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+            <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-lg)', padding: '14px 16px' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>✓ Pontos fortes</div>
+              {(feedback.strengths || []).map((s, i) => <div key={i} style={{ fontSize: 'var(--t-meta)', color: 'var(--green-3)', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
             </div>
-            <div style={{ background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 16px' }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>→ A melhorar</div>
-              {(feedback.improvements || []).map((s, i) => <div key={i} style={{ fontSize: 12, color: '#78350f', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+            <div style={{ background: 'var(--amber-light)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-lg)', padding: '14px 16px' }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--badge-amber-fg)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>→ A melhorar</div>
+              {(feedback.improvements || []).map((s, i) => <div key={i} style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
             </div>
           </div>
 
           {/* Perguntas que faltaram */}
           {feedback.questions_missed && feedback.questions_missed.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid #fecaca', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#b91c1c', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>✗ Perguntas-chave que faltaram</div>
-              {feedback.questions_missed.map((s, i) => <div key={i} style={{ fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+            <div style={{ background: 'white', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 10 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>✗ Perguntas-chave que faltaram</div>
+              {feedback.questions_missed.map((s, i) => <div key={i} style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
             </div>
           )}
 
           {/* Red flags */}
           {feedback.red_flags_missed && feedback.red_flags_missed.length > 0 && (
-            <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, padding: '14px 16px', marginBottom: 10 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>🚩 Sinais de alarme a procurar</div>
-              {feedback.red_flags_missed.map((s, i) => <div key={i} style={{ fontSize: 12.5, color: '#7f1d1d', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
+            <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 10 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>🚩 Sinais de alarme a procurar</div>
+              {feedback.red_flags_missed.map((s, i) => <div key={i} style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', lineHeight: 1.6, marginBottom: 4 }}>· {s}</div>)}
             </div>
           )}
 
           {/* Model answer */}
-          <div style={{ background: 'var(--ink)', borderRadius: 10, padding: '16px 18px', marginBottom: 14 }}>
-            <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#475569', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>💎 Resposta modelo</div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{feedback.model_answer}</div>
+          <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 14 }}>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>💎 Resposta modelo</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'rgba(255,255,255,0.85)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{feedback.model_answer}</div>
           </div>
 
           {/* Dica para a próxima */}
           {feedback.next_station_tip && (
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '14px 16px', marginBottom: 14 }}>
-              <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>💡 Para a próxima</div>
-              <div style={{ fontSize: 13, color: '#1e3a8a', lineHeight: 1.6 }}>{feedback.next_station_tip}</div>
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginBottom: 14 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>💡 Para a próxima</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--badge-blue-fg)', lineHeight: 1.6 }}>{feedback.next_station_tip}</div>
             </div>
           )}
 
           <button onClick={() => { setPhase('setup'); setStation(null); setAnamnesisMessages([]); setChecklistResults([]); setDiagnosis(''); setPlan(''); setFeedback(null); setTimerExpired(false); try { localStorage.removeItem(OSCE_SESSION_KEY) } catch {} }}
-            style={{ width: '100%', padding: '13px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 14, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+            style={{ width: '100%', padding: '13px', background: selectedCourse.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
             Nova estação OSCE →
           </button>
         </div>
@@ -696,6 +720,6 @@ export default function OSCEPage() {
         @keyframes spin { to { transform: rotate(360deg) } }
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
       `}</style>
-    </div>
+    </Mesa>
   )
 }

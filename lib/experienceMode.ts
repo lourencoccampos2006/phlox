@@ -14,8 +14,8 @@ export const MODE_META: Record<ExperienceMode, {
   label: string; labelShort: string; color: string
   bg: string; border: string; headerBg: string; headerText: string
 }> = {
-  clinical:  { label: 'Instituição', labelShort: 'Instituição',   color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', headerBg: '#0f172a', headerText: '#f8fafc' },
-  student:   { label: 'Estudante',             labelShort: 'Estudante', color: '#7c3aed', bg: '#faf5ff', border: '#e9d5ff', headerBg: '#ffffff', headerText: '#0a0a0a' },
-  caregiver: { label: 'Cuidador Familiar',     labelShort: 'Família',   color: '#b45309', bg: '#fffbeb', border: '#fde68a', headerBg: '#ffffff', headerText: '#0a0a0a' },
-  personal:  { label: 'Uso Pessoal',           labelShort: 'Pessoal',   color: '#0d6e42', bg: '#f0fdf5', border: '#bbf7d0', headerBg: '#ffffff', headerText: '#0a0a0a' },
+  clinical:  { label: 'Instituição', labelShort: 'Instituição',   color: 'var(--blue)', bg: 'var(--blue-light)', border: 'var(--blue-light)', headerBg: 'var(--badge-blue-fg)', headerText: 'var(--bg-2)' },
+  student:   { label: 'Estudante',             labelShort: 'Estudante', color: 'var(--roxo)', bg: 'var(--roxo-claro)', border: 'var(--roxo-borda)', headerBg: 'var(--bg)', headerText: 'var(--ink)' },
+  caregiver: { label: 'Cuidador Familiar',     labelShort: 'Família',   color: 'var(--amber)', bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', headerBg: 'var(--bg)', headerText: 'var(--ink)' },
+  personal:  { label: 'Uso Pessoal',           labelShort: 'Pessoal',   color: 'var(--green)', bg: 'var(--green-light)', border: 'var(--green-mid)', headerBg: 'var(--bg)', headerText: 'var(--ink)' },
 }

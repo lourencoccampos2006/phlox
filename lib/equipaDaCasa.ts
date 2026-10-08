@@ -50,7 +50,7 @@ export function iniciais(nome: string): string {
  * decora. Por isso sai do `id`, que não muda, e não de uma posição numa lista,
  * que muda sempre que entra alguém.
  */
-const CORES = ['#7c6f5a', '#5f7161', '#6b6a80', '#80625f', '#5a6d7c', '#7a5f70']
+const CORES = ['var(--amber)', 'var(--green)', 'var(--blue)', 'var(--red)', 'var(--blue)', 'var(--red)']
 export function corDe(id: string): string {
   let n = 0
   for (let i = 0; i < id.length; i++) n = (n * 31 + id.charCodeAt(i)) >>> 0

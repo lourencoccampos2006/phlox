@@ -51,7 +51,7 @@ export default function DiagnosticoPush({ supabase }: { supabase: any }) {
   const tudoBem = etapas?.every(e => e.ok)
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
         Não estão a chegar?
       </div>
@@ -66,7 +66,7 @@ export default function DiagnosticoPush({ supabase }: { supabase: any }) {
         style={{
           padding: '10px 18px', background: aCorrer ? 'var(--bg-3)' : 'var(--bg-2)',
           color: aCorrer ? 'var(--ink-4)' : 'var(--ink)',
-          border: '1px solid var(--border)', borderRadius: 7,
+          border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
           cursor: aCorrer ? 'wait' : 'pointer', fontSize: 13, fontWeight: 700,
           fontFamily: 'var(--font-sans)',
         }}>
@@ -74,7 +74,7 @@ export default function DiagnosticoPush({ supabase }: { supabase: any }) {
       </button>
 
       {erro && (
-        <div style={{ marginTop: 14, padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12.5, color: '#c53030', lineHeight: 1.6 }}>
+        <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--red)', lineHeight: 1.6 }}>
           {erro}
         </div>
       )}
@@ -82,20 +82,20 @@ export default function DiagnosticoPush({ supabase }: { supabase: any }) {
       {etapas && (
         <div style={{ marginTop: 16 }}>
           {tudoBem && (
-            <div style={{ marginBottom: 14, padding: '11px 14px', background: '#f0fdf4', border: '1px solid #86efac', borderRadius: 7, fontSize: 12.5, color: '#166534', lineHeight: 1.6 }}>
+            <div style={{ marginBottom: 14, padding: '11px 14px', background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--green-3)', lineHeight: 1.6 }}>
               Está tudo ligado. A notificação de teste deve aparecer em segundos — se não aparecer
               neste dispositivo mas as etapas estiverem todas verdes, o sistema operativo pode ter
               o Phlox em silêncio (Windows: Assistente de Foco; Android: modo Não Incomodar).
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 8, overflow: 'hidden' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'hidden' }}>
             {etapas.map((e, i) => (
               <div key={i} style={{ background: 'white', padding: '12px 14px' }}>
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 9 }}>
                   <span style={{
                     width: 7, height: 7, borderRadius: '50%', flexShrink: 0,
-                    background: e.ok ? '#059669' : '#b45309', marginTop: 5,
+                    background: e.ok ? 'var(--green)' : 'var(--amber)', marginTop: 5,
                   }} />
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 13, fontWeight: 650, color: 'var(--ink)' }}>{e.etapa}</div>
@@ -120,7 +120,7 @@ export default function DiagnosticoPush({ supabase }: { supabase: any }) {
               {dispositivos.map((d, i) => (
                 <div key={i} style={{ display: 'flex', alignItems: 'baseline', gap: 9, padding: '6px 0', borderBottom: i < dispositivos.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
                   <span style={{ fontSize: 12.5, color: 'var(--ink-2)', minWidth: 120 }}>{d.onde}</span>
-                  <span style={{ fontSize: 12.5, color: d.ok ? '#059669' : '#b45309', fontWeight: 600 }}>
+                  <span style={{ fontSize: 12.5, color: d.ok ? 'var(--green)' : 'var(--amber)', fontWeight: 600 }}>
                     {d.ok ? 'enviada' : `falhou${d.estado ? ` · ${d.estado}` : ''}`}
                   </span>
                   {!d.ok && d.motivo && (

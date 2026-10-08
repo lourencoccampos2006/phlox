@@ -12,7 +12,7 @@ export default function TudoRedirect() {
   const router = useRouter()
   useEffect(() => { router.replace('/inicio#explorar') }, [router])
   return (
-    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>
       A redirecionar…
     </div>
   )

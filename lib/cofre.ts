@@ -23,13 +23,13 @@
 /** Os valores que a coluna `health_vault.category` aceita. Mexer nesta lista
  *  obriga a mexer no `check` da tabela — e ao contrário. */
 export const CATEGORIAS_COFRE = [
-  { id: 'exam',         label: 'Análises',    icon: '🧪', color: '#0891b2' },
-  { id: 'prescription', label: 'Receita',     icon: '📄', color: '#7c3aed' },
-  { id: 'imaging',      label: 'Imagiologia', icon: '🔬', color: '#0d6e42' },
-  { id: 'vaccine',      label: 'Vacina',      icon: '💉', color: '#16a34a' },
-  { id: 'report',       label: 'Relatório',   icon: '📋', color: '#475569' },
-  { id: 'letter',       label: 'Carta',       icon: '✉',  color: '#b45309' },
-  { id: 'other',        label: 'Outro',       icon: '📁', color: '#94a3b8' },
+  { id: 'exam',         label: 'Análises',    icon: 'flask', color: 'var(--green)' },
+  { id: 'prescription', label: 'Receita',     icon: 'note', color: 'var(--roxo)' },
+  { id: 'imaging',      label: 'Imagiologia', icon: 'flask', color: 'var(--green)' },
+  { id: 'vaccine',      label: 'Vacina',      icon: 'pill', color: 'var(--green)' },
+  { id: 'report',       label: 'Relatório',   icon: 'clipboard', color: 'var(--blue)' },
+  { id: 'letter',       label: 'Carta',       icon: 'inbox',  color: 'var(--amber)' },
+  { id: 'other',        label: 'Outro',       icon: 'layers', color: 'var(--badge-blue-border)' },
 ] as const
 
 export type CategoriaCofre = typeof CATEGORIAS_COFRE[number]['id']

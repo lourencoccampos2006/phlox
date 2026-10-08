@@ -251,9 +251,9 @@ export function riskScore(findings: Finding[]): number {
 }
 
 export const SEVERITY_META: Record<Finding['severity'], { label: string; color: string; bg: string }> = {
-  critical: { label: 'Crítico',   color: '#7f1d1d', bg: '#fee2e2' },
-  major:    { label: 'Grave',     color: '#b91c1c', bg: '#fef2f2' },
-  moderate: { label: 'Moderado',  color: '#b45309', bg: '#fffbeb' },
-  minor:    { label: 'Ligeiro',   color: '#1d4ed8', bg: '#eff6ff' },
-  info:     { label: 'Info',      color: '#64748b', bg: '#f1f5f9' },
+  critical: { label: 'Crítico',   color: 'var(--badge-red-fg)', bg: 'var(--red-light)' },
+  major:    { label: 'Grave',     color: 'var(--red)', bg: 'var(--red-light)' },
+  moderate: { label: 'Moderado',  color: 'var(--amber)', bg: 'var(--amber-light)' },
+  minor:    { label: 'Ligeiro',   color: 'var(--blue)', bg: 'var(--blue-light)' },
+  info:     { label: 'Info',      color: 'var(--blue)', bg: 'var(--blue-light)' },
 }

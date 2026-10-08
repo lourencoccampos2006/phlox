@@ -118,8 +118,8 @@ export function analyzeResident(i: ResidentInput): { score: number; level: Sever
 }
 
 export const SEVERITY_STYLE: Record<Severity, { color: string; bg: string; border: string; label: string }> = {
-  critical: { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', label: 'Crítico' },
-  warning:  { color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'A vigiar' },
-  info:     { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', label: 'A completar' },
-  good:     { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', label: 'Estável' },
+  critical: { color: 'var(--red)', bg: 'var(--red-light)', border: 'var(--badge-red-border)', label: 'Crítico' },
+  warning:  { color: 'var(--amber)', bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', label: 'A vigiar' },
+  info:     { color: 'var(--blue)', bg: 'var(--blue-light)', border: 'var(--blue-light)', label: 'A completar' },
+  good:     { color: 'var(--green)', bg: 'var(--green-light)', border: 'var(--green-mid)', label: 'Estável' },
 }

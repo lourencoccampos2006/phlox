@@ -1,6 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -147,10 +152,10 @@ function aminoCalc(p: PatientForm, a: AminoForm) {
     const b24 = 6.5  * Math.exp(-0.092 * t)
     const b36 = 4.5  * Math.exp(-0.073 * t)
     const b48 = 2.65 * Math.exp(-0.056 * t)
-    if (C < b48) nomogram = { interval: 24, zone: 'q24h', color: '#16a34a', action: 'Continuar dose actual q24h' }
-    else if (C < b36) nomogram = { interval: 36, zone: 'q36h', color: '#ca8a04', action: 'Alterar para q36h' }
-    else if (C < b24) nomogram = { interval: 48, zone: 'q48h', color: '#ea580c', action: 'Alterar para q48h' }
-    else nomogram = { interval: 0, zone: 'Fora nomograma', color: '#dc2626', action: 'Aguardar CXL < 1 mg/L. Consultar farmacêutico.' }
+    if (C < b48) nomogram = { interval: 24, zone: 'q24h', color: 'var(--green)', action: 'Continuar dose actual q24h' }
+    else if (C < b36) nomogram = { interval: 36, zone: 'q36h', color: 'var(--amber)', action: 'Alterar para q36h' }
+    else if (C < b24) nomogram = { interval: 48, zone: 'q48h', color: 'var(--amber)', action: 'Alterar para q48h' }
+    else nomogram = { interval: 0, zone: 'Fora nomograma', color: 'var(--red)', action: 'Aguardar CXL < 1 mg/L. Consultar farmacêutico.' }
   }
 
   const targets = a.drug === 'amikacin'
@@ -262,10 +267,10 @@ function digoxinCalc(p: PatientForm, d: DigoxinForm) {
 
 function Row({ label, value, unit, dim }: { label: string; value: string; unit?: string; dim?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
-      <span style={{ fontSize: 12, color: dim ? '#94a3b8' : '#64748b' }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: 600, color: dim ? '#94a3b8' : '#0f172a' }}>
-        {value}{unit && <span style={{ fontSize: 11, fontWeight: 400, color: '#94a3b8', marginLeft: 3 }}>{unit}</span>}
+    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', padding: '5px 0', borderBottom: '1px solid var(--bg-3)' }}>
+      <span style={{ fontSize: 'var(--t-meta)', color: dim ? 'var(--ink-5)' : 'var(--ink-4)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: dim ? 'var(--ink-5)' : 'var(--ink)' }}>
+        {value}{unit && <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-normal)' as any, color: 'var(--ink-5)', marginLeft: 3 }}>{unit}</span>}
       </span>
     </div>
   )
@@ -274,10 +279,10 @@ function Row({ label, value, unit, dim }: { label: string; value: string; unit?:
 function Warn({ text, type = 'error' }: { text: string; type?: 'error' | 'info' }) {
   return (
     <div style={{
-      padding: '8px 11px', borderRadius: 8, marginBottom: 6,
-      background: type === 'error' ? '#fef2f2' : '#eff6ff',
-      border: `1px solid ${type === 'error' ? '#fecaca' : '#bfdbfe'}`,
-      fontSize: 12, color: type === 'error' ? '#dc2626' : '#1d4ed8',
+      padding: '8px 11px', borderRadius: 'var(--r-md)', marginBottom: 6,
+      background: type === 'error' ? 'var(--badge-red-bg)' : 'var(--bg-2)',
+      border: `1px solid ${type === 'error' ? 'var(--badge-red-border)' : 'var(--border)'}`,
+      fontSize: 'var(--t-meta)', color: type === 'error' ? 'var(--red)' : 'var(--ink-2)',
       display: 'flex', gap: 7, alignItems: 'flex-start',
     }}>
       <span style={{ flexShrink: 0, marginTop: 1 }}>{type === 'error' ? '⚠' : 'ℹ'}</span>
@@ -294,7 +299,7 @@ function Input({
 }) {
   return (
     <div style={{ marginBottom: small ? 8 : 11 }}>
-      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <label style={{ display: 'block', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </label>
       <div style={{ position: 'relative' }}>
@@ -308,13 +313,13 @@ function Input({
           placeholder={placeholder ?? '—'}
           style={{
             width: '100%', padding: suffix ? '7px 36px 7px 10px' : '7px 10px',
-            borderRadius: 7, border: '1px solid #e2e8f0', fontSize: 13,
-            background: 'white', color: '#0f172a', fontFamily: 'inherit',
+            borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontSize: 'var(--t-dado)',
+            background: 'white', color: 'var(--ink)', fontFamily: 'inherit',
             outline: 'none', boxSizing: 'border-box',
           }}
         />
         {suffix && (
-          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#94a3b8', pointerEvents: 'none' }}>
+          <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', pointerEvents: 'none' }}>
             {suffix}
           </span>
         )}
@@ -329,16 +334,16 @@ function Select({ label, value, onChange, options }: {
 }) {
   return (
     <div style={{ marginBottom: 11 }}>
-      <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+      <label style={{ display: 'block', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
         {label}
       </label>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
         style={{
-          width: '100%', padding: '7px 10px', borderRadius: 7,
-          border: '1px solid #e2e8f0', fontSize: 13, background: 'white',
-          color: '#0f172a', fontFamily: 'inherit', outline: 'none',
+          width: '100%', padding: '7px 10px', borderRadius: 'var(--r-md)',
+          border: '1px solid var(--border)', fontSize: 'var(--t-dado)', background: 'white',
+          color: 'var(--ink)', fontFamily: 'inherit', outline: 'none',
         }}
       >
         {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -349,21 +354,21 @@ function Select({ label, value, onChange, options }: {
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 10, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
-      <div style={{ flex: 1, height: 1, background: '#f1f5f9' }} />
+    <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10, marginTop: 4, display: 'flex', alignItems: 'center', gap: 6 }}>
+      <div style={{ flex: 1, height: 1, background: 'var(--bg-3)' }} />
       {children}
-      <div style={{ flex: 1, height: 1, background: '#f1f5f9' }} />
+      <div style={{ flex: 1, height: 1, background: 'var(--bg-3)' }} />
     </div>
   )
 }
 
 function BigNumber({ value, label, color, unit }: { value: string; label: string; color: string; unit?: string }) {
   return (
-    <div style={{ textAlign: 'center', padding: '12px 8px', background: `${color}08`, borderRadius: 10, border: `1px solid ${color}20` }}>
-      <div style={{ fontSize: 26, fontWeight: 900, color, lineHeight: 1 }}>
-        {value}<span style={{ fontSize: 13, fontWeight: 500 }}>{unit}</span>
+    <div style={{ textAlign: 'center', padding: '12px 8px', background: `${color}08`, borderRadius: 'var(--r-lg)', border: `1px solid ${color}20` }}>
+      <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color, lineHeight: 1 }}>
+        {value}<span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any }}>{unit}</span>
       </div>
-      <div style={{ fontSize: 10, color: '#64748b', marginTop: 4, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
+      <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4, fontWeight: 'var(--peso-corpo)' as any, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</div>
     </div>
   )
 }
@@ -402,38 +407,49 @@ export default function PKDosing() {
   }, [pt])
 
   const TABS: { id: DrugTab; label: string; sub: string; icon: string }[] = [
-    { id: 'vancomycin',    label: 'Vancomicina',       sub: 'AUC-guided · Rybak 2020',       icon: '💉' },
-    { id: 'aminoglycoside', label: 'Aminoglicosídeos', sub: 'Hartford · EID nomograma',        icon: '🔬' },
-    { id: 'phenytoin',     label: 'Fenitoína',          sub: 'Michaelis-Menten · Sheiner-Tozer', icon: '⚡' },
-    { id: 'digoxin',       label: 'Digoxina',           sub: 'Jelliffe · DIG trial',           icon: '❤️' },
+    { id: 'vancomycin',    label: 'Vancomicina',       sub: 'AUC-guided · Rybak 2020',       icon: 'pill' },
+    { id: 'aminoglycoside', label: 'Aminoglicosídeos', sub: 'Hartford · EID nomograma',        icon: 'flask' },
+    { id: 'phenytoin',     label: 'Fenitoína',          sub: 'Michaelis-Menten · Sheiner-Tozer', icon: 'bolt' },
+    { id: 'digoxin',       label: 'Digoxina',           sub: 'Jelliffe · DIG trial',           icon: 'heart' },
   ]
 
-  const CRCL_COLOR = !crcl_live ? '#94a3b8' : crcl_live < 30 ? '#dc2626' : crcl_live < 60 ? '#ca8a04' : '#16a34a'
+  const CRCL_COLOR = !crcl_live ? 'var(--ink-5)' : crcl_live < 30 ? 'var(--red)' : crcl_live < 60 ? 'var(--amber)' : 'var(--green)'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Console PK</span>
+        </BarraDeTrabalho>
+      }
+    >
 
       {/* Header */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b', padding: '18px 24px 0' }}>
+      <div style={{ background: 'var(--ink)', borderBottom: '1px solid var(--ink-2)', padding: '18px 24px 0' }}>
         <div style={{ maxWidth: 1140, margin: '0 auto' }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
             <div>
-              <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
                 Farmácia Clínica · TDM
               </div>
-              <h1 style={{ fontSize: 22, fontWeight: 900, color: 'white', margin: 0, letterSpacing: '-0.02em' }}>
+              <h1 style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'white', margin: 0, letterSpacing: '-0.02em' }}>
                 Console PK — Dosagem Individualizada
               </h1>
-              <p style={{ fontSize: 13, color: '#64748b', margin: '4px 0 0' }}>
+              <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', margin: '4px 0 0' }}>
                 Farmacocinética clínica com modelos validados · Vancomicina, Aminoglicosídeos, Fenitoína, Digoxina
               </p>
             </div>
             <div style={{ textAlign: 'right' }}>
               {crcl_live !== null && (
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 10, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em' }}>CrCl Cockcroft-Gault</div>
-                  <div style={{ fontSize: 28, fontWeight: 900, color: CRCL_COLOR, lineHeight: 1.1 }}>{crcl_live.toFixed(0)}</div>
-                  <div style={{ fontSize: 11, color: '#475569' }}>mL/min</div>
+                  <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>CrCl Cockcroft-Gault</div>
+                  <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: CRCL_COLOR, lineHeight: 1.1 }}>{crcl_live.toFixed(0)}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>mL/min</div>
                 </div>
               )}
             </div>
@@ -447,13 +463,13 @@ export default function PKDosing() {
                 padding: '10px 18px', borderRadius: '8px 8px 0 0', border: 'none', flexShrink: 0, whiteSpace: 'nowrap',
                 cursor: 'pointer', fontFamily: 'inherit', transition: 'all 0.15s',
                 background: tab === t.id ? 'white' : 'transparent',
-                color: tab === t.id ? '#0f172a' : '#64748b',
+                color: tab === t.id ? 'var(--ink)' : 'var(--ink-4)',
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-                  <span style={{ fontSize: 14 }}>{t.icon}</span>
+                  <Icon name={t.icon} size={14} />
                   <div style={{ textAlign: 'left' }}>
-                    <div style={{ fontSize: 13, fontWeight: tab === t.id ? 700 : 500 }}>{t.label}</div>
-                    <div style={{ fontSize: 9, opacity: 0.65, marginTop: 1 }}>{t.sub}</div>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: tab === t.id ? 700 : 500 }}>{t.label}</div>
+                    <div style={{ fontSize: 'var(--t-micro)', opacity: 0.65, marginTop: 1 }}>{t.sub}</div>
                   </div>
                 </div>
               </button>
@@ -472,9 +488,9 @@ export default function PKDosing() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
 
             {/* Patient Card */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
-                <span style={{ fontSize: 16 }}>👤</span> Dados do Doente
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                <span style={{ fontSize: 'var(--t-destaque)' }}>👤</span> Dados do Doente
               </div>
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
@@ -482,14 +498,14 @@ export default function PKDosing() {
                 <Input label="Altura" value={pt.height} onChange={up('height')} suffix="cm" placeholder="170" />
                 <Input label="Idade" value={pt.age} onChange={up('age')} suffix="anos" placeholder="65" />
                 <div style={{ marginBottom: 11 }}>
-                  <label style={{ display: 'block', fontSize: 11, fontWeight: 600, color: '#64748b', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sexo</label>
+                  <label style={{ display: 'block', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Sexo</label>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {(['male', 'female'] as const).map(s => (
                       <button key={s} onClick={() => setPt(p => ({ ...p, sex: s }))} style={{
-                        flex: 1, padding: '7px 4px', borderRadius: 7, border: `1px solid ${pt.sex === s ? '#2563eb' : '#e2e8f0'}`,
-                        background: pt.sex === s ? '#eff6ff' : 'white', cursor: 'pointer',
-                        fontSize: 12, fontWeight: pt.sex === s ? 700 : 500,
-                        color: pt.sex === s ? '#2563eb' : '#64748b', fontFamily: 'inherit',
+                        flex: 1, padding: '7px 4px', borderRadius: 'var(--r-md)', border: `1px solid ${pt.sex === s ? 'var(--ink-2)' : 'var(--border)'}`,
+                        background: pt.sex === s ? 'var(--bg-2)' : 'white', cursor: 'pointer',
+                        fontSize: 'var(--t-meta)', fontWeight: pt.sex === s ? 700 : 500,
+                        color: pt.sex === s ? 'var(--ink-2)' : 'var(--ink-4)', fontFamily: 'inherit',
                       }}>
                         {s === 'male' ? '♂ Masc' : '♀ Fem'}
                       </button>
@@ -504,12 +520,12 @@ export default function PKDosing() {
               )}
 
               {crcl_live !== null && (
-                <div style={{ padding: '8px 10px', background: '#f8fafc', borderRadius: 7, marginTop: 4 }}>
+                <div style={{ padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', marginTop: 4 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <span style={{ fontSize: 11, color: '#64748b', fontWeight: 600 }}>CrCl (Cockcroft-Gault)</span>
-                    <span style={{ fontSize: 14, fontWeight: 800, color: CRCL_COLOR }}>{crcl_live.toFixed(1)} mL/min</span>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontWeight: 'var(--peso-corpo)' as any }}>CrCl (Cockcroft-Gault)</span>
+                    <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: CRCL_COLOR }}>{crcl_live.toFixed(1)} mL/min</span>
                   </div>
-                  <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>
+                  <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 2 }}>
                     {crcl_live < 30 ? 'Insuficiência renal severa' : crcl_live < 60 ? 'Insuficiência renal moderada' : crcl_live < 90 ? 'Função renal ligeiramente reduzida' : 'Função renal normal'}
                   </div>
                 </div>
@@ -517,13 +533,13 @@ export default function PKDosing() {
             </div>
 
             {/* Drug-specific inputs */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px' }}>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 18px' }}>
 
               {/* Vancomycin inputs */}
               {tab === 'vancomycin' && (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 16 }}>💉</span> Vancomicina
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 'var(--t-destaque)' }}>💉</span> Vancomicina
                   </div>
                   <SectionTitle>Dose atual (se conhecida)</SectionTitle>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
@@ -546,8 +562,8 @@ export default function PKDosing() {
               {/* Aminoglycoside inputs */}
               {tab === 'aminoglycoside' && (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 16 }}>🔬</span> Aminoglicosídeo
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 'var(--t-destaque)' }}>🔬</span> Aminoglicosídeo
                   </div>
                   <Select
                     label="Fármaco"
@@ -570,14 +586,14 @@ export default function PKDosing() {
               {/* Phenytoin inputs */}
               {tab === 'phenytoin' && (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 16 }}>⚡</span> Fenitoína
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 'var(--t-destaque)' }}>⚡</span> Fenitoína
                   </div>
                   <Input label="Dose atual (se conhecida)" value={pf.dose} onChange={up2('dose')} suffix="mg/dia" placeholder="300" />
                   <SectionTitle>Nível medido</SectionTitle>
                   <Input label="Fenitoína total medida" value={pf.measured_level} onChange={up2('measured_level')} suffix="mg/L" placeholder="8" />
                   <div style={{ marginBottom: 11 }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: '#374151', fontWeight: 500 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any }}>
                       <input
                         type="checkbox"
                         checked={pf.esrd}
@@ -598,8 +614,8 @@ export default function PKDosing() {
               {/* Digoxin inputs */}
               {tab === 'digoxin' && (
                 <>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
-                    <span style={{ fontSize: 16 }}>❤️</span> Digoxina
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <span style={{ fontSize: 'var(--t-destaque)' }}>❤️</span> Digoxina
                   </div>
                   <Select
                     label="Indicação"
@@ -617,7 +633,7 @@ export default function PKDosing() {
                     suffix="ng/mL"
                     placeholder={df.indication === 'af' ? '1.5' : '0.8'}
                   />
-                  <div style={{ padding: '8px 10px', background: '#fffbeb', borderRadius: 7, border: '1px solid #fef3c7', fontSize: 11, color: '#92400e' }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--badge-amber-bg)', borderRadius: 'var(--r-md)', border: '1px solid var(--badge-amber-bg)', fontSize: 'var(--t-meta)', color: 'var(--amber)' }}>
                     <strong>Alvo terapêutico:</strong> FA: 1.5–2.0 ng/mL · ICC: 0.5–0.9 ng/mL (evitar &gt;1.0)
                   </div>
                 </>
@@ -642,39 +658,39 @@ export default function PKDosing() {
 
                   {/* AUC/MIC target */}
                   {vRes.auc24 > 0 && (
-                    <div style={{ background: 'white', borderRadius: 14, border: `2px solid ${vRes.target_met ? '#16a34a' : vRes.auc_mic > 600 ? '#dc2626' : '#ca8a04'}`, padding: '16px 20px' }}>
+                    <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: `2px solid ${vRes.target_met ? 'var(--green)' : vRes.auc_mic > 600 ? 'var(--red)' : 'var(--amber)'}`, padding: '16px 20px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: 11, color: '#64748b', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
+                          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>
                             AUC24/MIC — Alvo 400–600
                           </div>
                           <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                            <span style={{ fontSize: 36, fontWeight: 900, color: vRes.target_met ? '#16a34a' : vRes.auc_mic > 600 ? '#dc2626' : '#ca8a04', lineHeight: 1 }}>
+                            <span style={{ ...MONO, fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: vRes.target_met ? 'var(--green)' : vRes.auc_mic > 600 ? 'var(--red)' : 'var(--amber)', lineHeight: 1 }}>
                               {vRes.auc_mic.toFixed(0)}
                             </span>
-                            <span style={{ fontSize: 13, color: '#94a3b8' }}>mg·h/L / mg/L</span>
+                            <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>mg·h/L / mg/L</span>
                           </div>
                         </div>
-                        <div style={{ textAlign: 'center', padding: '10px 18px', borderRadius: 10, background: vRes.target_met ? '#f0fdf4' : '#fef2f2', border: `1px solid ${vRes.target_met ? '#bbf7d0' : '#fecaca'}` }}>
-                          <div style={{ fontSize: 20 }}>{vRes.target_met ? '✅' : '❌'}</div>
-                          <div style={{ fontSize: 11, fontWeight: 700, color: vRes.target_met ? '#15803d' : '#dc2626', marginTop: 4 }}>
+                        <div style={{ textAlign: 'center', padding: '10px 18px', borderRadius: 'var(--r-lg)', background: vRes.target_met ? 'var(--badge-green-bg)' : 'var(--badge-red-bg)', border: `1px solid ${vRes.target_met ? 'var(--green-mid)' : 'var(--badge-red-border)'}` }}>
+                          <div style={{ fontSize: 'var(--t-destaque)' }}>{vRes.target_met ? '✅' : '❌'}</div>
+                          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: vRes.target_met ? 'var(--green)' : 'var(--red)', marginTop: 4 }}>
                             {vRes.target_met ? 'Alvo atingido' : 'Ajustar dose'}
                           </div>
                         </div>
                       </div>
                       <div style={{ marginTop: 10, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-                        <BigNumber value={vRes.auc24.toFixed(0)} unit=" mg·h/L" label="AUC24" color="#0d9488" />
-                        <BigNumber value={vRes.Cmax_rec.toFixed(1)} unit=" mg/L" label="Pico previsto" color="#7c3aed" />
-                        <BigNumber value={vRes.Cmin_rec.toFixed(1)} unit=" mg/L" label="Vale previsto" color="#2563eb" />
+                        <BigNumber value={vRes.auc24.toFixed(0)} unit=" mg·h/L" label="AUC24" color="var(--green-3)" />
+                        <BigNumber value={vRes.Cmax_rec.toFixed(1)} unit=" mg/L" label="Pico previsto" color="var(--roxo)" />
+                        <BigNumber value={vRes.Cmin_rec.toFixed(1)} unit=" mg/L" label="Vale previsto" color="var(--ink-2)" />
                       </div>
                     </div>
                   )}
 
                   {/* PK Parameters */}
-                  <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                       Parâmetros Farmacocinéticos
-                      <span style={{ fontSize: 10, background: vRes.method === 'two_level' ? '#eff6ff' : '#f8fafc', color: vRes.method === 'two_level' ? '#2563eb' : '#64748b', padding: '2px 8px', borderRadius: 20, fontWeight: 600 }}>
+                      <span style={{ fontSize: 'var(--t-micro)', background: vRes.method === 'two_level' ? 'var(--bg-2)' : 'var(--bg-2)', color: vRes.method === 'two_level' ? 'var(--ink-2)' : 'var(--ink-4)', padding: '2px 8px', borderRadius: 'var(--r-xl)', fontWeight: 'var(--peso-corpo)' as any }}>
                         {vRes.method === 'two_level' ? 'Individualizado 2 níveis' : 'Populacional (Matzke)'}
                       </span>
                     </div>
@@ -689,28 +705,28 @@ export default function PKDosing() {
                   </div>
 
                   {/* Recommendation */}
-                  <div style={{ background: '#0f172a', borderRadius: 14, padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'white', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+                  <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'white', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
                       💡 Recomendação de Dose
-                      <span style={{ fontSize: 10, color: '#475569', background: '#1e293b', padding: '2px 7px', borderRadius: 20 }}>MIC = {+vf.mic || 1} mg/L → Alvo AUC/MIC 500</span>
+                      <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', background: 'var(--ink-2)', padding: '2px 7px', borderRadius: 'var(--r-xl)' }}>MIC = {+vf.mic || 1} mg/L → Alvo AUC/MIC 500</span>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 12 }}>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: '#22d3ee', lineHeight: 1 }}>{vRes.rec_dose}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>mg / dose</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', lineHeight: 1 }}>{vRes.rec_dose}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>mg / dose</div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: '#a78bfa', lineHeight: 1 }}>q{vRes.rec_tau}h</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>intervalo</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--roxo-meio)', lineHeight: 1 }}>q{vRes.rec_tau}h</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>intervalo</div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: '#86efac', lineHeight: 1 }}>{vRes.rec_daily}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>mg / dia</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--badge-green-border)', lineHeight: 1 }}>{vRes.rec_daily}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>mg / dia</div>
                       </div>
                     </div>
-                    <div style={{ padding: '10px 12px', background: '#1e293b', borderRadius: 9, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <span style={{ fontSize: 12, color: '#94a3b8' }}>Dose de carga (infecção grave, MRSA)</span>
-                      <span style={{ fontSize: 15, fontWeight: 800, color: '#f59e0b' }}>{vRes.loading} mg IV (25–35 mg/kg)</span>
+                    <div style={{ padding: '10px 12px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>Dose de carga (infecção grave, MRSA)</span>
+                      <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)' }}>{vRes.loading} mg IV (25–35 mg/kg)</span>
                     </div>
                   </div>
 
@@ -720,7 +736,7 @@ export default function PKDosing() {
                   )}
 
                   {/* Reference */}
-                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 9, border: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8' }}>
+                  <div style={{ padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--bg-3)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                     Rybak MJ et al. Therapeutic Monitoring of Vancomycin for Serious Methicillin-Resistant
                     Staphylococcus aureus Infections. <em>Am J Health Syst Pharm.</em> 2020;77(11):835–864 (ASHP/IDSA/SIDP).
                     Matzke GR et al. <em>Ann Pharmacother.</em> 1984.
@@ -738,30 +754,30 @@ export default function PKDosing() {
                   {aRes.warns.length > 0 && <div>{aRes.warns.map((w, i) => <Warn key={i} text={w} type="error" />)}</div>}
 
                   {/* Initial dose */}
-                  <div style={{ background: '#0f172a', borderRadius: 14, padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'white', marginBottom: 14 }}>
+                  <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'white', marginBottom: 14 }}>
                       💡 Dose Inicial EID — {af.drug === 'amikacin' ? 'Amicacina' : af.drug === 'tobramycin' ? 'Tobramicina' : 'Gentamicina'}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: '#22d3ee', lineHeight: 1 }}>{aRes.init_dose}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>mg</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', lineHeight: 1 }}>{aRes.init_dose}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>mg</div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 28, fontWeight: 900, color: '#a78bfa', lineHeight: 1 }}>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--roxo-meio)', lineHeight: 1 }}>
                           {aRes.init_tau === 0 ? 'TID' : `q${aRes.init_tau}h`}
                         </div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>
                           {aRes.init_tau === 0 ? 'Dosagem tradicional' : 'intervalo inicial'}
                         </div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 24, fontWeight: 900, color: '#86efac', lineHeight: 1 }}>{af.drug === 'amikacin' ? '15' : '7'}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>mg/kg peso PK</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--badge-green-border)', lineHeight: 1 }}>{af.drug === 'amikacin' ? '15' : '7'}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>mg/kg peso PK</div>
                       </div>
                     </div>
                     {aRes.init_tau > 0 && (
-                      <div style={{ marginTop: 10, padding: '9px 12px', background: '#1e293b', borderRadius: 9, fontSize: 11, color: '#94a3b8' }}>
+                      <div style={{ marginTop: 10, padding: '9px 12px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                         Colher nível aleatório <strong style={{ color: 'white' }}>6–14h após a 1ª dose</strong> para aplicar o nomograma de Hartford
                       </div>
                     )}
@@ -769,19 +785,19 @@ export default function PKDosing() {
 
                   {/* Hartford Nomogram result */}
                   {aRes.nomogram && (
-                    <div style={{ background: 'white', borderRadius: 14, border: `2px solid ${aRes.nomogram.color}`, padding: '16px 20px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>
+                    <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: `2px solid ${aRes.nomogram.color}`, padding: '16px 20px' }}>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>
                         Nomograma de Hartford — Resultado
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                        <div style={{ padding: '14px 20px', background: aRes.nomogram.color + '15', borderRadius: 12, border: `2px solid ${aRes.nomogram.color}`, textAlign: 'center' }}>
-                          <div style={{ fontSize: 22, fontWeight: 900, color: aRes.nomogram.color }}>
+                        <div style={{ padding: '14px 20px', background: aRes.nomogram.color + '15', borderRadius: 'var(--r-xl)', border: `2px solid ${aRes.nomogram.color}`, textAlign: 'center' }}>
+                          <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: aRes.nomogram.color }}>
                             {aRes.nomogram.zone === 'Fora nomograma' ? '⛔' : aRes.nomogram.zone}
                           </div>
                         </div>
                         <div>
-                          <div style={{ fontSize: 15, fontWeight: 700, color: aRes.nomogram.color }}>{aRes.nomogram.action}</div>
-                          <div style={{ fontSize: 12, color: '#64748b', marginTop: 4 }}>
+                          <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: aRes.nomogram.color }}>{aRes.nomogram.action}</div>
+                          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 4 }}>
                             Nível {af.random_level} mg/L às {af.random_time}h após dose
                           </div>
                         </div>
@@ -790,20 +806,20 @@ export default function PKDosing() {
                   )}
 
                   {/* PK Parameters */}
-                  <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Parâmetros PK (populacional)</div>
+                  <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>Parâmetros PK (populacional)</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
                       <Row label="t½" value={aRes.t_half.toFixed(1)} unit="h" />
                       <Row label="Vd" value={aRes.vd.toFixed(1)} unit="L" />
                       <Row label="CL (estimada)" value={aRes.cl.toFixed(2)} unit="L/h" />
                       <Row label="CrCl" value={aRes.crcl.toFixed(1)} unit="mL/min" />
                     </div>
-                    <div style={{ marginTop: 12, padding: '8px 10px', background: '#f8fafc', borderRadius: 7, fontSize: 11, color: '#64748b' }}>
+                    <div style={{ marginTop: 12, padding: '8px 10px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
                       <strong>Alvos:</strong> {af.drug === 'amikacin' ? 'Pico 55–65 mg/L, Vale &lt;5 mg/L' : 'Pico 8–12 mg/L (infecções graves: 12–20), Vale &lt;1 mg/L'}
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 9, border: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8' }}>
+                  <div style={{ padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--bg-3)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                     Nicolau DP et al. Experience with a once-daily aminoglycoside program (Hartford Hospital). <em>Antimicrob Agents Chemother.</em> 1995;39(3):650–655.
                     Freeman CD et al. Once-daily aminoglycoside dosing nomogram. <em>Pharmacotherapy.</em> 1996.
                   </div>
@@ -821,62 +837,62 @@ export default function PKDosing() {
 
                   {/* Level correction */}
                   {pRes.C_adj !== null && (
-                    <div style={{ background: 'white', borderRadius: 14, border: `2px solid ${pRes.in_range ? '#16a34a' : '#dc2626'}`, padding: '16px 20px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>
+                    <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: `2px solid ${pRes.in_range ? 'var(--green)' : 'var(--red)'}`, padding: '16px 20px' }}>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>
                         Correção de Nível — {pf.esrd ? 'Winter-Tozer (IRCT)' : 'Sheiner-Tozer (padrão)'}
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10 }}>
-                        <BigNumber value={pf.measured_level} unit=" mg/L" label="Nível medido" color="#94a3b8" />
-                        <BigNumber value={pRes.C_adj.toFixed(1)} unit=" mg/L" label="Nível corrigido" color={pRes.in_range ? '#16a34a' : '#dc2626'} />
-                        <BigNumber value={(pRes.C_adj * 0.1).toFixed(2)} unit=" mg/L" label="Fenitoína livre (est.)" color="#7c3aed" />
+                        <BigNumber value={pf.measured_level} unit=" mg/L" label="Nível medido" color="var(--ink-5)" />
+                        <BigNumber value={pRes.C_adj.toFixed(1)} unit=" mg/L" label="Nível corrigido" color={pRes.in_range ? 'var(--green)' : 'var(--red)'} />
+                        <BigNumber value={(pRes.C_adj * 0.1).toFixed(2)} unit=" mg/L" label="Fenitoína livre (est.)" color="var(--roxo)" />
                       </div>
-                      <div style={{ marginTop: 10, padding: '8px 11px', background: pRes.in_range ? '#f0fdf4' : '#fef2f2', borderRadius: 7, fontSize: 12, color: pRes.in_range ? '#15803d' : '#dc2626', fontWeight: 600, textAlign: 'center' }}>
-                        {pRes.in_range ? `✅ Dentro do alvo (${pf.target_min}–${pf.target_max} mg/L)` : `❌ Fora do alvo terapêutico (${pf.target_min}–${pf.target_max} mg/L)`}
+                      <div style={{ marginTop: 10, padding: '8px 11px', background: pRes.in_range ? 'var(--badge-green-bg)' : 'var(--badge-red-bg)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: pRes.in_range ? 'var(--green)' : 'var(--red)', fontWeight: 'var(--peso-corpo)' as any, textAlign: 'center' }}>
+                        {pRes.in_range ? `Dentro do alvo (${pf.target_min}–${pf.target_max} mg/L)` : `Fora do alvo terapêutico (${pf.target_min}–${pf.target_max} mg/L)`}
                       </div>
                     </div>
                   )}
 
                   {/* Dose prediction */}
                   {pRes.C_predicted !== null && (
-                    <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 20px' }}>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 10 }}>
+                    <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 20px' }}>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 10 }}>
                         Previsão de Nível em Steady-State
                       </div>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontSize: 32, fontWeight: 900, color: pRes.C_predicted > 20 ? '#dc2626' : pRes.C_predicted < 10 ? '#ca8a04' : '#16a34a' }}>
+                        <span style={{ ...MONO, fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: pRes.C_predicted > 20 ? 'var(--red)' : pRes.C_predicted < 10 ? 'var(--amber)' : 'var(--green)' }}>
                           {pRes.C_predicted === 999 ? '⛔' : pRes.C_predicted.toFixed(1)}
                         </span>
-                        <span style={{ fontSize: 13, color: '#94a3b8' }}>mg/L (SS)</span>
+                        <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>mg/L (SS)</span>
                       </div>
-                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 4 }}>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 4 }}>
                         Para dose de {pf.dose} mg/dia com Vmax={((+pt.age >= 65 ? 5.5 : 7) * +pt.weight).toFixed(0)} mg/dia (população)
                       </div>
                     </div>
                   )}
 
                   {/* Recommendation */}
-                  <div style={{ background: '#0f172a', borderRadius: 14, padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'white', marginBottom: 14 }}>💡 Recomendação</div>
+                  <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'white', marginBottom: 14 }}>Recomendação</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
-                      <div style={{ padding: '14px 12px', background: '#1e293b', borderRadius: 10, textAlign: 'center' }}>
-                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Manutenção sugerida</div>
-                        <div style={{ fontSize: 26, fontWeight: 900, color: '#22d3ee' }}>{pRes.rec_dose}</div>
-                        <div style={{ fontSize: 11, color: '#94a3b8' }}>mg/dia</div>
+                      <div style={{ padding: '14px 12px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)', textAlign: 'center' }}>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Manutenção sugerida</div>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)' }}>{pRes.rec_dose}</div>
+                        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>mg/dia</div>
                       </div>
-                      <div style={{ padding: '14px 12px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Dose de carga IV</div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#f59e0b' }}>{pRes.load_iv} mg IV</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>máx 50 mg/min · monitorizar ECG</div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#86efac', marginTop: 6 }}>{pRes.load_oral} mg oral</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>dividir em 2-3 tomas</div>
+                      <div style={{ padding: '14px 12px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Dose de carga IV</div>
+                        <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)' }}>{pRes.load_iv} mg IV</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 2 }}>máx 50 mg/min · monitorizar ECG</div>
+                        <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--badge-green-border)', marginTop: 6 }}>{pRes.load_oral} mg oral</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 2 }}>dividir em 2-3 tomas</div>
                       </div>
                     </div>
-                    <div style={{ fontSize: 11, color: '#475569', padding: '8px 10px', background: '#1e293b', borderRadius: 8 }}>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', padding: '8px 10px', background: 'var(--ink-2)', borderRadius: 'var(--r-md)' }}>
                       ⚠ Cinética não-linear — pequenas alterações de dose → grandes variações de nível. Titular com incrementos de 25–50 mg.
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 9, border: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8' }}>
+                  <div style={{ padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--bg-3)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                     Sheiner LB, Tozer TN. Clinical pharmacokinetics: the use of plasma concentrations of drugs.
                     In: Clinical Pharmacology: Basic Principles in Therapeutics. 1978. · Winter ME. Basic Clinical Pharmacokinetics. 6th ed. 2019.
                   </div>
@@ -892,32 +908,32 @@ export default function PKDosing() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   {dRes.warns.length > 0 && <div>{dRes.warns.map((w, i) => <Warn key={i} text={w} type="error" />)}</div>}
 
-                  <div style={{ background: '#0f172a', borderRadius: 14, padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: 'white', marginBottom: 14 }}>
+                  <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'white', marginBottom: 14 }}>
                       💡 Esquema de Dosagem — {df.indication === 'af' ? 'Fibrilhação Auricular' : 'Insuficiência Cardíaca'}
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 10, marginBottom: 12 }}>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 26, fontWeight: 900, color: '#22d3ee', lineHeight: 1 }}>{dRes.daily_mcg}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>mcg / dia (manutenção)</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', lineHeight: 1 }}>{dRes.daily_mcg}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>mcg / dia (manutenção)</div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 26, fontWeight: 900, color: '#f59e0b', lineHeight: 1 }}>{dRes.load_mcg}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>mcg carga oral (total)</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)', lineHeight: 1 }}>{dRes.load_mcg}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>mcg carga oral (total)</div>
                       </div>
-                      <div style={{ textAlign: 'center', padding: '14px 8px', background: '#1e293b', borderRadius: 10 }}>
-                        <div style={{ fontSize: 26, fontWeight: 900, color: '#a78bfa', lineHeight: 1 }}>{dRes.t_half_h.toFixed(0)}</div>
-                        <div style={{ fontSize: 10, color: '#64748b', marginTop: 4 }}>h (t½)</div>
+                      <div style={{ textAlign: 'center', padding: '14px 8px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)' }}>
+                        <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--roxo-meio)', lineHeight: 1 }}>{dRes.t_half_h.toFixed(0)}</div>
+                        <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 4 }}>h (t½)</div>
                       </div>
                     </div>
-                    <div style={{ padding: '9px 12px', background: '#1e293b', borderRadius: 9, fontSize: 11, color: '#94a3b8' }}>
+                    <div style={{ padding: '9px 12px', background: 'var(--ink-2)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                       Carga oral: dividir em 2 tomas (ex: {Math.round(dRes.load_mcg / 2 / 62.5) * 62.5} mcg + {Math.round(dRes.load_mcg / 2 / 62.5) * 62.5} mcg com 6h de intervalo).
                       Colher nível 8-12h após última dose de carga.
                     </div>
                   </div>
 
-                  <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 20px' }}>
-                    <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>Parâmetros PK</div>
+                  <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 20px' }}>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>Parâmetros PK</div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 20px' }}>
                       <Row label="Vd" value={dRes.vd.toFixed(1)} unit="L" />
                       <Row label="CL" value={dRes.cl_L_day.toFixed(2)} unit="L/dia" />
@@ -928,7 +944,7 @@ export default function PKDosing() {
                     </div>
                   </div>
 
-                  <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 9, border: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8' }}>
+                  <div style={{ padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--bg-3)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                     Jelliffe RW. An improved method of digoxin therapy. <em>Ann Intern Med.</em> 1968;69(4):703–717.
                     Ahmed A et al. Effects of digoxin on morbidity and mortality in diastolic heart failure (DIG trial). <em>Lancet.</em> 2006.
                   </div>
@@ -942,20 +958,19 @@ export default function PKDosing() {
       </div>
 
       <style>{`
-        input:focus, select:focus { border-color:#2563eb !important; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
+        input:focus, select:focus { border-color:var(--ink-2) !important; box-shadow:0 0 0 3px rgba(37,99,235,0.1); }
         input[type=number]::-webkit-inner-spin-button { opacity:0.4; }
         @media (max-width:900px) { .pk-grid { grid-template-columns:1fr !important; } }
       `}</style>
-    </div>
+    </Mesa>
   )
 }
 
 function EmptyState({ drug, fields }: { drug: string; fields: string }) {
   return (
-    <div style={{ background: 'white', borderRadius: 14, border: '1px dashed #e2e8f0', padding: '60px 40px', textAlign: 'center' }}>
-      <div style={{ fontSize: 40, marginBottom: 12 }}>🧮</div>
-      <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Preencha os dados do doente</div>
-      <div style={{ fontSize: 13, color: '#94a3b8', maxWidth: 320, margin: '0 auto' }}>
+    <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px dashed var(--border)', padding: '60px 40px', textAlign: 'center' }}>
+      <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 6 }}>Preencha os dados do doente</div>
+      <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', maxWidth: 320, margin: '0 auto' }}>
         Para calcular os parâmetros PK da <strong>{drug}</strong>, introduza {fields} no painel esquerdo.
       </div>
     </div>

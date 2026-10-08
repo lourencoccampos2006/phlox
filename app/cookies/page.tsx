@@ -44,7 +44,7 @@ const GUARDADO = [
 
 export default function CookiesPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#fafaf9', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
         <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.15em', color: 'var(--ink-4)', textTransform: 'uppercase', marginBottom: 14 }}>
           Política de Cookies
@@ -56,7 +56,7 @@ export default function CookiesPage() {
           Última atualização: {LEGAL_UPDATED}
         </p>
 
-        <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginBottom: 28 }}>
+        <div style={{ background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px 22px', marginBottom: 28 }}>
           <div style={{ fontSize: 17, fontWeight: 800, color: 'var(--ink)', marginBottom: 8 }}>
             O Phlox não usa cookies.
           </div>
@@ -79,7 +79,7 @@ export default function CookiesPage() {
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 30 }}>
           {GUARDADO.map((g) => (
-            <div key={g.chave} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '15px 17px' }}>
+            <div key={g.chave} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '15px 17px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 6 }}>
                 {g.chave}
               </div>

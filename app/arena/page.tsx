@@ -10,6 +10,10 @@ import Link from 'next/link'
 import ReportQuizError from '@/components/ReportQuizError'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Challenge {
   id: string; title: string; domain: string; difficulty: 'facil'|'medio'|'dificil'|'especialista'
@@ -104,17 +108,17 @@ const DomainSVG = ({ id, size = 14 }: { id: string; size?: number }) => (
 
 // ─── League system ────────────────────────────────────────────────────────────
 const LEAGUES = [
-  { id:'bronze',   label:'Bronze',   color:'#92400e', bg:'#fef3c7', border:'#fde68a', min:0,    desc:'A tua jornada começa aqui' },
-  { id:'silver',   label:'Prata',    color:'#4b5563', bg:'#f3f4f6', border:'#d1d5db', min:200,  desc:'Base sólida de conhecimento' },
-  { id:'gold',     label:'Ouro',     color:'#b45309', bg:'#fffbeb', border:'#fde68a', min:500,  desc:'Raciocínio clínico consistente' },
-  { id:'platinum', label:'Platina',  color:'#0891b2', bg:'#ecfeff', border:'#a5f3fc', min:1000, desc:'Diagnóstico diferencial avançado' },
-  { id:'diamond',  label:'Diamante', color:'#7c3aed', bg:'#faf5ff', border:'#e9d5ff', min:2000, desc:'Nível de especialista' },
+  { id:'bronze',   label:'Bronze',   color:'var(--amber)', bg:'var(--badge-amber-bg)', border:'var(--badge-amber-border)', min:0,    desc:'A tua jornada começa aqui' },
+  { id:'silver',   label:'Prata',    color:'var(--ink-3)', bg:'var(--bg-3)', border:'var(--border-2)', min:200,  desc:'Base sólida de conhecimento' },
+  { id:'gold',     label:'Ouro',     color:'var(--amber)', bg:'var(--badge-amber-bg)', border:'var(--badge-amber-border)', min:500,  desc:'Raciocínio clínico consistente' },
+  { id:'platinum', label:'Platina',  color:'var(--green)', bg:'var(--green-light)', border:'var(--green-mid)', min:1000, desc:'Diagnóstico diferencial avançado' },
+  { id:'diamond',  label:'Diamante', color:'var(--roxo)', bg:'var(--roxo-claro)', border:'var(--roxo-borda)', min:2000, desc:'Nível de especialista' },
 ]
 const DIFF = {
-  facil:        { label:'Fácil',        color:'#0d6e42', bg:'#d1fae5', xp:10,  time:60  },
-  medio:        { label:'Médio',        color:'#d97706', bg:'#fef9c3', xp:20,  time:90  },
-  dificil:      { label:'Difícil',      color:'#dc2626', bg:'#fee2e2', xp:35,  time:120 },
-  especialista: { label:'Especialista', color:'#7c3aed', bg:'#faf5ff', xp:50,  time:150 },
+  facil:        { label:'Fácil',        color:'var(--green)', bg:'var(--badge-green-bg)', xp:10,  time:60  },
+  medio:        { label:'Médio',        color:'var(--amber)', bg:'var(--amber-light)', xp:20,  time:90  },
+  dificil:      { label:'Difícil',      color:'var(--red)', bg:'var(--badge-red-bg)', xp:35,  time:120 },
+  especialista: { label:'Especialista', color:'var(--roxo)', bg:'var(--roxo-claro)', xp:50,  time:150 },
 }
 const DOMAINS = [
   { id:'all',                label:'Todas'         },
@@ -133,14 +137,14 @@ function getNextLeague(xp: number) { return LEAGUES.find(l => l.min > xp) || nul
 // ─── Timer ────────────────────────────────────────────────────────────────────
 function TimerBar({ total, remaining }: { total: number; remaining: number }) {
   const pct = (remaining / total) * 100
-  const color = pct > 50 ? '#0d6e42' : pct > 25 ? '#d97706' : '#dc2626'
+  const color = pct > 50 ? 'var(--green)' : pct > 25 ? 'var(--amber)' : 'var(--red)'
   const m = Math.floor(remaining / 60), s = remaining % 60
   return (
     <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-      <div style={{ flex:1, height:8, background:'var(--bg-3)', borderRadius:4, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius:4, transition:'width 1s linear' }} />
+      <div style={{ flex:1, height:8, background:'var(--bg-3)', borderRadius: 'var(--r)', overflow:'hidden' }}>
+        <div style={{ height:'100%', width:`${pct}%`, background:color, borderRadius: 'var(--r)', transition:'width 1s linear' }} />
       </div>
-      <span style={{ fontFamily:'var(--font-mono)', fontSize:16, fontWeight:700, color, minWidth:44, textAlign:'right' }}>
+      <span style={{ fontFamily:'var(--font-mono)', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color, minWidth:44, textAlign:'right' }}>
         {m}:{s.toString().padStart(2,'0')}
       </span>
     </div>
@@ -161,9 +165,9 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
 
   if (!ch.case_data?.options?.length || !ch.case_data?.presentation) {
     return (
-      <div style={{ padding:24, background:'white', border:'1px solid var(--border)', borderRadius:10, textAlign:'center' }}>
-        <div style={{ fontSize:14, color:'var(--ink-4)', marginBottom:12 }}>Erro ao carregar o caso. Tenta gerar um novo.</div>
-        <button onClick={onAbandon} style={{ padding:'8px 16px', background:'var(--ink)', color:'white', border:'none', borderRadius:7, cursor:'pointer', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)' }}>Voltar</button>
+      <div style={{ padding:24, background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', textAlign:'center' }}>
+        <div style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-4)', marginBottom:12 }}>Erro ao carregar o caso. Tenta gerar um novo.</div>
+        <button onClick={onAbandon} style={{ padding:'8px 16px', background:'var(--ink)', color:'white', border:'none', borderRadius: 'var(--r-md)', cursor:'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily:'var(--font-sans)' }}>Voltar</button>
       </div>
     )
   }
@@ -189,16 +193,16 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
 
   return (
     <div>
-      <button onClick={onAbandon} style={{ background:'none', border:'none', fontSize:13, color:'var(--ink-4)', cursor:'pointer', fontFamily:'var(--font-sans)', padding:0, marginBottom:16, display:'flex', alignItems:'center', gap:6 }}>
+      <button onClick={onAbandon} style={{ background:'none', border:'none', fontSize: 'var(--t-dado)', color:'var(--ink-4)', cursor:'pointer', fontFamily:'var(--font-sans)', padding:0, marginBottom:16, display:'flex', alignItems:'center', gap:6 }}>
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
         Abandonar
       </button>
-      <div style={{ background:'white', border:`2px solid ${d.color}40`, borderRadius:12, overflow:'hidden' }}>
+      <div style={{ background:'white', border:`2px solid ${d.color}40`, borderRadius: 'var(--r-xl)', overflow:'hidden' }}>
         <div style={{ background:d.bg, borderBottom:`1px solid ${d.color}30`, padding:'14px 18px' }}>
           <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:8 }}>
-            <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:d.color, textTransform:'uppercase', letterSpacing:'0.1em' }}>{d.label}</span>
-            <span style={{ fontSize:9, color:d.color, opacity:0.7, fontFamily:'var(--font-mono)' }}>+{d.xp} XP base</span>
-            <span style={{ marginLeft:'auto', fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:4 }}>
+            <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:d.color, textTransform:'uppercase', letterSpacing:'0.1em' }}>{d.label}</span>
+            <span style={{ fontSize: 'var(--t-micro)', color:d.color, opacity:0.7, fontFamily:'var(--font-mono)' }}>+{d.xp} XP base</span>
+            <span style={{ marginLeft:'auto', fontSize: 'var(--t-micro)', color:'var(--ink-4)', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:4 }}>
               <DomainSVG id={ch.domain} size={11} />
               {DOMAINS.find(x => x.id === ch.domain)?.label || ch.domain}
             </span>
@@ -207,13 +211,13 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
         </div>
         <div style={{ padding:'20px 18px' }}>
           {ch.case_data.quality_flags && ch.case_data.quality_flags.length > 0 && (
-            <div style={{ background:'#fffbeb', border:'1px solid #fde68a', borderRadius:7, padding:'7px 10px', marginBottom:12, fontSize:11.5, color:'#92400e' }}>
+            <div style={{ background:'var(--badge-amber-bg)', border:'1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding:'7px 10px', marginBottom:12, fontSize: 'var(--t-meta)', color:'var(--amber)' }}>
               <strong>⚠ Caso com sinais de qualidade suspeitos —</strong> verifica com cuidado e usa o botão "Reportar" abaixo se confirmares erro.
             </div>
           )}
-          <p style={{ fontSize:15, color:'var(--ink)', lineHeight:1.8, marginBottom:16, fontFamily:'var(--font-serif)' }}>{ch.case_data.presentation}</p>
-          <div style={{ background:'#eff6ff', border:'1px solid #bfdbfe', borderRadius:8, padding:'12px 14px', marginBottom:16, display:'flex', gap:10, alignItems:'flex-start' }}>
-            <div style={{ fontSize:14, fontWeight:700, color:'#1d4ed8', lineHeight:1.5, flex:1 }}>{ch.case_data.question}</div>
+          <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink)', lineHeight:1.8, marginBottom:16, fontFamily:'var(--font-serif)' }}>{ch.case_data.presentation}</p>
+          <div style={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius: 'var(--r-md)', padding:'12px 14px', marginBottom:16, display:'flex', gap:10, alignItems:'flex-start' }}>
+            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink-2)', lineHeight:1.5, flex:1 }}>{ch.case_data.question}</div>
             <ReportQuizError
               source="arena"
               sourceKey={ch.id || `arena:${ch.case_data.question.slice(0, 80)}`}
@@ -224,14 +228,14 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
             {ch.case_data.options.map((opt, i) => {
               let bg='var(--bg-2)', border='var(--border)', color='var(--ink-2)'
               if (submitted) {
-                if (opt.is_correct) { bg='#d1fae5'; border='#6ee7b7'; color='#065f46' }
-                else if (i === selected) { bg='#fee2e2'; border='#fca5a5'; color='#991b1b' }
+                if (opt.is_correct) { bg='var(--badge-green-bg)'; border='var(--green-mid)'; color='var(--green)' }
+                else if (i === selected) { bg='var(--badge-red-bg)'; border='var(--badge-red-border)'; color='var(--red)' }
                 else { bg='white'; color='var(--ink-5)'; border='var(--border)' }
-              } else if (i === selected) { bg='#ede9fe'; border='#c4b5fd'; color='#5b21b6' }
+              } else if (i === selected) { bg='var(--roxo-claro)'; border='var(--roxo-meio)'; color='var(--roxo-escuro)' }
               return (
                 <button key={i} onClick={() => { if (!submitted) { setSelected(i); handleSubmit(i) } }}
-                  style={{ padding:'12px 14px', background:bg, border:`1.5px solid ${border}`, borderRadius:8, cursor:submitted?'default':'pointer', textAlign:'left', fontSize:14, color, lineHeight:1.5, transition:'all 0.1s', fontFamily:'var(--font-sans)' }}>
-                  <span style={{ fontFamily:'var(--font-mono)', fontSize:10, opacity:0.5, marginRight:6 }}>{String.fromCharCode(65+i)}.</span>
+                  style={{ padding:'12px 14px', background:bg, border:`1.5px solid ${border}`, borderRadius: 'var(--r-md)', cursor:submitted?'default':'pointer', textAlign:'left', fontSize: 'var(--t-corpo)', color, lineHeight:1.5, transition:'all 0.1s', fontFamily:'var(--font-sans)' }}>
+                  <span style={{ fontFamily:'var(--font-mono)', fontSize: 'var(--t-micro)', opacity:0.5, marginRight:6 }}>{String.fromCharCode(65+i)}.</span>
                   {opt.label}
                 </button>
               )
@@ -239,16 +243,16 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
           </div>
           {submitted && selected !== null && (
             <div style={{ marginTop:14 }}>
-              <div style={{ padding:'12px 14px', background:ch.case_data.options[selected]?.is_correct?'#d1fae5':'#fee2e2', border:`1px solid ${ch.case_data.options[selected]?.is_correct?'#6ee7b7':'#fca5a5'}`, borderRadius:8, marginBottom:10 }}>
-                <div style={{ fontSize:14, fontWeight:700, color:ch.case_data.options[selected]?.is_correct?'#065f46':'#991b1b', marginBottom:5 }}>
+              <div style={{ padding:'12px 14px', background:ch.case_data.options[selected]?.is_correct?'var(--badge-green-bg)':'var(--badge-red-bg)', border:`1px solid ${ch.case_data.options[selected]?.is_correct?'var(--green-mid)':'var(--badge-red-border)'}`, borderRadius: 'var(--r-md)', marginBottom:10 }}>
+                <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color:ch.case_data.options[selected]?.is_correct?'var(--green)':'var(--red)', marginBottom:5 }}>
                   {ch.case_data.options[selected]?.is_correct ? `Correcto! +${d.xp + Math.round((remaining/totalTime)*(d.xp*0.5))} XP` : 'Incorrecta'}
                 </div>
-                <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.6 }}>{ch.case_data.options[selected]?.explanation}</div>
+                <div style={{ fontSize: 'var(--t-dado)', color:'var(--ink)', lineHeight:1.6 }}>{ch.case_data.options[selected]?.explanation}</div>
               </div>
               {ch.case_data.learning_point && (
-                <div style={{ padding:'10px 12px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8 }}>
-                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Pearl clínico</div>
-                  <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6 }}>{ch.case_data.learning_point}</div>
+                <div style={{ padding:'10px 12px', background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>Pearl clínico</div>
+                  <div style={{ fontSize: 'var(--t-dado)', color:'var(--ink-2)', lineHeight:1.6 }}>{ch.case_data.learning_point}</div>
                 </div>
               )}
             </div>
@@ -262,7 +266,7 @@ function ActiveChallenge({ ch, onComplete, onAbandon }: {
 function XPToast({ xp, onDone }: { xp: number; onDone: () => void }) {
   useEffect(() => { const t = setTimeout(onDone, 2000); return () => clearTimeout(t) }, [onDone])
   return (
-    <div style={{ position:'fixed', top:80, right:20, zIndex:1000, background:'var(--ink)', color:'white', padding:'12px 20px', borderRadius:10, fontFamily:'var(--font-serif)', fontSize:22, boxShadow:'0 8px 32px rgba(0,0,0,0.2)', animation:'slideIn 0.3s ease' }}>
+    <div style={{ position:'fixed', top:80, right:20, zIndex:1000, background:'var(--ink)', color:'white', padding:'12px 20px', borderRadius: 'var(--r-lg)', fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', boxShadow:'0 8px 32px rgba(0,0,0,0.2)', animation:'slideIn 0.3s ease' }}>
       +{xp} XP
       <style>{`@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}`}</style>
     </div>
@@ -294,6 +298,7 @@ export default function ArenaPage() {
   const plan = (user?.plan || 'free') as string
   const canPlay = plan !== 'free'
 
+  const largo = useLargo()
   const loadData = useCallback(async () => {
     if (!user) return
     try {
@@ -392,9 +397,9 @@ export default function ArenaPage() {
 
   const tabStyle = (t: string) => ({
     padding:'9px 16px', background:'none', border:'none',
-    borderBottom:`2px solid ${tab===t?'#7c3aed':'transparent'}`,
-    cursor:'pointer', fontSize:11, fontWeight:700,
-    color:tab===t?'#a78bfa':'#475569',
+    borderBottom:`2px solid ${tab===t?'var(--roxo)':'transparent'}`,
+    cursor:'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
+    color:tab===t?'var(--roxo-meio)':'var(--ink-3)',
     fontFamily:'var(--font-sans)', letterSpacing:'0.04em',
     textTransform:'uppercase' as const, marginBottom:-1,
   })
@@ -403,49 +408,82 @@ export default function ArenaPage() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
 
       <div className="page-container page-body" style={{ maxWidth:480, margin:'0 auto' }}>
-        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'56px 32px', textAlign:'center' }}>
+        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-xl)', padding:'56px 32px', textAlign:'center' }}>
           <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}>
-            <LeagueIcon id="diamond" size={56} color="#7c3aed" />
+            <LeagueIcon id="diamond" size={56} color="var(--roxo)" />
           </div>
-          <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:'var(--ink)', marginBottom:12 }}>Phlox Arena</div>
-          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, marginBottom:28 }}>Bronze → Diamante. Casos de 8 domínios. XP real. Leaderboard global. Disponível no plano Plus.</p>
-          <Link href="/pricing" style={{ display:'inline-block', background:'#7c3aed', color:'white', textDecoration:'none', padding:'13px 32px', borderRadius:8, fontSize:14, fontWeight:700 }}>Ver plano Plus →</Link>
+          <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-numero)', color:'var(--ink)', marginBottom:12 }}>Phlox Arena</div>
+          <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-3)', lineHeight:1.7, marginBottom:28 }}>Bronze → Diamante. Casos de 8 domínios. XP real. Leaderboard global. Disponível no plano Plus.</p>
+          <Link href="/pricing" style={{ display:'inline-block', background:'var(--roxo)', color:'white', textDecoration:'none', padding:'13px 32px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>Ver plano Plus →</Link>
         </div>
       </div>
     </div>
   )
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-
+    <Mesa
+      altura="documento"
+      barra={
+        /* A BANDA DA LIGA não é cromo — é o conteúdo. Quem abre a Arena vem
+           ver em que lugar está. Deixa de ser uma banda escura de 90px por
+           cima da página e passa a ser a barra de trabalho, que é onde a
+           mesa põe o que tem de estar sempre à vista: ao rolar a tabela de
+           classificação, continua-se a ver o próprio lugar. */
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--roxo)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Arena</span>
+          {myStats && (
+            <>
+              <LeagueIcon id={myLeague.id} size={22} color={myLeague.color} />
+              <span style={{ ...MONO, color: myLeague.color, fontWeight: 'var(--peso-forte)' as any }}>
+                {myLeague.label.toUpperCase()}
+              </span>
+              <span style={{
+                width: 90, height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)',
+                overflow: 'hidden', flexShrink: 0, display: 'inline-block',
+              }}>
+                <span style={{ display: 'block', height: '100%', width: `${progress}%`, background: myLeague.color, transition: 'width .8s ease' }} />
+              </span>
+              <span style={{ ...MONO, color: 'var(--ink-4)' }}>{myStats.total_xp} XP</span>
+              {myStats.rank > 0 && <span style={{ ...MONO, color: 'var(--ink-4)' }}>#{myStats.rank} GLOBAL</span>}
+              <span style={{ marginLeft: largo ? 'auto' : undefined }}>
+                <Botao feitio="principal" onClick={generateChallenge} esperando={generating}>JOGAR AGORA</Botao>
+              </span>
+            </>
+          )}
+        </BarraDeTrabalho>
+      }
+    >
       {xpToast !== null && <XPToast xp={xpToast} onDone={() => setXpToast(null)} />}
 
-      {/* Header */}
-      <div style={{ background:'#0f172a', borderBottom:'1px solid #1e293b' }}>
+      {/* O cabeçalho da liga subiu para a barra de trabalho. */}
+      <div style={{ display: 'none' }}>
         <div className="page-container" style={{ paddingTop:20, paddingBottom:0 }}>
           {myStats && (
             <div style={{ display:'flex', alignItems:'center', gap:16, marginBottom:16, flexWrap:'wrap' }}>
               <LeagueIcon id={myLeague.id} size={44} color={myLeague.color} />
               <div style={{ flex:1, minWidth:0 }}>
-                <div style={{ fontFamily:'var(--font-serif)', fontSize:18, color:'#f8fafc', marginBottom:2 }}>
+                <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:'var(--bg-2)', marginBottom:2 }}>
                   {user?.name?.split(' ')[0] || 'Estudante'}
-                  <span style={{ fontSize:12, color:myLeague.color, marginLeft:10, fontFamily:'var(--font-mono)', fontWeight:700 }}>{myLeague.label}</span>
+                  <span style={{ fontSize: 'var(--t-meta)', color:myLeague.color, marginLeft:10, fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any }}>{myLeague.label}</span>
                 </div>
                 <div style={{ display:'flex', alignItems:'center', gap:10 }}>
-                  <div style={{ flex:1, maxWidth:200, height:6, background:'#1e293b', borderRadius:3, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${progress}%`, background:myLeague.color, borderRadius:3, transition:'width 0.8s ease' }} />
+                  <div style={{ flex:1, maxWidth:200, height:6, background:'var(--ink-2)', borderRadius: 'var(--r-sm)', overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:`${progress}%`, background:myLeague.color, borderRadius: 'var(--r-sm)', transition:'width 0.8s ease' }} />
                   </div>
-                  <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'#475569' }}>{myStats.total_xp} XP</span>
-                  {myStats.rank > 0 && <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'#475569' }}>#{myStats.rank} global</span>}
+                  <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-3)' }}>{myStats.total_xp} XP</span>
+                  {myStats.rank > 0 && <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-3)' }}>#{myStats.rank} global</span>}
                 </div>
               </div>
               <button onClick={generateChallenge} disabled={generating}
-                style={{ padding:'10px 20px', background:'#7c3aed', color:'white', border:'none', borderRadius:8, cursor:generating?'wait':'pointer', fontSize:13, fontWeight:700, fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:8, opacity:generating?0.7:1 }}>
+                style={{ padding:'10px 20px', background:'var(--roxo)', color:'white', border:'none', borderRadius: 'var(--r-md)', cursor:generating?'wait':'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:8, opacity:generating?0.7:1 }}>
                 {generating ? <><div style={{ width:12, height:12, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A gerar...</> : 'Jogar agora'}
               </button>
             </div>
           )}
-          <div style={{ display:'flex', borderTop:'1px solid #1e293b', overflowX:'auto' }}>
+          <div style={{ display:'flex', borderTop:'1px solid var(--ink-2)', overflowX:'auto' }}>
             {[['play','Casos'],['league','Liga'],['stats','As minhas stats']].map(([id,label]) => (
               <button key={id} onClick={() => setTab(id as any)} style={tabStyle(id)}>{label}</button>
             ))}
@@ -461,7 +499,7 @@ export default function ArenaPage() {
             <div style={{ display:'flex', gap:6, marginBottom:12, flexWrap:'wrap' }}>
               {DOMAINS.map(d => (
                 <button key={d.id} onClick={() => setFilterDomain(d.id)}
-                  style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 10px', border:`1.5px solid ${filterDomain===d.id?'#7c3aed':'var(--border)'}`, borderRadius:20, background:filterDomain===d.id?'#faf5ff':'white', color:filterDomain===d.id?'#7c3aed':'var(--ink-3)', cursor:'pointer', fontSize:11, fontWeight:filterDomain===d.id?700:400, fontFamily:'var(--font-sans)' }}>
+                  style={{ display:'flex', alignItems:'center', gap:5, padding:'5px 10px', border:`1.5px solid ${filterDomain===d.id?'var(--roxo)':'var(--border)'}`, borderRadius: 'var(--r-xl)', background:filterDomain===d.id?'var(--roxo-claro)':'white', color:filterDomain===d.id?'var(--roxo)':'var(--ink-3)', cursor:'pointer', fontSize: 'var(--t-meta)', fontWeight:filterDomain===d.id?700:400, fontFamily:'var(--font-sans)' }}>
                   <DomainSVG id={d.id} size={12} />
                   {d.label}
                 </button>
@@ -470,43 +508,43 @@ export default function ArenaPage() {
             <div style={{ display:'flex', gap:4, marginBottom:14 }}>
               {['all','facil','medio','dificil','especialista'].map(d => (
                 <button key={d} onClick={() => setFilterDiff(d)}
-                  style={{ padding:'4px 10px', border:`1.5px solid ${filterDiff===d?'var(--ink)':'var(--border)'}`, borderRadius:20, background:filterDiff===d?'var(--ink)':'white', color:filterDiff===d?'white':'var(--ink-3)', cursor:'pointer', fontSize:11, fontWeight:700, fontFamily:'var(--font-sans)' }}>
+                  style={{ padding:'4px 10px', border:`1.5px solid ${filterDiff===d?'var(--ink)':'var(--border)'}`, borderRadius: 'var(--r-xl)', background:filterDiff===d?'var(--ink)':'white', color:filterDiff===d?'white':'var(--ink-3)', cursor:'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily:'var(--font-sans)' }}>
                   {d==='all'?'Todas':DIFF[d as keyof typeof DIFF]?.label||d}
                 </button>
               ))}
             </div>
             {genError && (
-              <div style={{ marginBottom: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 8, color: '#991b1b', fontSize: 13 }}>{genError}</div>
+              <div style={{ marginBottom: 12, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', color: 'var(--red)', fontSize: 'var(--t-dado)' }}>{genError}</div>
             )}
             <button onClick={generateChallenge} disabled={generating}
-              style={{ width:'100%', padding:'13px', background:generating?'var(--bg-3)':'#7c3aed', color:generating?'var(--ink-4)':'white', border:'none', borderRadius:10, cursor:generating?'wait':'pointer', fontSize:14, fontWeight:700, fontFamily:'var(--font-sans)', marginBottom:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
-              {generating ? <><div style={{ width:14, height:14, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A gerar...</> : `Gerar novo caso${filterDomain!=='all'?' de '+DOMAINS.find(d=>d.id===filterDomain)?.label:''}`}
+              style={{ width:'100%', padding:'13px', background:generating?'var(--bg-3)':'var(--roxo)', color:generating?'var(--ink-4)':'white', border:'none', borderRadius: 'var(--r-lg)', cursor:generating?'wait':'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily:'var(--font-sans)', marginBottom:14, display:'flex', alignItems:'center', justifyContent:'center', gap:8 }}>
+              {generating ? <><div style={{ width:14, height:14, border:'2px solid rgba(255,255,255,0.3)', borderTopColor:'var(--roxo)', borderRadius:'50%', animation:'spin 0.7s linear infinite' }} />A gerar...</> : `Gerar novo caso${filterDomain!=='all'?' de '+DOMAINS.find(d=>d.id===filterDomain)?.label:''}`}
             </button>
             {loading ? (
               <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height:76, borderRadius:8 }} />)}
+                {[0,1,2].map(i => <div key={i} className="skeleton" style={{ height:76, borderRadius: 'var(--r-md)' }} />)}
               </div>
             ) : filtered.length === 0 ? (
-              <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink-4)', fontSize:14 }}>Clica em "Gerar novo caso" para começar.</div>
+              <div style={{ textAlign:'center', padding:'40px 0', color:'var(--ink-4)', fontSize: 'var(--t-corpo)' }}>Clica em "Gerar novo caso" para começar.</div>
             ) : filtered.map(ch => {
               const d = DIFF[ch.difficulty]
               const dom = DOMAINS.find(x => x.id === ch.domain)
               const done = attemptedIds.has(ch.id)
               return (
-                <div key={ch.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'white', border:'1px solid var(--border)', borderRadius:9, marginBottom:6, opacity:done?0.55:1, cursor:done?'default':'pointer', transition:'all 0.15s' }}
+                <div key={ch.id} style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 14px', background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', marginBottom:6, opacity:done?0.55:1, cursor:done?'default':'pointer', transition:'all 0.15s' }}
                   onClick={() => !done && setActive(ch)}>
-                  <div style={{ width:32, height:32, borderRadius:6, background:'var(--bg-2)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-4)', flexShrink:0 }}>
+                  <div style={{ width:32, height:32, borderRadius: 'var(--r)', background:'var(--bg-2)', display:'flex', alignItems:'center', justifyContent:'center', color:'var(--ink-4)', flexShrink:0 }}>
                     <DomainSVG id={ch.domain} size={16} />
                   </div>
                   <div style={{ flex:1, minWidth:0 }}>
-                    <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:2 }}>{ch.title}</div>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', marginBottom:2 }}>{ch.title}</div>
                     <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                      <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:d.color, background:d.bg, padding:'1px 6px', borderRadius:3, textTransform:'uppercase', letterSpacing:'0.06em' }}>{d.label}</span>
-                      <span style={{ fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>+{d.xp} XP</span>
+                      <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:d.color, background:d.bg, padding:'1px 6px', borderRadius: 'var(--r-sm)', textTransform:'uppercase', letterSpacing:'0.06em' }}>{d.label}</span>
+                      <span style={{ fontSize: 'var(--t-micro)', color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>+{d.xp} XP</span>
                     </div>
                   </div>
-                  {done ? <span style={{ fontSize:11, color:'#0d6e42', fontFamily:'var(--font-mono)', fontWeight:700, flexShrink:0 }}>Feito</span>
-                        : <span style={{ fontSize:13, fontWeight:700, color:'#7c3aed', flexShrink:0 }}>Jogar →</span>}
+                  {done ? <span style={{ fontSize: 'var(--t-meta)', color:'var(--green)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, flexShrink:0 }}>Feito</span>
+                        : <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color:'var(--roxo)', flexShrink:0 }}>Jogar →</span>}
                 </div>
               )
             })}
@@ -516,20 +554,20 @@ export default function ArenaPage() {
         {!active && tab === 'league' && (
           <div>
             {myStats && (
-              <div style={{ background:myLeague.bg, border:`2px solid ${myLeague.border}`, borderRadius:12, padding:'18px 20px', marginBottom:14, display:'flex', alignItems:'center', gap:16 }}>
+              <div style={{ background:myLeague.bg, border:`2px solid ${myLeague.border}`, borderRadius: 'var(--r-xl)', padding:'18px 20px', marginBottom:14, display:'flex', alignItems:'center', gap:16 }}>
                 <LeagueIcon id={myLeague.id} size={52} color={myLeague.color} />
                 <div style={{ flex:1 }}>
-                  <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:myLeague.color, marginBottom:2 }}>
+                  <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:myLeague.color, marginBottom:2 }}>
                     {myLeague.label}
-                    <span style={{ fontSize:13, fontFamily:'var(--font-sans)', color:myLeague.color, opacity:0.7, marginLeft:8 }}>{myStats.total_xp} XP</span>
+                    <span style={{ fontSize: 'var(--t-dado)', fontFamily:'var(--font-sans)', color:myLeague.color, opacity:0.7, marginLeft:8 }}>{myStats.total_xp} XP</span>
                   </div>
-                  <div style={{ fontSize:12, color:myLeague.color, opacity:0.7, marginBottom:8 }}>{myLeague.desc}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color:myLeague.color, opacity:0.7, marginBottom:8 }}>{myLeague.desc}</div>
                   {nextLeague && (
                     <>
-                      <div style={{ height:6, background:`${myLeague.color}20`, borderRadius:3, overflow:'hidden', marginBottom:4 }}>
-                        <div style={{ height:'100%', width:`${progress}%`, background:myLeague.color, borderRadius:3 }} />
+                      <div style={{ height:6, background:`${myLeague.color}20`, borderRadius: 'var(--r-sm)', overflow:'hidden', marginBottom:4 }}>
+                        <div style={{ height:'100%', width:`${progress}%`, background:myLeague.color, borderRadius: 'var(--r-sm)' }} />
                       </div>
-                      <div style={{ fontSize:10, color:myLeague.color, opacity:0.6, fontFamily:'var(--font-mono)' }}>
+                      <div style={{ fontSize: 'var(--t-micro)', color:myLeague.color, opacity:0.6, fontFamily:'var(--font-mono)' }}>
                         {nextLeague.min - myStats.total_xp} XP para {nextLeague.label}
                       </div>
                     </>
@@ -539,37 +577,37 @@ export default function ArenaPage() {
             )}
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(100px,1fr))', gap:8, marginBottom:14 }}>
               {LEAGUES.map(l => (
-                <div key={l.id} style={{ background:l.bg, border:`1px solid ${l.border}`, borderRadius:10, padding:'14px 10px', textAlign:'center', opacity:myStats&&myStats.total_xp>=l.min?1:0.3, transition:'opacity 0.2s' }}>
+                <div key={l.id} style={{ background:l.bg, border:`1px solid ${l.border}`, borderRadius: 'var(--r-lg)', padding:'14px 10px', textAlign:'center', opacity:myStats&&myStats.total_xp>=l.min?1:0.3, transition:'opacity 0.2s' }}>
                   <div style={{ display:'flex', justifyContent:'center', marginBottom:6 }}>
                     <LeagueIcon id={l.id} size={36} color={l.color} />
                   </div>
-                  <div style={{ fontSize:12, fontWeight:700, color:l.color }}>{l.label}</div>
-                  <div style={{ fontSize:10, color:l.color, opacity:0.6, fontFamily:'var(--font-mono)', marginTop:2 }}>{l.min}+ XP</div>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color:l.color }}>{l.label}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', color:l.color, opacity:0.6, fontFamily:'var(--font-mono)', marginTop:2 }}>{l.min}+ XP</div>
                 </div>
               ))}
             </div>
-            <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+            <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow:'hidden' }}>
               <div style={{ padding:'12px 16px', borderBottom:'1px solid var(--border)', background:'var(--bg-2)' }}>
-                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Ranking Global · Top {leaderboard.length}</div>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.1em' }}>Ranking Global · Top {leaderboard.length}</div>
               </div>
               {leaderboard.length === 0 ? (
-                <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--ink-4)', fontSize:13 }}>Ainda sem dados. Joga casos para aparecer no ranking!</div>
+                <div style={{ padding:'32px 16px', textAlign:'center', color:'var(--ink-4)', fontSize: 'var(--t-dado)' }}>Ainda sem dados. Joga casos para aparecer no ranking!</div>
               ) : leaderboard.map((p, i) => {
                 const l = getLeague(p.total_xp)
                 const isMe = p.user_id === user?.id
                 return (
-                  <div key={p.user_id} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 16px', borderBottom:i<leaderboard.length-1?'1px solid var(--bg-3)':'none', background:isMe?'#faf5ff':'white' }}>
-                    <div style={{ width:26, height:26, borderRadius:'50%', background:i<3?['#ffd70020','#c0c0c020','#cd7f3220'][i]:'var(--bg-2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink-3)', flexShrink:0 }}>
+                  <div key={p.user_id} style={{ display:'flex', alignItems:'center', gap:12, padding:'11px 16px', borderBottom:i<leaderboard.length-1?'1px solid var(--bg-3)':'none', background:isMe?'var(--roxo-claro)':'white' }}>
+                    <div style={{ width:26, height:26, borderRadius:'50%', background:i<3?['var(--podio-1)','var(--podio-2)','var(--podio-3)'][i]:'var(--bg-2)', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink-3)', flexShrink:0 }}>
                       {i+1}
                     </div>
                     <LeagueIcon id={l.id} size={24} color={l.color} />
                     <div style={{ flex:1, minWidth:0 }}>
-                      <div style={{ fontSize:13, fontWeight:isMe?700:500, color:isMe?'#7c3aed':'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.display_name}{isMe?' (tu)':''}</div>
-                      <div style={{ fontSize:10, color:l.color, fontFamily:'var(--font-mono)' }}>{l.label} · {p.correct_answers}/{p.total_attempts} correctas</div>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight:isMe?700:500, color:isMe?'var(--roxo)':'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{p.display_name}{isMe?' (tu)':''}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', color:l.color, fontFamily:'var(--font-mono)' }}>{l.label} · {p.correct_answers}/{p.total_attempts} correctas</div>
                     </div>
                     <div style={{ textAlign:'right', flexShrink:0 }}>
-                      <div style={{ fontFamily:'var(--font-serif)', fontSize:18, color:'var(--ink)' }}>{p.total_xp}</div>
-                      <div style={{ fontSize:9, color:'var(--ink-4)', fontFamily:'var(--font-mono)', textTransform:'uppercase' }}>XP</div>
+                      <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:'var(--ink)' }}>{p.total_xp}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', color:'var(--ink-4)', fontFamily:'var(--font-mono)', textTransform:'uppercase' }}>XP</div>
                     </div>
                   </div>
                 )
@@ -582,41 +620,41 @@ export default function ArenaPage() {
           <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
             <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(130px,1fr))', gap:10 }}>
               {[
-                { label:'XP Total', value:myStats.total_xp, color:'#7c3aed' },
-                { label:'Correctas', value:`${myStats.correct}/${myStats.total_attempts}`, color:'#0d6e42' },
-                { label:'Taxa', value:myStats.total_attempts>0?`${Math.round((myStats.correct/myStats.total_attempts)*100)}%`:'—', color:'#1d4ed8' },
-                { label:'Rank global', value:myStats.rank>0?`#${myStats.rank}`:'—', color:'#d97706' },
+                { label:'XP Total', value:myStats.total_xp, color:'var(--roxo)' },
+                { label:'Correctas', value:`${myStats.correct}/${myStats.total_attempts}`, color:'var(--green)' },
+                { label:'Taxa', value:myStats.total_attempts>0?`${Math.round((myStats.correct/myStats.total_attempts)*100)}%`:'—', color:'var(--ink-2)' },
+                { label:'Rank global', value:myStats.rank>0?`#${myStats.rank}`:'—', color:'var(--amber)' },
               ].map(s => (
-                <div key={s.label} style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'14px' }}>
-                  <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:s.color }}>{s.value}</div>
-                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:s.color, opacity:0.7, textTransform:'uppercase', letterSpacing:'0.08em', marginTop:2 }}>{s.label}</div>
+                <div key={s.label} style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'14px' }}>
+                  <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:s.color }}>{s.value}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:s.color, opacity:0.7, textTransform:'uppercase', letterSpacing:'0.08em', marginTop:2 }}>{s.label}</div>
                 </div>
               ))}
             </div>
             {Object.keys(myStats.by_domain).length > 0 && (
-              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:18 }}>
-                <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Performance por domínio</div>
+              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:18 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Performance por domínio</div>
                 {Object.entries(myStats.by_domain).sort(([,a],[,b]) => (a.correct/Math.max(1,a.total)) - (b.correct/Math.max(1,b.total))).map(([domain, data]) => {
                   const rate = data.total > 0 ? Math.round((data.correct/data.total)*100) : 0
                   const dom = DOMAINS.find(d => d.id === domain)
-                  const color = rate>=80?'#0d6e42':rate>=60?'#d97706':'#dc2626'
+                  const color = rate>=80?'var(--green)':rate>=60?'var(--amber)':'var(--red)'
                   return (
                     <div key={domain} style={{ marginBottom:10 }}>
                       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4, alignItems:'center' }}>
-                        <span style={{ fontSize:12, color:'var(--ink)', display:'flex', alignItems:'center', gap:5 }}><DomainSVG id={domain} size={12} />{dom?.label||domain}</span>
-                        <span style={{ fontSize:12, fontFamily:'var(--font-mono)', fontWeight:700, color }}>{rate}%</span>
+                        <span style={{ fontSize: 'var(--t-meta)', color:'var(--ink)', display:'flex', alignItems:'center', gap:5 }}><DomainSVG id={domain} size={12} />{dom?.label||domain}</span>
+                        <span style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color }}>{rate}%</span>
                       </div>
-                      <div style={{ height:5, background:'var(--bg-3)', borderRadius:3, overflow:'hidden' }}>
-                        <div style={{ height:'100%', width:`${rate}%`, background:color, borderRadius:3 }} />
+                      <div style={{ height:5, background:'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow:'hidden' }}>
+                        <div style={{ height:'100%', width:`${rate}%`, background:color, borderRadius: 'var(--r-sm)' }} />
                       </div>
                     </div>
                   )
                 })}
               </div>
             )}
-            <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:18 }}>
-              <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Progressão de liga</div>
-              <div style={{ display:'flex', gap:0, borderRadius:8, overflow:'hidden', border:'1px solid var(--border)' }}>
+            <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:18 }}>
+              <div style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Progressão de liga</div>
+              <div style={{ display:'flex', gap:0, borderRadius: 'var(--r-md)', overflow:'hidden', border:'1px solid var(--border)' }}>
                 {LEAGUES.map((l, i) => {
                   const unlocked = myStats.total_xp >= l.min
                   return (
@@ -624,7 +662,7 @@ export default function ArenaPage() {
                       <div style={{ display:'flex', justifyContent:'center', marginBottom:4 }}>
                         <LeagueIcon id={l.id} size={28} color={l.color} />
                       </div>
-                      <div style={{ fontSize:8, fontFamily:'var(--font-mono)', fontWeight:700, color:unlocked?l.color:'var(--ink-5)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{l.label}</div>
+                      <div style={{ fontSize:'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:unlocked?l.color:'var(--ink-5)', textTransform:'uppercase', letterSpacing:'0.04em' }}>{l.label}</div>
                     </div>
                   )
                 })}
@@ -634,6 +672,6 @@ export default function ArenaPage() {
         )}
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-    </div>
+    </Mesa>
   )
 }

@@ -36,9 +36,13 @@ import ZaritBurdenCard from '@/components/ZaritBurdenCard'
 import ShareInviteButton from '@/components/ShareInviteButton'
 import HandoffSheetButton from '@/components/HandoffSheetButton'
 import FamilyChat, { type ChatMessage } from '@/components/FamilyChat'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
-const ACCENT_PERSONAL = '#7c3aed'
-const ACCENT_LINKED = '#1d4ed8'
+const ACCENT_PERSONAL = 'var(--roxo)'
+const ACCENT_LINKED = 'var(--ink-2)'
 const RELATION_OPTIONS = ['Pai', 'Mãe', 'Filho', 'Filha', 'Cônjuge', 'Parceiro/a', 'Avô', 'Avó', 'Irmão', 'Irmã', 'Outro']
 
 interface FamilyProfile { id: string; name: string; relation?: string; age?: number; sex?: string; weight?: number; height?: number; creatinine?: number; conditions?: string; allergies?: string; notes?: string }
@@ -53,16 +57,16 @@ function calcCrCl(age?: number, weight?: number, sex?: string, creatinine?: numb
 }
 function crClLabel(crcl: number | null): { label: string; color: string } | null {
   if (crcl === null) return null
-  if (crcl >= 90) return { label: 'Normal', color: '#16a34a' }
-  if (crcl >= 60) return { label: 'Ligeira', color: '#d97706' }
-  if (crcl >= 30) return { label: 'Moderada', color: '#f97316' }
-  if (crcl >= 15) return { label: 'Grave', color: '#dc2626' }
-  return { label: 'Falência', color: '#7f1d1d' }
+  if (crcl >= 90) return { label: 'Normal', color: 'var(--green)' }
+  if (crcl >= 60) return { label: 'Ligeira', color: 'var(--amber)' }
+  if (crcl >= 30) return { label: 'Moderada', color: 'var(--amber)' }
+  if (crcl >= 15) return { label: 'Grave', color: 'var(--red)' }
+  return { label: 'Falência', color: 'var(--red)' }
 }
 
 export default function PerfilPage({ params }: { params: Promise<{ id: string }> }) {
   return (
-    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#fbfaf8' }} />}>
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: 'var(--bg-2)' }} />}>
       <PerfilPageInner params={params} />
     </Suspense>
   )
@@ -72,13 +76,13 @@ export default function PerfilPage({ params }: { params: Promise<{ id: string }>
 function Section({ title, badge, defaultOpen, children, accent }: { title: string; badge?: string; defaultOpen?: boolean; children: React.ReactNode; accent: string }) {
   const [open, setOpen] = useState(!!defaultOpen)
   return (
-    <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, overflow: 'hidden', marginBottom: 10 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden', marginBottom: 10 }}>
       <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '14px 16px', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit', textAlign: 'left' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 14.5, fontWeight: 800, color: '#0b1120' }}>{title}</span>
-          {badge && <span style={{ fontSize: 10.5, fontWeight: 700, color: accent, background: accent + '18', borderRadius: 6, padding: '2px 7px' }}>{badge}</span>}
+          <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{title}</span>
+          {badge && <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: accent, background: accent + '18', borderRadius: 'var(--r)', padding: '2px 7px' }}>{badge}</span>}
         </span>
-        <span style={{ color: '#94a3b8', fontSize: 13, transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>⌄</span>
+        <span style={{ color: 'var(--ink-5)', fontSize: 'var(--t-dado)', transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>⌄</span>
       </button>
       {open && <div style={{ padding: '0 16px 16px' }}>{children}</div>}
     </div>
@@ -147,21 +151,43 @@ function PerfilPageInner({ params }: { params: Promise<{ id: string }> }) {
   )
 
   if (profile === undefined) return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Perfil</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '24px 18px' }}>
-        <div className="skeleton" style={{ height: 90, borderRadius: 14, marginBottom: 12 }} />
-        <div className="skeleton" style={{ height: 200, borderRadius: 14 }} />
+        <div className="skeleton" style={{ height: 90, borderRadius: 'var(--r-xl)', marginBottom: 12 }} />
+        <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-xl)' }} />
       </div>
-    </div>
+    </Mesa>
   )
 
   if (!profile) return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Perfil</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div style={{ textAlign: 'center' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 14 }}>Perfil não encontrado</div>
-        <Link href="/familia" style={{ color: '#7c3aed', fontWeight: 700, textDecoration: 'none' }}>← Voltar à família</Link>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 14 }}>Perfil não encontrado</div>
+        <Link href="/familia" style={{ color: 'var(--roxo)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>← Voltar à família</Link>
       </div>
-    </div>
+    </Mesa>
   )
 
   const linked = !!link
@@ -172,26 +198,37 @@ function PerfilPageInner({ params }: { params: Promise<{ id: string }> }) {
   const displayName = linked && portal?.patient?.name ? portal.patient.name : profile.name
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Perfil</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '20px clamp(14px,4vw,28px) 70px' }}>
 
-        <Link href="/familia" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 12, color: '#94a3b8', textDecoration: 'none', fontFamily: 'var(--font-mono)', marginBottom: 14 }}>
+        <Link href="/familia" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--t-meta)', color: 'var(--ink-5)', textDecoration: 'none', fontFamily: 'var(--font-mono)', marginBottom: 14 }}>
           ← Todos os perfis
         </Link>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 18 }}>
-          <div style={{ width: 52, height: 52, borderRadius: '50%', background: linked ? '#eff6ff' : '#f3e8ff', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 19, fontWeight: 700, flexShrink: 0 }}>
+          <div style={{ width: 52, height: 52, borderRadius: '50%', background: linked ? 'var(--bg-2)' : 'var(--roxo-claro)', color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>
             {displayName.charAt(0).toUpperCase()}
           </div>
           <div style={{ flex: 1, minWidth: 0 }}>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', fontWeight: 500, letterSpacing: '-0.01em', margin: 0 }}>{displayName}</h1>
-            <div style={{ fontSize: 12.5, color: '#94a3b8', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 3, alignItems: 'center' }}>
+            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any, letterSpacing: '-0.01em', margin: 0 }}>{displayName}</h1>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 3, alignItems: 'center' }}>
               {profile.relation && <span>{profile.relation}</span>}
-              {linked ? <span style={{ fontSize: 10, fontWeight: 800, color: ACCENT_LINKED, background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '2px 7px' }}>🏡 No lar/centro de dia</span>
+              {linked ? <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: ACCENT_LINKED, background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 7px' }}>No lar/centro de dia</span>
                 : profile.age ? <span>{profile.age} anos</span> : null}
             </div>
           </div>
-          <Link href={`/ai${linked ? '' : `?profile=${profile.id}`}`} style={{ fontSize: 12, fontWeight: 700, color: accent, textDecoration: 'none', flexShrink: 0 }}>Perguntar à IA →</Link>
+          <Link href={`/ai${linked ? '' : `?profile=${profile.id}`}`} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: accent, textDecoration: 'none', flexShrink: 0 }}>Perguntar à IA →</Link>
         </div>
 
         {linked ? (
@@ -212,10 +249,10 @@ function PerfilPageInner({ params }: { params: Promise<{ id: string }> }) {
             if (!confirm(`Apagar o perfil de ${profile.name}? Esta ação não pode ser desfeita.`)) return
             await supabase.from('family_profiles').delete().eq('id', profile.id).eq('user_id', user!.id)
             window.location.href = '/familia'
-          }} style={{ background: 'none', border: 'none', fontSize: 12, color: '#94a3b8', cursor: 'pointer', fontFamily: 'inherit' }}>Apagar perfil</button>
+          }} style={{ background: 'none', border: 'none', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', cursor: 'pointer', fontFamily: 'inherit' }}>Apagar perfil</button>
         </div>
       </div>
-    </div>
+    </Mesa>
   )
 }
 
@@ -237,10 +274,10 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
   const [savingNote, setSavingNote] = useState(false)
   const [noteSaved, setNoteSaved] = useState(false)
 
-  if (loading && !portal) return <div className="skeleton" style={{ height: 240, borderRadius: 14 }} />
+  if (loading && !portal) return <div className="skeleton" style={{ height: 240, borderRadius: 'var(--r-xl)' }} />
   if (!portal) return (
-    <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: 18, textAlign: 'center', color: '#94a3b8', fontSize: 13.5 }}>
-      Não foi possível carregar os dados da instituição agora. <button onClick={onRefresh} style={{ color: accent, background: 'none', border: 'none', fontWeight: 700, cursor: 'pointer' }}>Tentar de novo</button>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18, textAlign: 'center', color: 'var(--ink-5)', fontSize: 'var(--t-dado)' }}>
+      Não foi possível carregar os dados da instituição agora. <button onClick={onRefresh} style={{ color: accent, background: 'none', border: 'none', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>Tentar de novo</button>
     </div>
   )
 
@@ -295,26 +332,26 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
       {/* HOJE */}
       <Section title="Hoje" accent={accent} defaultOpen badge={isToday && todayLine.attention ? 'Precisa de atenção' : undefined}>
         {todayLine ? (
-          <div style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
             {todayLine.lines.map((l: string, i: number) => <div key={i}>{l}</div>)}
           </div>
         ) : (
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Ainda sem registos hoje.</div>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>Ainda sem registos hoje.</div>
         )}
         {(portal.homeMeds || []).length > 0 && (
-          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid #f1f5f9' }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Medicação para dar em casa</div>
+          <div style={{ marginTop: 14, paddingTop: 14, borderTop: '1px solid var(--bg-3)' }}>
+            <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Medicação para dar em casa</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {portal.homeMeds.map((m: any) => {
                 const taken = (portal.todayDoses || []).some((x: any) => x.med_id === m.id && x.source === 'home')
                 const givenByTeam = (portal.todayDoses || []).some((x: any) => x.med_id === m.id && x.source !== 'home' && ['administered', 'given', 'taken'].includes(x.status))
                 const busy = dosing === m.id
                 return (
-                  <button key={m.id} onClick={() => markDose(m.id)} disabled={busy} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '10px 12px', borderRadius: 10, cursor: busy ? 'wait' : 'pointer', border: `1.5px solid ${taken ? '#bbf7d0' : givenByTeam ? '#bfdbfe' : '#e5e7eb'}`, background: taken ? '#f0fdf4' : givenByTeam ? '#eff6ff' : 'white', fontFamily: 'inherit' }}>
-                    <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, border: `2px solid ${taken ? '#16a34a' : givenByTeam ? '#3b82f6' : '#cbd5e1'}`, background: taken ? '#16a34a' : givenByTeam ? '#3b82f6' : 'white', color: 'white' }}>{taken || givenByTeam ? '✓' : ''}</span>
+                  <button key={m.id} onClick={() => markDose(m.id)} disabled={busy} style={{ display: 'flex', alignItems: 'center', gap: 10, textAlign: 'left', width: '100%', padding: '10px 12px', borderRadius: 'var(--r-lg)', cursor: busy ? 'wait' : 'pointer', border: `1.5px solid ${taken ? 'var(--green-mid)' : givenByTeam ? 'var(--border)' : 'var(--border)'}`, background: taken ? 'var(--badge-green-bg)' : givenByTeam ? 'var(--bg-2)' : 'white', fontFamily: 'inherit' }}>
+                    <span style={{ width: 22, height: 22, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, border: `2px solid ${taken ? 'var(--green)' : givenByTeam ? 'var(--ink-3)' : 'var(--border-2)'}`, background: taken ? 'var(--green)' : givenByTeam ? 'var(--ink-3)' : 'white', color: 'white' }}>{taken || givenByTeam ? '✓' : ''}</span>
                     <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
-                      <span style={{ display: 'block', fontSize: 11.5, color: taken ? '#16a34a' : givenByTeam ? '#2563eb' : '#94a3b8' }}>{busy ? 'A guardar…' : taken ? 'Dado em casa hoje — toque para desmarcar' : givenByTeam ? 'Já dado pela equipa hoje' : 'Toque quando der esta medicação'}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{m.name}{m.dose ? ` · ${m.dose}` : ''}</span>
+                      <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: taken ? 'var(--green)' : givenByTeam ? 'var(--ink-2)' : 'var(--ink-5)' }}>{busy ? 'A guardar…' : taken ? 'Dado em casa hoje — toque para desmarcar' : givenByTeam ? 'Já dado pela equipa hoje' : 'Toque quando der esta medicação'}</span>
                     </span>
                   </button>
                 )
@@ -326,12 +363,12 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
 
       {/* MUDANÇAS DE MEDICAÇÃO */}
       {(portal.medChanges || []).length > 0 && (
-        <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 14, padding: '13px 16px', marginBottom: 10 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#92400e', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Mudanças de medicação recentes</div>
+        <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: '13px 16px', marginBottom: 10 }}>
+          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Mudanças de medicação recentes</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
             {portal.medChanges.map((c: any) => (
-              <div key={c.id + c.event} style={{ fontSize: 13, color: '#78350f' }}>
-                {c.event === 'started' ? '＋ Iniciou' : '– Parou'} <strong>{c.name}</strong>{c.dose ? ` (${c.dose})` : ''} <span style={{ color: '#a16207', fontSize: 11.5 }}>· {new Date(c.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</span>
+              <div key={c.id + c.event} style={{ fontSize: 'var(--t-dado)', color: 'var(--amber)' }}>
+                {c.event === 'started' ? '＋ Iniciou' : '– Parou'} <strong>{c.name}</strong>{c.dose ? ` (${c.dose})` : ''} <span style={{ color: 'var(--amber)', fontSize: 'var(--t-meta)' }}>· {new Date(c.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</span>
               </div>
             ))}
           </div>
@@ -345,22 +382,22 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
             {[
               ['Mobilidade', portal.carePlan.mobility], ['Higiene', portal.carePlan.hygiene], ['Alimentação', portal.carePlan.nutritionPlan], ['Cuidados de pele', portal.carePlan.skinCare],
             ].filter(([, v]) => v).map(([l, v]) => (
-              <div key={l as string}><div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div><div style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.5 }}>{v}</div></div>
+              <div key={l as string}><div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{l}</div><div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.5 }}>{v}</div></div>
             ))}
             {(portal.carePlan.dietType || portal.carePlan.dietTexture) && (
-              <div><div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Dieta</div><div style={{ fontSize: 13.5, color: '#334155' }}>{[portal.carePlan.dietType, portal.carePlan.dietTexture].filter(Boolean).join(' · ')}{portal.carePlan.fluidRestriction ? ` · restrição de líquidos${portal.carePlan.fluidRestrictionMl ? ` (${portal.carePlan.fluidRestrictionMl} ml/dia)` : ''}` : ''}</div></div>
+              <div><div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Dieta</div><div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>{[portal.carePlan.dietType, portal.carePlan.dietTexture].filter(Boolean).join(' · ')}{portal.carePlan.fluidRestriction ? ` · restrição de líquidos${portal.carePlan.fluidRestrictionMl ? ` (${portal.carePlan.fluidRestrictionMl} ml/dia)` : ''}` : ''}</div></div>
             )}
             {portal.carePlan.fallPrevention?.length > 0 && (
-              <div><div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Prevenção de quedas</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>{portal.carePlan.fallPrevention.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
+              <div><div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Prevenção de quedas</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>{portal.carePlan.fallPrevention.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
             )}
             {portal.carePlan.pressureUlcerPrevention?.length > 0 && (
-              <div><div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Prevenção de úlceras de pressão</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>{portal.carePlan.pressureUlcerPrevention.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
+              <div><div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Prevenção de úlceras de pressão</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>{portal.carePlan.pressureUlcerPrevention.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
             )}
             {portal.carePlan.goals?.length > 0 && (
-              <div><div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Objetivos</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#334155', lineHeight: 1.6 }}>{portal.carePlan.goals.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
+              <div><div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Objetivos</div><ul style={{ margin: 0, paddingLeft: 18, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>{portal.carePlan.goals.map((x: string, i: number) => <li key={i}>{x}</li>)}</ul></div>
             )}
             {portal.carePlan.familyVisitSchedule && (
-              <div><div style={{ fontSize: 10.5, fontWeight: 800, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Visitas da família</div><div style={{ fontSize: 13.5, color: '#334155' }}>{portal.carePlan.familyVisitSchedule}</div></div>
+              <div><div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>Visitas da família</div><div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>{portal.carePlan.familyVisitSchedule}</div></div>
             )}
           </div>
         </Section>
@@ -371,14 +408,14 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
         <Section title="Avaliações" accent={accent}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {portal.assessments.map((a: any) => (
-              <div key={a.scale} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 0', borderTop: '1px solid #f1f5f9' }}>
+              <div key={a.scale} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 0', borderTop: '1px solid var(--bg-3)' }}>
                 <div>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{a.scaleLabel}</div>
-                  <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 1 }}>{new Date(a.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}{a.evaluatedBy ? ` · ${a.evaluatedBy}` : ''}</div>
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{a.scaleLabel}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 1 }}>{new Date(a.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}{a.evaluatedBy ? ` · ${a.evaluatedBy}` : ''}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <span style={{ fontSize: 11.5, fontWeight: 800, color: a.levelColor }}>{a.levelLabel}</span>
-                  {a.trend && <div style={{ fontSize: 11, color: a.trend.color, marginTop: 2 }}>{a.trend.arrow} {a.trend.label}</div>}
+                  <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: a.levelColor }}>{a.levelLabel}</span>
+                  {a.trend && <div style={{ fontSize: 'var(--t-meta)', color: a.trend.color, marginTop: 2 }}>{a.trend.arrow} {a.trend.label}</div>}
                 </div>
               </div>
             ))}
@@ -391,10 +428,10 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
         <Section title="Feridas" accent={accent} badge={`${portal.wounds.length}`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {portal.wounds.map((w: any) => (
-              <div key={w.id} style={{ padding: '10px 0', borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{w.typeLabel} — {w.location}</div>
-                <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 2 }}>{w.statusLabel}{w.stage ? ` · ${w.stage}` : ''}{w.evolution && ` · ${w.evolution === 'melhorando' ? '🟢 a melhorar' : w.evolution === 'atenção' ? '🟠 a precisar de atenção' : '⚪ estável'}`}</div>
-                {w.lastAssessedAt && <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>Última avaliação: {new Date(w.lastAssessedAt + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</div>}
+              <div key={w.id} style={{ padding: '10px 0', borderTop: '1px solid var(--bg-3)' }}>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{w.typeLabel} — {w.location}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2 }}>{w.statusLabel}{w.stage ? ` · ${w.stage}` : ''}{w.evolution && ` · ${w.evolution === 'melhorando' ? 'a melhorar' : w.evolution === 'atenção' ? 'a precisar de atenção' : '⚪ estável'}`}</div>
+                {w.lastAssessedAt && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>Última avaliação: {new Date(w.lastAssessedAt + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</div>}
               </div>
             ))}
           </div>
@@ -406,11 +443,11 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
         <Section title="Incidentes recentes" accent={accent} badge={`${portal.incidents.length}`}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             {portal.incidents.map((inc: any) => (
-              <div key={inc.id} style={{ padding: '10px 0', borderTop: '1px solid #f1f5f9' }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{inc.typeLabel} <span style={{ fontWeight: 500, color: '#94a3b8', fontSize: 11.5 }}>· {new Date(inc.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}{inc.time ? ` às ${inc.time}` : ''}</span></div>
-                <div style={{ fontSize: 13, color: '#475569', marginTop: 3, lineHeight: 1.5 }}>{inc.description}</div>
-                {inc.actionTaken && <div style={{ fontSize: 12.5, color: '#475569', marginTop: 4 }}><strong>O que foi feito:</strong> {inc.actionTaken}</div>}
-                <div style={{ fontSize: 11.5, color: inc.followUp ? '#b45309' : '#16a34a', marginTop: 4, fontWeight: 600 }}>{inc.followUp ? 'A equipa continua a acompanhar' : 'Resolvido'}</div>
+              <div key={inc.id} style={{ padding: '10px 0', borderTop: '1px solid var(--bg-3)' }}>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{inc.typeLabel} <span style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-5)', fontSize: 'var(--t-meta)' }}>· {new Date(inc.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}{inc.time ? ` às ${inc.time}` : ''}</span></div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginTop: 3, lineHeight: 1.5 }}>{inc.description}</div>
+                {inc.actionTaken && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 4 }}><strong>O que foi feito:</strong> {inc.actionTaken}</div>}
+                <div style={{ fontSize: 'var(--t-meta)', color: inc.followUp ? 'var(--amber)' : 'var(--green)', marginTop: 4, fontWeight: 'var(--peso-corpo)' as any }}>{inc.followUp ? 'A equipa continua a acompanhar' : 'Resolvido'}</div>
               </div>
             ))}
           </div>
@@ -420,13 +457,13 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
       {/* DIÁRIO */}
       <Section title="Diário" accent={accent}>
         {(portal.dailySummaries || []).length <= 1 ? (
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Ainda sem histórico anterior.</div>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>Ainda sem histórico anterior.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {portal.dailySummaries.slice(1, 15).map((d: any, i: number) => (
-              <div key={i} style={{ background: d.attention ? '#fffbeb' : '#f8fafc', border: `1px solid ${d.attention ? '#fde68a' : '#e2e8f0'}`, borderRadius: 10, padding: '9px 12px' }}>
-                <div style={{ fontSize: 11.5, fontWeight: 700, color: '#475569' }}>{new Date(d.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                {d.lines.map((l: string, j: number) => <div key={j} style={{ fontSize: 13, color: '#334155', lineHeight: 1.5 }}>{l}</div>)}
+              <div key={i} style={{ background: d.attention ? 'var(--badge-amber-bg)' : 'var(--bg-2)', border: `1px solid ${d.attention ? 'var(--badge-amber-border)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '9px 12px' }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)' }}>{new Date(d.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
+                {d.lines.map((l: string, j: number) => <div key={j} style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.5 }}>{l}</div>)}
               </div>
             ))}
           </div>
@@ -438,7 +475,7 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
         <Section title="Momentos" accent={accent} badge={`${photos.length}`}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6 }}>
             {photos.slice().reverse().map((m: any) => (
-              <a key={m.id} href={m.photo_url} target="_blank" rel="noreferrer" style={{ display: 'block', aspectRatio: '1', borderRadius: 8, overflow: 'hidden', background: '#f1f5f9' }}>
+              <a key={m.id} href={m.photo_url} target="_blank" rel="noreferrer" style={{ display: 'block', aspectRatio: '1', borderRadius: 'var(--r-md)', overflow: 'hidden', background: 'var(--bg-3)' }}>
                 <img src={m.photo_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               </a>
             ))}
@@ -449,7 +486,7 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
       {/* MENSAGENS */}
       <Section title="Mensagens com a equipa" accent={accent} defaultOpen>
         {!myName && (
-          <input value={myName} onChange={e => saveMyName(e.target.value)} placeholder="O seu nome (aparece nas mensagens)" style={{ width: '100%', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
+          <input value={myName} onChange={e => saveMyName(e.target.value)} placeholder="O seu nome (aparece nas mensagens)" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px', fontSize: 'var(--t-dado)', outline: 'none', marginBottom: 8, boxSizing: 'border-box' }} />
         )}
         <FamilyChat messages={portal.messages as ChatMessage[]} mySide="family" otherLabel="a equipa" accent={accent} height={280} onSend={sendMessage} />
       </Section>
@@ -460,14 +497,14 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
             {portal.visitRequests.map((v: any) => {
               const st: Record<string, { label: string; c: string; bg: string; bd: string }> = {
-                pending: { label: 'Pendente', c: '#b45309', bg: '#fffbeb', bd: '#fde68a' }, approved: { label: 'Aprovada', c: '#0d6e42', bg: '#f0fdf4', bd: '#bbf7d0' },
-                declined: { label: 'Recusada', c: '#b91c1c', bg: '#fef2f2', bd: '#fecaca' }, completed: { label: 'Realizada', c: '#64748b', bg: '#f8fafc', bd: '#e2e8f0' },
+                pending: { label: 'Pendente', c: 'var(--amber)', bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)' }, approved: { label: 'Aprovada', c: 'var(--green)', bg: 'var(--badge-green-bg)', bd: 'var(--green-mid)' },
+                declined: { label: 'Recusada', c: 'var(--red)', bg: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)' }, completed: { label: 'Realizada', c: 'var(--ink-4)', bg: 'var(--bg-2)', bd: 'var(--border)' },
               }
               const s = st[v.status] || st.pending
               return (
-                <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: s.bg, border: `1px solid ${s.bd}`, borderRadius: 9, padding: '8px 11px' }}>
-                  <span style={{ flex: 1, fontSize: 12.5, color: '#0b1120' }}>{new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'long' })}{v.requested_time ? ` · ${v.requested_time}` : ''}</span>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: s.c }}>{s.label}</span>
+                <div key={v.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: s.bg, border: `1px solid ${s.bd}`, borderRadius: 'var(--r-lg)', padding: '8px 11px' }}>
+                  <span style={{ flex: 1, fontSize: 'var(--t-meta)', color: 'var(--ink)' }}>{new Date(v.requested_date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'long' })}{v.requested_time ? ` · ${v.requested_time}` : ''}</span>
+                  <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: s.c }}>{s.label}</span>
                 </div>
               )
             })}
@@ -476,7 +513,7 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
         {visitOpen ? (
           <VisitForm onCancel={() => setVisitOpen(false)} onSubmit={async (date, time, notes) => { const r = await requestVisit(date, time, notes); if (r.ok) { setVisitOpen(false); onRefresh() } return r }} accent={accent} />
         ) : (
-          <button onClick={() => setVisitOpen(true)} style={{ padding: '9px 14px', background: 'white', color: accent, border: `1.5px solid ${accent}`, borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>📅 Pedir uma visita</button>
+          <button onClick={() => setVisitOpen(true)} style={{ padding: '9px 14px', background: 'white', color: accent, border: `1.5px solid ${accent}`, borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>Pedir uma visita</button>
         )}
       </Section>
 
@@ -485,13 +522,13 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {[['Condições', p.conditions], ['Alergias', p.allergies], ['Peso', p.weight ? `${p.weight} kg` : null], ['Altura', p.height ? `${p.height} cm` : null]]
             .filter(([, v]) => v).map(([l, v]) => (
-              <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, padding: '7px 0', borderTop: '1px solid #f1f5f9' }}>
-                <span style={{ color: '#94a3b8' }}>{l}</span><span style={{ color: '#334155', fontWeight: 600, textAlign: 'right' }}>{v}</span>
+              <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 'var(--t-dado)', padding: '7px 0', borderTop: '1px solid var(--bg-3)' }}>
+                <span style={{ color: 'var(--ink-5)' }}>{l}</span><span style={{ color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any, textAlign: 'right' }}>{v}</span>
               </div>
             ))}
           {crcl !== null && crclInfo && (
-            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, padding: '7px 0', borderTop: '1px solid #f1f5f9' }}>
-              <span style={{ color: '#94a3b8' }}>Função renal</span><span style={{ color: crclInfo.color, fontWeight: 700 }}>{crclInfo.label} ({crcl} mL/min)</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 'var(--t-dado)', padding: '7px 0', borderTop: '1px solid var(--bg-3)' }}>
+              <span style={{ color: 'var(--ink-5)' }}>Função renal</span><span style={{ color: crclInfo.color, fontWeight: 'var(--peso-forte)' as any }}>{crclInfo.label} ({crcl} mL/min)</span>
             </div>
           )}
         </div>
@@ -499,14 +536,14 @@ function LinkedSections({ portal, loading, accent, link, profile, onUnlink, onRe
 
       {/* AS MINHAS NOTAS — pessoais, nunca vindas da instituição */}
       <Section title="As minhas notas" accent={accent}>
-        <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 10px' }}>Só sua — não é partilhado com a instituição.</p>
+        <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', margin: '0 0 10px' }}>Só sua — não é partilhado com a instituição.</p>
         <textarea value={myNote} onChange={e => setMyNote(e.target.value)} rows={3} placeholder="Ex: não gosta de peixe, fica ansioso ao fim da tarde…"
-          style={{ width: '100%', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-        <button onClick={saveMyNote} disabled={savingNote} style={{ marginTop: 8, padding: '8px 16px', background: savingNote ? '#e2e8f0' : accent, color: savingNote ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: savingNote ? 'wait' : 'pointer' }}>{savingNote ? 'A guardar…' : noteSaved ? '✓ Guardado' : 'Guardar'}</button>
+          style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px', fontSize: 'var(--t-dado)', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+        <button onClick={saveMyNote} disabled={savingNote} style={{ marginTop: 8, padding: '8px 16px', background: savingNote ? 'var(--border)' : accent, color: savingNote ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: savingNote ? 'wait' : 'pointer' }}>{savingNote ? 'A guardar…' : noteSaved ? '✓ Guardado' : 'Guardar'}</button>
       </Section>
 
       <div style={{ textAlign: 'center', marginTop: 6 }}>
-        <button onClick={onUnlink} style={{ background: 'none', border: 'none', fontSize: 12, color: '#94a3b8', cursor: 'pointer' }}>Desligar da instituição</button>
+        <button onClick={onUnlink} style={{ background: 'none', border: 'none', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', cursor: 'pointer' }}>Desligar da instituição</button>
       </div>
     </div>
   )
@@ -519,18 +556,18 @@ function VisitForm({ onSubmit, onCancel, accent }: { onSubmit: (date: string, ti
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
   const [error, setError] = useState('')
-  if (done) return <div style={{ fontSize: 13, color: '#15803d', fontWeight: 600 }}>✓ Pedido de visita enviado. A equipa vai confirmar.</div>
+  if (done) return <div style={{ fontSize: 'var(--t-dado)', color: 'var(--green)', fontWeight: 'var(--peso-corpo)' as any }}>✓ Pedido de visita enviado. A equipa vai confirmar.</div>
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 12, padding: 14 }}>
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 10 }}>
-        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ flex: '1 1 150px', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none' }} />
-        <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ flex: '0 1 120px', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none' }} />
+        <input type="date" value={date} onChange={e => setDate(e.target.value)} style={{ flex: '1 1 150px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px', fontSize: 'var(--t-dado)', outline: 'none' }} />
+        <input type="time" value={time} onChange={e => setTime(e.target.value)} style={{ flex: '0 1 120px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px', fontSize: 'var(--t-dado)', outline: 'none' }} />
       </div>
-      <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Nota (opcional)" style={{ width: '100%', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
-      {error && <div style={{ fontSize: 12.5, color: '#b91c1c', marginBottom: 10 }}>{error}</div>}
+      <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Nota (opcional)" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px', fontSize: 'var(--t-dado)', outline: 'none', marginBottom: 10, boxSizing: 'border-box' }} />
+      {error && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginBottom: 10 }}>{error}</div>}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button onClick={async () => { if (!date) return; setBusy(true); setError(''); const r = await onSubmit(date, time, notes); setBusy(false); if (r.ok) setDone(true); else setError(r.error || 'Não foi possível pedir a visita.') }} disabled={busy || !date} style={{ padding: '9px 16px', background: busy || !date ? '#e2e8f0' : accent, color: busy || !date ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: busy || !date ? 'default' : 'pointer' }}>{busy ? 'A enviar…' : 'Pedir visita'}</button>
-        <button onClick={onCancel} style={{ padding: '9px 14px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+        <button onClick={async () => { if (!date) return; setBusy(true); setError(''); const r = await onSubmit(date, time, notes); setBusy(false); if (r.ok) setDone(true); else setError(r.error || 'Não foi possível pedir a visita.') }} disabled={busy || !date} style={{ padding: '9px 16px', background: busy || !date ? 'var(--border)' : accent, color: busy || !date ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: busy || !date ? 'default' : 'pointer' }}>{busy ? 'A enviar…' : 'Pedir visita'}</button>
+        <button onClick={onCancel} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', cursor: 'pointer' }}>Cancelar</button>
       </div>
     </div>
   )
@@ -573,7 +610,7 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
   const crcl = calcCrCl(profile.age, profile.weight, profile.sex, profile.creatinine)
   const crclInfo = crClLabel(crcl)
 
-  const inp: React.CSSProperties = { border: '1.5px solid #e9eaec', borderRadius: 9, padding: '9px 12px', fontSize: 13.5, outline: 'none', width: '100%', boxSizing: 'border-box' }
+  const inp: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px', fontSize: 'var(--t-dado)', outline: 'none', width: '100%', boxSizing: 'border-box' }
 
   async function saveEdit() {
     if (!form.name.trim()) return
@@ -636,20 +673,20 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 10 }}>
               {[['Condições', profile.conditions], ['Alergias', profile.allergies], ['Peso', profile.weight ? `${profile.weight} kg` : null], ['Altura', profile.height ? `${profile.height} cm` : null]]
                 .filter(([, v]) => v).map(([l, v]) => (
-                  <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, padding: '7px 0', borderTop: '1px solid #f1f5f9' }}>
-                    <span style={{ color: '#94a3b8' }}>{l}</span><span style={{ color: '#334155', fontWeight: 600, textAlign: 'right' }}>{v}</span>
+                  <div key={l as string} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 'var(--t-dado)', padding: '7px 0', borderTop: '1px solid var(--bg-3)' }}>
+                    <span style={{ color: 'var(--ink-5)' }}>{l}</span><span style={{ color: 'var(--ink-3)', fontWeight: 'var(--peso-corpo)' as any, textAlign: 'right' }}>{v}</span>
                   </div>
                 ))}
               {crcl !== null && crclInfo && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 13, padding: '7px 0', borderTop: '1px solid #f1f5f9' }}>
-                  <span style={{ color: '#94a3b8' }}>Função renal</span><span style={{ color: crclInfo.color, fontWeight: 700 }}>{crclInfo.label} ({crcl} mL/min)</span>
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, fontSize: 'var(--t-dado)', padding: '7px 0', borderTop: '1px solid var(--bg-3)' }}>
+                  <span style={{ color: 'var(--ink-5)' }}>Função renal</span><span style={{ color: crclInfo.color, fontWeight: 'var(--peso-forte)' as any }}>{crclInfo.label} ({crcl} mL/min)</span>
                 </div>
               )}
               {!profile.conditions && !profile.allergies && !profile.weight && (
-                <div style={{ fontSize: 13, color: '#94a3b8', padding: '6px 0' }}>Ainda sem dados — toque em "Editar" para preencher.</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', padding: '6px 0' }}>Ainda sem dados — toque em "Editar" para preencher.</div>
               )}
             </div>
-            <button onClick={() => setEditOpen(true)} style={{ fontSize: 12.5, fontWeight: 700, color: accent, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Editar dados →</button>
+            <button onClick={() => setEditOpen(true)} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: accent, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Editar dados →</button>
           </>
         ) : (
           <div>
@@ -672,8 +709,8 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
             <input value={form.conditions} onChange={e => setForm(f => ({ ...f, conditions: e.target.value }))} placeholder="Condições (ex: HTA, DM2)" style={{ ...inp, marginBottom: 8 }} />
             <input value={form.allergies} onChange={e => setForm(f => ({ ...f, allergies: e.target.value }))} placeholder="Alergias" style={{ ...inp, marginBottom: 12 }} />
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={saveEdit} disabled={saving || !form.name.trim()} style={{ padding: '9px 16px', background: saving ? '#e2e8f0' : accent, color: saving ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>{saving ? 'A guardar…' : 'Guardar'}</button>
-              <button onClick={() => setEditOpen(false)} style={{ padding: '9px 14px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 13, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={saveEdit} disabled={saving || !form.name.trim()} style={{ padding: '9px 16px', background: saving ? 'var(--border)' : accent, color: saving ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>{saving ? 'A guardar…' : 'Guardar'}</button>
+              <button onClick={() => setEditOpen(false)} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', cursor: 'pointer' }}>Cancelar</button>
             </div>
           </div>
         )}
@@ -681,16 +718,16 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
 
       <Section title="Medicação" accent={accent} defaultOpen badge={meds.length ? `${meds.length}` : undefined}>
         {meds.length === 0 ? (
-          <div style={{ fontSize: 13, color: '#94a3b8', marginBottom: 10 }}>Sem medicamentos adicionados.</div>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', marginBottom: 10 }}>Sem medicamentos adicionados.</div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
             {meds.map(m => (
-              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid #f1f5f9', borderRadius: 9, padding: '9px 12px', gap: 10 }}>
+              <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', border: '1px solid var(--bg-3)', borderRadius: 'var(--r-lg)', padding: '9px 12px', gap: 10 }}>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>{m.name}</div>
-                  {(m.dose || m.frequency) && <div style={{ fontSize: 11.5, color: '#94a3b8' }}>{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>}
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{m.name}</div>
+                  {(m.dose || m.frequency) && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{[m.dose, m.frequency].filter(Boolean).join(' · ')}</div>}
                 </div>
-                <button onClick={() => removeMed(m.id)} aria-label="Remover" style={{ background: 'none', border: 'none', color: '#cbd5e1', fontSize: 18, cursor: 'pointer', flexShrink: 0 }}>×</button>
+                <button onClick={() => removeMed(m.id)} aria-label="Remover" style={{ background: 'none', border: 'none', color: 'var(--border-2)', fontSize: 'var(--t-destaque)', cursor: 'pointer', flexShrink: 0 }}>×</button>
               </div>
             ))}
           </div>
@@ -698,14 +735,14 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
 
         {meds.some(m => m.reminder_times?.length) && (
           <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 800, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Tomas de hoje</div>
+            <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6 }}>Tomas de hoje</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
               {meds.filter(m => m.reminder_times?.length).flatMap(m => (m.reminder_times || []).map(time => {
                 const taken = medLogs.some(l => l.med_id === m.id && l.scheduled_time === time)
                 return (
-                  <label key={`${m.id}-${time}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', borderRadius: 7, background: taken ? '#f0fdf4' : '#f8fafc', cursor: 'pointer' }}>
+                  <label key={`${m.id}-${time}`} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '7px 9px', borderRadius: 'var(--r-md)', background: taken ? 'var(--badge-green-bg)' : 'var(--bg-2)', cursor: 'pointer' }}>
                     <input type="checkbox" checked={taken} onChange={() => toggleTaken(m.id, time, taken)} />
-                    <span style={{ fontSize: 12.5, fontWeight: 700 }}>{time}</span><span style={{ fontSize: 12.5, color: '#475569' }}>{m.name}</span>
+                    <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>{time}</span><span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>{m.name}</span>
                   </label>
                 )
               }))}
@@ -714,7 +751,7 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
         )}
 
         {addingMed ? (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 12 }}>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12 }}>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 6 }}>
               <input value={newMed.name} onChange={e => setNewMed(f => ({ ...f, name: e.target.value }))} placeholder="Nome *" style={{ ...inp, flex: '2 1 120px' }} />
               <input value={newMed.dose} onChange={e => setNewMed(f => ({ ...f, dose: e.target.value }))} placeholder="Dose" style={{ ...inp, flex: '1 1 70px' }} />
@@ -724,24 +761,24 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
               <input value={newMed.reminder_times} onChange={e => setNewMed(f => ({ ...f, reminder_times: e.target.value }))} placeholder="Horas (08:00, 20:00)" style={{ ...inp, flex: '1 1 130px' }} />
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={addMed} disabled={!newMed.name.trim() || savingMed} style={{ padding: '8px 14px', background: accent, color: 'white', border: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{savingMed ? '…' : 'Adicionar'}</button>
-              <button onClick={() => setAddingMed(false)} style={{ padding: '8px 12px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 12.5, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={addMed} disabled={!newMed.name.trim() || savingMed} style={{ padding: '8px 14px', background: accent, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>{savingMed ? '…' : 'Adicionar'}</button>
+              <button onClick={() => setAddingMed(false)} style={{ padding: '8px 12px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Cancelar</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setAddingMed(true)} style={{ fontSize: 12.5, fontWeight: 700, color: accent, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ Adicionar medicamento</button>
+          <button onClick={() => setAddingMed(true)} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: accent, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>+ Adicionar medicamento</button>
         )}
 
         {meds.length >= 2 && (
           <div style={{ marginTop: 12 }}>
-            <Link href={`/interactions?profile=${profile.id}`} style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#f3e8ff', color: accent, textDecoration: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700 }}>Verificar interações entre {meds.length} medicamentos →</Link>
+            <Link href={`/interactions?profile=${profile.id}`} style={{ display: 'block', textAlign: 'center', padding: '10px', background: 'var(--roxo-claro)', color: accent, textDecoration: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any }}>Verificar interações entre {meds.length} medicamentos →</Link>
           </div>
         )}
       </Section>
 
       <Section title="Notas" accent={accent} defaultOpen>
-        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Notas sobre a saúde ou o dia-a-dia…" style={{ width: '100%', border: '1.5px solid #e9eaec', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
-        <button onClick={saveNotes} disabled={savingNotes} style={{ marginTop: 8, padding: '8px 16px', background: savingNotes ? '#e2e8f0' : accent, color: savingNotes ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{savingNotes ? 'A guardar…' : notesSaved ? '✓ Guardado' : 'Guardar'}</button>
+        <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder="Notas sobre a saúde ou o dia-a-dia…" style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px', fontSize: 'var(--t-dado)', outline: 'none', resize: 'vertical', fontFamily: 'inherit', boxSizing: 'border-box' }} />
+        <button onClick={saveNotes} disabled={savingNotes} style={{ marginTop: 8, padding: '8px 16px', background: savingNotes ? 'var(--border)' : accent, color: savingNotes ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>{savingNotes ? 'A guardar…' : notesSaved ? '✓ Guardado' : 'Guardar'}</button>
       </Section>
 
       <Section title="Agenda" accent={accent}><ProfileAgenda profileId={profile.id} /></Section>
@@ -758,28 +795,28 @@ function PersonalSections({ profile, meds, medLogs, today, onReload, onLinked }:
             <HandoffSheetButton profileId={profile.id} name={profile.name} age={profile.age} allergies={profile.allergies} conditions={profile.conditions} meds={meds.map(m => ({ name: m.name, dose: m.dose }))} />
           </div>
         ) : (
-          <div style={{ fontSize: 12.5, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 12px' }}>
-            Índice de risco, playbook de crise, sobrecarga do cuidador e partilha entre cuidadores são do plano Pro. <Link href="/pricing" style={{ color: accent, fontWeight: 700, textDecoration: 'none' }}>Ver planos →</Link>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
+            Índice de risco, playbook de crise, sobrecarga do cuidador e partilha entre cuidadores são do plano Pro. <Link href="/pricing" style={{ color: accent, fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none' }}>Ver planos →</Link>
           </div>
         )}
       </Section>
 
       <Section title="Ligar a um lar ou centro de dia" accent={accent}>
         {linkOpen ? (
-          <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: 14 }}>
-            <div style={{ fontSize: 12.5, color: '#475569', marginBottom: 10, lineHeight: 1.5 }}>Peça à instituição o código de acesso da família.</div>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14 }}>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginBottom: 10, lineHeight: 1.5 }}>Peça à instituição o código de acesso da família.</div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 8 }}>
               <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Código" style={{ ...inp, flex: '1 1 140px', fontFamily: 'var(--font-mono)' }} />
               {needsVerify && <input value={verify} onChange={e => setVerify(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="Últimos 4 dígitos" inputMode="numeric" style={{ ...inp, flex: '0 1 140px', fontFamily: 'var(--font-mono)' }} />}
             </div>
-            {linkError && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 8 }}>{linkError}</div>}
+            {linkError && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginBottom: 8 }}>{linkError}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={linkToInstitution} disabled={linkBusy || !code.trim()} style={{ padding: '9px 16px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 9, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{linkBusy ? 'A ligar…' : needsVerify ? 'Confirmar' : 'Ligar'}</button>
-              <button onClick={() => setLinkOpen(false)} style={{ padding: '9px 14px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 9, fontSize: 12.5, cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={linkToInstitution} disabled={linkBusy || !code.trim()} style={{ padding: '9px 16px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>{linkBusy ? 'A ligar…' : needsVerify ? 'Confirmar' : 'Ligar'}</button>
+              <button onClick={() => setLinkOpen(false)} style={{ padding: '9px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Cancelar</button>
             </div>
           </div>
         ) : (
-          <button onClick={() => setLinkOpen(true)} style={{ fontSize: 12.5, fontWeight: 700, color: '#1d4ed8', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>🏡 Já está num lar ou centro de dia?</button>
+          <button onClick={() => setLinkOpen(true)} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Já está num lar ou centro de dia?</button>
         )}
       </Section>
     </div>

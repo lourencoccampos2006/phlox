@@ -49,7 +49,7 @@ export default function PostLerReceita() {
           </div>
 
           <div style={{ marginBottom: 36 }}>
-            <div style={{ display: 'inline-block', background: '#eff6ff', color: '#1d4ed8', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>GUIA PRÁTICO</div>
+            <div style={{ display: 'inline-block', background: 'var(--bg-2)', color: 'var(--ink-2)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>GUIA PRÁTICO</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,5vw,38px)', color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
               Como ler uma receita médica em Portugal
             </h1>
@@ -73,8 +73,8 @@ export default function PostLerReceita() {
             </ul>
             <p style={P}>Se recebeu a receita por SMS, estes números estão todos lá. Não precisa de levar papel nenhum — basta mostrar a SMS ou dizer os códigos. Guarde a mensagem até levantar tudo, porque uma receita pode dar para <strong>várias dispensas</strong> (por exemplo, medicação crónica para 3 meses, levantada mês a mês).</p>
 
-            <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderLeft: '4px solid #1d4ed8', borderRadius: '0 8px 8px 0', padding: '14px 18px', marginBottom: 28 }}>
-              <p style={{ fontSize: 14, color: '#1e3a8a', lineHeight: 1.7, margin: 0 }}>
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderLeft: '4px solid var(--ink-2)', borderRadius: '0 8px 8px 0', padding: '14px 18px', marginBottom: 28 }}>
+              <p style={{ fontSize: 14, color: 'var(--badge-blue-fg)', lineHeight: 1.7, margin: 0 }}>
                 <strong>Dica:</strong> se perder a SMS, a farmácia consegue, com o seu cartão de cidadão e número de utente, aceder à receita na maioria dos casos. Não fica sem a medicação por ter apagado a mensagem.
               </p>
             </div>
@@ -85,7 +85,7 @@ export default function PostLerReceita() {
 
             <h2 style={H2}>A posologia: o que significa "1 + 0 + 1"</h2>
             <p style={P}>A parte mais importante — e a que mais se percebe mal — é a <strong>posologia</strong>: quantos comprimidos tomar e quando. Em Portugal vê muitas vezes um formato de três (ou quatro) números separados:</p>
-            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 10, padding: '16px 18px', marginBottom: 18 }}>
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 18 }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>1 + 0 + 1</div>
               <p style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, margin: 0 }}>
                 Lê-se da esquerda para a direita ao longo do dia: <strong>1 ao pequeno-almoço</strong>, <strong>0 ao almoço</strong>, <strong>1 ao jantar</strong>. Ou seja, dois comprimidos por dia, um de manhã e um à noite.
@@ -107,13 +107,13 @@ export default function PostLerReceita() {
             </ul>
           </div>
 
-          <div style={{ marginTop: 44, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ marginTop: 44, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Não percebe a sua receita ou a caixa?</div>
             <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>Fotografe a receita ou a caixa no Phlox e ele explica, em palavras simples, para que serve cada medicamento e como o tomar.</p>
-            <Link href="/login" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Experimentar grátis →</Link>
+            <Link href="/login" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Experimentar grátis →</Link>
           </div>
 
-          <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+          <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
             <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
               Artigo informativo. Não substitui o aconselhamento do seu médico ou farmacêutico. Em caso de dúvida sobre uma receita, fale com a farmácia onde a levanta. Base: SNS, INFARMED, SPMS.
             </p>

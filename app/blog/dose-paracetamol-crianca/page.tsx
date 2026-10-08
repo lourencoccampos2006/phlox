@@ -59,7 +59,7 @@ export default function BlogDoseParacetamolCrianca() {
         {/* Header */}
         <div style={{ marginBottom: 32 }}>
           <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: '#0d6e42', background: '#d1fae5', padding: '2px 8px', borderRadius: 3, letterSpacing: '0.08em', textTransform: 'uppercase' }}>Pediatria</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--badge-green-bg)', padding: '2px 8px', borderRadius: 'var(--r-sm)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>Pediatria</span>
             <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>Actualizado Maio 2026 · 5 min de leitura</span>
           </div>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,40px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', lineHeight: 1.2, marginBottom: 16 }}>
@@ -70,7 +70,7 @@ export default function BlogDoseParacetamolCrianca() {
           </p>
           {/* CTA para calculadora */}
           <Link href="/dose-crianca"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 20px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700 }}>
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '11px 20px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700 }}>
             Calcular a dose exacta agora →
           </Link>
         </div>
@@ -82,10 +82,10 @@ export default function BlogDoseParacetamolCrianca() {
           <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 14 }}>
             A regra base: 15 mg por kg de peso
           </h2>
-          <div style={{ background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 10, padding: '16px 18px', marginBottom: 16 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#0d6e42', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Fórmula</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0d6e42' }}>Dose (mg) = 15 × peso (kg)</div>
-            <div style={{ fontSize: 13, color: '#14532d', marginTop: 8, lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 16 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--green)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Fórmula</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--green)' }}>Dose (mg) = 15 × peso (kg)</div>
+            <div style={{ fontSize: 13, color: 'var(--green-3)', marginTop: 8, lineHeight: 1.6 }}>
               Exemplo: criança de 20 kg → 15 × 20 = 300 mg por dose
             </div>
           </div>
@@ -143,7 +143,7 @@ export default function BlogDoseParacetamolCrianca() {
               { label: 'Duração máxima', value: '5 dias', sub: 'Sem reavaliação médica' },
               { label: 'Dose máxima/dia', value: '60 mg/kg', sub: 'Nunca exceder este valor' },
             ].map(item => (
-              <div key={item.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '14px 16px' }}>
+              <div key={item.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 16px' }}>
                 <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>{item.label}</div>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 2 }}>{item.value}</div>
                 <div style={{ fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.4 }}>{item.sub}</div>
@@ -168,10 +168,10 @@ export default function BlogDoseParacetamolCrianca() {
             ].map((alert, i) => (
               <div key={i} className={`alert-strip alert-strip-${alert.severity === 'urgencia' ? 'red' : 'amber'}`}>
                 <div style={{ flex: 1 }}>
-                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: alert.severity === 'urgencia' ? 'var(--red)' : '#854d0e', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 8 }}>
+                  <span style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: alert.severity === 'urgencia' ? 'var(--red)' : 'var(--badge-amber-fg)', textTransform: 'uppercase', letterSpacing: '0.06em', marginRight: 8 }}>
                     {alert.severity === 'urgencia' ? 'Urgência' : 'Médico'}
                   </span>
-                  <span style={{ fontSize: 13, color: alert.severity === 'urgencia' ? '#991b1b' : '#78350f', lineHeight: 1.5 }}>{alert.text}</span>
+                  <span style={{ fontSize: 13, color: alert.severity === 'urgencia' ? 'var(--red)' : 'var(--amber)', lineHeight: 1.5 }}>{alert.text}</span>
                 </div>
               </div>
             ))}
@@ -186,24 +186,24 @@ export default function BlogDoseParacetamolCrianca() {
           <p style={{ fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.75, marginBottom: 12 }}>
             O ibuprofeno (Brufen, Nurofen) é uma alternativa válida a partir dos 6 meses de idade, com dose de 5–10 mg/kg cada 6–8 horas. Tem a vantagem de ser anti-inflamatório além de antipirético, o que pode ser útil em infecções com componente inflamatório.
           </p>
-          <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '12px 14px', fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '12px 14px', fontSize: 13, color: 'var(--amber)', lineHeight: 1.6 }}>
             <strong>Nota importante:</strong> Nunca alternar ou combinar paracetamol e ibuprofeno sem indicação médica. Em crianças desidratadas, com varicela, ou com problemas renais, o ibuprofeno é contra-indicado. Em caso de dúvida, o paracetamol é sempre a escolha mais segura.
           </div>
         </section>
 
         {/* Disclaimer */}
-        <div style={{ padding: '14px 16px', background: 'var(--bg-2)', borderRadius: 8, fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6 }}>
+        <div style={{ padding: '14px 16px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', lineHeight: 1.6 }}>
           ⚠️ Este artigo tem carácter informativo e não substitui a avaliação médica. Em caso de dúvida sobre a saúde do teu filho, consulta sempre um profissional de saúde.
         </div>
 
         {/* CTA final */}
-        <div style={{ marginTop: 32, padding: '20px 22px', background: '#0f172a', borderRadius: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+        <div style={{ marginTop: 32, padding: '20px 22px', background: 'var(--ink)', borderRadius: 'var(--r-xl)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: '#f8fafc', marginBottom: 4 }}>Calculadora gratuita de dose pediátrica</div>
-            <div style={{ fontSize: 13, color: '#64748b' }}>Insere o peso e o medicamento — a dose correcta em segundos</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--bg-2)', marginBottom: 4 }}>Calculadora gratuita de dose pediátrica</div>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Insere o peso e o medicamento — a dose correcta em segundos</div>
           </div>
           <Link href="/dose-crianca"
-            style={{ padding: '11px 22px', background: '#22c55e', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>
+            style={{ padding: '11px 22px', background: 'var(--green)', color: 'var(--ink)', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 800, whiteSpace: 'nowrap' }}>
             Usar calculadora →
           </Link>
         </div>
@@ -217,7 +217,7 @@ export default function BlogDoseParacetamolCrianca() {
               { href: '/blog', label: 'Ver todos os artigos', cat: 'Blog' },
             ].map(a => (
               <Link key={a.href} href={a.href}
-                style={{ padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, textDecoration: 'none', display: 'block', transition: 'border-color 0.15s' }}>
+                style={{ padding: '12px 14px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', textDecoration: 'none', display: 'block', transition: 'border-color 0.15s' }}>
                 <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>{a.cat}</div>
                 <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{a.label}</div>
               </Link>

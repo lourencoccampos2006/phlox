@@ -11,9 +11,9 @@ import { WEBHOOK_EVENTS, randomSecret } from '@/lib/webhooks'
 interface Endpoint { id: string; url: string; secret: string; events: string[]; active: boolean; description?: string | null; last_status?: number | null; last_at?: string | null }
 interface Delivery { id: string; endpoint_id: string; event: string; at: string; status: number; ok: boolean; response?: string | null }
 
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
 
 export default function WebhooksPage() {
   const { user, supabase } = useAuth() as any
@@ -84,17 +84,17 @@ export default function WebhooksPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Webhooks de saída</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Liga o Phlox a tudo: Zapier, Make, n8n ou o teu ERP. Cada evento é enviado por POST e assinado (HMAC-SHA256 no cabeçalho <code>X-Phlox-Signature</code>).</p>
           </div>
-          {!missing && <button onClick={() => { setForm({ ...blank, secret: randomSecret() }); setMsg(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Webhook</button>}
+          {!missing && <button onClick={() => { setForm({ ...blank, secret: randomSecret() }); setMsg(''); setShowForm(true) }} style={{ padding: '10px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Webhook</button>}
         </div>
 
-        {msg && <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 600, color: msg.includes('falh') || msg.includes('válido') || msg.includes('Escolhe') ? '#dc2626' : '#16a34a' }}>{msg}</div>}
+        {msg && <div style={{ marginBottom: 12, fontSize: 13, fontWeight: 600, color: msg.includes('falh') || msg.includes('válido') || msg.includes('Escolhe') ? 'var(--red)' : 'var(--green)' }}>{msg}</div>}
 
         {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24, color: 'var(--amber)', fontSize: 13.5 }}>
             Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : loading ? (
-          <div className="skeleton" style={{ height: 160, borderRadius: 14 }} />
+          <div className="skeleton" style={{ height: 160, borderRadius: 'var(--r-xl)' }} />
         ) : (
           <>
             {endpoints.length === 0 ? (
@@ -107,13 +107,13 @@ export default function WebhooksPage() {
                       <div style={{ minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)', wordBreak: 'break-all' }}>{ep.url}</div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
-                          {ep.events.map(e => <span key={e} style={{ fontSize: 10.5, fontWeight: 600, color: '#0d6e42', background: '#eef6f1', padding: '2px 7px', borderRadius: 5 }}>{evLabel(e)}</span>)}
+                          {ep.events.map(e => <span key={e} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--green)', background: 'var(--green-light)', padding: '2px 7px', borderRadius: 'var(--r)' }}>{evLabel(e)}</span>)}
                         </div>
-                        {ep.last_at && <div style={{ fontSize: 11, color: ep.last_status && ep.last_status >= 200 && ep.last_status < 300 ? '#16a34a' : '#dc2626', marginTop: 6 }}>Última entrega: HTTP {ep.last_status} · {new Date(ep.last_at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}</div>}
+                        {ep.last_at && <div style={{ fontSize: 11, color: ep.last_status && ep.last_status >= 200 && ep.last_status < 300 ? 'var(--green)' : 'var(--red)', marginTop: 6 }}>Última entrega: HTTP {ep.last_status} · {new Date(ep.last_at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}</div>}
                       </div>
                       <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
-                        <button onClick={() => test(ep)} style={{ padding: '6px 11px', borderRadius: 7, border: '1px solid var(--border)', background: 'white', color: '#374151', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Testar</button>
-                        <button onClick={() => toggleActive(ep)} style={{ padding: '6px 11px', borderRadius: 7, border: `1px solid ${ep.active ? '#bbf7d0' : 'var(--border)'}`, background: ep.active ? '#f0fdf4' : 'white', color: ep.active ? '#16a34a' : 'var(--ink-4)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{ep.active ? 'Ativo' : 'Inativo'}</button>
+                        <button onClick={() => test(ep)} style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'white', color: 'var(--ink-3)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Testar</button>
+                        <button onClick={() => toggleActive(ep)} style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', border: `1px solid ${ep.active ? 'var(--green-mid)' : 'var(--border)'}`, background: ep.active ? 'var(--badge-green-bg)' : 'white', color: ep.active ? 'var(--green)' : 'var(--ink-4)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{ep.active ? 'Ativo' : 'Inativo'}</button>
                         <button aria-label="Eliminar" onClick={() => del(ep.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                      </div>
                     </div>
                     <div style={{ marginTop: 8, fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>secret: {ep.secret.slice(0, 12)}…</div>
@@ -124,12 +124,12 @@ export default function WebhooksPage() {
 
             {deliveries.length > 0 && (
               <div style={{ marginTop: 22 }}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#0b1120', marginBottom: 10 }}>Entregas recentes</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 10 }}>Entregas recentes</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {deliveries.map(d => (
-                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 9, fontSize: 12.5 }}>
-                      <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 700, color: d.ok ? '#16a34a' : '#dc2626' }}>{d.ok ? '✓' : '✗'} {d.status || 'erro'}</span> · {evLabel(d.event)}</span>
-                      <span style={{ color: '#9ca3af' }}>{new Date(d.at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}</span>
+                    <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '8px 12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 12.5 }}>
+                      <span style={{ color: 'var(--ink-2)' }}><span style={{ fontWeight: 700, color: d.ok ? 'var(--green)' : 'var(--red)' }}>{d.ok ? '✓' : '✗'} {d.status || 'erro'}</span> · {evLabel(d.event)}</span>
+                      <span style={{ color: 'var(--ink-5)' }}>{new Date(d.at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}</span>
                     </div>
                   ))}
                 </div>
@@ -156,7 +156,7 @@ export default function WebhooksPage() {
                 <span style={lbl}>Eventos</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {WEBHOOK_EVENTS.map(ev => (
-                    <label key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 8, border: `1.5px solid ${form.events.includes(ev.id) ? '#0d6e42' : 'var(--border)'}`, background: form.events.includes(ev.id) ? '#eef6f1' : 'white', cursor: 'pointer' }}>
+                    <label key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 'var(--r-md)', border: `1.5px solid ${form.events.includes(ev.id) ? 'var(--green)' : 'var(--border)'}`, background: form.events.includes(ev.id) ? 'var(--green-light)' : 'white', cursor: 'pointer' }}>
                       <input type="checkbox" checked={form.events.includes(ev.id)} onChange={() => toggleEvent(ev.id)} />
                       <span><span style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{ev.label}</span><span style={{ display: 'block', fontSize: 11, color: 'var(--ink-5)' }}>{ev.desc}</span></span>
                     </label>
@@ -164,7 +164,7 @@ export default function WebhooksPage() {
                 </div>
               </div>
               <div><span style={lbl}>Segredo de assinatura</span><input value={form.secret} readOnly style={{ ...inp, fontFamily: 'var(--font-mono)', fontSize: 12, background: 'var(--bg-2)' }} /></div>
-              <button onClick={create} disabled={saving} style={{ padding: 12, background: '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A criar…' : 'Criar webhook'}</button>
+              <button onClick={create} disabled={saving} style={{ padding: 12, background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{saving ? 'A criar…' : 'Criar webhook'}</button>
             </div>
           </div>
         </div>

@@ -21,9 +21,9 @@ const LABELS: Record<string, string> = {
 }
 
 const TL: Record<string, { bg: string; border: string; color: string; dot: string }> = {
-  green:  { bg: '#f0fff4', border: '#9ae6b4', color: '#1a4731', dot: '#10b981' },
-  yellow: { bg: '#fffbeb', border: '#fde68a', color: '#78350f', dot: '#f59e0b' },
-  red:    { bg: '#fff5f5', border: '#fecaca', color: '#7f1d1d', dot: '#ef4444' },
+  green:  { bg: 'var(--green-light)', border: 'var(--green-mid)', color: 'var(--green-3)', dot: 'var(--green)' },
+  yellow: { bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', color: 'var(--amber)', dot: 'var(--amber)' },
+  red:    { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', dot: 'var(--red)' },
 }
 
 function label(key: string) { return LABELS[key] || key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) }
@@ -53,14 +53,14 @@ function Value({ v, depth = 0 }: { v: any; depth?: number }) {
   if (isEmpty(v)) return null
   if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
     const s = String(v)
-    return <span style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{s}</span>
+    return <span style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{s}</span>
   }
   if (Array.isArray(v)) {
     if (v.every(isFinding)) return <div>{v.map((f, i) => <FindingCard key={i} f={f} />)}</div>
     return (
       <ul style={{ margin: '2px 0', paddingLeft: 18 }}>
         {v.map((item, i) => (
-          <li key={i} style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6, marginBottom: 3 }}>
+          <li key={i} style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, marginBottom: 3 }}>
             {typeof item === 'object' && item !== null ? <Obj o={item} depth={depth + 1} /> : String(item)}
           </li>
         ))}
@@ -82,7 +82,7 @@ function Obj({ o, depth = 0 }: { o: Record<string, any>; depth?: number }) {
         const scalar = typeof val === 'string' || typeof val === 'number' || typeof val === 'boolean'
         return (
           <div key={key}>
-            <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: scalar ? 2 : 4 }}>{label(key)}</div>
+            <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 700, marginBottom: scalar ? 2 : 4 }}>{label(key)}</div>
             <Value v={val} depth={depth} />
           </div>
         )
@@ -95,16 +95,16 @@ export default function SavedResultView({ item }: { item: SavedItem }) {
   const body = useMemo(() => {
     const d = item.data
     if (d == null) return null
-    if (typeof d === 'string') return <div style={{ fontSize: 13.5, color: '#334155', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{d}</div>
+    if (typeof d === 'string') return <div style={{ fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{d}</div>
     if (typeof d !== 'object') return <Value v={d} />
     return <Obj o={d} />
   }, [item])
 
   if (!body) {
-    return <div style={{ fontSize: 13, color: '#94a3b8', fontStyle: 'italic' }}>Sem conteúdo guardado para mostrar.</div>
+    return <div style={{ fontSize: 13, color: 'var(--ink-5)', fontStyle: 'italic' }}>Sem conteúdo guardado para mostrar.</div>
   }
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e8edf3', borderRadius: 10, padding: '14px 16px', marginTop: 10 }}>
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--blue-light)', borderRadius: 'var(--r-lg)', padding: '14px 16px', marginTop: 10 }}>
       {body}
     </div>
   )

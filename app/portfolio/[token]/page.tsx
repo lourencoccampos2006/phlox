@@ -5,7 +5,7 @@
 
 import { useEffect, useState, use } from 'react'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 export default function PortfolioPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = use(params)
@@ -24,17 +24,17 @@ export default function PortfolioPage({ params }: { params: Promise<{ token: str
     })()
   }, [token])
 
-  if (loading) return <Shell><p style={{ color: '#6b7280' }}>A carregar…</p></Shell>
-  if (err) return <Shell><div style={{ background: '#fbf2f2', color: '#a82828', padding: 14, borderRadius: 10 }}>{err}</div></Shell>
+  if (loading) return <Shell><p style={{ color: 'var(--ink-4)' }}>A carregar…</p></Shell>
+  if (err) return <Shell><div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: 14, borderRadius: 'var(--r-lg)' }}>{err}</div></Shell>
 
   const it = p?.internship || {}
   const objDone = (p?.objectives || []).filter((o: any) => ['completed', 'validated'].includes(o.status)).length
 
   return (
     <Shell>
-      <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: '#8b8f99' }}>Portefólio de estágio</div>
+      <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-5)' }}>Portefólio de estágio</div>
       <h1 style={{ margin: '4px 0 2px', fontSize: 26, fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>{it.name}</h1>
-      <p style={{ color: '#6b7280', fontSize: 13.5 }}>
+      <p style={{ color: 'var(--ink-4)', fontSize: 13.5 }}>
         {[it.area, it.specialty, it.institution, it.ward].filter(Boolean).join(' · ')}<br />
         {it.period}{it.supervisor ? ` · Supervisor: ${it.supervisor}` : ''}
       </p>
@@ -50,7 +50,7 @@ export default function PortfolioPage({ params }: { params: Promise<{ token: str
         {(p?.objectives || []).map((o: any, i: number) => (
           <div key={i} style={row}>
             <span>{o.title}</span>
-            <span style={{ fontSize: 11, color: ['completed', 'validated'].includes(o.status) ? ACCENT : '#9ca3af', fontWeight: 700 }}>
+            <span style={{ fontSize: 11, color: ['completed', 'validated'].includes(o.status) ? ACCENT : 'var(--ink-5)', fontWeight: 700 }}>
               {['completed', 'validated'].includes(o.status) ? '✓ concluído' : o.status}
             </span>
           </div>
@@ -59,13 +59,13 @@ export default function PortfolioPage({ params }: { params: Promise<{ token: str
 
       <Section title="Procedimentos realizados">
         {(p?.procedures || []).map((pr: any, i: number) => (
-          <div key={i} style={row}><span>{pr.name}</span><span style={{ fontSize: 11, color: '#6b7280' }}>{pr.level}</span></div>
+          <div key={i} style={row}><span>{pr.name}</span><span style={{ fontSize: 11, color: 'var(--ink-4)' }}>{pr.level}</span></div>
         ))}
       </Section>
 
       <Section title="Casos clínicos">
         {(p?.cases || []).map((c: any, i: number) => (
-          <div key={i} style={row}><span>{c.title}</span><span style={{ fontSize: 11, color: '#6b7280' }}>{c.diagnosis}</span></div>
+          <div key={i} style={row}><span>{c.title}</span><span style={{ fontSize: 11, color: 'var(--ink-4)' }}>{c.diagnosis}</span></div>
         ))}
       </Section>
 
@@ -80,20 +80,20 @@ export default function PortfolioPage({ params }: { params: Promise<{ token: str
         </Section>
       )}
 
-      <p style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 20 }}>Gerado pelo Phlox · só-leitura</p>
+      <p style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center', marginTop: 20 }}>Gerado pelo Phlox · só-leitura</p>
     </Shell>
   )
 }
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#f6f7f8', fontFamily: 'var(--font-sans,sans-serif)', padding: '32px 16px' }}>
-      <div style={{ maxWidth: 640, margin: '0 auto', background: 'white', border: '1px solid #e7e8ea', borderRadius: 14, padding: 26 }}>{children}</div>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans,sans-serif)', padding: '32px 16px' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 26 }}>{children}</div>
     </div>
   )
 }
 function Stat({ label, v }: { label: string; v: any }) {
-  return <div style={{ border: '1px solid #e7e8ea', borderRadius: 10, padding: 12 }}><div style={{ fontSize: 10.5, color: '#8b8f99', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div><div style={{ fontSize: 20, fontWeight: 800, marginTop: 3 }}>{v}</div></div>
+  return <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12 }}><div style={{ fontSize: 10.5, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div><div style={{ fontSize: 20, fontWeight: 800, marginTop: 3 }}>{v}</div></div>
 }
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   const has = Array.isArray((children as any)?.props?.children) ? true : !!children
@@ -104,4 +104,4 @@ function Section({ title, children }: { title: string; children: React.ReactNode
     </div>
   )
 }
-const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid #f1f5f9', fontSize: 13.5, color: '#374151' }
+const row: React.CSSProperties = { display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '9px 0', borderBottom: '1px solid var(--bg-3)', fontSize: 13.5, color: 'var(--ink-3)' }

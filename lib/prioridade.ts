@@ -232,11 +232,11 @@ export function porExtenso(p: Pontuacao): string {
 // ── Os estados de uma candidatura ────────────────────────────────────────────
 
 export const ESTADOS = [
-  { id: 'em_espera', rotulo: 'Em espera',  cor: '#2563eb', conta: true },
-  { id: 'admitido',  rotulo: 'Admitido',   cor: '#16a34a', conta: false },
-  { id: 'suspenso',  rotulo: 'Suspensa',   cor: '#d97706', conta: false },
-  { id: 'desistiu',  rotulo: 'Desistiu',   cor: '#64748b', conta: false },
-  { id: 'recusado',  rotulo: 'Não aceite', cor: '#64748b', conta: false },
+  { id: 'em_espera', rotulo: 'Em espera',  cor: 'var(--blue)', conta: true },
+  { id: 'admitido',  rotulo: 'Admitido',   cor: 'var(--green)', conta: false },
+  { id: 'suspenso',  rotulo: 'Suspensa',   cor: 'var(--amber)', conta: false },
+  { id: 'desistiu',  rotulo: 'Desistiu',   cor: 'var(--blue)', conta: false },
+  { id: 'recusado',  rotulo: 'Não aceite', cor: 'var(--blue)', conta: false },
 ] as const
 
 export type Estado = typeof ESTADOS[number]['id']

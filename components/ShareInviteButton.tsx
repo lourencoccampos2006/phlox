@@ -52,7 +52,7 @@ export default function ShareInviteButton({ profileId, name }: { profileId: stri
 
   if (!open) {
     return (
-      <button onClick={() => { setOpen(true); load() }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+      <button onClick={() => { setOpen(true); load() }} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '9px 14px', background: 'var(--bg-2)', color: 'var(--ink-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
         🔗 Convidar alguém a ajudar
       </button>
     )
@@ -61,55 +61,55 @@ export default function ShareInviteButton({ profileId, name }: { profileId: stri
   const active = (shares || []).filter(s => !s.revoked_at)
 
   return (
-    <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 12, padding: 14 }}>
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-        <span style={{ fontSize: 12.5, fontWeight: 800, color: '#1d4ed8' }}>🔗 Partilhar {name.split(' ')[0]} com outro cuidador</span>
-        <button onClick={() => setOpen(false)} style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>Fechar</button>
+        <span style={{ fontSize: 12.5, fontWeight: 800, color: 'var(--ink-2)' }}>🔗 Partilhar {name.split(' ')[0]} com outro cuidador</span>
+        <button onClick={() => setOpen(false)} style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>Fechar</button>
       </div>
-      <div style={{ fontSize: 12, color: '#1e40af', marginBottom: 10, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 12, color: 'var(--ink-2)', marginBottom: 10, lineHeight: 1.5 }}>
         Dá a outra pessoa (ex: outro familiar) acesso a este perfil — medicação, vitais e sintomas. Ela precisa de uma conta Phlox e do código abaixo, em <strong>Partilhado comigo</strong>. Não precisa de ser Pro.
       </div>
 
       <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
         {(['viewer', 'editor'] as const).map(r => (
           <button key={r} onClick={() => setRole(r)} style={{
-            flex: 1, padding: '8px 10px', borderRadius: 7, cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
-            border: `1.5px solid ${role === r ? '#1d4ed8' : '#dbeafe'}`,
-            background: role === r ? '#1d4ed8' : 'white', color: role === r ? 'white' : '#1e3a8a',
+            flex: 1, padding: '8px 10px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
+            border: `1.5px solid ${role === r ? 'var(--ink-2)' : 'var(--bg-3)'}`,
+            background: role === r ? 'var(--ink-2)' : 'white', color: role === r ? 'white' : 'var(--badge-blue-fg)',
           }}>
             {r === 'viewer' ? 'Só vê' : 'Gere comigo'}
           </button>
         ))}
       </div>
-      <div style={{ fontSize: 11.5, color: '#3b5aa8', marginBottom: 10, lineHeight: 1.5 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--blue)', marginBottom: 10, lineHeight: 1.5 }}>
         {role === 'viewer'
           ? 'Vê medicação, vitais e sintomas — sem poder alterar nada.'
           : 'Pode adicionar/remover medicação e registar vitais e sintomas, tal como tu. Não pode apagar o perfil nem gerir o acesso de mais ninguém.'}
       </div>
 
       {newCode && (
-        <div style={{ background: 'white', border: '1.5px solid #1d4ed8', borderRadius: 8, padding: '10px 12px', marginBottom: 10, textAlign: 'center' }}>
-          <div style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Código do convite · {newRole === 'editor' ? 'gere comigo' : 'só vê'}</div>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: '#1d4ed8', letterSpacing: '0.1em' }}>{newCode}</div>
+        <div style={{ background: 'white', border: '1.5px solid var(--ink-2)', borderRadius: 'var(--r-md)', padding: '10px 12px', marginBottom: 10, textAlign: 'center' }}>
+          <div style={{ fontSize: 10, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Código do convite · {newRole === 'editor' ? 'gere comigo' : 'só vê'}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: 'var(--ink-2)', letterSpacing: '0.1em' }}>{newCode}</div>
         </div>
       )}
 
-      {err && <div style={{ fontSize: 12, color: '#dc2626', marginBottom: 8 }}>{err}</div>}
-      <button onClick={create} disabled={loading} style={{ width: '100%', padding: '9px 14px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', marginBottom: 10 }}>
+      {err && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>{err}</div>}
+      <button onClick={create} disabled={loading} style={{ width: '100%', padding: '9px 14px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: loading ? 'wait' : 'pointer', marginBottom: 10 }}>
         {loading ? 'A gerar…' : '+ Gerar novo código'}
       </button>
 
       {active.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          <div style={{ fontSize: 11, fontWeight: 700, color: '#1e40af' }}>Quem mais tem acesso</div>
+          <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-2)' }}>Quem mais tem acesso</div>
           {active.map(s => (
-            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid #dbeafe', borderRadius: 8, padding: '6px 10px', gap: 8 }}>
+            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid var(--bg-3)', borderRadius: 'var(--r-md)', padding: '6px 10px', gap: 8 }}>
               {s.redeemed_at ? (
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#15803d' }}>✓ {s.viewer_name} <span style={{ fontWeight: 600, color: '#64748b', fontSize: 11 }}>· {s.role === 'editor' ? 'gere comigo' : 'só vê'}</span></span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>✓ {s.viewer_name} <span style={{ fontWeight: 600, color: 'var(--ink-4)', fontSize: 11 }}>· {s.role === 'editor' ? 'gere comigo' : 'só vê'}</span></span>
               ) : (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: '#1e3a8a' }}>{s.code} <span style={{ fontFamily: 'inherit', fontWeight: 500, color: '#94a3b8' }}>· por resgatar · {s.role === 'editor' ? 'gere comigo' : 'só vê'}</span></span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--badge-blue-fg)' }}>{s.code} <span style={{ fontFamily: 'inherit', fontWeight: 500, color: 'var(--ink-5)' }}>· por resgatar · {s.role === 'editor' ? 'gere comigo' : 'só vê'}</span></span>
               )}
-              <button onClick={() => revoke(s.id)} style={{ fontSize: 11, color: '#dc2626', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>Revogar</button>
+              <button onClick={() => revoke(s.id)} style={{ fontSize: 11, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700, flexShrink: 0 }}>Revogar</button>
             </div>
           ))}
         </div>

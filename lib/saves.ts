@@ -165,14 +165,14 @@ export function consumeReopen<T = any>(): T | null {
 // ─── Metadados visuais por kind ───────────────────────────────────────────────
 
 export const KIND_META: Record<SavedKind, { label: string; icon: string; color: string }> = {
-  mnemonic:      { label: 'Mnemónica',          icon: '🧠', color: '#7c3aed' },
-  explanation:   { label: 'Explicação',         icon: '✨', color: '#0891b2' },
-  med_check:     { label: 'Análise de meds',    icon: '⚗', color: '#0d6e42' },
-  consult_prep:  { label: 'Preparação consulta',icon: '📋', color: '#1d4ed8' },
-  triage:        { label: 'Triagem',            icon: '🏥', color: '#dc2626' },
-  anatomy_model: { label: 'Modelo 3D',          icon: '🫀', color: '#7c3aed' },
-  calc_result:   { label: 'Cálculo',            icon: '∑',  color: '#0b1120' },
-  briefing:      { label: 'Briefing clínico',   icon: '📊', color: '#b45309' },
-  note:          { label: 'Nota',               icon: '✎',  color: '#475569' },
-  other:         { label: 'Outro',              icon: '📌', color: '#64748b' },
+  mnemonic:      { label: 'Mnemónica',          icon: 'spark', color: 'var(--roxo)' },
+  explanation:   { label: 'Explicação',         icon: '✨', color: 'var(--green)' },
+  med_check:     { label: 'Análise de meds',    icon: '⚗', color: 'var(--green)' },
+  consult_prep:  { label: 'Preparação consulta',icon: 'clipboard', color: 'var(--blue)' },
+  triage:        { label: 'Triagem',            icon: 'building', color: 'var(--red)' },
+  anatomy_model: { label: 'Modelo 3D',          icon: 'heart', color: 'var(--roxo)' },
+  calc_result:   { label: 'Cálculo',            icon: '∑',  color: 'var(--badge-blue-fg)' },
+  briefing:      { label: 'Briefing clínico',   icon: 'chart', color: 'var(--amber)' },
+  note:          { label: 'Nota',               icon: '✎',  color: 'var(--blue)' },
+  other:         { label: 'Outro',              icon: 'pin', color: 'var(--blue)' },
 }

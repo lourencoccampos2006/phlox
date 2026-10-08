@@ -128,7 +128,7 @@ function UpgradeGate() {
         <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 28, fontFamily: 'var(--font-mono)' }}>
           Disponível no plano Plus (3,99€/mês).
         </p>
-        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '20px', marginBottom: 28, textAlign: 'left' }}>
+        <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '20px', marginBottom: 28, textAlign: 'left' }}>
           {[
             { text: 'Chat conversacional com memória do teu doente' },
             { text: 'Raciocínio clínico transparente — vês como pensa' },
@@ -143,10 +143,10 @@ function UpgradeGate() {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 6, fontSize: 14, fontWeight: 600 }}>
+          <Link href="/pricing" style={{ background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r)', fontSize: 14, fontWeight: 600 }}>
             Desbloquear Phlox AI →
           </Link>
-          <Link href="/login" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '12px 20px', borderRadius: 6, fontSize: 13, border: '1px solid var(--border-2)' }}>
+          <Link href="/login" style={{ background: 'white', color: 'var(--ink)', textDecoration: 'none', padding: '12px 20px', borderRadius: 'var(--r)', fontSize: 13, border: '1px solid var(--border-2)' }}>
             Já tenho conta
           </Link>
         </div>
@@ -175,10 +175,10 @@ function MessageBubble({ msg }: { msg: Message }) {
         <div style={{ maxWidth: '78%', display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end' }}>
           {msg.imageUrl && (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={msg.imageUrl} alt="enviada" style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 14, border: '1px solid rgba(255,255,255,0.3)', objectFit: 'cover', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.35)' }} />
+            <img src={msg.imageUrl} alt="enviada" style={{ maxWidth: '100%', maxHeight: 260, borderRadius: 'var(--r-xl)', border: '1px solid rgba(255,255,255,0.3)', objectFit: 'cover', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.35)' }} />
           )}
           {(msg.content && msg.content !== '(imagem)') && (
-            <div style={{ background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', borderRadius: '18px 18px 4px 18px', padding: '12px 16px', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.45)' }}>
+            <div style={{ background: 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)', borderRadius: '18px 18px 4px 18px', padding: '12px 16px', boxShadow: '0 6px 18px -8px rgba(13,110,66,0.45)' }}>
               <p style={{ fontSize: 14, color: 'white', lineHeight: 1.6, margin: 0 }}>{msg.content}</p>
             </div>
           )}
@@ -189,31 +189,31 @@ function MessageBubble({ msg }: { msg: Message }) {
 
   return (
     <div style={{ display: 'flex', gap: 12, marginBottom: 22, alignItems: 'flex-start' }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, boxShadow: '0 4px 12px rgba(13,110,66,0.25)' }}>
+      <div style={{ width: 34, height: 34, borderRadius: 'var(--r-lg)', background: 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 2, boxShadow: '0 4px 12px rgba(13,110,66,0.25)' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         {msg.thinking && (
           <button onClick={() => setShowThinking(!showThinking)}
-            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 4, padding: '4px 10px', fontSize: 11, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-mono)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
+            style={{ background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '4px 10px', fontSize: 11, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'var(--font-mono)', marginBottom: 8, display: 'flex', alignItems: 'center', gap: 6 }}>
             <span style={{ fontSize: 10 }}>{showThinking ? '▾' : '▸'}</span>
             Raciocínio clínico
           </button>
         )}
         {showThinking && msg.thinking && (
-          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, padding: '12px 14px', marginBottom: 10, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, fontFamily: 'var(--font-mono)' }}>
+          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '12px 14px', marginBottom: 10, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, fontFamily: 'var(--font-mono)' }}>
             {msg.thinking}
           </div>
         )}
-        <div style={{ background: 'white', border: '1px solid #eef0f3', borderRadius: '6px 18px 18px 18px', padding: '16px 20px', boxShadow: '0 2px 8px -2px rgba(8,12,24,0.04)' }}>
-          <div style={{ fontSize: 14.5, color: '#1a202c', lineHeight: 1.7 }}>
+        <div style={{ background: 'white', border: '1px solid var(--bg-3)', borderRadius: '6px 18px 18px 18px', padding: '16px 20px', boxShadow: '0 2px 8px -2px rgba(8,12,24,0.04)' }}>
+          <div style={{ fontSize: 14.5, color: 'var(--badge-blue-fg)', lineHeight: 1.7 }}>
             <Markdown text={msg.content} />
           </div>
         </div>
         {msg.sources && msg.sources.length > 0 && (
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 8 }}>
             {msg.sources.map(s => (
-              <span key={s} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 3, padding: '2px 7px' }}>
+              <span key={s} style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '2px 7px' }}>
                 {s}
               </span>
             ))}
@@ -224,7 +224,7 @@ function MessageBubble({ msg }: { msg: Message }) {
             {msg.actions.map(action =>
               action.href ? (
                 <Link key={action.label} href={action.href}
-                  style={{ fontSize: 12, background: 'var(--green-light)', color: 'var(--green-2)', textDecoration: 'none', border: '1px solid var(--green-mid)', borderRadius: 4, padding: '5px 12px', fontWeight: 600 }}>
+                  style={{ fontSize: 12, background: 'var(--green-light)', color: 'var(--green-2)', textDecoration: 'none', border: '1px solid var(--green-mid)', borderRadius: 'var(--r)', padding: '5px 12px', fontWeight: 600 }}>
                   {action.label} →
                 </Link>
               ) : null
@@ -236,7 +236,7 @@ function MessageBubble({ msg }: { msg: Message }) {
             {msg.timestamp.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
           </span>
           <button onClick={handleCopy}
-            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 10, color: copied ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4, borderRadius: 3 }}>
+            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '2px 6px', fontSize: 10, color: copied ? 'var(--green)' : 'var(--ink-4)', fontFamily: 'var(--font-mono)', display: 'flex', alignItems: 'center', gap: 4, borderRadius: 'var(--r-sm)' }}>
             {copied ? '✓ copiado' : '⎘ copiar'}
           </button>
         </div>
@@ -250,12 +250,12 @@ function MessageBubble({ msg }: { msg: Message }) {
 function TypingIndicator() {
   return (
     <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'flex-start' }}>
-      <div style={{ width: 34, height: 34, borderRadius: 10, background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(13,110,66,0.25)' }}>
+      <div style={{ width: 34, height: 34, borderRadius: 'var(--r-lg)', background: 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 4px 12px rgba(13,110,66,0.25)' }}>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
       </div>
       <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: '6px 16px 16px 16px', padding: '14px 18px', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 2px 8px rgba(8,12,24,0.04)' }}>
         {[0, 1, 2].map(i => (
-          <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: '#0d6e42', animation: `typingBounce 1.4s ${i * 0.16}s infinite ease-in-out` }} />
+          <div key={i} style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--green)', animation: `typingBounce 1.4s ${i * 0.16}s infinite ease-in-out` }} />
         ))}
       </div>
     </div>
@@ -667,7 +667,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
       })()
 
   return (
-    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, #fafbfc 0%, #f1f5f9 100%)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ minHeight: '100vh', background: 'linear-gradient(180deg, var(--bg-2) 0%, var(--bg-3) 100%)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
 
 
       {/* Toda a gente entra. O plano Base tem 3 perguntas/dia (limite imposto no
@@ -682,14 +682,14 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
           <div className="ai-topbar" style={{ padding: '20px 0 18px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-                <div className="ai-mark" style={{ width: 40, height: 40, borderRadius: 12, background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 6px 18px rgba(13,110,66,0.25)' }}>
+                <div className="ai-mark" style={{ width: 40, height: 40, borderRadius: 'var(--r-xl)', background: 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, boxShadow: '0 6px 18px rgba(13,110,66,0.25)' }}>
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: 'var(--ink)', letterSpacing: '-0.015em', fontWeight: 400, lineHeight: 1 }}>Phlox AI</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 20, background: '#f0fdf4', border: '1px solid #bbf7d0', fontSize: 10.5, fontWeight: 700, color: '#15803d', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
-                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#16a34a', animation: 'pulse 2s infinite' }} /> ONLINE
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '2px 8px', borderRadius: 'var(--r-xl)', background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', fontSize: 10.5, fontWeight: 700, color: 'var(--green)', fontFamily: 'var(--font-mono)', letterSpacing: '0.04em' }}>
+                      <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', animation: 'pulse 2s infinite' }} /> ONLINE
                     </span>
                   </div>
                   <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3, fontFamily: 'var(--font-sans)' }}>
@@ -701,40 +701,40 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               </div>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <button onClick={newChat}
-                  style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   + Nova conversa
                 </button>
                 <button onClick={() => setShowHistory(s => !s)}
-                  style={{ background: showHistory ? 'var(--ink)' : 'white', color: showHistory ? 'white' : 'var(--ink-3)', border: `1px solid ${showHistory ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  style={{ background: showHistory ? 'var(--ink)' : 'white', color: showHistory ? 'white' : 'var(--ink-3)', border: `1px solid ${showHistory ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   💬 Histórico ({savedChats.length})
                 </button>
                 {/* Toggle de contexto pessoal */}
                 <button onClick={() => setIncludeContext(c => !c)} title={includeContext ? 'A AI conhece a tua medicação e perfil' : 'Modo anónimo: não enviar contexto pessoal'}
-                  style={{ background: includeContext ? '#f0fdf4' : 'white', color: includeContext ? '#0d6e42' : 'var(--ink-3)', border: `1px solid ${includeContext ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                  style={{ background: includeContext ? 'var(--badge-green-bg)' : 'white', color: includeContext ? 'var(--green)' : 'var(--ink-3)', border: `1px solid ${includeContext ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r-md)', padding: '7px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
                   {includeContext ? '✓ Com o meu Phlox' : '◻ Anónimo'}
                 </button>
                 {familyProfile ? (
                   <Link href={`/perfil/${profileId}`}
-                    style={{ background: 'white', border: '1px solid #ddd6fe', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#6d28d9', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                    style={{ background: 'white', border: '1px solid var(--roxo-meio)', borderRadius: 'var(--r-md)', padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--roxo)', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
                     Ver perfil
                   </Link>
                 ) : (
                   <Link href="/mymeds"
-                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: '#0d6e42', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--green)', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
                     Editar medicação
                   </Link>
                 )}
                 {familyProfile && (
                   <Link href="/ai"
-                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '7px 12px', fontSize: 12, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}>
                     Meu perfil
                   </Link>
                 )}
               </div>
             </div>
             {familyProfile && (
-              <div style={{ marginTop: 12, padding: '8px 14px', background: 'linear-gradient(135deg, #faf5ff 0%, #f5f3ff 100%)', border: '1px solid #e9d5ff', borderRadius: 9, fontSize: 12.5, color: '#6d28d9', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+              <div style={{ marginTop: 12, padding: '8px 14px', background: 'linear-gradient(135deg, var(--roxo-claro) 0%, var(--blue-light) 100%)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-lg)', fontSize: 12.5, color: 'var(--roxo)', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--roxo)" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                 A conversar sobre <strong style={{ marginLeft: 3 }}>{familyProfile.name}</strong>
               </div>
             )}
@@ -745,9 +745,9 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
             {messages.length === 0 && ctxLoaded && (
               <div style={{ padding: '32px 0 16px', textAlign: 'center' }}>
                 {/* Hero */}
-                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 18, background: 'radial-gradient(circle at 30% 30%, #16a34a 0%, #0d6e42 100%)', marginBottom: 18, boxShadow: '0 12px 30px rgba(13,110,66,0.25)', position: 'relative' }}>
+                <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 64, height: 64, borderRadius: 'var(--r-xl)', background: 'radial-gradient(circle at 30% 30%, var(--green) 0%, var(--green) 100%)', marginBottom: 18, boxShadow: '0 12px 30px rgba(13,110,66,0.25)', position: 'relative' }}>
                   <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.4" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
-                  <div style={{ position: 'absolute', inset: -6, borderRadius: 22, border: '1px solid #bbf7d0', opacity: 0.6, pointerEvents: 'none' }} />
+                  <div style={{ position: 'absolute', inset: -6, borderRadius: 22, border: '1px solid var(--green-mid)', opacity: 0.6, pointerEvents: 'none' }} />
                 </div>
                 <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 26, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 6px' }}>Como posso ajudar?</h2>
                 <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: '0 0 24px', lineHeight: 1.55 }}>
@@ -756,8 +756,8 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                 <div className="ai-empty-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 270px), 1fr))', gap: 9, textAlign: 'left', maxWidth: 620, margin: '0 auto' }}>
                   {suggestionsToShow.map(p => (
                     <button key={p} onClick={() => sendMessage(p)} className="ai-suggest"
-                      style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 11, padding: '12px 14px', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', display: 'flex', gap: 10, alignItems: 'flex-start', transition: 'all 0.15s ease' }}>
-                      <span style={{ color: '#0d6e42', flexShrink: 0, marginTop: 1, fontWeight: 800 }}>→</span>
+                      style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 14px', cursor: 'pointer', textAlign: 'left', fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5, fontFamily: 'var(--font-sans)', display: 'flex', gap: 10, alignItems: 'flex-start', transition: 'all 0.15s ease' }}>
+                      <span style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1, fontWeight: 800 }}>→</span>
                       <span style={{ minWidth: 0 }}>{p}</span>
                     </button>
                   ))}
@@ -766,7 +766,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
             )}
 
             {showHistory && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 14, marginBottom: 14 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 14, marginBottom: 14 }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink)', letterSpacing: '-0.01em' }}>Conversas anteriores</div>
                   <button aria-label="Fechar" onClick={() => setShowHistory(false)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>                </div>
@@ -775,7 +775,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {savedChats.map(c => (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: c.id === chatId ? 'var(--bg-2)' : 'white', border: '1px solid var(--border)', borderRadius: 8 }}>
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 10px', background: c.id === chatId ? 'var(--bg-2)' : 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
                         <button onClick={() => openSavedChat(c.id)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', minWidth: 0, padding: 0, fontFamily: 'var(--font-sans)' }}>
                           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{c.title}</div>
                           <div style={{ fontSize: 10.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{c.count} msg · {new Date(c.updated).toLocaleString('pt-PT', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
@@ -791,7 +791,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
               action.prompt ? (
                 <div key={action.label} style={{ paddingLeft: 42, marginTop: -12, marginBottom: 16 }}>
                   <button onClick={() => sendMessage(action.prompt!)}
-                    style={{ fontSize: 12, background: 'var(--green-light)', color: 'var(--green-2)', border: '1px solid var(--green-mid)', borderRadius: 4, padding: '5px 12px', cursor: 'pointer', fontWeight: 600 }}>
+                    style={{ fontSize: 12, background: 'var(--green-light)', color: 'var(--green-2)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r)', padding: '5px 12px', cursor: 'pointer', fontWeight: 600 }}>
                     {action.label} →
                   </button>
                 </div>
@@ -810,7 +810,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                   : ['Posso tomar com álcool?', 'Quais os efeitos adversos?', 'É seguro na gravidez?', 'Qual a dose correcta?']
                 ).map(s => (
                   <button key={s} onClick={() => sendMessage(s)} className="ai-chip"
-                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 20, padding: '6px 13px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s ease' }}>
+                    style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '6px 13px', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer', fontFamily: 'var(--font-sans)', transition: 'all 0.15s ease' }}>
                     {s}
                   </button>
                 ))}
@@ -819,20 +819,20 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
 
             {/* Preview da imagem anexada */}
             {pendingImage && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: '#f0fdf4', border: '1.5px solid #bbf7d0', borderRadius: 12, marginBottom: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'var(--badge-green-bg)', border: '1.5px solid var(--green-mid)', borderRadius: 'var(--r-xl)', marginBottom: 10 }}>
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={pendingImage.dataUrl} alt="" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 8, border: '1px solid white' }} />
+                <img src={pendingImage.dataUrl} alt="" style={{ width: 56, height: 56, objectFit: 'cover', borderRadius: 'var(--r-md)', border: '1px solid white' }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d' }}>Imagem pronta a enviar</div>
-                  <div style={{ fontSize: 11.5, color: '#475569', marginTop: 2 }}>Escreve uma pergunta opcional (ex: "que medicamento é?") e carrega em ↑</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>Imagem pronta a enviar</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2 }}>Escreve uma pergunta opcional (ex: "que medicamento é?") e carrega em ↑</div>
                 </div>
-                <button onClick={() => setPendingImage(null)} aria-label="Remover" style={{ background: 'white', border: '1px solid #bbf7d0', borderRadius: 7, padding: '6px 10px', fontSize: 11.5, fontWeight: 700, color: '#15803d', cursor: 'pointer' }}>Remover</button>
+                <button onClick={() => setPendingImage(null)} aria-label="Remover" style={{ background: 'white', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '6px 10px', fontSize: 11.5, fontWeight: 700, color: 'var(--green)', cursor: 'pointer' }}>Remover</button>
               </div>
             )}
 
             <input ref={fileInputRef} type="file" accept="image/*" onChange={onFilePick} style={{ display: 'none' }} />
 
-            <div className="ai-input-card" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'white', border: '1.5px solid var(--border)', borderRadius: 14, padding: '12px 14px', boxShadow: '0 1px 0 rgba(8,12,24,0.02), 0 8px 24px -16px rgba(8,12,24,0.12)', transition: 'border-color 0.15s, box-shadow 0.15s' }}>
+            <div className="ai-input-card" style={{ display: 'flex', gap: 10, alignItems: 'flex-end', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 14px', boxShadow: '0 1px 0 rgba(8,12,24,0.02), 0 8px 24px -16px rgba(8,12,24,0.12)', transition: 'border-color 0.15s, box-shadow 0.15s' }}>
               <textarea
                 ref={inputRef}
                 value={input}
@@ -856,7 +856,7 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                 onClick={() => fileInputRef.current?.click()}
                 aria-label="Anexar imagem"
                 title="Anexar foto (ou colar com Ctrl+V)"
-                style={{ width: 38, height: 38, borderRadius: 10, border: 'none', background: '#f1f5f9', color: '#64748b', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                style={{ width: 38, height: 38, borderRadius: 'var(--r-lg)', border: 'none', background: 'var(--bg-3)', color: 'var(--ink-4)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                   <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/>
                 </svg>
@@ -866,16 +866,16 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
                 onClick={() => pendingImage ? sendImageMessage() : sendMessage()}
                 disabled={(!pendingImage && !input.trim()) || isTyping}
                 aria-label="Enviar"
-                style={{ background: ((pendingImage || input.trim()) && !isTyping) ? 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)' : 'var(--bg-3)', color: ((pendingImage || input.trim()) && !isTyping) ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 10, width: 38, height: 38, cursor: ((pendingImage || input.trim()) && !isTyping) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.1s ease, box-shadow 0.15s', boxShadow: ((pendingImage || input.trim()) && !isTyping) ? '0 4px 12px rgba(13,110,66,0.3)' : 'none' }}>
+                style={{ background: ((pendingImage || input.trim()) && !isTyping) ? 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)' : 'var(--bg-3)', color: ((pendingImage || input.trim()) && !isTyping) ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-lg)', width: 38, height: 38, cursor: ((pendingImage || input.trim()) && !isTyping) ? 'pointer' : 'not-allowed', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'transform 0.1s ease, box-shadow 0.15s', boxShadow: ((pendingImage || input.trim()) && !isTyping) ? '0 4px 12px rgba(13,110,66,0.3)' : 'none' }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
               </button>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 9, padding: '0 4px' }}>
               <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>
-                <kbd style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>Enter</kbd> enviar · <kbd style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 4, padding: '1px 5px', fontSize: 10 }}>Shift+Enter</kbd> nova linha
+                <kbd style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '1px 5px', fontSize: 10 }}>Enter</kbd> enviar · <kbd style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '1px 5px', fontSize: 10 }}>Shift+Enter</kbd> nova linha
               </div>
               {input.length > 80 && (
-                <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: input.length > 900 ? '#dc2626' : 'var(--ink-5)' }}>
+                <div style={{ fontSize: 10.5, fontFamily: 'var(--font-mono)', color: input.length > 900 ? 'var(--red)' : 'var(--ink-5)' }}>
                   {input.length}/1000
                 </div>
               )}
@@ -887,9 +887,9 @@ ${hasMeds ? `**Medicação actual:** ${patientCtx.meds.map((m: any) => m.name).j
       <style>{`
         @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
         @keyframes typingBounce { 0%,80%,100%{transform:translateY(0); opacity:0.5} 40%{transform:translateY(-4px); opacity:1} }
-        .ai-input-card:focus-within { border-color: #0d6e42; box-shadow: 0 0 0 4px rgba(13,110,66,0.08), 0 8px 24px -16px rgba(13,110,66,0.18); }
-        .ai-suggest:hover { border-color: #0d6e42; background: #f8fdfb; transform: translateY(-1px); }
-        .ai-chip:hover { border-color: #0d6e42; color: #0d6e42; }
+        .ai-input-card:focus-within { border-color: var(--green); box-shadow: 0 0 0 4px rgba(13,110,66,0.08), 0 8px 24px -16px rgba(13,110,66,0.18); }
+        .ai-suggest:hover { border-color: var(--green); background: var(--bg-2); transform: translateY(-1px); }
+        .ai-chip:hover { border-color: var(--green); color: var(--green); }
       `}</style>
     </div>
   )

@@ -67,14 +67,14 @@ export default function PreferenciasNotificacao({ supabase, userId }: { supabase
   }
 
   if (!carregado) {
-    return <div className="skeleton" style={{ height: 180, borderRadius: 10 }} />
+    return <div className="skeleton" style={{ height: 180, borderRadius: 'var(--r-lg)' }} />
   }
 
   const tipos = tiposPara({ temOrg, tipoInstituicao })
   const ambitos: AmbitoNotificacao[] = ['pessoal', 'cuidador', 'instituicao']
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: 18 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 18 }}>
       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>
         O que queres receber
       </div>
@@ -84,14 +84,14 @@ export default function PreferenciasNotificacao({ supabase, userId }: { supabase
       </div>
 
       {indisponivel && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 7, fontSize: 12.5, color: '#854d0e', lineHeight: 1.6 }}>
+        <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--badge-amber-fg)', lineHeight: 1.6 }}>
           As escolhas ainda não estão disponíveis nesta conta. Por agora recebes todas as
           notificações da lista em baixo.
         </div>
       )}
 
       {erro && (
-        <div style={{ marginBottom: 14, padding: '10px 14px', background: '#fff5f5', border: '1px solid #fed7d7', borderRadius: 7, fontSize: 12.5, color: '#c53030' }}>{erro}</div>
+        <div style={{ marginBottom: 14, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--red)' }}>{erro}</div>
       )}
 
       {ambitos.map(ambito => {
@@ -108,7 +108,7 @@ export default function PreferenciasNotificacao({ supabase, userId }: { supabase
               {meta.nota}
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 9, overflow: 'hidden' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
               {doAmbito.map(t => {
                 const ligado = querReceber(prefs, t.id)
                 return (
@@ -134,7 +134,7 @@ export default function PreferenciasNotificacao({ supabase, userId }: { supabase
                       />
                       <span aria-hidden style={{
                         display: 'block', width: 42, height: 24, borderRadius: 999,
-                        background: ligado ? 'var(--green, #0d9488)' : 'var(--bg-4, #cbd5e1)',
+                        background: ligado ? 'var(--green, var(--green-3))' : 'var(--bg-4, var(--border-2))',
                         transition: 'background 140ms ease',
                       }}>
                         <span style={{

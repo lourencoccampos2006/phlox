@@ -9,31 +9,31 @@ const MAX = 6
 // Lista das ferramentas que faz sentido fixar (com label amigável + ícone).
 export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group: string }[] = [
   // Pessoal
-  { path: '/mymeds',            label: 'A minha medicação',     icon: '💊', group: 'Pessoal' },
+  { path: '/mymeds',            label: 'A minha medicação',     icon: 'pill', group: 'Pessoal' },
   { path: '/interactions',      label: 'Verificar interações',  icon: '⚗',  group: 'Pessoal' },
-  { path: '/scan',              label: 'Perceber bula',          icon: '📄', group: 'Pessoal' },
-  { path: '/sintomas',          label: 'Sintomas',               icon: '🌡', group: 'Pessoal' },
-  { path: '/passport',          label: 'Cartão emergência',      icon: '🆘', group: 'Pessoal' },
-  { path: '/quickcheck',        label: 'Análise rápida meds',    icon: '⚡', group: 'Pessoal' },
+  { path: '/scan',              label: 'Perceber bula',          icon: 'note', group: 'Pessoal' },
+  { path: '/sintomas',          label: 'Sintomas',               icon: 'droplet', group: 'Pessoal' },
+  { path: '/passport',          label: 'Cartão emergência',      icon: 'alert', group: 'Pessoal' },
+  { path: '/quickcheck',        label: 'Análise rápida meds',    icon: 'bolt', group: 'Pessoal' },
   { path: '/vitals',            label: 'Sinais vitais',          icon: '💓', group: 'Pessoal' },
-  { path: '/health-import',     label: 'Importar Apple Health',  icon: '📥', group: 'Pessoal' },
+  { path: '/health-import',     label: 'Importar Apple Health',  icon: 'inbox', group: 'Pessoal' },
   { path: '/guardados',         label: 'Guardados',              icon: '★',  group: 'Pessoal' },
-  { path: '/calendario',        label: 'Calendário',             icon: '📅', group: 'Pessoal' },
-  { path: '/vigia-ruturas',     label: 'Vigia de ruturas',        icon: '📦', group: 'Pessoal' },
+  { path: '/calendario',        label: 'Calendário',             icon: 'calendar', group: 'Pessoal' },
+  { path: '/vigia-ruturas',     label: 'Vigia de ruturas',        icon: 'package', group: 'Pessoal' },
   // Cuidador
-  { path: '/familia',           label: 'Perfis de família',      icon: '👨‍👩‍👧', group: 'Cuidador' },
+  { path: '/familia',           label: 'Perfis de família',      icon: 'family', group: 'Cuidador' },
   // Estudante
-  { path: '/arena',             label: 'Arena',                  icon: '🏆', group: 'Estudante' },
-  { path: '/osce',              label: 'OSCE',                   icon: '🩺', group: 'Estudante' },
+  { path: '/arena',             label: 'Arena',                  icon: 'trophy', group: 'Estudante' },
+  { path: '/osce',              label: 'OSCE',                   icon: 'stethoscope', group: 'Estudante' },
   { path: '/tutor',             label: 'AI Tutor',               icon: '🧑‍🏫', group: 'Estudante' },
-  { path: '/simulador',         label: 'Casos clínicos',         icon: '📚', group: 'Estudante' },
-  { path: '/anatomia-3d',       label: 'Atlas 3D',               icon: '🫀', group: 'Estudante' },
+  { path: '/simulador',         label: 'Casos clínicos',         icon: 'book', group: 'Estudante' },
+  { path: '/anatomia-3d',       label: 'Atlas 3D',               icon: 'heart', group: 'Estudante' },
   { path: '/calculos',          label: 'Calculadoras',           icon: '∑',  group: 'Estudante' },
-  { path: '/mnemonicas',        label: 'Mnemónicas visuais',     icon: '🧠', group: 'Estudante' },
-  { path: '/modo-exame',        label: 'Modo Exame',             icon: '⏳', group: 'Estudante' },
+  { path: '/mnemonicas',        label: 'Mnemónicas visuais',     icon: 'spark', group: 'Estudante' },
+  { path: '/modo-exame',        label: 'Modo Exame',             icon: 'clock', group: 'Estudante' },
   // Comum
   { path: '/ai',                label: 'Phlox AI',               icon: '✨', group: 'Geral' },
-  { path: '/relatorio?tab=diario', label: 'Brief de hoje',       icon: '☀', group: 'Geral' },
+  { path: '/relatorio?tab=diario', label: 'Brief de hoje',       icon: 'clock', group: 'Geral' },
   // 2026-08-09: o grupo "Clínico" (Cockpit/Doentes/Decision Engine/AI Copilot/
   // Atendimentos/POS) foi removido daqui — o modo clínico nem sequer usa este
   // sistema de pins (não tem o módulo "atalhos" em /inicio), por isso só

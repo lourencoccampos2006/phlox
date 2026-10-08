@@ -56,10 +56,10 @@ Responde só JSON: {"titulo":"...","area":"Cardiologia|Infecciologia|...","vinhe
   const html = emailLayout({
     preheader: `${esc(caso.area)} — ${esc(caso.titulo)}`,
     heading: esc(caso.titulo),
-    body: `<p style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:#71717a;margin:0 0 10px">${esc(caso.area)}</p>
+    body: `<p style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-4);margin:0 0 10px">${esc(caso.area)}</p>
            <p>${esc(caso.vinheta)}</p>
            <p style="margin-top:16px"><strong>${esc(caso.pergunta)}</strong></p>
-           <p style="font-size:13px;color:#71717a">A resposta não vem no email de propósito — pensa nela primeiro.</p>`,
+           <p style="font-size:13px;color:var(--ink-4)">A resposta não vem no email de propósito — pensa nela primeiro.</p>`,
     cta: { label: 'Resolver no Phlox', url: 'https://phloxclinical.com/decisao' },
     footnote: 'Recebes isto porque ativaste o caso do dia. Podes desligá-lo nas definições.',
   })

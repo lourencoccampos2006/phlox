@@ -47,8 +47,8 @@ const TOOL_BADGE: Record<string, string> = {
 
 // Sugestões PROATIVAS — adapta-se ao que o utilizador está a ver e a quem acompanha.
 const chipVolta: React.CSSProperties = {
-  border: '1px dashed #d6d8dc', background: 'none', borderRadius: 20,
-  padding: '3px 10px', fontSize: 11, color: '#6b7280', cursor: 'pointer', fontFamily: 'inherit',
+  border: '1px dashed var(--border)', background: 'none', borderRadius: 'var(--r-xl)',
+  padding: '3px 10px', fontSize: 11, color: 'var(--ink-4)', cursor: 'pointer', fontFamily: 'inherit',
 }
 
 function proactiveSuggestions(ctxLabel: string, path: string, prof?: ActiveProfile | null): string[] {
@@ -289,11 +289,11 @@ export default function PhloxCopilot() {
           className={btnClassName}
           style={{
             ...btnStyle, touchAction: 'none',
-            width: 52, height: 52, borderRadius: '50%', border: '1px solid #23262d',
-            background: '#16181d', color: 'white', cursor: 'grab', boxShadow: '0 6px 24px rgba(22,24,29,0.18)',
+            width: 52, height: 52, borderRadius: '50%', border: '1px solid var(--ink-2)',
+            background: 'var(--ink-2)', color: 'white', cursor: 'grab', boxShadow: '0 6px 24px rgba(22,24,29,0.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20,
           }}>✦
-          {ctxLabel && <span style={{ position: 'absolute', top: -3, right: -3, width: 12, height: 12, borderRadius: '50%', background: '#0d6e42', border: '2px solid white' }} />}
+          {ctxLabel && <span style={{ position: 'absolute', top: -3, right: -3, width: 12, height: 12, borderRadius: '50%', background: 'var(--green)', border: '2px solid white' }} />}
         </button>
       )}
       <style>{`
@@ -307,30 +307,30 @@ export default function PhloxCopilot() {
         <div className={hasBottomNav ? 'copilot-panel copilot-panel-avoid-nav' : 'copilot-panel'} style={{
           position: 'fixed', bottom: 20, right: 20, zIndex: 9001,
           width: 'min(400px, calc(100vw - 32px))', height: 'min(560px, calc(100vh - 100px))',
-          background: 'white', border: '1px solid #e7e8ea', borderRadius: 14,
+          background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)',
           boxShadow: '0 16px 48px rgba(22,24,29,0.18)', display: 'flex', flexDirection: 'column', overflow: 'hidden',
         }}>
           {/* Header */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid #e7e8ea' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', borderBottom: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#0d6e42', fontSize: 16 }}>✦</span>
+              <span style={{ color: 'var(--green)', fontSize: 16 }}>✦</span>
               <span style={{ fontWeight: 700, fontSize: 14 }}>Phlox Copilot</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginLeft: 'auto' }}>
               {msgs.length > 0 && (
                 <button onClick={limparConversa} title="Começar uma conversa nova"
-                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11.5, color: '#6b7280', fontFamily: 'inherit', padding: '4px 8px' }}>
+                  style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 11.5, color: 'var(--ink-4)', fontFamily: 'inherit', padding: '4px 8px' }}>
                   Limpar
                 </button>
               )}
-            <button aria-label="Fechar" onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#8b8f99' }}>×</button>
+            <button aria-label="Fechar" onClick={() => setOpen(false)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--ink-5)' }}>×</button>
             </div>
           </div>
 
           {/* Mensagens */}
           <div ref={scrollRef} style={{ flex: 1, overflowY: 'auto', padding: 14, display: 'flex', flexDirection: 'column', gap: 12 }}>
             {ctxLabel && usarPagina && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: '#0d6e42', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, padding: '6px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: 'var(--green)', background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '6px 10px' }}>
                 <span>👁</span> Estou a ver: <b>{ctxLabel}</b>
                 <button onClick={() => setUsarPagina(false)} aria-label="Deixar de usar o que estou a ver"
                   title="Deixar de usar o que estou a ver"
@@ -338,7 +338,7 @@ export default function PhloxCopilot() {
               </div>
             )}
             {activeProf && activeProf.type !== 'self' && usarPerfil && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: activeProf.type === 'patient' ? '#1e40af' : '#7c3aed', background: activeProf.type === 'patient' ? '#eff6ff' : '#faf5ff', border: `1px solid ${activeProf.type === 'patient' ? '#bfdbfe' : '#e9d5ff'}`, borderRadius: 8, padding: '6px 10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11.5, color: activeProf.type === 'patient' ? 'var(--ink-2)' : 'var(--roxo)', background: activeProf.type === 'patient' ? 'var(--bg-2)' : 'var(--roxo-claro)', border: `1px solid ${activeProf.type === 'patient' ? 'var(--border)' : 'var(--roxo-borda)'}`, borderRadius: 'var(--r-md)', padding: '6px 10px' }}>
                 <span>{activeProf.type === 'patient' ? '🧑‍⚕️' : '👥'}</span> Em foco: <b>{activeProf.name}</b>
                 <button onClick={() => setUsarPerfil(false)} aria-label="Largar esta pessoa"
                   title="Largar esta pessoa — a conversa deixa de ser sobre ela"
@@ -357,11 +357,11 @@ export default function PhloxCopilot() {
               </div>
             )}
             {msgs.length === 0 && (
-              <div style={{ color: '#6b7280', fontSize: 13, lineHeight: 1.6 }}>
+              <div style={{ color: 'var(--ink-4)', fontSize: 13, lineHeight: 1.6 }}>
                 Pergunta-me qualquer coisa sobre o que estás a ver. Sei em que página estás{ctxLabel ? ', o que abriste' : ''}{selection ? ' e o que selecionaste' : ''}.
                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {proactiveSuggestions(ctxLabel, pathname, activeProf).map(s => (
-                    <button key={s} onClick={() => send(s)} style={{ textAlign: 'left', padding: '8px 10px', background: '#f6f7f8', border: '1px solid #e7e8ea', borderRadius: 8, cursor: 'pointer', fontSize: 12.5, color: '#374151' }}>{s}</button>
+                    <button key={s} onClick={() => send(s)} style={{ textAlign: 'left', padding: '8px 10px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 12.5, color: 'var(--ink-3)' }}>{s}</button>
                   ))}
                 </div>
               </div>
@@ -369,43 +369,43 @@ export default function PhloxCopilot() {
             {msgs.map((m, i) => (
               <div key={i} style={{ alignSelf: m.role === 'user' ? 'flex-end' : 'flex-start', maxWidth: '90%' }}>
                 {m.usedTool && TOOL_BADGE[m.usedTool] && (
-                  <div style={{ fontSize: 10.5, fontWeight: 700, color: '#0d6e42', marginBottom: 3 }}>{TOOL_BADGE[m.usedTool]}</div>
+                  <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--green)', marginBottom: 3 }}>{TOOL_BADGE[m.usedTool]}</div>
                 )}
                 <div style={{
-                  padding: '9px 12px', borderRadius: 10, fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap',
-                  background: m.role === 'user' ? '#16181d' : '#f6f7f8',
-                  color: m.role === 'user' ? 'white' : '#16181d',
+                  padding: '9px 12px', borderRadius: 'var(--r-lg)', fontSize: 13.5, lineHeight: 1.55, whiteSpace: 'pre-wrap',
+                  background: m.role === 'user' ? 'var(--ink-2)' : 'var(--bg-2)',
+                  color: m.role === 'user' ? 'white' : 'var(--ink-2)',
                 }}>{m.content}</div>
                 {m.proposedAction && (
                   m.actionDone ? (
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0d6e42', marginTop: 5 }}>✓ Feito</div>
+                    <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--green)', marginTop: 5 }}>✓ Feito</div>
                   ) : (
-                    <button onClick={() => confirmAction(i, m.proposedAction!)} style={{ marginTop: 5, padding: '6px 12px', background: 'white', border: '1.5px solid #0d6e42', color: '#0d6e42', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                    <button onClick={() => confirmAction(i, m.proposedAction!)} style={{ marginTop: 5, padding: '6px 12px', background: 'white', border: '1.5px solid var(--green)', color: 'var(--green)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                       {m.proposedAction.type === 'save_summary' ? '💾 ' : '🙋 '}{m.proposedAction.label}
                     </button>
                   )
                 )}
-                {m.actionError && <div style={{ fontSize: 11.5, color: '#b91c1c', marginTop: 5 }}>{m.actionError}</div>}
+                {m.actionError && <div style={{ fontSize: 11.5, color: 'var(--red)', marginTop: 5 }}>{m.actionError}</div>}
               </div>
             ))}
-            {busy && <div style={{ alignSelf: 'flex-start', color: '#8b8f99', fontSize: 13 }}>A pensar…</div>}
+            {busy && <div style={{ alignSelf: 'flex-start', color: 'var(--ink-5)', fontSize: 13 }}>A pensar…</div>}
           </div>
 
           {/* Input */}
-          <div style={{ padding: 10, borderTop: '1px solid #e7e8ea' }}>
-            {selection && <div style={{ fontSize: 11, color: '#6d28d9', marginBottom: 6, background: '#faf5ff', padding: '4px 8px', borderRadius: 6 }}>↳ com a tua seleção</div>}
+          <div style={{ padding: 10, borderTop: '1px solid var(--border)' }}>
+            {selection && <div style={{ fontSize: 11, color: 'var(--roxo)', marginBottom: 6, background: 'var(--roxo-claro)', padding: '4px 8px', borderRadius: 'var(--r)' }}>↳ com a tua seleção</div>}
             <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end' }}>
               <textarea ref={inputRef} value={input} onChange={e => setInput(e.target.value)}
                 onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                 placeholder="Pergunta…" rows={1}
-                style={{ flex: 1, resize: 'none', padding: '9px 11px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 13.5, fontFamily: 'inherit', maxHeight: 100, boxSizing: 'border-box' }} />
+                style={{ flex: 1, resize: 'none', padding: '9px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13.5, fontFamily: 'inherit', maxHeight: 100, boxSizing: 'border-box' }} />
               {/* Ditar em vez de escrever. Numa sala de cuidados escreve-se de
                   pé, com uma mão e o telemóvel na outra — falar é mais rápido
                   e mais provável de acontecer. O texto ditado fica no campo
                   para se poder corrigir antes de enviar; nunca envia sozinho. */}
               <MicButton size={36} onTranscript={t => setInput(v => (v ? v.trim() + ' ' : '') + t)} />
               <button onClick={() => send()} disabled={busy || !input.trim()} style={{
-                padding: '9px 14px', background: '#16181d', color: 'white', border: 'none', borderRadius: 8,
+                padding: '9px 14px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-md)',
                 cursor: 'pointer', fontWeight: 600, fontSize: 13, opacity: busy || !input.trim() ? 0.5 : 1,
               }}>↑</button>
             </div>

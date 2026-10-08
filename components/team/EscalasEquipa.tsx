@@ -63,9 +63,9 @@ interface ShiftTimeCfg { start: string; end: string }
 const SHIFTS: Shift[] = ['manha', 'tarde', 'noite']
 
 const SHIFT_META: Record<Shift, { label: string; color: string; bg: string; border: string; dot: string }> = {
-  manha: { label: 'Manhã',  color: '#d97706', bg: '#fffbeb', border: '#fde68a', dot: '#f59e0b' },
-  tarde: { label: 'Tarde',  color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', dot: '#3b82f6' },
-  noite: { label: 'Noite',  color: '#6d28d9', bg: '#faf5ff', border: '#e9d5ff', dot: '#7c3aed' },
+  manha: { label: 'Manhã',  color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', dot: 'var(--amber)' },
+  tarde: { label: 'Tarde',  color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)', dot: 'var(--ink-3)' },
+  noite: { label: 'Noite',  color: 'var(--roxo)', bg: 'var(--roxo-claro)', border: 'var(--roxo-borda)', dot: 'var(--roxo)' },
 }
 
 const ROLE_LABELS: Record<string, string> = {
@@ -77,26 +77,26 @@ const ROLE_LABELS: Record<string, string> = {
 }
 
 const ROLE_COLORS: Record<string, string> = {
-  nurse: '#0891b2', caregiver: '#059669', pharmacist: '#7c3aed',
-  admin: '#64748b', doctor: '#dc2626', physiotherapist: '#0284c7',
-  psychologist: '#d97706', social_worker: '#16a34a', coordinator: '#2563eb',
-  director: '#1d4ed8', other: '#374151',
+  nurse: 'var(--green)', caregiver: 'var(--green)', pharmacist: 'var(--roxo)',
+  admin: 'var(--ink-4)', doctor: 'var(--red)', physiotherapist: 'var(--green)',
+  psychologist: 'var(--amber)', social_worker: 'var(--green)', coordinator: 'var(--ink-2)',
+  director: 'var(--ink-2)', other: 'var(--ink-3)',
 }
 
 const STATUS_CFG: Record<MemberStatus, { label: string; color: string; dot: string }> = {
-  on_shift: { label: 'Em serviço', color: '#16a34a', dot: '#4ade80' },
-  break:    { label: 'Pausa',      color: '#d97706', dot: '#fbbf24' },
-  off:      { label: 'Fora',       color: '#64748b', dot: '#94a3b8' },
-  sick:     { label: 'Baixa',      color: '#dc2626', dot: '#f87171' },
-  vacation: { label: 'Férias',     color: '#0284c7', dot: '#38bdf8' },
+  on_shift: { label: 'Em serviço', color: 'var(--green)', dot: 'var(--green)' },
+  break:    { label: 'Pausa',      color: 'var(--amber)', dot: 'var(--amber)' },
+  off:      { label: 'Fora',       color: 'var(--ink-4)', dot: 'var(--ink-5)' },
+  sick:     { label: 'Baixa',      color: 'var(--red)', dot: 'var(--badge-red-border)' },
+  vacation: { label: 'Férias',     color: 'var(--green)', dot: 'var(--green)' },
 }
 
 const STATUS_CYCLE: MemberStatus[] = ['on_shift', 'break', 'off', 'sick', 'vacation']
 
 const URGENCY_META: Record<Urgency, { label: string; color: string; bg: string; border: string }> = {
-  critical: { label: 'Hoje / amanhã', color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' },
-  urgent: { label: 'Em breve', color: '#d97706', bg: '#fffbeb', border: '#fde68a' },
-  normal: { label: 'Com antecedência', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' },
+  critical: { label: 'Hoje / amanhã', color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)' },
+  urgent: { label: 'Em breve', color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' },
+  normal: { label: 'Com antecedência', color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)' },
 }
 // Sugestão automática de urgência a partir da distância à data do turno — o
 // utilizador pode sempre corrigir manualmente no formulário.
@@ -159,7 +159,7 @@ function Lbl({ children }: { children: React.ReactNode }) {
 }
 
 const inp: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--border)', borderRadius: 8,
+  width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
   padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)',
   outline: 'none', boxSizing: 'border-box', background: 'white',
 }
@@ -450,17 +450,17 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
 
   const tabBtn = (t: SubTab, label: string) => (
     <button key={t} onClick={() => setTab(t)} style={{
-      padding: '7px 16px', borderRadius: 8, fontFamily: 'var(--font-sans)',
-      border: `1.5px solid ${tab === t ? '#1d4ed8' : 'var(--border)'}`,
-      background: tab === t ? '#eff6ff' : 'white',
-      color: tab === t ? '#1d4ed8' : 'var(--ink-4)',
+      padding: '7px 16px', borderRadius: 'var(--r-md)', fontFamily: 'var(--font-sans)',
+      border: `1.5px solid ${tab === t ? 'var(--ink-2)' : 'var(--border)'}`,
+      background: tab === t ? 'var(--bg-2)' : 'white',
+      color: tab === t ? 'var(--ink-2)' : 'var(--ink-4)',
       fontSize: 12, fontWeight: tab === t ? 700 : 400, cursor: 'pointer',
     }}>{label}</button>
   )
 
   const btnPrimary: React.CSSProperties = {
-    padding: '10px 18px', background: '#1d4ed8', color: 'white',
-    border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 600,
+    padding: '10px 18px', background: 'var(--ink-2)', color: 'white',
+    border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600,
     cursor: 'pointer', fontFamily: 'var(--font-sans)',
     display: 'flex', alignItems: 'center', gap: 7,
   }
@@ -485,11 +485,11 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
           <div style={{ display: 'flex', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
             {[
               { label: 'Total',      value: members.length,                                c: 'var(--ink)' },
-              { label: 'Em serviço', value: onShift,                                       c: '#16a34a'    },
-              { label: 'Baixas',     value: members.filter(m => m.status === 'sick').length,     c: '#dc2626'    },
-              { label: 'Férias',     value: members.filter(m => m.status === 'vacation').length, c: '#0284c7'    },
+              { label: 'Em serviço', value: onShift,                                       c: 'var(--green)'    },
+              { label: 'Baixas',     value: members.filter(m => m.status === 'sick').length,     c: 'var(--red)'    },
+              { label: 'Férias',     value: members.filter(m => m.status === 'vacation').length, c: 'var(--green)'    },
             ].map(k => (
-              <div key={k.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '10px 16px' }}>
+              <div key={k.label} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 16px' }}>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: k.c, lineHeight: 1 }}>{k.value}</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', marginTop: 3 }}>{k.label}</div>
               </div>
@@ -506,18 +506,18 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 68, borderRadius: 10 }} />)}
+              {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 68, borderRadius: 'var(--r-lg)' }} />)}
             </div>
           ) : (
             <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 {filtered.length === 0 ? (
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 48, textAlign: 'center' }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 48, textAlign: 'center' }}>
                     <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 6 }}>
                       {members.length === 0 ? 'Equipa vazia' : 'Sem resultados'}
                     </div>
                     {members.length === 0 && (
-                      <button onClick={openNewMember} style={{ marginTop: 10, padding: '9px 18px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+                      <button onClick={openNewMember} style={{ marginTop: 10, padding: '9px 18px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontWeight: 600, fontSize: 13, fontFamily: 'var(--font-sans)' }}>
                         Adicionar primeiro membro
                       </button>
                     )}
@@ -525,7 +525,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {filtered.map(m => {
-                      const rc = ROLE_COLORS[m.role] || '#374151'
+                      const rc = ROLE_COLORS[m.role] || 'var(--ink-3)'
                       const st = STATUS_CFG[m.status] || STATUS_CFG.off
                       const isSel = selectedId === m.id
                       return (
@@ -543,7 +543,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                             e.preventDefault()
                             setSelectedId(isSel ? null : m.id)
                           }}
-                          style={{ background: isSel ? '#f0f9ff' : 'white', border: `1.5px solid ${isSel ? '#93c5fd' : 'var(--border)'}`, borderRadius: 10, padding: '11px 15px', cursor: 'pointer' }}>
+                          style={{ background: isSel ? 'var(--green-light)' : 'white', border: `1.5px solid ${isSel ? 'var(--border-2)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '11px 15px', cursor: 'pointer' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 11 }}>
                             <div style={{ width: 38, height: 38, borderRadius: '50%', background: rc + '18', color: rc, fontWeight: 700, fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative' }}>
                               {m.name.split(' ').map(n => n[0]).slice(0, 2).join('').toUpperCase()}
@@ -554,11 +554,11 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                             <div style={{ flex: 1, minWidth: 0 }}>
                               <div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
                                 <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)' }}>{m.name}</span>
-                                <span style={{ background: rc + '15', color: rc, padding: '1px 7px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                                <span style={{ background: rc + '15', color: rc, padding: '1px 7px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600 }}>
                                   {ROLE_LABELS[m.role] || m.role}
                                 </span>
                                 {m.on_call && (
-                                  <span style={{ background: '#fee2e2', color: '#dc2626', padding: '1px 7px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                                  <span style={{ background: 'var(--badge-red-bg)', color: 'var(--red)', padding: '1px 7px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600 }}>
                                     Prevenção
                                   </span>
                                 )}
@@ -569,14 +569,14 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                                 </div>
                               )}
                             </div>
-                            <span style={{ flexShrink: 0, background: st.color + '15', color: st.color, padding: '2px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 }}>
+                            <span style={{ flexShrink: 0, background: st.color + '15', color: st.color, padding: '2px 8px', borderRadius: 'var(--r)', fontSize: 11, fontWeight: 600 }}>
                               {st.label}
                             </span>
                             <div style={{ display: 'flex', gap: 4, flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-                              <button onClick={() => openEditMember(m)} style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', color: 'var(--ink-3)', display: 'flex', alignItems: 'center' }}>
+                              <button onClick={() => openEditMember(m)} style={{ padding: '6px 10px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--ink-3)', display: 'flex', alignItems: 'center' }}>
                                 <EditIcon />
                               </button>
-                              <button onClick={() => deleteMember(m.id)} style={{ padding: '6px 10px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 6, cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center' }}>
+                              <button onClick={() => deleteMember(m.id)} style={{ padding: '6px 10px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r)', cursor: 'pointer', color: 'var(--red)', display: 'flex', alignItems: 'center' }}>
                                 <TrashIcon />
                               </button>
                             </div>
@@ -589,7 +589,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
               </div>
 
               {selectedMember && (
-                <div className="team-detail" style={{ width: 250, flexShrink: 0, background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18, position: 'sticky', top: 20 }}>
+                <div className="team-detail" style={{ width: 250, flexShrink: 0, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18, position: 'sticky', top: 20 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--ink)' }}>{selectedMember.name}</div>
@@ -606,7 +606,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                       const active = selectedMember.status === s
                       return (
                         <button key={s} onClick={() => setMemberStatus(selectedMember, s)} style={{
-                          padding: '6px 8px', borderRadius: 7, cursor: 'pointer', fontFamily: 'var(--font-sans)',
+                          padding: '6px 8px', borderRadius: 'var(--r-md)', cursor: 'pointer', fontFamily: 'var(--font-sans)',
                           border: `1px solid ${active ? st.color + '60' : 'var(--border)'}`,
                           background: active ? st.color + '12' : 'var(--bg-2)',
                           fontSize: 11, fontWeight: active ? 700 : 400,
@@ -634,25 +634,25 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
 
       {tab === 'schedule' && (
         <>
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 16px', marginBottom: 12, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button onClick={() => { const d = new Date(weekBase); d.setDate(d.getDate() - 7); setWeekBase(d) }}
-                style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--border)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 32, height: 32, borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ChevronLeft />
               </button>
               <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ink)', minWidth: 190, textAlign: 'center' }}>
                 {weekDates[0].toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })} — {weekDates[6].toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', year: 'numeric' })}
               </span>
               <button onClick={() => { const d = new Date(weekBase); d.setDate(d.getDate() + 7); setWeekBase(d) }}
-                style={{ width: 32, height: 32, borderRadius: 7, border: '1px solid var(--border)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                style={{ width: 32, height: 32, borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <ChevronRight />
               </button>
               <button onClick={() => setWeekBase(new Date())}
-                style={{ padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 6, background: 'white', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>
+                style={{ padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'white', fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>
                 Hoje
               </button>
               <button onClick={copyPreviousWeek} disabled={copying} title="Copiar a escala da semana anterior"
-                style={{ padding: '5px 11px', border: '1px solid #bfdbfe', borderRadius: 6, background: '#eff6ff', fontSize: 11, fontWeight: 700, cursor: copying ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', color: '#2563eb' }}>
+                style={{ padding: '5px 11px', border: '1px solid var(--border)', borderRadius: 'var(--r)', background: 'var(--bg-2)', fontSize: 11, fontWeight: 700, cursor: copying ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-2)' }}>
                 {copying ? 'A copiar…' : '⤵ Copiar semana anterior'}
               </button>
             </div>
@@ -662,7 +662,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Turnos</div>
               </div>
               <div style={{ textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: gaps > 0 ? '#dc2626' : '#16a34a', lineHeight: 1 }}>{gaps}</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: gaps > 0 ? 'var(--red)' : 'var(--green)', lineHeight: 1 }}>{gaps}</div>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Lacunas</div>
               </div>
             </div>
@@ -671,10 +671,10 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
           <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
             {(['week', 'list'] as const).map(v => (
               <button key={v} onClick={() => setSchedView(v)} style={{
-                padding: '6px 14px', borderRadius: 7, fontFamily: 'var(--font-sans)',
-                border: `1.5px solid ${schedView === v ? '#1d4ed8' : 'var(--border)'}`,
-                background: schedView === v ? '#eff6ff' : 'white',
-                color: schedView === v ? '#1d4ed8' : 'var(--ink-4)',
+                padding: '6px 14px', borderRadius: 'var(--r-md)', fontFamily: 'var(--font-sans)',
+                border: `1.5px solid ${schedView === v ? 'var(--ink-2)' : 'var(--border)'}`,
+                background: schedView === v ? 'var(--bg-2)' : 'white',
+                color: schedView === v ? 'var(--ink-2)' : 'var(--ink-4)',
                 fontSize: 12, fontWeight: schedView === v ? 700 : 400, cursor: 'pointer',
               }}>
                 {v === 'week' ? 'Semana' : 'Lista'}
@@ -684,7 +684,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
 
           {loading ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 10 }} />)}
+              {[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 'var(--r-lg)' }} />)}
             </div>
           ) : schedView === 'week' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -692,14 +692,14 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                 const ds = fmt(d)
                 const isToday = ds === today
                 return (
-                  <div key={ds} style={{ background: 'white', border: `1.5px solid ${isToday ? '#3b82f6' : 'var(--border)'}`, borderRadius: 12, overflow: 'hidden' }}>
-                    <div style={{ padding: '9px 14px', background: isToday ? '#eff6ff' : 'var(--bg-2)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={ds} style={{ background: 'white', border: `1.5px solid ${isToday ? 'var(--ink-3)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
+                    <div style={{ padding: '9px 14px', background: isToday ? 'var(--bg-2)' : 'var(--bg-2)', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: isToday ? '#1d4ed8' : 'var(--ink)' }}>{DAY_PT[di]}</span>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: isToday ? 'var(--ink-2)' : 'var(--ink)' }}>{DAY_PT[di]}</span>
                         <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>{d.toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</span>
-                        {isToday && <span style={{ fontSize: 9, fontWeight: 700, color: '#1d4ed8', background: '#dbeafe', padding: '1px 6px', borderRadius: 3, textTransform: 'uppercase' }}>Hoje</span>}
+                        {isToday && <span style={{ fontSize: 9, fontWeight: 700, color: 'var(--ink-2)', background: 'var(--bg-3)', padding: '1px 6px', borderRadius: 'var(--r-sm)', textTransform: 'uppercase' }}>Hoje</span>}
                       </div>
-                      <button onClick={() => openShiftForm(ds)} style={{ width: 26, height: 26, borderRadius: 6, border: '1px solid var(--border)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)' }}>
+                      <button onClick={() => openShiftForm(ds)} style={{ width: 26, height: 26, borderRadius: 'var(--r)', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-3)' }}>
                         <PlusIcon size={12} />
                       </button>
                     </div>
@@ -718,7 +718,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                             {ss.length === 0 ? (
                               <div style={{ fontSize: 10, color: 'rgba(0,0,0,0.18)', fontStyle: 'italic' }}>vazio</div>
                             ) : ss.map(s => (
-                              <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3, padding: '3px 6px', background: sm.bg, border: `1px solid ${sm.border}`, borderRadius: 5, gap: 4 }}>
+                              <div key={s.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 3, padding: '3px 6px', background: sm.bg, border: `1px solid ${sm.border}`, borderRadius: 'var(--r)', gap: 4 }}>
                                 <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', minWidth: 0 }}>{s.member_name}</span>
                                 <span style={{ display: 'flex', gap: 3, flexShrink: 0 }}>
                                   <button title="Precisa de substituto" aria-label={`Publicar vaga para ${s.member_name}`}
@@ -741,7 +741,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {shifts.length === 0 ? (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 48, textAlign: 'center' }}>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 48, textAlign: 'center' }}>
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)' }}>Sem turnos esta semana</div>
                 </div>
               ) : [...shifts].sort((a, b) => a.date.localeCompare(b.date) || (SHIFTS.indexOf(a.shift) - SHIFTS.indexOf(b.shift))).map(s => {
@@ -749,7 +749,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                 const tc = timeCfg[s.shift]
                 const d = new Date(s.date + 'T12:00:00')
                 return (
-                  <div key={s.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                  <div key={s.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div style={{ width: 8, height: 8, borderRadius: '50%', background: sm.dot, flexShrink: 0 }} />
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{s.member_name}</div>
@@ -776,7 +776,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
       {tab === 'tarefas' && <TarefasTool />}
 
       {tab === 'config' && (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 24, maxWidth: 460 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 24, maxWidth: 460 }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--ink)', fontWeight: 400, marginBottom: 5 }}>Horários dos turnos</div>
           <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 22 }}>
             Define os horários reais da tua unidade. Guardados localmente neste dispositivo.
@@ -803,7 +803,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
               </div>
             )
           })}
-          <button onClick={resetTimeCfg} style={{ padding: '8px 16px', border: '1.5px solid var(--border)', borderRadius: 8, background: 'white', cursor: 'pointer', fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>
+          <button onClick={resetTimeCfg} style={{ padding: '8px 16px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', background: 'white', cursor: 'pointer', fontSize: 12, color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>
             Repor predefinições
           </button>
         </div>
@@ -854,9 +854,9 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
               </label>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowMemberForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
+              <button onClick={() => setShowMemberForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
               <button onClick={saveMember} disabled={savingMember || !mForm.name.trim()}
-                style={{ padding: '9px 20px', background: !mForm.name.trim() || savingMember ? 'var(--bg-3)' : '#1d4ed8', color: !mForm.name.trim() || savingMember ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: !mForm.name.trim() || savingMember ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '9px 20px', background: !mForm.name.trim() || savingMember ? 'var(--bg-3)' : 'var(--ink-2)', color: !mForm.name.trim() || savingMember ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: !mForm.name.trim() || savingMember ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                 {savingMember ? 'A guardar...' : editMemberId ? 'Guardar' : 'Adicionar'}
               </button>
             </div>
@@ -898,9 +898,9 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowShiftForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
+              <button onClick={() => setShowShiftForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
               <button onClick={saveShift} disabled={savingShift || !sForm.team_member_id}
-                style={{ padding: '9px 20px', background: !sForm.team_member_id || savingShift ? 'var(--bg-3)' : '#1d4ed8', color: !sForm.team_member_id || savingShift ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: !sForm.team_member_id || savingShift ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '9px 20px', background: !sForm.team_member_id || savingShift ? 'var(--bg-3)' : 'var(--ink-2)', color: !sForm.team_member_id || savingShift ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: !sForm.team_member_id || savingShift ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                 {savingShift ? 'A guardar...' : 'Guardar'}
               </button>
             </div>
@@ -960,8 +960,8 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
                 <Lbl>Notas</Lbl>
                 <input value={vForm.notes} onChange={e => setVForm(p => ({ ...p, notes: e.target.value }))} placeholder="Detalhe adicional para quem for cobrir" style={inp} />
               </div>
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', padding: '10px 12px', background: vForm.notifyMural ? '#f0fdf4' : 'var(--bg-2)', border: `1.5px solid ${vForm.notifyMural ? '#bbf7d0' : 'var(--border)'}`, borderRadius: 9 }}>
-                <input type="checkbox" checked={vForm.notifyMural} onChange={e => setVForm(p => ({ ...p, notifyMural: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, accentColor: '#16a34a', flexShrink: 0 }} />
+              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', padding: '10px 12px', background: vForm.notifyMural ? 'var(--badge-green-bg)' : 'var(--bg-2)', border: `1.5px solid ${vForm.notifyMural ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)' }}>
+                <input type="checkbox" checked={vForm.notifyMural} onChange={e => setVForm(p => ({ ...p, notifyMural: e.target.checked }))} style={{ marginTop: 2, width: 16, height: 16, accentColor: 'var(--green)', flexShrink: 0 }} />
                 <span>
                   <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Avisar a equipa no mural</span>
                   <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-4)' }}>Publica no canal Avisos, com notificação.</span>
@@ -969,9 +969,9 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
               </label>
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 18, justifyContent: 'flex-end' }}>
-              <button onClick={() => setShowVacForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
+              <button onClick={() => setShowVacForm(false)} style={{ padding: '9px 16px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-4)' }}>Cancelar</button>
               <button onClick={saveVacancy} disabled={savingVac}
-                style={{ padding: '9px 20px', background: savingVac ? 'var(--bg-3)' : '#1d4ed8', color: savingVac ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: savingVac ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '9px 20px', background: savingVac ? 'var(--bg-3)' : 'var(--ink-2)', color: savingVac ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: savingVac ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)' }}>
                 {savingVac ? 'A publicar...' : 'Publicar vaga'}
               </button>
             </div>
@@ -983,7 +983,7 @@ export default function EscalasEquipa({ initialSubTab }: { initialSubTab?: SubTa
         @media(max-width:640px){
           .team-detail{display:none!important}
         }
-        input:focus,select:focus{border-color:#1d4ed8!important;outline:none;box-shadow:0 0 0 3px #1d4ed818}
+        input:focus,select:focus{border-color:var(--ink-2)!important;outline:none;box-shadow:0 0 0 3px #1d4ed818}
       `}</style>
     </div>
   )

@@ -20,7 +20,7 @@ interface HandoffNote {
   created_at: string
 }
 
-const inputStyle: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 7, padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', width: '100%', boxSizing: 'border-box' }
+const inputStyle: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 13px', fontSize: 14, fontFamily: 'var(--font-sans)', outline: 'none', width: '100%', boxSizing: 'border-box' }
 const textareaStyle: React.CSSProperties = { ...inputStyle, resize: 'vertical', fontFamily: 'var(--font-sans)' }
 
 function fmtDate(d: string) { return new Date(d + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' }) }
@@ -84,11 +84,11 @@ export default function HandoffNotes({ profileId }: { profileId: string }) {
       </div>
 
       {!showForm ? (
-        <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: '12px', background: 'white', border: '2px dashed var(--border)', borderRadius: 10, textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', cursor: 'pointer', marginBottom: 12 }}>
+        <button onClick={() => setShowForm(true)} style={{ width: '100%', padding: '12px', background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-lg)', textAlign: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', cursor: 'pointer', marginBottom: 12 }}>
           + Deixar uma passagem
         </button>
       ) : (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '16px', marginBottom: 12 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px', marginBottom: 12 }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12, fontWeight: 700 }}>Nova passagem</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 8 }}>
             <div>
@@ -109,22 +109,22 @@ export default function HandoffNotes({ profileId }: { profileId: string }) {
           {err && <div style={{ fontSize: 12, color: 'var(--red)', marginBottom: 8 }}>{err}</div>}
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={addNote} disabled={!form.summary.trim() || adding}
-              style={{ flex: 1, padding: '10px 18px', background: form.summary.trim() && !adding ? 'var(--ink)' : 'var(--bg-3)', color: form.summary.trim() && !adding ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: form.summary.trim() && !adding ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
+              style={{ flex: 1, padding: '10px 18px', background: form.summary.trim() && !adding ? 'var(--ink)' : 'var(--bg-3)', color: form.summary.trim() && !adding ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: form.summary.trim() && !adding ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>
               {adding ? '...' : 'Publicar passagem'}
             </button>
-            <button onClick={() => { setShowForm(false); setErr('') }} style={{ padding: '10px 16px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
+            <button onClick={() => { setShowForm(false); setErr('') }} style={{ padding: '10px 16px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, cursor: 'pointer' }}>Cancelar</button>
           </div>
         </div>
       )}
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
         {loaded && notes.length === 0 && !showForm && (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '40px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '40px', textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
             Sem passagens registadas ainda.
           </div>
         )}
         {notes.map(n => (
-          <div key={n.id} style={{ background: 'white', border: `1px solid ${n.acknowledged_by ? 'var(--border)' : '#fde68a'}`, borderRadius: 10, padding: '14px 16px' }}>
+          <div key={n.id} style={{ background: 'white', border: `1px solid ${n.acknowledged_by ? 'var(--border)' : 'var(--badge-amber-border)'}`, borderRadius: 'var(--r-lg)', padding: '14px 16px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginBottom: 4 }}>
@@ -132,7 +132,7 @@ export default function HandoffNotes({ profileId }: { profileId: string }) {
                 </div>
                 <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{n.summary}</div>
                 {n.watch_for && (
-                  <div style={{ fontSize: 12.5, color: '#9a3412', lineHeight: 1.5, marginTop: 8, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 7, padding: '8px 10px' }}>
+                  <div style={{ fontSize: 12.5, color: 'var(--badge-red-fg)', lineHeight: 1.5, marginTop: 8, background: 'var(--amber-light)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '8px 10px' }}>
                     <strong>Do que estar atento: </strong>{n.watch_for}
                   </div>
                 )}
@@ -148,9 +148,9 @@ export default function HandoffNotes({ profileId }: { profileId: string }) {
               {n.acknowledged_by ? (
                 <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--green)' }}>✓ Assumido por {n.acknowledged_by_name}</span>
               ) : (
-                <button onClick={() => action(n.id, 'acknowledge')} style={{ padding: '6px 12px', background: 'var(--green-light)', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Li, fico eu</button>
+                <button onClick={() => action(n.id, 'acknowledge')} style={{ padding: '6px 12px', background: 'var(--green-light)', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Li, fico eu</button>
               )}
-              {n.acknowledged_by === user?.id && <button onClick={() => action(n.id, 'unacknowledge')} style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Desfazer</button>}
+              {n.acknowledged_by === user?.id && <button onClick={() => action(n.id, 'unacknowledge')} style={{ padding: '6px 12px', background: 'white', color: 'var(--ink-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>Desfazer</button>}
             </div>
           </div>
         ))}

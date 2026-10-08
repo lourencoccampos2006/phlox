@@ -185,7 +185,7 @@ export default function DocumentosDaPessoa({ pid, nome, cor }: { pid: string; no
       <div style={{ display: 'flex', gap: 9, marginTop: 14 }}>
         <button onClick={guardar} disabled={!ficheiro || aGuardar} style={{
           minHeight: 44, padding: '0 20px', borderRadius: 'var(--r-md)', border: 'none',
-          background: ficheiro ? cor : 'var(--bg-3)', color: ficheiro ? '#fff' : 'var(--ink-5)',
+          background: ficheiro ? cor : 'var(--bg-3)', color: ficheiro ? 'var(--bg)' : 'var(--ink-5)',
           fontFamily: 'inherit', fontSize: 14.5, fontWeight: 700,
           cursor: ficheiro && !aGuardar ? 'pointer' : 'default',
         }}>{aGuardar ? 'A carregar…' : 'Carregar'}</button>
@@ -204,7 +204,7 @@ export default function DocumentosDaPessoa({ pid, nome, cor }: { pid: string; no
   if (!docs.length) {
     return (
       <div style={{ marginTop: 'var(--space-10)' }}>
-        {erro && <div style={{ marginBottom: 12, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+        {erro && <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
         {aCarregar ? Formulario : (
           <div style={{
             padding: 'var(--space-12)', borderRadius: 'var(--r-xl)',
@@ -216,7 +216,7 @@ export default function DocumentosDaPessoa({ pid, nome, cor }: { pid: string; no
             {podeEditar && (
               <button onClick={() => setACarregar(true)} style={{
                 minHeight: 44, padding: '0 20px', borderRadius: 'var(--r-lg)', border: 'none',
-                background: cor, color: '#fff', fontFamily: 'inherit',
+                background: cor, color: 'var(--bg)', fontFamily: 'inherit',
                 fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
               }}>Carregar documento</button>
             )}
@@ -234,7 +234,7 @@ export default function DocumentosDaPessoa({ pid, nome, cor }: { pid: string; no
   return (
     <div style={{ marginTop: 'var(--space-10)' }}>
       {erro && (
-        <div style={{ marginBottom: 12, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>
+        <div style={{ marginBottom: 12, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>
       )}
 
       {aCaducar.length > 0 && (

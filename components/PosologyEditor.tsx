@@ -74,7 +74,7 @@ export default function PosologyEditor({ value, onChange }: { value: Posology; o
   }, [v.frequency_per_day])
 
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 10, padding: 12 }}>
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12 }}>
       {/* Dose */}
       <Label>Dose</Label>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 110px', gap: 6 }}>
@@ -91,7 +91,7 @@ export default function PosologyEditor({ value, onChange }: { value: Posology; o
       <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap', marginBottom: 6 }}>
         {PRESETS.map(p => (
           <button key={p.label} onClick={() => set({ frequency_per_day: p.freq, schedule_times: [...p.times] })}
-            style={{ padding: '5px 10px', borderRadius: 16, border: `1.5px solid ${v.frequency_per_day === p.freq ? '#0d6e42' : 'var(--border)'}`, background: v.frequency_per_day === p.freq ? '#f0fdf4' : 'white', color: v.frequency_per_day === p.freq ? '#0d6e42' : 'var(--ink-3)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+            style={{ padding: '5px 10px', borderRadius: 'var(--r-xl)', border: `1.5px solid ${v.frequency_per_day === p.freq ? 'var(--green)' : 'var(--border)'}`, background: v.frequency_per_day === p.freq ? 'var(--badge-green-bg)' : 'white', color: v.frequency_per_day === p.freq ? 'var(--green)' : 'var(--ink-3)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
             {p.label}
           </button>
         ))}
@@ -125,7 +125,7 @@ export default function PosologyEditor({ value, onChange }: { value: Posology; o
       <Label>Duração</Label>
       <div style={{ display: 'flex', gap: 6 }}>
         <button onClick={() => set({ duration_days: null })}
-          style={{ flex: 1, padding: '8px 10px', borderRadius: 7, border: `1.5px solid ${v.duration_days == null ? '#0d6e42' : 'var(--border)'}`, background: v.duration_days == null ? '#f0fdf4' : 'white', color: v.duration_days == null ? '#0d6e42' : 'var(--ink-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+          style={{ flex: 1, padding: '8px 10px', borderRadius: 'var(--r-md)', border: `1.5px solid ${v.duration_days == null ? 'var(--green)' : 'var(--border)'}`, background: v.duration_days == null ? 'var(--badge-green-bg)' : 'white', color: v.duration_days == null ? 'var(--green)' : 'var(--ink-3)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
           Crónica / contínua
         </button>
         <input type="number" min={1} value={v.duration_days ?? ''} onChange={e => set({ duration_days: e.target.value === '' ? null : Number(e.target.value) })}
@@ -149,12 +149,12 @@ export default function PosologyEditor({ value, onChange }: { value: Posology; o
       <div style={{ display: 'flex', gap: 4 }}>
         {([['indiferente', null], ['com', true], ['em jejum', false]] as const).map(([lbl, val]) => (
           <button key={lbl} onClick={() => set({ with_food: val as any })}
-            style={{ flex: 1, padding: '7px 8px', borderRadius: 7, border: `1.5px solid ${v.with_food === val ? '#0d6e42' : 'var(--border)'}`, background: v.with_food === val ? '#f0fdf4' : 'white', color: v.with_food === val ? '#0d6e42' : 'var(--ink-3)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{lbl}</button>
+            style={{ flex: 1, padding: '7px 8px', borderRadius: 'var(--r-md)', border: `1.5px solid ${v.with_food === val ? 'var(--green)' : 'var(--border)'}`, background: v.with_food === val ? 'var(--badge-green-bg)' : 'white', color: v.with_food === val ? 'var(--green)' : 'var(--ink-3)', fontSize: 11.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{lbl}</button>
         ))}
       </div>
 
       {/* Preview */}
-      <div style={{ marginTop: 12, padding: '9px 11px', background: 'white', border: '1.5px solid #bbf7d0', borderRadius: 7, fontSize: 12.5, color: '#0d6e42', fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>
+      <div style={{ marginTop: 12, padding: '9px 11px', background: 'white', border: '1.5px solid var(--green-mid)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--green)', fontFamily: 'var(--font-mono)', wordBreak: 'break-word' }}>
         {renderPosology(v) || 'sem informação suficiente'}
       </div>
     </div>
@@ -165,4 +165,4 @@ function Label({ children }: { children: React.ReactNode }) {
   return <div style={{ fontSize: 10.5, fontWeight: 700, color: 'var(--ink-4)', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: 'var(--font-mono)', marginTop: 10, marginBottom: 5 }}>{children}</div>
 }
 
-const inp: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white' }

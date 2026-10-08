@@ -11,6 +11,11 @@ import Link from 'next/link'
 import ProfileSelector from '@/components/ProfileSelector'
 import { extractFromFile } from '@/lib/docExtract'
 import { lerMedsDoPerfil, medsComoTexto } from '@/lib/medsDoPerfil'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Discrepancy {
   type: 'added' | 'removed' | 'dose_changed' | 'frequency_changed' | 'intentional_omission'
@@ -32,17 +37,17 @@ interface ReconciliationResult {
 }
 
 const DISC_STYLE = {
-  critical: { bg: '#fee2e2', border: '#fca5a5', color: '#991b1b', label: 'CRÍTICO', icon: '🚨' },
-  moderate: { bg: '#fef9c3', border: '#fde68a', color: '#854d0e', label: 'MODERADO', icon: '⚠️' },
-  low:      { bg: '#f0fdf5', border: '#bbf7d0', color: '#14532d', label: 'INFO',     icon: 'ℹ️' },
+  critical: { bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', color: 'var(--red)', label: 'CRÍTICO', icon: 'alert' },
+  moderate: { bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', color: 'var(--badge-amber-fg)', label: 'MODERADO', icon: '⚠️' },
+  low:      { bg: 'var(--green-light)', border: 'var(--green-mid)', color: 'var(--green-3)', label: 'INFO',     icon: 'ℹ️' },
 }
 
 const TYPE_LABELS = {
-  added:                 { label: 'Adicionado',           icon: '➕', color: '#0d6e42' },
-  removed:               { label: 'Removido',             icon: '➖', color: '#dc2626' },
-  dose_changed:          { label: 'Dose alterada',        icon: '🔄', color: '#d97706' },
-  frequency_changed:     { label: 'Frequência alterada',  icon: '⏱',  color: '#1d4ed8' },
-  intentional_omission:  { label: 'Omissão intencional',  icon: '⏸',  color: '#6d28d9' },
+  added:                 { label: 'Adicionado',           icon: '➕', color: 'var(--green)' },
+  removed:               { label: 'Removido',             icon: '➖', color: 'var(--red)' },
+  dose_changed:          { label: 'Dose alterada',        icon: 'refresh', color: 'var(--amber)' },
+  frequency_changed:     { label: 'Frequência alterada',  icon: 'clock',  color: 'var(--ink-2)' },
+  intentional_omission:  { label: 'Omissão intencional',  icon: '⏸',  color: 'var(--roxo)' },
 }
 
 const EXAMPLES = {
@@ -159,13 +164,12 @@ export default function ReconciliacaoPage() {
     <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
 
       <div className="page-container page-body" style={{ maxWidth:480, margin:'0 auto' }}>
-        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'48px 28px', textAlign:'center' }}>
-          <div style={{ fontSize:40, marginBottom:14 }}>🔄</div>
-          <div style={{ fontFamily:'var(--font-serif)', fontSize:22, color:'var(--ink)', marginBottom:12 }}>Reconciliação Medicamentosa</div>
-          <p style={{ fontSize:14, color:'var(--ink-4)', lineHeight:1.7, marginBottom:24 }}>
+        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-xl)', padding:'48px 28px', textAlign:'center' }}>
+          <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:'var(--ink)', marginBottom:12 }}>Reconciliação Medicamentosa</div>
+          <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-4)', lineHeight:1.7, marginBottom:24 }}>
             Compara medicação antes e depois de internamento. Identifica discrepâncias, omissões não intencionais e duplicações terapêuticas.
           </p>
-          <Link href="/pricing" style={{ display:'inline-block', background:'#1d4ed8', color:'white', textDecoration:'none', padding:'12px 24px', borderRadius:8, fontSize:14, fontWeight:700 }}>
+          <Link href="/pricing" style={{ display:'inline-block', background:'var(--ink-2)', color:'white', textDecoration:'none', padding:'12px 24px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>
             Activar Pro →
           </Link>
         </div>
@@ -174,31 +178,43 @@ export default function ReconciliacaoPage() {
   )
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
-
-      <div className="page-container page-body">
-        <div style={{ marginBottom:24 }}>
-          <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#1d4ed8', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-            <div style={{ width:10, height:2, background:'#1d4ed8', borderRadius:1 }} />Reconciliação Medicamentosa · Pro
-          </div>
-          <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(20px,3vw,28px)', color:'var(--ink)', fontWeight:400, marginBottom:8 }}>Reconciliação Medicamentosa</h1>
-          <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6, maxWidth:560 }}>
-            Tira <b>foto à nota de alta</b> e à medicação anterior — ou cola as listas. O Phlox extrai os medicamentos e identifica o que mudou, o que foi omitido por engano e o que precisa de justificação.
-          </p>
-        </div>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Reconciliação</span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Foto à nota de alta e à medicação anterior — ou cole as listas</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Dizemos o que mudou, o que foi omitido por engano e o que precisa de justificação
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      <div>
+        {/* O título estava escrito DUAS VEZES seguidas — em migalha e em
+            serifa de 28px — e depois explicado num parágrafo. Um título
+            repetido a dois tamanhos é o sinal mais claro de um cabeçalho
+            que ninguém leu em voz alta. */}
 
         <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:14 }} className="reconcil-grid">
 
           {/* Antes */}
           <div>
-            <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:10, height:10, borderRadius:'50%', background:'#0d6e42' }} />
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ width:10, height:10, borderRadius:'50%', background:'var(--green)' }} />
               Medicação ANTES do internamento
             </div>
             <div style={{ display:'flex', gap:8, marginBottom:8, alignItems:'center', flexWrap:'wrap' }}>
               {user && <div style={{ flex:1, minWidth:140 }}><ProfileSelector onChange={handleProfile} /></div>}
               <button type="button" onClick={() => beforeFileRef.current?.click()} disabled={!!scanning}
-                style={{ padding:'8px 14px', background:'white', color:'#0d6e42', border:'1.5px solid #bbf7d0', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                style={{ padding:'8px 14px', background:'white', color:'var(--green)', border:'1.5px solid var(--green-mid)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', whiteSpace:'nowrap' }}>
                 {scanning==='before' ? 'A ler…' : '📷 Foto da lista'}
               </button>
               <input ref={beforeFileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onScan('before')} style={{ display:'none' }} />
@@ -206,18 +222,18 @@ export default function ReconciliacaoPage() {
             <textarea value={before} onChange={e => setBefore(e.target.value)}
               placeholder="Um medicamento por linha&#10;Ex: Metformina 1000mg 2x/dia&#10;    Ramipril 5mg 1x/dia"
               rows={10}
-              style={{ width:'100%', border:'1.5px solid #bbf7d0', borderRadius:8, padding:'12px 14px', fontSize:13, fontFamily:'var(--font-mono)', outline:'none', resize:'vertical', lineHeight:1.7 }} />
+              style={{ width:'100%', border:'1.5px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding:'12px 14px', fontSize: 'var(--t-dado)', fontFamily:'var(--font-mono)', outline:'none', resize:'vertical', lineHeight:1.7 }} />
           </div>
 
           {/* Depois */}
           <div>
-            <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
-              <div style={{ width:10, height:10, borderRadius:'50%', background:'#dc2626' }} />
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:8 }}>
+              <div style={{ width:10, height:10, borderRadius:'50%', background:'var(--red)' }} />
               Medicação DEPOIS (nota de alta / prescrição actual)
             </div>
-            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, minHeight:38, alignItems:'center' }}>
+            <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:8, minHeight: 'var(--alvo)', alignItems:'center' }}>
               <button type="button" onClick={() => afterFileRef.current?.click()} disabled={!!scanning}
-                style={{ padding:'8px 14px', background:'white', color:'#dc2626', border:'1.5px solid #fca5a5', borderRadius:8, fontSize:12.5, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap' }}>
+                style={{ padding:'8px 14px', background:'white', color:'var(--red)', border:'1.5px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', whiteSpace:'nowrap' }}>
                 {scanning==='after' ? 'A ler…' : '📷 Foto da nota de alta'}
               </button>
               <input ref={afterFileRef} type="file" accept="image/*,.pdf,.docx,.doc,.txt" onChange={onScan('after')} style={{ display:'none' }} />
@@ -225,95 +241,95 @@ export default function ReconciliacaoPage() {
             <textarea value={after} onChange={e => setAfter(e.target.value)}
               placeholder="Um medicamento por linha&#10;Ex: Metformina 500mg 2x/dia&#10;    Enalapril 10mg 2x/dia"
               rows={10}
-              style={{ width:'100%', border:'1.5px solid #fca5a5', borderRadius:8, padding:'12px 14px', fontSize:13, fontFamily:'var(--font-mono)', outline:'none', resize:'vertical', lineHeight:1.7 }} />
+              style={{ width:'100%', border:'1.5px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding:'12px 14px', fontSize: 'var(--t-dado)', fontFamily:'var(--font-mono)', outline:'none', resize:'vertical', lineHeight:1.7 }} />
           </div>
         </div>
 
         <div style={{ marginBottom:14 }}>
-          <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Contexto clínico (opcional)</div>
+          <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:8 }}>Contexto clínico (opcional)</div>
           <input value={context} onChange={e => setContext(e.target.value)}
             placeholder="Ex: Internamento por IC descompensada, alta após 5 dias, doente com DRC G3"
-            style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius:8, padding:'10px 14px', fontSize:13, fontFamily:'var(--font-sans)', outline:'none' }} />
+            style={{ width:'100%', border:'1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding:'10px 14px', fontSize: 'var(--t-dado)', fontFamily:'var(--font-sans)', outline:'none' }} />
         </div>
 
         <div style={{ display:'flex', gap:10, marginBottom:20, flexWrap:'wrap' }}>
           <button onClick={reconcile} disabled={!before.trim() || !after.trim() || loading}
-            style={{ padding:'12px 24px', background:before.trim()&&after.trim()?'#1d4ed8':'var(--bg-3)', color:before.trim()&&after.trim()?'white':'var(--ink-5)', border:'none', borderRadius:8, cursor:'pointer', fontSize:14, fontWeight:700, fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:8, opacity:loading?0.7:1 }}>
+            style={{ padding:'12px 24px', background:before.trim()&&after.trim()?'var(--ink-2)':'var(--bg-3)', color:before.trim()&&after.trim()?'white':'var(--ink-5)', border:'none', borderRadius: 'var(--r-md)', cursor:'pointer', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:8, opacity:loading?0.7:1 }}>
             {loading ? <><div style={{ width:14, height:14, border:'2px solid rgba(255,255,255,0.4)', borderTopColor:'white', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} />A reconciliar...</> : '🔄 Reconciliar'}
           </button>
           <button onClick={() => { setBefore(EXAMPLES.before); setAfter(EXAMPLES.after) }}
-            style={{ padding:'12px 18px', background:'white', color:'var(--ink-3)', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', fontSize:13, fontWeight:600, fontFamily:'var(--font-sans)' }}>
+            style={{ padding:'12px 18px', background:'white', color:'var(--ink-3)', border:'1px solid var(--border)', borderRadius: 'var(--r-md)', cursor:'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, fontFamily:'var(--font-sans)' }}>
             Ver exemplo
           </button>
         </div>
 
-        {error && <div style={{ padding:'12px 16px', background:'var(--red-light)', border:'1px solid #fca5a5', borderRadius:8, fontSize:13, color:'var(--red)', marginBottom:16 }}>{error}</div>}
+        {error && <div style={{ padding:'12px 16px', background:'var(--red-light)', border:'1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', color:'var(--red)', marginBottom:16 }}>{error}</div>}
 
         {result && (
           <div style={{ display:'flex', flexDirection:'column', gap:12 }}>
 
             {/* Resumo */}
-            <div style={{ padding:'16px 18px', background:result.reconciliation_complete?'var(--green-light)':'#fef9c3', border:`1px solid ${result.reconciliation_complete?'var(--green-mid)':'#fde68a'}`, borderRadius:10, display:'flex', alignItems:'flex-start', gap:12 }}>
-              <span style={{ fontSize:20, flexShrink:0 }}>{result.reconciliation_complete ? '✅' : '⚠️'}</span>
+            <div style={{ padding:'16px 18px', background:result.reconciliation_complete?'var(--green-light)':'var(--amber-light)', border:`1px solid ${result.reconciliation_complete?'var(--green-mid)':'var(--badge-amber-border)'}`, borderRadius: 'var(--r-lg)', display:'flex', alignItems:'flex-start', gap:12 }}>
+              <span style={{ fontSize: 'var(--t-destaque)', flexShrink:0 }}>{result.reconciliation_complete ? '✅' : '⚠️'}</span>
               <div>
-                <div style={{ fontSize:12, fontFamily:'var(--font-mono)', fontWeight:700, color:result.reconciliation_complete?'var(--green-2)':'#854d0e', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:result.reconciliation_complete?'var(--green-2)':'var(--badge-amber-fg)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
                   {result.reconciliation_complete ? 'Reconciliação possível' : 'Requer revisão clínica'}
                 </div>
-                <div style={{ fontSize:14, color:'var(--ink)', lineHeight:1.6 }}>{result.summary}</div>
+                <div style={{ fontSize: 'var(--t-corpo)', color:'var(--ink)', lineHeight:1.6 }}>{result.summary}</div>
               </div>
             </div>
 
             {/* Discrepâncias */}
             {result.discrepancies.length > 0 && (
-              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, overflow:'hidden' }}>
+              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow:'hidden' }}>
                 <div style={{ padding:'14px 18px', borderBottom:'1px solid var(--border)', display:'flex', alignItems:'center', gap:8 }}>
-                  <div style={{ fontSize:11, fontFamily:'var(--font-mono)', fontWeight:700, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
                     Discrepâncias identificadas
                   </div>
-                  <span style={{ marginLeft:'auto', fontSize:11, fontFamily:'var(--font-mono)', color:'var(--ink-4)' }}>{result.discrepancies.length}</span>
+                  <span style={{ marginLeft:'auto', fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', color:'var(--ink-4)' }}>{result.discrepancies.length}</span>
                 </div>
                 {result.discrepancies.map((d, i) => {
                   const s = DISC_STYLE[d.severity]
                   const t = TYPE_LABELS[d.type]
                   const dec = decisions[i]
                   return (
-                    <div key={i} style={{ padding:'14px 18px', borderBottom:i<result.discrepancies.length-1?'1px solid var(--bg-3)':'none', background: dec === 'approved' ? '#f0fdf4' : dec === 'rejected' ? '#fef2f2' : s.bg }}>
+                    <div key={i} style={{ padding:'14px 18px', borderBottom:i<result.discrepancies.length-1?'1px solid var(--bg-3)':'none', background: dec === 'approved' ? 'var(--badge-green-bg)' : dec === 'rejected' ? 'var(--badge-red-bg)' : s.bg }}>
                       <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:6, flexWrap:'wrap' }}>
-                        <span style={{ fontSize:16 }}>{s.icon}</span>
-                        <span style={{ fontSize:14, fontWeight:700, color:'var(--ink)' }}>{d.drug}</span>
-                        <span style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:t.color, background:'white', border:`1px solid ${s.border}`, padding:'2px 7px', borderRadius:3, letterSpacing:'0.06em', textTransform:'uppercase' }}>
-                          {t.icon} {t.label}
+                        <Icon name={s.icon} size={16} />
+                        <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)' }}>{d.drug}</span>
+                        <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:t.color, background:'white', border:`1px solid ${s.border}`, padding:'2px 7px', borderRadius: 'var(--r-sm)', letterSpacing:'0.06em', textTransform:'uppercase' }}>
+                          <Icon name={t.icon} size={15} />  {t.label}
                         </span>
-                        <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:s.color, background:s.bg, border:`1px solid ${s.border}`, padding:'2px 6px', borderRadius:3, letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:'auto' }}>
+                        <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:s.color, background:s.bg, border:`1px solid ${s.border}`, padding:'2px 6px', borderRadius: 'var(--r-sm)', letterSpacing:'0.06em', textTransform:'uppercase', marginLeft:'auto' }}>
                           {s.label}
                         </span>
                       </div>
                       {(d.before || d.after) && (
                         <div style={{ display:'flex', gap:10, marginBottom:6, flexWrap:'wrap' }}>
-                          {d.before && <div style={{ fontSize:12, color:'#dc2626', fontFamily:'var(--font-mono)' }}>Antes: {d.before}</div>}
-                          {d.before && d.after && <div style={{ fontSize:12, color:'var(--ink-4)' }}>→</div>}
-                          {d.after && <div style={{ fontSize:12, color:'#0d6e42', fontFamily:'var(--font-mono)' }}>Depois: {d.after}</div>}
+                          {d.before && <div style={{ fontSize: 'var(--t-meta)', color:'var(--red)', fontFamily:'var(--font-mono)' }}>Antes: {d.before}</div>}
+                          {d.before && d.after && <div style={{ fontSize: 'var(--t-meta)', color:'var(--ink-4)' }}>→</div>}
+                          {d.after && <div style={{ fontSize: 'var(--t-meta)', color:'var(--green)', fontFamily:'var(--font-mono)' }}>Depois: {d.after}</div>}
                         </div>
                       )}
-                      <div style={{ fontSize:13, color:'var(--ink)', lineHeight:1.5, marginBottom:6 }}>{d.action_required}</div>
+                      <div style={{ fontSize: 'var(--t-dado)', color:'var(--ink)', lineHeight:1.5, marginBottom:6 }}>{d.action_required}</div>
                       {d.justification_needed && (
-                        <div style={{ fontSize:11, color:'#7c3aed', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:4, marginBottom:8 }}>
+                        <div style={{ fontSize: 'var(--t-meta)', color:'var(--roxo)', fontFamily:'var(--font-mono)', display:'flex', alignItems:'center', gap:4, marginBottom:8 }}>
                           ✏️ Requer justificação clínica no processo
                         </div>
                       )}
                       <div style={{ display:'flex', gap:6, alignItems:'center', flexWrap:'wrap' }}>
                         <button onClick={() => decide(i, 'approved')}
-                          style={{ padding:'5px 12px', background: dec==='approved'?'#059669':'white', color: dec==='approved'?'white':'#059669', border:'1.5px solid #059669', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                          style={{ padding:'5px 12px', background: dec==='approved'?'var(--green)':'white', color: dec==='approved'?'white':'var(--green)', border:'1.5px solid var(--green)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
                           ✓ Aceitar
                         </button>
                         <button onClick={() => decide(i, 'rejected')}
-                          style={{ padding:'5px 12px', background: dec==='rejected'?'#dc2626':'white', color: dec==='rejected'?'white':'#dc2626', border:'1.5px solid #dc2626', borderRadius:6, fontSize:11, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                          style={{ padding:'5px 12px', background: dec==='rejected'?'var(--red)':'white', color: dec==='rejected'?'white':'var(--red)', border:'1.5px solid var(--red)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
                           ✗ Recusar
                         </button>
                         {dec === 'rejected' && (
                           <input value={decisionNotes[i] || ''} onChange={e => setDecisionNotes(n => ({ ...n, [i]: e.target.value }))}
                             placeholder="Motivo (opcional)"
-                            style={{ flex:1, minWidth:120, border:'1px solid #fca5a5', borderRadius:6, padding:'5px 10px', fontSize:11, outline:'none', fontFamily:'var(--font-sans)' }} />
+                            style={{ flex:1, minWidth:120, border:'1px solid var(--badge-red-border)', borderRadius: 'var(--r)', padding:'5px 10px', fontSize: 'var(--t-meta)', outline:'none', fontFamily:'var(--font-sans)' }} />
                         )}
                       </div>
                     </div>
@@ -324,12 +340,12 @@ export default function ReconciliacaoPage() {
 
             {/* Omissões não intencionais */}
             {result.unintentional_omissions.length > 0 && (
-              <div style={{ padding:'14px 16px', background:'#fee2e2', border:'1px solid #fca5a5', borderRadius:10 }}>
-                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:'#991b1b', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>
+              <div style={{ padding:'14px 16px', background:'var(--badge-red-bg)', border:'1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)' }}>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--red)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>
                   🚨 Possíveis omissões não intencionais
                 </div>
                 {result.unintentional_omissions.map((o, i) => (
-                  <div key={i} style={{ fontSize:13, color:'#991b1b', lineHeight:1.6, display:'flex', gap:8 }}>
+                  <div key={i} style={{ fontSize: 'var(--t-dado)', color:'var(--red)', lineHeight:1.6, display:'flex', gap:8 }}>
                     <span style={{ flexShrink:0 }}>·</span>{o}
                   </div>
                 ))}
@@ -338,12 +354,12 @@ export default function ReconciliacaoPage() {
 
             {/* Duplicações */}
             {result.therapeutic_duplications.length > 0 && (
-              <div style={{ padding:'14px 16px', background:'#fef9c3', border:'1px solid #fde68a', borderRadius:10 }}>
-                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', fontWeight:700, color:'#854d0e', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>
+              <div style={{ padding:'14px 16px', background:'var(--amber-light)', border:'1px solid var(--badge-amber-border)', borderRadius: 'var(--r-lg)' }}>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--badge-amber-fg)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:10 }}>
                   ⚠️ Possíveis duplicações terapêuticas
                 </div>
                 {result.therapeutic_duplications.map((d, i) => (
-                  <div key={i} style={{ fontSize:13, color:'#854d0e', lineHeight:1.6, display:'flex', gap:8 }}>
+                  <div key={i} style={{ fontSize: 'var(--t-dado)', color:'var(--badge-amber-fg)', lineHeight:1.6, display:'flex', gap:8 }}>
                     <span style={{ flexShrink:0 }}>·</span>{d}
                   </div>
                 ))}
@@ -352,12 +368,12 @@ export default function ReconciliacaoPage() {
 
             {/* Recomendações */}
             {result.recommendations.length > 0 && (
-              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:10, padding:'16px 18px' }}>
-                <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:12 }}>Recomendações</div>
+              <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'16px 18px' }}>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.1em', textTransform:'uppercase', marginBottom:12 }}>Recomendações</div>
                 {result.recommendations.map((r, i) => (
                   <div key={i} style={{ display:'flex', alignItems:'flex-start', gap:10, marginBottom:8 }}>
-                    <span style={{ color:'#1d4ed8', fontSize:13, flexShrink:0, marginTop:1 }}>→</span>
-                    <div style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.6 }}>{r}</div>
+                    <span style={{ color:'var(--ink-2)', fontSize: 'var(--t-dado)', flexShrink:0, marginTop:1 }}>→</span>
+                    <div style={{ fontSize: 'var(--t-dado)', color:'var(--ink-2)', lineHeight:1.6 }}>{r}</div>
                   </div>
                 ))}
               </div>
@@ -366,11 +382,11 @@ export default function ReconciliacaoPage() {
             {/* Export actions */}
             <div style={{ display:'flex', gap:8, paddingTop:4 }}>
               <button onClick={exportNote}
-                style={{ flex:1, padding:'12px', background: copied?'#d1fae5':'#1d4ed8', color: copied?'#065f46':'white', border:'none', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer', transition:'all 0.2s' }}>
+                style={{ flex:1, padding:'12px', background: copied?'var(--badge-green-bg)':'var(--ink-2)', color: copied?'var(--green)':'white', border:'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', transition:'all 0.2s' }}>
                 {copied ? '✓ Copiado para clipboard' : '📋 Exportar nota clínica'}
               </button>
               <button onClick={() => window.print()}
-                style={{ padding:'12px 18px', background:'white', color:'var(--ink)', border:'1px solid var(--border)', borderRadius:10, fontSize:13, fontWeight:700, cursor:'pointer' }}>
+                style={{ padding:'12px 18px', background:'white', color:'var(--ink)', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer' }}>
                 🖨️ Imprimir
               </button>
             </div>
@@ -378,6 +394,6 @@ export default function ReconciliacaoPage() {
         )}
       </div>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}} @media(max-width:640px){.reconcil-grid{grid-template-columns:1fr!important}}`}</style>
-    </div>
+    </Mesa>
   )
 }

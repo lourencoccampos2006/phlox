@@ -37,16 +37,17 @@ import { ptDate, ptHHMM } from '@/lib/ptTime'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import Responsavel from '@/components/institution/Responsavel'
 import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo, Bandeira,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Marca, CAIXA,
+  MONO as MONO_MESA, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+import {
   tarefasDeHoje, estadoDosEquipamentos, estadoDaLeitura, intervaloEmPalavras, resumoDaCasa,
   CATEGORIAS, ORDEM_DAS_CATEGORIAS, TIPOS_EQUIPAMENTO,
   type TarefaDaCasa, type TarefaDeHoje, type Equipamento, type Leitura,
   type EstadoDoEquipamento, type CategoriaDaCasa,
 } from '@/lib/casa'
 
-const MONO: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
-  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700,
-}
 
 type Vista = 'tarefas' | 'temperaturas'
 
@@ -58,6 +59,7 @@ export default function ACasa() {
   const hoje = ptDate()
   const turno = currentShiftFor(institution)
 
+  const largo = useLargo()
   const [vista, setVista] = useState<Vista>('tarefas')
   const [tarefas, setTarefas] = useState<TarefaDaCasa[]>([])
   const [execucoes, setExecucoes] = useState<any[]>([])
@@ -179,99 +181,161 @@ export default function ACasa() {
 
   if (indisponivel) {
     return (
-      <div style={{ padding: 'var(--space-14)', maxWidth: 560, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>
-          Os serviços da casa ainda não estão montados
-        </div>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-          Falta um passo de configuração. Assim que estiver feito, esta página traz o plano de
-          higienização e os registos de temperatura já preenchidos.
-        </p>
-      </div>
+      <Mesa>
+        <Painel>
+          <Vazio titulo="Os serviços da casa ainda não estão montados."
+            oQueFazer="Falta um passo de configuração. Assim que estiver feito, esta página traz o plano de higienização e os registos de temperatura já preenchidos." />
+        </Painel>
+      </Mesa>
     )
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Esta página diz de si própria que tem DUAS METADES: o plano de higienização
+     e os registos de temperatura — as duas coisas que a ASAE pede antes de
+     sequer olhar para o plano HACCP.
+
+     E estavam atrás de um separador, uma de cada vez. Num ecrã de computador
+     cabem as duas, e são as duas o trabalho da mesma manhã: quem limpa a
+     cozinha e quem lê a arca são muitas vezes a mesma pessoa.
+
+     No telemóvel voltam a ser separadores, porque não há outra maneira.
+     ══════════════════════════════════════════════════════════════════════════ */
   const foraDoIntervalo = estados.reduce((n, e) => n + e.foraDoIntervalo.length, 0)
+  const porFazer = doDia.filter(t => !t.feito).length
+  const aCarregar = carregando || !jaCarregou
 
-  return (
-    <div style={{ padding: 'var(--space-11) clamp(16px,3vw,32px) var(--space-18)', maxWidth: 880, margin: '0 auto' }}>
-
-      <header style={{ marginBottom: 'var(--space-9)' }}>
-        <span style={{ ...MONO, color: cor }}>A casa</span>
-        <h1 style={{
-          fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,4vw,38px)', fontWeight: 500,
-          color: 'var(--ink)', letterSpacing: '-0.025em', margin: 'var(--space-4) 0 0', lineHeight: 1.1,
-        }}>Serviços gerais</h1>
-        <p style={{ fontSize: 14, color: 'var(--ink-4)', margin: 'var(--space-5) 0 0', lineHeight: 1.55 }}>
-          {carregando ? 'A ver o que há para fazer…' : resumo}
-        </p>
-      </header>
-
-      {erro && (
-        <div style={{
-          marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
-          fontSize: 13, fontWeight: 600,
-        }}>{erro}</div>
-      )}
-
-      <div style={{
-        display: 'flex', borderRadius: 'var(--r-md)', overflow: 'hidden',
-        border: '1.5px solid var(--border-2)', width: 'fit-content',
-        maxWidth: '100%', marginBottom: 'var(--space-9)',
-      }}>
-        {([['tarefas', 'Limpeza e lavandaria'], ['temperaturas', 'Temperaturas']] as [Vista, string][]).map(([v, rot]) => {
-          const on = vista === v
-          return (
-            <button key={v} onClick={() => setVista(v)} style={{
-              minHeight: 40, padding: '0 14px', border: 'none', cursor: 'pointer',
-              background: on ? 'var(--ink)' : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
-              fontFamily: 'inherit', fontSize: 13, fontWeight: 700, whiteSpace: 'nowrap',
-              display: 'flex', alignItems: 'center', gap: 7,
-            }}>
-              {rot}
-              {/* O contador só aparece onde há um problema. Um contador a zero
-                  em cada separador ensina a ignorar os contadores. */}
-              {v === 'temperaturas' && foraDoIntervalo > 0 && (
-                <span style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700,
-                  padding: '2px 6px', borderRadius: 999,
-                  background: on ? 'rgba(255,255,255,.22)' : 'var(--badge-amber-bg)',
-                  color: on ? '#fff' : 'var(--badge-amber-fg)',
-                }}>{foraDoIntervalo}</span>
-              )}
-            </button>
-          )
-        })}
-      </div>
-
-      {carregando || !jaCarregou ? (
-        <div style={{ padding: 'var(--space-12) 0', color: 'var(--ink-4)', fontSize: 14 }}>A carregar…</div>
-      ) : vista === 'tarefas' ? (
+  const painelTarefas = (
+    <Painel
+      cabeca={
+        <Cabecalho>
+          <span style={{ ...ROTULO, flex: 1 }}>Limpeza, cozinha e lavandaria</span>
+          <span style={{
+            ...MONO_MESA, fontSize: 'var(--t-meta)',
+            color: porFazer ? 'var(--amber)' : 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>
+            {aCarregar ? '' : porFazer ? `${porFazer} POR FAZER` : 'TUDO FEITO'}
+          </span>
+        </Cabecalho>
+      }
+      rodape={
+        <span style={MONO_MESA}>
+          Cada linha guarda a data, o produto e quem fez — é o que um registo
+          de higienização tem de ter
+        </span>
+      }
+    >
+      {aCarregar ? (
+        <ACarregar oQue="A ver o que há para fazer…" />
+      ) : (
         <Tarefas
-          lista={doDia} cor={cor} aMarcar={aMarcar} marcar={marcar}
+          lista={doDia} aMarcar={aMarcar} marcar={marcar}
           supabase={supabase} orgId={scope.orgId} euId={user?.id}
           podeEditar={scope.canEdit} atribuir={atribuir}
         />
-      ) : (
-        <Temperaturas estados={estados} cor={cor} medir={medir} podeEditar={scope.canEdit} />
       )}
+    </Painel>
+  )
 
-      <p style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 'var(--space-12)', lineHeight: 1.6 }}>
-        O plano de higienização e os registos de temperatura são o que a ASAE pede primeiro, antes
-        sequer de olhar para o plano HACCP. Cada linha guarda a data, o produto e quem fez — que é o
-        conteúdo que um registo de higienização tem de ter.
-      </p>
-    </div>
+  const painelTemperaturas = (
+    <Painel
+      cabeca={
+        <Cabecalho>
+          <span style={{ ...ROTULO, flex: 1 }}>Equipamentos de frio</span>
+          <span style={{ ...ROTULO, width: 66, textAlign: 'right' }}>Última</span>
+          <span style={{ ...ROTULO, width: 74 }}>Hoje</span>
+        </Cabecalho>
+      }
+      rodape={
+        foraDoIntervalo > 0 ? (
+          <span style={{ ...MONO_MESA, color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+            {foraDoIntervalo} leitura{foraDoIntervalo === 1 ? '' : 's'} fora do intervalo hoje
+          </span>
+        ) : (
+          <span style={MONO_MESA}>Uma leitura fora do intervalo pede sempre o que foi feito</span>
+        )
+      }
+    >
+      {aCarregar ? (
+        <ACarregar oQue="A ler os equipamentos…" />
+      ) : (
+        <Temperaturas estados={estados} medir={medir} podeEditar={scope.canEdit} />
+      )}
+    </Painel>
+  )
+
+  return (
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO_MESA, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>A casa</span>
+
+          <span style={{ ...MONO_MESA, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            {hoje.slice(8, 10)}/{hoje.slice(5, 7)}
+          </span>
+
+          {/* No telemóvel as duas metades voltam a ser separadores. */}
+          {!largo && (
+            <Seletor
+              opcoes={[
+                { id: 'tarefas', rotulo: `Limpeza${porFazer ? ` ${porFazer}` : ''}` },
+                { id: 'temperaturas', rotulo: `Frio${foraDoIntervalo ? ` ${foraDoIntervalo}` : ''}` },
+              ]}
+              ativa={vista} aoMudar={v => setVista(v as Vista)} />
+          )}
+
+          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            {aCarregar ? 'A ver o que há para fazer…' : resumo}
+          </span>
+
+          {!aCarregar && foraDoIntervalo > 0 && (
+            <span style={{
+              ...MONO_MESA, fontSize: 'var(--t-meta)', color: 'var(--amber)',
+              fontWeight: 'var(--peso-forte)' as any, marginLeft: 'auto',
+            }}>
+              {foraDoIntervalo} LEITURA{foraDoIntervalo === 1 ? '' : 'S'} FORA DO INTERVALO
+            </span>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO_MESA, color: 'var(--amber)' }}>Fora do intervalo — pede o que se fez</span>
+          <span style={{ ...MONO_MESA, color: 'var(--green)' }}>Em dia</span>
+          <span style={{ ...MONO_MESA, color: 'var(--ink-5)' }}>
+            O plano de higienização e os registos de temperatura são o que a ASAE pede
+            primeiro, antes sequer de olhar para o plano HACCP.
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {erro && <Aviso tom="mau">{erro}</Aviso>}
+
+      {largo ? (
+        <div style={{
+          display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'start',
+          gridTemplateColumns: 'minmax(360px, 1fr) minmax(380px, 1fr)',
+        }}>
+          {painelTarefas}
+          {painelTemperaturas}
+        </div>
+      ) : vista === 'tarefas' ? painelTarefas : painelTemperaturas}
+    </Mesa>
   )
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LIMPEZA E LAVANDARIA
+// LIMPEZA, COZINHA E LAVANDARIA
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Tarefas({ lista, cor, aMarcar, marcar, supabase, orgId, euId, podeEditar, atribuir }: {
-  lista: TarefaDeHoje[]; cor: string
+function Tarefas({ lista, aMarcar, marcar, supabase, orgId, euId, podeEditar, atribuir }: {
+  lista: TarefaDeHoje[]
   aMarcar: Set<string>; marcar: (t: TarefaDeHoje) => void
   supabase: any; orgId: string | null; euId?: string | null; podeEditar: boolean
   atribuir: (t: TarefaDaCasa, id: string | null, nome: string | null) => void
@@ -290,96 +354,84 @@ function Tarefas({ lista, cor, aMarcar, marcar, supabase, orgId, euId, podeEdita
 
   if (!lista.length) {
     return (
-      <div style={{
-        padding: 'var(--space-14)', borderRadius: 'var(--r-xl)',
-        border: '1px dashed var(--border-2)', textAlign: 'center',
-      }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', marginBottom: 8 }}>
-          Nada marcado para hoje
-        </div>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 440, margin: '0 auto' }}>
-          O plano de higienização vem preenchido com o que uma casa faz de facto. Se está vazio,
-          é porque as tarefas de hoje já foram todas desligadas do plano.
-        </p>
-      </div>
+      <Vazio titulo="Nada marcado para hoje."
+        oQueFazer="O plano de higienização vem preenchido com o que uma casa faz de facto. Se está vazio, é porque as tarefas de hoje já foram todas desligadas do plano." />
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-8)' }}>
+    <>
       {grupos.map(g => {
         const cat = CATEGORIAS[g.categoria]
         const porFazer = g.tarefas.filter(t => !t.feito).length
         return (
-          <section key={g.categoria}>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 'var(--space-5)' }}>
-              <span style={{ ...MONO, fontSize: 10, color: cat.cor }}>{cat.icone} {cat.label}</span>
-              <span style={{ flex: 1, height: 1, background: 'var(--border)' }} />
-              <span style={{
-                fontSize: 11.5, fontWeight: 700, whiteSpace: 'nowrap',
-                color: porFazer ? cor : 'var(--badge-green-fg)',
-              }}>{porFazer ? `${porFazer} por fazer` : 'tudo feito'}</span>
-            </div>
-
+          <div key={g.categoria}>
+            {/* A linha de grupo. Fica colada ao topo ao rolar, para se saber
+                sempre em que parte da casa se está. */}
             <div style={{
-              borderRadius: 'var(--r-lg)', border: '1px solid var(--border)',
-              background: 'var(--bg)', opacity: porFazer ? 1 : 0.7,
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '5px 12px', background: 'var(--bg-2)',
+              borderTop: '1px solid var(--border-2)', borderBottom: '1px solid var(--border)',
+              position: 'sticky', top: 0, zIndex: 1,
             }}>
-              {g.tarefas.map((t, i) => (
-                <div key={t.tarefa.id} style={{
-                  display: 'flex', alignItems: 'center', gap: 'var(--space-6)',
-                  padding: 'var(--space-6) var(--space-8)',
-                  borderTop: i === 0 ? 'none' : '1px solid var(--bg-3)',
-                  borderLeft: `3px solid ${t.feito ? 'transparent' : cat.cor}`,
-                }}>
-                  <button
-                    onClick={() => marcar(t)}
-                    disabled={aMarcar.has(t.tarefa.id) || !podeEditar}
-                    aria-label={t.feito ? `Desmarcar ${t.tarefa.nome}` : `Marcar ${t.tarefa.nome} como feito`}
-                    style={{
-                      width: 30, height: 30, flexShrink: 0, borderRadius: 9,
-                      cursor: podeEditar ? 'pointer' : 'default',
-                      border: `1.5px solid ${t.feito ? cor : 'var(--border-2)'}`,
-                      background: t.feito ? cor : 'transparent',
-                      color: '#fff', fontSize: 15, lineHeight: 1, fontFamily: 'inherit',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      opacity: aMarcar.has(t.tarefa.id) ? 0.5 : 1,
-                    }}>{t.feito ? '✓' : ''}</button>
-
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div style={{
-                      fontSize: 14.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35,
-                      textDecoration: t.feito ? 'line-through' : 'none',
-                      textDecorationColor: 'var(--ink-5)',
-                    }}>{t.tarefa.nome}</div>
-                    <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.4 }}>
-                      {[
-                        t.tarefa.zona,
-                        t.tarefa.produto,
-                        t.tarefa.hora,
-                        // Quem fez. Aparece DEPOIS de feito, e é isto que
-                        // transforma a lista num registo de higienização.
-                        t.feito && t.feitoPor ? `feito por ${t.feitoPor}` : null,
-                      ].filter(Boolean).join(' · ')}
-                    </div>
-                  </div>
-
-                  {!t.feito && (
-                    <Responsavel
-                      supabase={supabase} orgId={orgId} euId={euId}
-                      valorId={t.tarefa.responsavel_id} valorNome={t.tarefa.responsavel}
-                      podeEditar={podeEditar}
-                      aoEscolher={(id, nome) => atribuir(t.tarefa, id, nome)}
-                      compacto
-                    />
-                  )}
-                </div>
-              ))}
+              <span style={{ ...ROTULO, flex: 1 }}>{cat.label}</span>
+              <span style={{
+                ...MONO_MESA, fontSize: 'var(--t-micro)',
+                color: porFazer ? 'var(--amber)' : 'var(--green)',
+                fontWeight: 'var(--peso-forte)' as any,
+              }}>{porFazer ? `${porFazer} POR FAZER` : 'FEITO'}</span>
             </div>
-          </section>
+
+            {g.tarefas.map(t => (
+              <div key={t.tarefa.id} style={{
+                display: 'flex', alignItems: 'center', gap: 10,
+                padding: '6px 12px', borderBottom: '1px solid var(--border)',
+                borderLeft: `3px solid ${t.feito ? 'transparent' : 'var(--amber)'}`,
+              }}>
+                <Marca
+                  feito={t.feito}
+                  aGravar={aMarcar.has(t.tarefa.id)}
+                  onClick={podeEditar ? () => marcar(t) : undefined}
+                  oQue={t.feito ? `Desmarcar ${t.tarefa.nome}` : `Marcar ${t.tarefa.nome} como feito`} />
+
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-corpo)',
+                    fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+                    textDecoration: t.feito ? 'line-through' : 'none',
+                    textDecorationColor: 'var(--ink-5)',
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>{t.tarefa.nome}</span>
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 1,
+                    overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                  }}>
+                    {[
+                      t.tarefa.zona,
+                      t.tarefa.produto,
+                      t.tarefa.hora,
+                      // Quem fez. Aparece DEPOIS de feito, e é isto que
+                      // transforma a lista num registo de higienização.
+                      t.feito && t.feitoPor ? `feito por ${t.feitoPor}` : null,
+                    ].filter(Boolean).join(' · ')}
+                  </span>
+                </span>
+
+                {!t.feito && (
+                  <Responsavel
+                    supabase={supabase} orgId={orgId} euId={euId}
+                    valorId={t.tarefa.responsavel_id} valorNome={t.tarefa.responsavel}
+                    podeEditar={podeEditar}
+                    aoEscolher={(id, nome) => atribuir(t.tarefa, id, nome)}
+                    compacto
+                  />
+                )}
+              </div>
+            ))}
+          </div>
         )
       })}
-    </div>
+    </>
   )
 }
 
@@ -387,36 +439,35 @@ function Tarefas({ lista, cor, aMarcar, marcar, supabase, orgId, euId, podeEdita
 // TEMPERATURAS
 // ─────────────────────────────────────────────────────────────────────────────
 
-function Temperaturas({ estados, cor, medir, podeEditar }: {
-  estados: EstadoDoEquipamento[]; cor: string; podeEditar: boolean
+function Temperaturas({ estados, medir, podeEditar }: {
+  estados: EstadoDoEquipamento[]; podeEditar: boolean
   medir: (e: Equipamento, valor: number, acao: string) => Promise<boolean | undefined>
 }) {
+  const [aberto, setAberto] = useState<string | null>(null)
+
   if (!estados.length) {
     return (
-      <div style={{
-        padding: 'var(--space-14)', borderRadius: 'var(--r-xl)',
-        border: '1px dashed var(--border-2)', textAlign: 'center',
-      }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: 'var(--ink)', marginBottom: 8 }}>
-          Sem equipamentos de frio
-        </div>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 440, margin: '0 auto' }}>
-          Esta casa não tem equipamentos de frio registados.
-        </p>
-      </div>
+      <Vazio titulo="Esta casa não tem equipamentos de frio registados."
+        oQueFazer="Os registos de temperatura são um dos pré-requisitos que a ASAE pede. Assim que houver equipamentos, aparecem aqui com o intervalo de cada um." />
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-7)' }}>
-      {estados.map(e => <Equip key={e.equipamento.id} e={e} cor={cor} medir={medir} podeEditar={podeEditar} />)}
-    </div>
+    <>
+      {estados.map(e => (
+        <Equip key={e.equipamento.id} e={e} medir={medir} podeEditar={podeEditar}
+          aberto={aberto === e.equipamento.id}
+          aoAbrir={() => setAberto(a => a === e.equipamento.id ? null : e.equipamento.id)} />
+      ))}
+    </>
   )
 }
 
-function Equip({ e, cor, medir, podeEditar }: {
-  e: EstadoDoEquipamento; cor: string; podeEditar: boolean
+function Equip({ e, medir, podeEditar, aberto, aoAbrir }: {
+  e: EstadoDoEquipamento; podeEditar: boolean
   medir: (eq: Equipamento, valor: number, acao: string) => Promise<boolean | undefined>
+  aberto: boolean
+  aoAbrir: () => void
 }) {
   const [valor, setValor] = useState('')
   const [acao, setAcao] = useState('')
@@ -430,6 +481,7 @@ function Equip({ e, cor, medir, podeEditar }: {
   const vaiFicarFora = estadoPrevisto === 'fora'
 
   const problema = e.foraDoIntervalo.length > 0
+  const ultima = e.leiturasHoje.length ? e.leiturasHoje[e.leiturasHoje.length - 1] : null
 
   async function gravar() {
     if (!valido || aGravar) return
@@ -443,89 +495,78 @@ function Equip({ e, cor, medir, podeEditar }: {
   }
 
   return (
-    <section style={{
-      borderRadius: 'var(--r-xl)', background: 'var(--bg)',
-      border: `1px solid ${problema ? 'var(--badge-amber-border)' : 'var(--border)'}`,
-      overflow: 'hidden',
+    <div style={{
+      borderBottom: '1px solid var(--border)',
+      borderLeft: `3px solid ${problema ? 'var(--amber)' : aberto ? 'var(--green)' : 'transparent'}`,
+      background: aberto ? 'var(--green-light)' : 'transparent',
     }}>
-      <header style={{
-        padding: 'var(--space-7) var(--space-8)',
-        borderBottom: '1px solid var(--border)',
-        background: problema ? 'var(--badge-amber-bg)' : 'transparent',
-        display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap',
+      <button type="button" onClick={aoAbrir} style={{
+        display: 'flex', alignItems: 'center', gap: 10, width: '100%',
+        textAlign: 'left', padding: '7px 12px', border: 'none',
+        background: 'transparent', cursor: 'pointer', fontFamily: 'inherit', color: 'var(--ink)',
       }}>
-        <div style={{ minWidth: 0 }}>
-          <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--ink)' }}>
-            {e.equipamento.nome}
-          </span>
-          <div style={{ fontSize: 11.5, color: problema ? 'var(--badge-amber-fg)' : 'var(--ink-4)', marginTop: 3 }}>
+        <span style={{ minWidth: 0, flex: 1 }}>
+          <span style={{
+            display: 'block', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>{e.equipamento.nome}</span>
+          <span style={{
+            display: 'block', fontSize: 'var(--t-meta)',
+            color: problema ? 'var(--amber)' : 'var(--ink-4)', marginTop: 1,
+            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          }}>
             {[TIPOS_EQUIPAMENTO[e.equipamento.tipo], e.equipamento.zona, intervaloEmPalavras(e.equipamento)]
               .filter(Boolean).join(' · ')}
-          </div>
-        </div>
-        <span style={{
-          fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap',
-          color: problema ? 'var(--badge-amber-fg)'
-            : e.emFalta ? cor : 'var(--badge-green-fg)',
-        }}>
-          {problema ? 'fora do intervalo'
-            : e.emFalta ? `falta${e.emFalta > 1 ? 'm' : ''} ${e.emFalta}`
-            : 'em dia'}
+          </span>
         </span>
-      </header>
 
-      {/* As de hoje */}
-      {e.leiturasHoje.length > 0 && (
-        <div style={{
-          display: 'flex', gap: 7, flexWrap: 'wrap',
-          padding: 'var(--space-6) var(--space-8)', borderBottom: '1px solid var(--bg-3)',
-        }}>
-          {e.leiturasHoje.map(l => {
+        <span style={{
+          ...MONO_MESA, width: 66, textAlign: 'right', flexShrink: 0,
+          fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
+          color: ultima == null ? 'var(--ink-5)'
+            : estadoDaLeitura(Number(ultima.valor), e.equipamento) === 'fora' ? 'var(--amber)' : 'var(--ink-2)',
+        }}>{ultima != null ? `${Number(ultima.valor)}°` : '—'}</span>
+
+        <span style={{ width: 74, flexShrink: 0, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+          {/* As leituras de hoje, por ordem. Três números em mono dizem mais
+              do que «em dia»: vê-se a arca a subir ao longo do dia. */}
+          {e.leiturasHoje.length === 0 ? (
+            <span style={{
+              ...MONO_MESA, fontSize: 'var(--t-micro)',
+              color: e.emFalta ? 'var(--amber)' : 'var(--ink-5)',
+            }}>{e.emFalta ? `FALTA${e.emFalta > 1 ? 'M' : ''} ${e.emFalta}` : '—'}</span>
+          ) : e.leiturasHoje.map(l => {
             const fora = estadoDaLeitura(Number(l.valor), e.equipamento) === 'fora'
             return (
-              <span key={l.id} title={[l.hora, l.medido_por, l.acao].filter(Boolean).join(' · ')}
-                style={{
-                  display: 'inline-flex', alignItems: 'baseline', gap: 5,
-                  padding: '5px 10px', borderRadius: 999,
-                  background: fora ? 'var(--badge-amber-bg)' : 'var(--bg-2)',
-                  border: `1px solid ${fora ? 'var(--badge-amber-border)' : 'var(--border)'}`,
-                  color: fora ? 'var(--badge-amber-fg)' : 'var(--ink-3)',
-                  fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700,
-                }}>
-                {Number(l.valor)} °C
-                <span style={{ fontSize: 10, fontWeight: 500, opacity: 0.75 }}>{l.hora}</span>
-              </span>
+              <span key={l.id} title={[l.hora, l.medido_por, l.acao].filter(Boolean).join(' · ')} style={{
+                ...MONO_MESA, fontSize: 'var(--t-micro)',
+                fontWeight: (fora ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+                color: fora ? 'var(--amber)' : 'var(--ink-4)',
+              }}>{Number(l.valor)}</span>
             )
           })}
-        </div>
-      )}
+        </span>
+      </button>
 
-      {podeEditar && (
-        <div style={{ padding: 'var(--space-7) var(--space-8)' }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-            <label style={{ flex: '0 1 140px', minWidth: 120 }}>
-              <span style={{ ...MONO, fontSize: 9.5, display: 'block', marginBottom: 5 }}>Agora marca</span>
+      {aberto && podeEditar && (
+        <div style={{ padding: '0 12px 10px 12px' }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+            <label style={{ flex: '0 1 130px', minWidth: 110 }}>
+              <span style={{ ...ROTULO, display: 'block', marginBottom: 3 }}>Agora marca</span>
               <input
                 value={valor} onChange={ev => setValor(ev.target.value)}
                 inputMode="decimal" placeholder="−18"
                 aria-label={`Temperatura de ${e.equipamento.nome}, em graus`}
                 style={{
-                  width: '100%', boxSizing: 'border-box', padding: '10px 12px', minHeight: 44,
-                  borderRadius: 'var(--r-md)',
-                  border: `1.5px solid ${vaiFicarFora ? 'var(--badge-amber-border)' : 'var(--border)'}`,
-                  fontFamily: 'var(--font-mono)', fontSize: 15, fontWeight: 700,
-                  background: 'var(--bg)', color: 'var(--ink)',
+                  ...CAIXA, width: '100%',
+                  ...MONO_MESA, fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
+                  border: `1px solid ${vaiFicarFora ? 'var(--amber)' : 'var(--border-2)'}`,
                 }} />
             </label>
-
             {!vaiFicarFora && (
-              <button onClick={gravar} disabled={!valido || aGravar} style={{
-                minHeight: 44, padding: '0 18px', borderRadius: 'var(--r-md)',
-                border: 'none', background: valido ? cor : 'var(--bg-3)',
-                color: valido ? '#fff' : 'var(--ink-5)',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
-                cursor: valido && !aGravar ? 'pointer' : 'default',
-              }}>Registar</button>
+              <Botao feitio="principal" onClick={gravar} esperando={aGravar} disabled={!valido}>
+                REGISTAR
+              </Botao>
             )}
           </div>
 
@@ -533,36 +574,23 @@ function Equip({ e, cor, medir, podeEditar }: {
               Não é burocracia — é a diferença entre um registo que mostra que a
               casa reagiu e um que mostra que a casa viu e deixou andar. */}
           {vaiFicarFora && (
-            <div style={{
-              marginTop: 10, padding: '11px 13px', borderRadius: 'var(--r-md)',
-              background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)',
-            }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--badge-amber-fg)', lineHeight: 1.5 }}>
-                {numero} °C está fora de {intervaloEmPalavras(e.equipamento)}.
-              </div>
-              <input
-                value={acao} onChange={ev => setAcao(ev.target.value)}
-                placeholder="O que fez? Ex.: baixei o termóstato e avisei a manutenção"
-                aria-label="O que foi feito"
-                style={{
-                  width: '100%', boxSizing: 'border-box', marginTop: 8,
-                  padding: '10px 12px', minHeight: 42, borderRadius: 'var(--r-sm)',
-                  border: '1px solid var(--badge-amber-border)',
-                  fontFamily: 'inherit', fontSize: 13.5,
-                  background: 'var(--bg)', color: 'var(--ink)',
-                }} />
-              <button onClick={gravar} disabled={!acao.trim() || aGravar} style={{
-                marginTop: 8, minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-sm)',
-                border: 'none',
-                background: acao.trim() ? 'var(--badge-amber-fg)' : 'var(--bg-3)',
-                color: acao.trim() ? '#fff' : 'var(--ink-5)',
-                fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
-                cursor: acao.trim() && !aGravar ? 'pointer' : 'default',
-              }}>Registar a leitura e o que fez</button>
+            <div style={{ marginTop: 9 }}>
+              <Aviso tom="atencao" titulo={`${numero} °C está fora de ${intervaloEmPalavras(e.equipamento)}`}>
+                <input
+                  value={acao} onChange={ev => setAcao(ev.target.value)}
+                  placeholder="O que fez? Ex.: baixei o termóstato e avisei a manutenção"
+                  aria-label="O que foi feito"
+                  style={{ ...CAIXA, width: '100%', marginTop: 6 }} />
+                <div style={{ marginTop: 7 }}>
+                  <Botao feitio="principal" onClick={gravar} esperando={aGravar} disabled={!acao.trim()}>
+                    REGISTAR A LEITURA E O QUE FEZ
+                  </Botao>
+                </div>
+              </Aviso>
             </div>
           )}
         </div>
       )}
-    </section>
+    </div>
   )
 }

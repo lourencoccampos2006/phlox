@@ -40,7 +40,7 @@ export default function ExportarDadosPage() {
           </p>
         </div>
 
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '22px 24px' }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '22px 24px' }}>
           <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 10 }}>O que está incluído</div>
           <ul style={{ margin: 0, padding: '0 0 0 18px', fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7 }}>
             <li>Perfil e definições</li>
@@ -51,19 +51,19 @@ export default function ExportarDadosPage() {
             <li>Audit Trail completo (com cadeia de hash)</li>
           </ul>
 
-          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg-2)', borderRadius: 9, fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55 }}>
+          <div style={{ marginTop: 16, padding: '12px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55 }}>
             O ficheiro é gerado em direto, com os teus dados atuais. Pode ser grande se tens muitos registos. Conta: <strong style={{ color: 'var(--ink-2)' }}>{user?.email || '—'}</strong>.
           </div>
 
-          <button onClick={exportNow} disabled={busy} style={{ width: '100%', marginTop: 16, padding: 13, background: busy ? 'var(--bg-3)' : '#0d6e42', color: busy ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
+          <button onClick={exportNow} disabled={busy} style={{ width: '100%', marginTop: 16, padding: 13, background: busy ? 'var(--bg-3)' : 'var(--green)', color: busy ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)' }}>
             {busy ? 'A preparar…' : 'Exportar tudo (JSON)'}
           </button>
 
-          {msg && <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: msg.includes('Erro') || msg.includes('Falha') ? '#dc2626' : '#16a34a' }}>{msg}</div>}
+          {msg && <div style={{ marginTop: 12, fontSize: 13, fontWeight: 600, color: msg.includes('Erro') || msg.includes('Falha') ? 'var(--red)' : 'var(--green)' }}>{msg}</div>}
         </div>
 
         <div style={{ marginTop: 16, fontSize: 12, color: 'var(--ink-5)', lineHeight: 1.6 }}>
-          Queres apagar a conta? Vai a <Link href="/settings" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Definições</Link>. <Link href="/trust" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>Trust Center →</Link>
+          Queres apagar a conta? Vai a <Link href="/settings" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Definições</Link>. <Link href="/trust" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>Trust Center →</Link>
         </div>
       </div>
     </div>

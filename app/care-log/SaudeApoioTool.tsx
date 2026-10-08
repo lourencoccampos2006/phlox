@@ -24,8 +24,8 @@ interface Patient { id: string; name: string; room_number?: string | null }
 interface CheckIn { id: string; patient_id: string; kind: 'enfermagem' | 'acompanhamento'; date: string; notes: string; duration_min?: number | null; created_at: string }
 
 const KIND_META: Record<CheckIn['kind'], { label: string; color: string; bg: string }> = {
-  enfermagem:     { label: 'Enfermagem básica', color: '#0d6e42', bg: '#f0fdf4' },
-  acompanhamento: { label: 'Acompanhamento',     color: '#1d4ed8', bg: '#eff6ff' },
+  enfermagem:     { label: 'Enfermagem básica', color: 'var(--green)', bg: 'var(--badge-green-bg)' },
+  acompanhamento: { label: 'Acompanhamento',     color: 'var(--ink-2)', bg: 'var(--bg-2)' },
 }
 
 export function SaudeApoioTool() {
@@ -95,13 +95,13 @@ export function SaudeApoioTool() {
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '18px clamp(14px,3vw,28px) 60px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 4 }}>
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
-          style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+          style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
       </div>
 
       {loading ? (
-        Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 10 }} />)
+        Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 56, borderRadius: 'var(--r-lg)' }} />)
       ) : filtered.length === 0 ? (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 40, textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 40, textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
           {cfg.emptyPeopleMsg}
         </div>
       ) : (
@@ -110,7 +110,7 @@ export function SaudeApoioTool() {
           const isOpen = openId === p.id
           const isExpanded = expandedId === p.id
           return (
-            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
@@ -121,7 +121,7 @@ export function SaudeApoioTool() {
                     </button>
                   )}
                 </div>
-                <button onClick={() => openFor(p.id)} style={{ padding: '6px 12px', background: isOpen ? 'var(--bg-3)' : 'var(--ink)', color: isOpen ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => openFor(p.id)} style={{ padding: '6px 12px', background: isOpen ? 'var(--bg-3)' : 'var(--ink)', color: isOpen ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {isOpen ? 'Fechar' : '+ Registar'}
                 </button>
               </div>
@@ -129,7 +129,7 @@ export function SaudeApoioTool() {
               {isExpanded && mine.length > 0 && (
                 <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {mine.map(c => (
-                    <div key={c.id} style={{ background: KIND_META[c.kind].bg, borderRadius: 8, padding: '8px 10px', fontSize: 12.5 }}>
+                    <div key={c.id} style={{ background: KIND_META[c.kind].bg, borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 12.5 }}>
                       <span style={{ fontWeight: 700, color: KIND_META[c.kind].color }}>{KIND_META[c.kind].label}</span>
                       <span style={{ color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', fontSize: 11, marginLeft: 6 }}>
                         {new Date(c.created_at).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
@@ -149,7 +149,7 @@ export function SaudeApoioTool() {
                   <div style={{ display: 'flex', gap: 6 }}>
                     {(Object.keys(KIND_META) as CheckIn['kind'][]).map(k => (
                       <button key={k} onClick={() => setKind(k)} style={{
-                        padding: '6px 12px', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer',
+                        padding: '6px 12px', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer',
                         border: `1.5px solid ${kind === k ? KIND_META[k].color : 'var(--border)'}`,
                         background: kind === k ? KIND_META[k].color : 'white', color: kind === k ? 'white' : 'var(--ink-3)',
                       }}>
@@ -159,13 +159,13 @@ export function SaudeApoioTool() {
                   </div>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="O que se passou (obrigatório)"
-                      style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                      style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
                     <input type="number" min={0} value={duration} onChange={e => setDuration(e.target.value)} placeholder="min"
-                      style={{ width: 70, border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                      style={{ width: 70, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
                   </div>
-                  {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
+                  {err && <div style={{ fontSize: 12, color: 'var(--red)' }}>{err}</div>}
                   <button onClick={() => save(p.id)} disabled={saving || !notes.trim()}
-                    style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving || !notes.trim() ? 'var(--bg-3)' : 'var(--ink)', color: saving || !notes.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving || !notes.trim() ? 'not-allowed' : 'pointer' }}>
+                    style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving || !notes.trim() ? 'var(--bg-3)' : 'var(--ink)', color: saving || !notes.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: saving || !notes.trim() ? 'not-allowed' : 'pointer' }}>
                     {saving ? 'A guardar…' : 'Guardar registo'}
                   </button>
                 </div>

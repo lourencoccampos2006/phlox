@@ -10,49 +10,49 @@
 export type ScaleType = 'barthel' | 'braden' | 'morse' | 'mmse' | 'mna'
 
 export const SCALES: Record<ScaleType, { label: string; max: number; desc: string; color: string }> = {
-  barthel:  { label: 'Índice de Barthel',    max: 100, desc: 'Avaliação das actividades de vida diária (AVD)', color: '#1d4ed8' },
-  braden:   { label: 'Escala de Braden',     max: 23,  desc: 'Risco de desenvolvimento de úlceras de pressão',  color: '#7c3aed' },
-  morse:    { label: 'Escala de Morse',      max: 125, desc: 'Risco de queda',                                   color: '#d97706' },
-  mmse:     { label: 'MMSE',                 max: 30,  desc: 'Mini Mental State Examination — avaliação cognitiva', color: '#0891b2' },
-  mna:      { label: 'MNA — Triagem',        max: 14,  desc: 'Mini Nutritional Assessment — estado nutricional', color: '#16a34a' },
+  barthel:  { label: 'Índice de Barthel',    max: 100, desc: 'Avaliação das actividades de vida diária (AVD)', color: 'var(--blue)' },
+  braden:   { label: 'Escala de Braden',     max: 23,  desc: 'Risco de desenvolvimento de úlceras de pressão',  color: 'var(--roxo)' },
+  morse:    { label: 'Escala de Morse',      max: 125, desc: 'Risco de queda',                                   color: 'var(--amber)' },
+  mmse:     { label: 'MMSE',                 max: 30,  desc: 'Mini Mental State Examination — avaliação cognitiva', color: 'var(--green)' },
+  mna:      { label: 'MNA — Triagem',        max: 14,  desc: 'Mini Nutritional Assessment — estado nutricional', color: 'var(--green)' },
 }
 
 // Direção clínica: para Morse (quedas) maior pontuação = pior; nas restantes maior = melhor.
 export const BETTER_WHEN_HIGHER: Record<ScaleType, boolean> = { barthel: true, braden: true, morse: false, mmse: true, mna: true }
 
 export function barthelLevel(score: number) {
-  if (score <= 20) return { label: 'Dependência Total',   color: '#dc2626', bg: '#fee2e2' }
-  if (score <= 60) return { label: 'Dependência Grave',   color: '#d97706', bg: '#fef3c7' }
-  if (score <= 90) return { label: 'Dependência Moderada',color: '#ca8a04', bg: '#fefce8' }
-  if (score <= 99) return { label: 'Dependência Ligeira', color: '#0284c7', bg: '#e0f2fe' }
-  return                   { label: 'Independente',        color: '#16a34a', bg: '#dcfce7' }
+  if (score <= 20) return { label: 'Dependência Total',   color: 'var(--red)', bg: 'var(--red-light)' }
+  if (score <= 60) return { label: 'Dependência Grave',   color: 'var(--amber)', bg: 'var(--amber-light)' }
+  if (score <= 90) return { label: 'Dependência Moderada',color: 'var(--amber)', bg: 'var(--amber-light)' }
+  if (score <= 99) return { label: 'Dependência Ligeira', color: 'var(--green)', bg: 'var(--green-light)' }
+  return                   { label: 'Independente',        color: 'var(--green)', bg: 'var(--green-light)' }
 }
 
 export function bradenLevel(score: number) {
-  if (score <= 9)  return { label: 'Risco Muito Alto',color: '#7f1d1d', bg: '#fee2e2' }
-  if (score <= 12) return { label: 'Risco Alto',      color: '#dc2626', bg: '#fee2e2' }
-  if (score <= 14) return { label: 'Risco Moderado',  color: '#d97706', bg: '#fef3c7' }
-  if (score <= 18) return { label: 'Risco Ligeiro',   color: '#ca8a04', bg: '#fefce8' }
-  return                   { label: 'Sem Risco',       color: '#16a34a', bg: '#dcfce7' }
+  if (score <= 9)  return { label: 'Risco Muito Alto',color: 'var(--badge-red-fg)', bg: 'var(--red-light)' }
+  if (score <= 12) return { label: 'Risco Alto',      color: 'var(--red)', bg: 'var(--red-light)' }
+  if (score <= 14) return { label: 'Risco Moderado',  color: 'var(--amber)', bg: 'var(--amber-light)' }
+  if (score <= 18) return { label: 'Risco Ligeiro',   color: 'var(--amber)', bg: 'var(--amber-light)' }
+  return                   { label: 'Sem Risco',       color: 'var(--green)', bg: 'var(--green-light)' }
 }
 
 export function morseLevel(score: number) {
-  if (score <= 24) return { label: 'Baixo Risco',  color: '#16a34a', bg: '#dcfce7' }
-  if (score <= 50) return { label: 'Risco Moderado',color: '#d97706', bg: '#fef3c7' }
-  return                   { label: 'Risco Elevado', color: '#dc2626', bg: '#fee2e2' }
+  if (score <= 24) return { label: 'Baixo Risco',  color: 'var(--green)', bg: 'var(--green-light)' }
+  if (score <= 50) return { label: 'Risco Moderado',color: 'var(--amber)', bg: 'var(--amber-light)' }
+  return                   { label: 'Risco Elevado', color: 'var(--red)', bg: 'var(--red-light)' }
 }
 
 export function mmseLevel(score: number) {
-  if (score >= 27) return { label: 'Normal',           color: '#16a34a', bg: '#dcfce7' }
-  if (score >= 22) return { label: 'Défice Ligeiro',   color: '#ca8a04', bg: '#fefce8' }
-  if (score >= 10) return { label: 'Défice Moderado',  color: '#d97706', bg: '#fef3c7' }
-  return                   { label: 'Défice Grave',     color: '#dc2626', bg: '#fee2e2' }
+  if (score >= 27) return { label: 'Normal',           color: 'var(--green)', bg: 'var(--green-light)' }
+  if (score >= 22) return { label: 'Défice Ligeiro',   color: 'var(--amber)', bg: 'var(--amber-light)' }
+  if (score >= 10) return { label: 'Défice Moderado',  color: 'var(--amber)', bg: 'var(--amber-light)' }
+  return                   { label: 'Défice Grave',     color: 'var(--red)', bg: 'var(--red-light)' }
 }
 
 export function mnaLevel(score: number) {
-  if (score >= 12) return { label: 'Normal', color: '#16a34a', bg: '#dcfce7', sub: 'Estado nutricional normal' }
-  if (score >= 8)  return { label: 'Em Risco', color: '#d97706', bg: '#fef3c7', sub: 'Risco de desnutrição' }
-  return                   { label: 'Desnutrição', color: '#dc2626', bg: '#fee2e2', sub: 'Desnutrição confirmada' }
+  if (score >= 12) return { label: 'Normal', color: 'var(--green)', bg: 'var(--green-light)', sub: 'Estado nutricional normal' }
+  if (score >= 8)  return { label: 'Em Risco', color: 'var(--amber)', bg: 'var(--amber-light)', sub: 'Risco de desnutrição' }
+  return                   { label: 'Desnutrição', color: 'var(--red)', bg: 'var(--red-light)', sub: 'Desnutrição confirmada' }
 }
 
 export function levelOf(scale: ScaleType, score: number): { label: string; color: string; bg: string; sub?: string } {
@@ -67,12 +67,12 @@ export function levelOf(scale: ScaleType, score: number): { label: string; color
 export function trendInfo(scale: ScaleType, current: number, prev: number | null) {
   if (prev == null) return null
   const delta = current - prev
-  if (delta === 0) return { arrow: '→', label: 'sem alteração', color: '#64748b', delta }
+  if (delta === 0) return { arrow: '→', label: 'sem alteração', color: 'var(--blue)', delta }
   const improved = BETTER_WHEN_HIGHER[scale] ? delta > 0 : delta < 0
   return {
     arrow: delta > 0 ? '▲' : '▼',
     label: `${improved ? 'melhorou' : 'agravou'} ${Math.abs(delta)} pts`,
-    color: improved ? '#16a34a' : '#dc2626',
+    color: improved ? 'var(--green)' : 'var(--red)',
     delta,
   }
 }

@@ -14,7 +14,7 @@ export default function ProgressoRedirect() {
   const router = useRouter()
   useEffect(() => { router.replace('/arena') }, [router])
   return (
-    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#6b7280', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--ink-4)', fontFamily: 'var(--font-sans)' }}>
       A redirecionar para a Arena…
     </div>
   )

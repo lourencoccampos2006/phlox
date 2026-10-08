@@ -17,13 +17,18 @@ import { usePhloxContext } from '@/lib/copilotContext'
 import ExplicarMnemonica from '@/components/tutor/ExplicarMnemonica'
 import SimulacaoExame from '@/components/tutor/SimulacaoExame'
 import FichaFarmaco from '@/components/tutor/FichaFarmaco'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 type TutorMode = 'socratico' | 'explicar' | 'exame' | 'ficha'
 const MODES: { id: TutorMode; label: string; icon: string }[] = [
   { id: 'socratico', label: 'Tutoria socrática', icon: '🧑‍🏫' },
   { id: 'explicar', label: 'Explicar & Mnemónica', icon: '✨' },
-  { id: 'exame', label: 'Simulação de exame', icon: '🏆' },
-  { id: 'ficha', label: 'Ficha de Fármaco', icon: '🧠' },
+  { id: 'exame', label: 'Simulação de exame', icon: 'trophy' },
+  { id: 'ficha', label: 'Ficha de Fármaco', icon: 'spark' },
 ]
 
 interface TutorMessage {
@@ -44,16 +49,16 @@ interface TutorSession {
 }
 
 const DOMAINS_SIMPLE = [
-  { id: 'farmacologia', label: 'Farmacologia', icon: '💊', color: '#0d6e42' },
-  { id: 'medicina_interna', label: 'Medicina Interna', icon: '🫀', color: '#dc2626' },
-  { id: 'emergencia', label: 'Emergência', icon: '🚨', color: '#b45309' },
-  { id: 'cirurgia', label: 'Cirurgia', icon: '🔪', color: '#1d4ed8' },
-  { id: 'pediatria', label: 'Pediatria', icon: '👶', color: '#7c3aed' },
-  { id: 'gineco_obstetricia', label: 'Gineco-Obstetrícia', icon: '🤰', color: '#be185d' },
-  { id: 'anatomia_fisiologia', label: 'Anatomia e Fisiologia', icon: '🫁', color: '#0891b2' },
-  { id: 'semiologia', label: 'Semiologia', icon: '🩺', color: '#374151' },
-  { id: 'enfermagem', label: 'Enfermagem', icon: '💉', color: '#0f766e' },
-  { id: 'nutricao', label: 'Nutrição', icon: '🥗', color: '#65a30d' },
+  { id: 'farmacologia', label: 'Farmacologia', icon: 'pill', color: 'var(--green)' },
+  { id: 'medicina_interna', label: 'Medicina Interna', icon: 'heart', color: 'var(--red)' },
+  { id: 'emergencia', label: 'Emergência', icon: 'alert', color: 'var(--amber)' },
+  { id: 'cirurgia', label: 'Cirurgia', icon: 'grid', color: 'var(--ink-2)' },
+  { id: 'pediatria', label: 'Pediatria', icon: 'family', color: 'var(--roxo)' },
+  { id: 'gineco_obstetricia', label: 'Gineco-Obstetrícia', icon: 'family', color: 'var(--red)' },
+  { id: 'anatomia_fisiologia', label: 'Anatomia e Fisiologia', icon: 'heart', color: 'var(--green)' },
+  { id: 'semiologia', label: 'Semiologia', icon: 'stethoscope', color: 'var(--ink-3)' },
+  { id: 'enfermagem', label: 'Enfermagem', icon: 'pill', color: 'var(--green-3)' },
+  { id: 'nutricao', label: 'Nutrição', icon: 'meal', color: 'var(--green)' },
 ]
 
 const SUGGESTED_TOPICS: Record<string, string[]> = {
@@ -74,12 +79,12 @@ const SUGGESTED_TOPICS: Record<string, string[]> = {
 const TUTOR_SESSION_KEY = 'phlox-tutor-session'
 
 const MSG_STYLE: Record<NonNullable<TutorMessage['type']>, { bg: string; border: string; icon: string }> = {
-  question:         { bg: '#eff6ff', border: '#bfdbfe', icon: '❓' },
-  feedback_good:    { bg: '#d1fae5', border: '#6ee7b7', icon: '✅' },
-  feedback_correct: { bg: '#fef9c3', border: '#fde68a', icon: '💡' },
-  hint:             { bg: '#faf5ff', border: '#e9d5ff', icon: '🔍' },
-  explanation:      { bg: 'white',   border: 'var(--border)', icon: '📖' },
-  summary:          { bg: '#0f172a', border: '#1e293b', icon: '🏆' },
+  question:         { bg: 'var(--bg-2)', border: 'var(--border)', icon: 'question' },
+  feedback_good:    { bg: 'var(--badge-green-bg)', border: 'var(--green-mid)', icon: 'check' },
+  feedback_correct: { bg: 'var(--amber-light)', border: 'var(--badge-amber-border)', icon: 'spark' },
+  hint:             { bg: 'var(--roxo-claro)', border: 'var(--roxo-borda)', icon: 'search' },
+  explanation:      { bg: 'white',   border: 'var(--border)', icon: 'book' },
+  summary:          { bg: 'var(--ink)', border: 'var(--ink-2)', icon: 'trophy' },
 }
 
 export default function TutorPage() {
@@ -225,33 +230,54 @@ export default function TutorPage() {
   const domain = DOMAINS_SIMPLE.find(d => d.id === session?.domain) || selectedDomain
 
   if (!isStudent) return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Tutor</span>
+        </BarraDeTrabalho>
+      }
+    >
 
       <div className="page-container page-body" style={{ maxWidth:520, margin:'0 auto' }}>
-        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'48px 28px', textAlign:'center' }}>
-          <div style={{ fontSize:48, marginBottom:16 }}>🧑‍🏫</div>
-          <div style={{ fontFamily:'var(--font-serif)', fontSize:24, color:'var(--ink)', marginBottom:12 }}>Phlox AI Tutor</div>
-          <p style={{ fontSize:14, color:'var(--ink-4)', lineHeight:1.7, marginBottom:24, maxWidth:400, margin:'0 auto 24px' }}>
+        <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-xl)', padding:'48px 28px', textAlign:'center' }}>
+          <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-numero)', color:'var(--ink)', marginBottom:12 }}>Phlox AI Tutor</div>
+          <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-4)', lineHeight:1.7, marginBottom:24, maxWidth:400, margin:'0 auto 24px' }}>
             Tutoria socrática em qualquer área das ciências da saúde. A AI não te dá as respostas — guia o teu raciocínio, corrige erros, e avalia o teu conhecimento. Exclusivo Plus.
           </p>
-          <Link href="/pricing" style={{ display:'inline-block', background:'#7c3aed', color:'white', textDecoration:'none', padding:'12px 24px', borderRadius:8, fontSize:14, fontWeight:700 }}>
+          <Link href="/pricing" style={{ display:'inline-block', background:'var(--roxo)', color:'white', textDecoration:'none', padding:'12px 24px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>
             Ver plano Plus →
           </Link>
         </div>
       </div>
-    </div>
+    </Mesa>
   )
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)', display:'flex', flexDirection:'column' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--roxo)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Tutor</span>
+        </BarraDeTrabalho>
+      }
+    >
 
       {(mode !== 'socratico' || !session) && (
         <div className="page-container" style={{ paddingTop: 16 }}>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 4 }}>
             {MODES.map(m => (
               <button key={m.id} onClick={() => setMode(m.id)}
-                style={{ padding: '8px 14px', borderRadius: 8, border: `1.5px solid ${mode === m.id ? '#7c3aed' : 'var(--border)'}`, background: mode === m.id ? '#7c3aed' : 'white', color: mode === m.id ? 'white' : 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-                {m.icon} {m.label}
+                style={{ padding: '8px 14px', borderRadius: 'var(--r-md)', border: `1.5px solid ${mode === m.id ? 'var(--roxo)' : 'var(--border)'}`, background: mode === m.id ? 'var(--roxo)' : 'white', color: mode === m.id ? 'white' : 'var(--ink-3)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
+                <Icon name={m.icon} size={15} />  {m.label}
               </button>
             ))}
           </div>
@@ -267,56 +293,56 @@ export default function TutorPage() {
         <div className="page-container page-body" style={{ maxWidth:680, margin:'0 auto', flex:1 }}>
           {/* Tutoria por acabar — sair a meio já não perde o diálogo. */}
           {resumable && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 10, padding: '12px 16px', marginBottom: 20, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 20 }}>⏳</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-lg)', padding: '12px 16px', marginBottom: 20, flexWrap: 'wrap' }}>
+              <span style={{ fontSize: 'var(--t-destaque)' }}>⏳</span>
               <div style={{ flex: 1, minWidth: 200 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: '#0b1120' }}>Tem uma tutoria por acabar</div>
-                <div style={{ fontSize: 12.5, color: '#6b7280' }}>{resumable.topic}</div>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Tem uma tutoria por acabar</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{resumable.topic}</div>
               </div>
-              <button onClick={resumeSession} style={{ padding: '8px 16px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Continuar →</button>
-              <button onClick={discardResumable} style={{ padding: '8px 14px', background: 'white', color: '#6b7280', border: '1px solid var(--border)', borderRadius: 8, fontSize: 12.5, cursor: 'pointer' }}>Começar de novo</button>
+              <button onClick={resumeSession} style={{ padding: '8px 16px', background: 'var(--roxo)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer' }}>Continuar →</button>
+              <button onClick={discardResumable} style={{ padding: '8px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>Começar de novo</button>
             </div>
           )}
           <div style={{ marginBottom:28 }}>
-            <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'#7c3aed', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
-              <div style={{ width:10, height:2, background:'#7c3aed', borderRadius:1 }} />Phlox AI Tutor · Plus
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--roxo)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8, display:'flex', alignItems:'center', gap:6 }}>
+              <div style={{ width:10, height:2, background:'var(--roxo)', borderRadius:'var(--r-sm)' }} />Phlox AI Tutor · Plus
             </div>
-            <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(22px,3vw,30px)', color:'var(--ink)', fontWeight:400, marginBottom:10 }}>Tutoria Socrática</h1>
-            <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.7, maxWidth:500 }}>
+            <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(22px,3vw,30px)', color:'var(--ink)', fontWeight: 'var(--peso-normal)' as any, marginBottom:10 }}>Tutoria Socrática</h1>
+            <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-3)', lineHeight:1.7, maxWidth:500 }}>
               Diferente do chat normal: o tutor não te dá as respostas directamente. Faz perguntas, activa o teu raciocínio, e guia-te até à compreensão real. Mais difícil. Mais eficaz.
             </p>
             {/* Q&A com guidelines fica em /study/biblioteca — explicar/mnemónica/exame/ficha agora são separadores acima. */}
             <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginTop:14 }}>
-              <Link href="/study/biblioteca" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', border:'1px solid var(--border)', borderRadius:8, textDecoration:'none', fontSize:12.5, fontWeight:600, color:'var(--ink-3)' }}>📚 Pergunta clínica (guidelines)</Link>
+              <Link href="/study/biblioteca" style={{ display:'inline-flex', alignItems:'center', gap:6, padding:'7px 12px', border:'1px solid var(--border)', borderRadius: 'var(--r-md)', textDecoration:'none', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color:'var(--ink-3)' }}>Pergunta clínica (guidelines)</Link>
             </div>
           </div>
 
           {/* How it works */}
           <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(min(100%,200px),1fr))', gap:8, marginBottom:24 }}>
             {[
-              { step:'1', title:'Activa', desc:'O tutor começa com o que já sabes sobre o tema', icon:'💭' },
-              { step:'2', title:'Explora', desc:'Vai fazendo perguntas para construir o conceito', icon:'🔍' },
-              { step:'3', title:'Aprofunda', desc:'Aplica a clínica difícil e os casos excepcionais', icon:'🧠' },
-              { step:'4', title:'Consolida', desc:'Resume e avalia o teu raciocínio com score final', icon:'🏆' },
+              { step:'1', title:'Activa', desc:'O tutor começa com o que já sabes sobre o tema', icon:'chat' },
+              { step:'2', title:'Explora', desc:'Vai fazendo perguntas para construir o conceito', icon:'search' },
+              { step:'3', title:'Aprofunda', desc:'Aplica a clínica difícil e os casos excepcionais', icon:'spark' },
+              { step:'4', title:'Consolida', desc:'Resume e avalia o teu raciocínio com score final', icon:'trophy' },
             ].map(s => (
-              <div key={s.step} style={{ padding:'14px', background:'white', border:'1px solid var(--border)', borderRadius:10, textAlign:'center' }}>
-                <div style={{ fontSize:24, marginBottom:6 }}>{s.icon}</div>
-                <div style={{ fontSize:11, fontFamily:'var(--font-mono)', color:'#7c3aed', fontWeight:700, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
+              <div key={s.step} style={{ padding:'14px', background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', textAlign:'center' }}>
+                <div style={{ fontSize: 'var(--t-numero)', marginBottom:6 }}><Icon name={s.icon} size={16} /></div>
+                <div style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', color:'var(--roxo)', fontWeight: 'var(--peso-forte)' as any, textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:4 }}>
                   Fase {s.step} — {s.title}
                 </div>
-                <div style={{ fontSize:12, color:'var(--ink-3)', lineHeight:1.5 }}>{s.desc}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color:'var(--ink-3)', lineHeight:1.5 }}>{s.desc}</div>
               </div>
             ))}
           </div>
 
           {/* Domain selector */}
           <div style={{ marginBottom:14 }}>
-            <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>Área de estudo</div>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:10 }}>Área de estudo</div>
             <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
               {DOMAINS_SIMPLE.map(d => (
                 <button key={d.id} onClick={() => setSelectedDomain(d)}
-                  style={{ padding:'7px 14px', border:`1.5px solid ${selectedDomain.id===d.id?d.color:'var(--border)'}`, borderRadius:20, background:selectedDomain.id===d.id?d.color:'white', color:selectedDomain.id===d.id?'white':'var(--ink-3)', cursor:'pointer', fontSize:12, fontWeight:selectedDomain.id===d.id?700:400, fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:6, transition:'all 0.15s' }}>
-                  <span>{d.icon}</span>{d.label}
+                  style={{ padding:'7px 14px', border:`1.5px solid ${selectedDomain.id===d.id?d.color:'var(--border)'}`, borderRadius: 'var(--r-xl)', background:selectedDomain.id===d.id?d.color:'white', color:selectedDomain.id===d.id?'white':'var(--ink-3)', cursor:'pointer', fontSize: 'var(--t-meta)', fontWeight:selectedDomain.id===d.id?700:400, fontFamily:'var(--font-sans)', display:'flex', alignItems:'center', gap:6, transition:'all 0.15s' }}>
+                  <span><Icon name={d.icon} size={16} /></span>{d.label}
                 </button>
               ))}
             </div>
@@ -324,14 +350,14 @@ export default function TutorPage() {
 
           {/* Topic input */}
           <div style={{ marginBottom:14 }}>
-            <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Tema a estudar</div>
-            <div style={{ background:'white', border:`2px solid ${selectedDomain.color}40`, borderRadius:12, overflow:'hidden', transition:'border-color 0.15s' }}>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Tema a estudar</div>
+            <div style={{ background:'white', border:`2px solid ${selectedDomain.color}40`, borderRadius: 'var(--r-xl)', overflow:'hidden', transition:'border-color 0.15s' }}>
               <div style={{ display:'flex', padding:'4px 4px 4px 16px', gap:8 }}>
                 <input value={topic} onChange={e => setTopic(e.target.value)} onKeyDown={e => e.key==='Enter' && startSession()}
                   placeholder={`Ex: ${SUGGESTED_TOPICS[selectedDomain.id]?.[0] || 'Escreve um tema...'}`}
-                  style={{ flex:1, border:'none', outline:'none', fontSize:15, fontFamily:'var(--font-sans)', color:'var(--ink)', background:'transparent', padding:'12px 0' }} />
+                  style={{ flex:1, border:'none', outline:'none', fontSize: 'var(--t-corpo)', fontFamily:'var(--font-sans)', color:'var(--ink)', background:'transparent', padding:'12px 0' }} />
                 <button onClick={startSession} disabled={!topic.trim() || loading}
-                  style={{ background:topic.trim()?selectedDomain.color:'var(--bg-3)', color:topic.trim()?'white':'var(--ink-5)', border:'none', borderRadius:8, padding:'11px 20px', fontSize:13, fontWeight:700, cursor:topic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)', transition:'all 0.15s' }}>
+                  style={{ background:topic.trim()?selectedDomain.color:'var(--bg-3)', color:topic.trim()?'white':'var(--ink-5)', border:'none', borderRadius: 'var(--r-md)', padding:'11px 20px', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor:topic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)', transition:'all 0.15s' }}>
                   {loading ? 'A iniciar...' : 'Começar sessão →'}
                 </button>
               </div>
@@ -341,11 +367,11 @@ export default function TutorPage() {
           {/* Suggestions */}
           {SUGGESTED_TOPICS[selectedDomain.id] && (
             <div>
-              <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Sugestões para {selectedDomain.label}</div>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Sugestões para {selectedDomain.label}</div>
               <div style={{ display:'flex', gap:6, flexWrap:'wrap' }}>
                 {SUGGESTED_TOPICS[selectedDomain.id].map(s => (
                   <button key={s} onClick={() => { setTopic(s) }}
-                    style={{ padding:'6px 12px', border:`1px solid ${selectedDomain.color}40`, borderRadius:20, background:`${selectedDomain.color}10`, cursor:'pointer', fontSize:12, color:selectedDomain.color, fontFamily:'var(--font-sans)', fontWeight:500 }}>
+                    style={{ padding:'6px 12px', border:`1px solid ${selectedDomain.color}40`, borderRadius: 'var(--r-xl)', background:`${selectedDomain.color}10`, cursor:'pointer', fontSize: 'var(--t-meta)', color:selectedDomain.color, fontFamily:'var(--font-sans)', fontWeight: 'var(--peso-corpo)' as any }}>
                     {s}
                   </button>
                 ))}
@@ -360,15 +386,15 @@ export default function TutorPage() {
           <div style={{ background:'white', borderBottom:'1px solid var(--border)', padding:'12px 0', flexShrink:0 }}>
             <div className="page-container" style={{ display:'flex', alignItems:'center', gap:12, flexWrap:'wrap' }}>
               <button onClick={() => { setSession(null); try { localStorage.removeItem(TUTOR_SESSION_KEY) } catch {} }}
-                style={{ background:'none', border:'none', cursor:'pointer', fontSize:12, color:'var(--ink-4)', fontFamily:'var(--font-sans)', padding:0, display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
+                style={{ background:'none', border:'none', cursor:'pointer', fontSize: 'var(--t-meta)', color:'var(--ink-4)', fontFamily:'var(--font-sans)', padding:0, display:'flex', alignItems:'center', gap:4, flexShrink:0 }}>
                 ← Nova sessão
               </button>
               <div style={{ width:1, height:16, background:'var(--border)' }} />
               <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
-                <span style={{ fontSize:16 }}>{domain.icon}</span>
+                <Icon name={domain.icon} size={16} />
                 <div>
-                  <div style={{ fontSize:13, fontWeight:700, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{session.topic}</div>
-                  <div style={{ fontSize:10, color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>{domain.label} · {session.exchangeCount} trocas</div>
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{session.topic}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', color:'var(--ink-4)', fontFamily:'var(--font-mono)' }}>{domain.label} · {session.exchangeCount} trocas</div>
                 </div>
               </div>
               {/* Phase indicator */}
@@ -386,7 +412,7 @@ export default function TutorPage() {
               {session.messages.map((msg, i) => {
                 if (msg.role === 'student') return (
                   <div key={i} style={{ display:'flex', justifyContent:'flex-end' }}>
-                    <div style={{ maxWidth:'75%', padding:'12px 16px', background:domain.color, color:'white', borderRadius:'12px 12px 4px 12px', fontSize:14, lineHeight:1.6 }}>
+                    <div style={{ maxWidth:'75%', padding:'12px 16px', background:domain.color, color:'white', borderRadius:'12px 12px 4px 12px', fontSize: 'var(--t-corpo)', lineHeight:1.6 }}>
                       {msg.content}
                     </div>
                   </div>
@@ -394,18 +420,18 @@ export default function TutorPage() {
                 const style = msg.type ? MSG_STYLE[msg.type] : MSG_STYLE.explanation
                 return (
                   <div key={i} style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                    <div style={{ width:32, height:32, borderRadius:'50%', background:domain.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>
+                    <div style={{ width:32, height:32, borderRadius:'50%', background:domain.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--t-corpo)', flexShrink:0 }}>
                       {domain.icon}
                     </div>
                     <div style={{ maxWidth:'80%', padding:'14px 16px', background:style.bg, border:`1px solid ${style.border}`, borderRadius:'4px 12px 12px 12px' }}>
                       {msg.score !== undefined && (
                         <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:8 }}>
-                          <span style={{ fontSize:9, fontFamily:'var(--font-mono)', fontWeight:700, color:domain.color, textTransform:'uppercase', letterSpacing:'0.1em' }}>
+                          <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:domain.color, textTransform:'uppercase', letterSpacing:'0.1em' }}>
                             +{msg.score} pontos
                           </span>
                         </div>
                       )}
-                      <div style={{ fontSize:14, lineHeight:1.7, color:msg.type==='summary'?'#f8fafc':'var(--ink)', whiteSpace:'pre-wrap' }}>
+                      <div style={{ fontSize: 'var(--t-corpo)', lineHeight:1.7, color:msg.type==='summary'?'var(--bg-2)':'var(--ink)', whiteSpace:'pre-wrap' }}>
                         {msg.content}
                       </div>
                     </div>
@@ -415,7 +441,7 @@ export default function TutorPage() {
 
               {loading && (
                 <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-                  <div style={{ width:32, height:32, borderRadius:'50%', background:domain.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize:14, flexShrink:0 }}>
+                  <div style={{ width:32, height:32, borderRadius:'50%', background:domain.color, display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--t-corpo)', flexShrink:0 }}>
                     {domain.icon}
                   </div>
                   <div style={{ padding:'14px 18px', background:'white', border:'1px solid var(--border)', borderRadius:'4px 12px 12px 12px', display:'flex', gap:6 }}>
@@ -436,13 +462,13 @@ export default function TutorPage() {
                     onKeyDown={e => e.key==='Enter' && !e.shiftKey && sendMessage()}
                     placeholder="A tua resposta..."
                     disabled={loading}
-                    style={{ flex:1, border:'1.5px solid var(--border)', borderRadius:10, padding:'12px 16px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none', resize:'none' }} />
+                    style={{ flex:1, border:'1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding:'12px 16px', fontSize: 'var(--t-corpo)', fontFamily:'var(--font-sans)', outline:'none', resize:'none' }} />
                   <button onClick={sendMessage} disabled={!input.trim() || loading}
-                    style={{ padding:'12px 20px', background:input.trim()?domain.color:'var(--bg-3)', color:input.trim()?'white':'var(--ink-5)', border:'none', borderRadius:10, cursor:input.trim()?'pointer':'not-allowed', fontSize:14, fontWeight:700, fontFamily:'var(--font-sans)', transition:'all 0.15s', flexShrink:0 }}>
+                    style={{ padding:'12px 20px', background:input.trim()?domain.color:'var(--bg-3)', color:input.trim()?'white':'var(--ink-5)', border:'none', borderRadius: 'var(--r-lg)', cursor:input.trim()?'pointer':'not-allowed', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, fontFamily:'var(--font-sans)', transition:'all 0.15s', flexShrink:0 }}>
                     Responder
                   </button>
                 </div>
-                <div style={{ fontSize:11, color:'var(--ink-5)', fontFamily:'var(--font-mono)', marginTop:6, textAlign:'center' }}>
+                <div style={{ fontSize: 'var(--t-meta)', color:'var(--ink-5)', fontFamily:'var(--font-mono)', marginTop:6, textAlign:'center' }}>
                   Enter para enviar · O tutor guia o teu raciocínio — não esperes respostas directas
                 </div>
               </div>
@@ -454,6 +480,6 @@ export default function TutorPage() {
       <style>{`
         @keyframes bounce { 0%,80%,100%{transform:translateY(0)} 40%{transform:translateY(-6px)} }
       `}</style>
-    </div>
+    </Mesa>
   )
 }

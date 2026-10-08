@@ -14,6 +14,12 @@ import { rotuloMotivo } from '@/lib/naoPrestado'
 
 // Fundido no "Registo do dia" (/care-log) como aba "Atividades" (AtividadesTool
 // reutilizado). A rota /activities redireciona p/ não partir links antigos.
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Grupo, Campo, Folha, CAIXA, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
 export default function AtividadesRedirect() {
   const r = useRouter()
   useEffect(() => { r.replace('/care-log?tab=atividades') }, [r])
@@ -94,25 +100,40 @@ interface Patient {
   room_number?: string
 }
 
+// ── OS TIPOS DEIXARAM DE TER EMOJI E DE TER COR (2026-10-07) ──────────────
+// Eram onze emoji e onze cores. Duas coisas de uma vez:
+//
+//   • o emoji e o sinal numero um de «software de brincar», e ao lado de uma
+//     palavra que ja diz a mesma coisa («Ginastica») nao acrescenta nada;
+//   • onze cores sao um sexto sistema de cor a competir com os tres estados.
+//     Com onze cores, a cor de uma atividade nao se aprende — decora-se.
+//
+// No lugar, um codigo de tres letras, neutro, como o MED e o CUI do /o-dia.
+// Serve para as listas densas, onde o nome por extenso nao cabe; onde cabe,
+// aparece o nome e mais nada.
 const TYPES = [
-  { id: 'gym',       label: 'Ginástica',      emoji: '🤸', color: '#22c55e' },
-  { id: 'games',     label: 'Jogos',           emoji: '🎲', color: '#3b82f6' },
-  { id: 'music',     label: 'Musicoterapia',   emoji: '🎵', color: '#8b5cf6' },
-  { id: 'art',       label: 'Arteterapia',     emoji: '🎨', color: '#f59e0b' },
-  { id: 'visit',     label: 'Visitas',         emoji: '👨‍👩‍👧', color: '#ec4899' },
-  { id: 'outing',    label: 'Saída',           emoji: '🌳', color: '#10b981' },
-  { id: 'religious', label: 'Religioso',       emoji: '⛪', color: '#6366f1' },
-  { id: 'therapy',   label: 'Fisioterapia',    emoji: '🏃', color: '#ef4444' },
-  { id: 'social',    label: 'Convívio',        emoji: '☕', color: '#d97706' },
-  { id: 'reading',   label: 'Leitura',         emoji: '📚', color: '#14b8a6' },
-  { id: 'other',     label: 'Outro',           emoji: '📌', color: '#6b7280' },
+  { id: 'gym',       label: 'Ginástica',     codigo: 'GIN' },
+  { id: 'games',     label: 'Jogos',         codigo: 'JOG' },
+  { id: 'music',     label: 'Musicoterapia', codigo: 'MUS' },
+  { id: 'art',       label: 'Arteterapia',   codigo: 'ART' },
+  { id: 'visit',     label: 'Visitas',       codigo: 'VIS' },
+  { id: 'outing',    label: 'Saída',         codigo: 'SAI' },
+  { id: 'religious', label: 'Religioso',     codigo: 'REL' },
+  { id: 'therapy',   label: 'Fisioterapia',  codigo: 'FIS' },
+  { id: 'social',    label: 'Convívio',      codigo: 'CON' },
+  { id: 'reading',   label: 'Leitura',       codigo: 'LEI' },
+  { id: 'other',     label: 'Outro',         codigo: 'OUT' },
 ]
 
+/* O codigo de um tipo. Era uma peca propria com o seu tamanho e a sua borda;
+   passa a `Codigo`, que e a mesma peca que o /o-dia e as ocorrencias usam —
+   para um selo de tres letras ter o mesmo aspeto em toda a aplicacao. */
+
 const STATUS_CFG = {
-  planned:   { label: 'Agendada',   bg: '#eff6ff', color: '#2563eb', border: '#bfdbfe' },
-  ongoing:   { label: 'Em curso',   bg: '#f0fdf4', color: '#16a34a', border: '#bbf7d0' },
-  done:      { label: 'Concluída',  bg: '#f9fafb', color: '#4b5563', border: '#e5e7eb' },
-  cancelled: { label: 'Cancelada',  bg: '#fef2f2', color: '#dc2626', border: '#fecaca' },
+  planned:   { label: 'Agendada',   bg: 'var(--bg-2)', color: 'var(--ink-4)', border: 'var(--border)' },
+  ongoing:   { label: 'Em curso',   bg: 'var(--badge-green-bg)', color: 'var(--green)', border: 'var(--badge-green-border)' },
+  done:      { label: 'Concluída',  bg: 'var(--bg-2)', color: 'var(--ink-2)', border: 'var(--border)' },
+  cancelled: { label: 'Cancelada',  bg: 'var(--badge-red-bg)', color: 'var(--red)', border: 'var(--badge-red-border)' },
 }
 
 const todayStr = () => new Date().toISOString().slice(0, 10)
@@ -129,6 +150,7 @@ export function AtividadesTool() {
   // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
   const podeEditar = scope.pode('atividades', 'editar')
   const cfg = institutionConfig(institution)
+  const largo = useLargo()
   const [view, setView]         = useState<'today' | 'week' | 'all'>('today')
   const [activities, setActivities] = useState<Activity[]>([])
   const [patients, setPatients] = useState<Patient[]>([])
@@ -136,6 +158,14 @@ export function AtividadesTool() {
   const [erroRegisto, setErroRegisto] = useState('')
   const [selected, setSelected] = useState<Activity | null>(null)
   const [participations, setParticipations] = useState<Participation[]>([])
+  /* QUANTOS FORAM A CADA ATIVIDADE (2026-10-07)
+     As participacoes so se liam da atividade ABERTA — por isso a lista nao
+     podia mostrar quantos participaram, e era preciso abrir uma a uma para
+     saber. Num centro de dia a participacao E o trabalho.
+
+     Uma leitura so, de todas as presencas, a contar por atividade. Le apenas
+     `activity_id`, o que a torna barata mesmo com um ano de historico. */
+  const [presencasPorAtividade, setPresencasPorAtividade] = useState<Map<string, number>>(new Map())
   const [showModal, setShowModal] = useState(false)
   const [loading, setLoading]   = useState(true)
   const [saving, setSaving]     = useState(false)
@@ -212,6 +242,20 @@ export function AtividadesTool() {
       setActivities(acts || [])
     }
     setPatients(pats || [])
+
+    // Quantos foram a cada atividade. Sem `scope.filter`: a tabela das
+    // participacoes nao tem `org_id` (herda pelo join a atividade), e
+    // acrescentar-lhe um filtro por uma coluna que nao existe faz a consulta
+    // rebentar em contas com organizacao. A RLS ja protege.
+    const { data: presencas, error: erroPresencas } = await supabase
+      .from('activity_participations').select('activity_id').eq('attended', true)
+    if (erroPresencas) reportError('activities-presencas', erroPresencas)
+    const contagem = new Map<string, number>()
+    ;((presencas || []) as { activity_id: string }[]).forEach(p => {
+      contagem.set(p.activity_id, (contagem.get(p.activity_id) || 0) + 1)
+    })
+    setPresencasPorAtividade(contagem)
+
     setLoading(false)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, scope.orgId, scope.userId, ensureRecurringOccurrences])
@@ -473,7 +517,7 @@ export function AtividadesTool() {
             heading: 'Registo de sessões',
             records: monthActs.sort((a, b) => a.date.localeCompare(b.date)).map(a => ({
               title: `${new Date(a.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })} — ${a.title}`,
-              tags: [{ label: typeFor(a.type).label, color: '#334155' }],
+              tags: [{ label: typeFor(a.type).label, color: 'var(--ink-3)' }],
               fields: [
                 { label: 'Hora', value: a.start_time + (a.end_time ? `–${a.end_time}` : '') },
                 { label: 'Presenças', value: String(attendedParts.filter(p => p.activity_id === a.id).length) },
@@ -515,237 +559,321 @@ export function AtividadesTool() {
 
   const attendedCount  = participations.filter(p => p.attended).length
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Eram quatro cartões de estatística, onze botões de filtro por tipo, três
+     separadores de vista, e só então a lista — em cartões de 70px com um
+     emoji por cada coisa (🕐 hora, 📍 local, 👤 responsável).
+
+     Passa a uma tabela com as horas em coluna, e ganha a coluna que faltava:
+     QUANTOS PARTICIPARAM. Num centro de dia a participação é o trabalho, e
+     para a saber era preciso abrir cada atividade uma a uma.
+
+     Os onze filtros por tipo passam a uma lista pendente — e só com os tipos
+     que esta casa usou, não os onze de catálogo.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const tiposUsados = TYPES.filter(t => activities.some(a => a.type === t.id))
+
+  /* Quantos participaram em cada atividade. O painel da direita só sabe da
+     que está aberta; a lista precisa de todas, e vem da mesma leitura. */
+  const presentesPorAtividade = presencasPorAtividade
+
   return (
-    <div style={{ padding: '16px clamp(14px,3vw,28px) 40px', maxWidth: 1100, margin: '0 auto' }}>
-      {/* Sem cabeçalho próprio: vive dentro do "Registo do dia" (moldura dá título+aba).
-          Mantemos só as ações. */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-end', marginBottom: 20, gap: 8, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={printMonthlyReport}
-            disabled={printingReport}
-            style={{ padding: '10px 16px', background: '#fff', color: '#2563eb', border: '1.5px solid #bfdbfe', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
-          >
-            {printingReport ? 'A gerar…' : 'Relatório mensal'}
-          </button>
-          <button
-            onClick={() => setShowRecurringModal(true)}
-            title="Atividades que se repetem todas as semanas, sem recriar à mão"
-            style={{ padding: '10px 16px', background: '#fff', color: '#7c3aed', border: '1.5px solid #ddd6fe', borderRadius: 8, fontWeight: 700, fontSize: 13, cursor: 'pointer' }}
-          >
-            🔁 Recorrentes{recurring.filter(r => r.active).length > 0 ? ` (${recurring.filter(r => r.active).length})` : ''}
-          </button>
-          <button
-            onClick={() => setShowModal(true)}
-            style={{ padding: '10px 20px', background: '#2563eb', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 14, cursor: 'pointer' }}
-          >
-            + Nova Atividade
-          </button>
-        </div>
-      </div>
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Atividades</span>
 
-      {notifyMsg && <div style={{ marginBottom: 16, background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#15803d', borderRadius: 10, padding: '10px 14px', fontSize: 13, fontWeight: 600 }}>✉ {notifyMsg}</div>}
+          <Seletor
+            opcoes={[
+              { id: 'today', rotulo: 'Hoje' },
+              { id: 'week', rotulo: 'Esta semana' },
+              { id: 'all', rotulo: 'Todas' },
+            ]}
+            ativa={view} aoMudar={v => setView(v as 'today' | 'week' | 'all')} />
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 12, marginBottom: 24 }}>
-        {[
-          { label: 'Hoje',           value: todayCount,      color: '#2563eb' },
-          { label: 'Este mês',       value: totalThisMonth,  color: '#7c3aed' },
-          { label: 'Concluídas',     value: doneThisMonth,   color: '#16a34a' },
-          { label: 'Tipos distintos',value: new Set(activities.map(a => a.type)).size, color: '#d97706' },
-        ].map(s => (
-          <div key={s.label} style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, padding: '14px 16px' }}>
-            <div style={{ fontSize: 24, fontWeight: 700, color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>{s.label}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Type filter chips */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button
-          onClick={() => setFilterType('')}
-          style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${filterType === '' ? '#2563eb' : '#e5e7eb'}`, background: filterType === '' ? '#eff6ff' : '#fff', color: filterType === '' ? '#2563eb' : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-        >Todas</button>
-        {TYPES.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setFilterType(t.id === filterType ? '' : t.id)}
-            style={{ padding: '5px 12px', borderRadius: 20, border: `1.5px solid ${filterType === t.id ? t.color : '#e5e7eb'}`, background: filterType === t.id ? t.color + '15' : '#fff', color: filterType === t.id ? t.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-          >{t.emoji} {t.label}</button>
-        ))}
-      </div>
-
-      {/* View tabs */}
-      <div style={{ display: 'flex', gap: 0, marginBottom: 20, background: '#f3f4f6', borderRadius: 8, padding: 3, width: 'fit-content' }}>
-        {([['today','Hoje'], ['week','Esta semana'], ['all','Todas']] as const).map(([v, l]) => (
-          <button
-            key={v}
-            onClick={() => setView(v)}
-            style={{ padding: '7px 16px', border: 'none', borderRadius: 6, background: view === v ? '#fff' : 'transparent', color: view === v ? '#0b1120' : '#6b7280', fontWeight: view === v ? 600 : 400, fontSize: 13, cursor: 'pointer', boxShadow: view === v ? '0 1px 3px rgba(0,0,0,0.08)' : 'none' }}
-          >{l}</button>
-        ))}
-      </div>
-
-      <div className="act-grid" style={{ display: 'grid', gridTemplateColumns: selected ? '1fr 360px' : '1fr', gap: 16 }}>
-        {/* Activity list */}
-        <div>
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>A carregar...</div>
-          ) : filtered.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: 60, color: '#9ca3af' }}>
-              <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="target" size={38} color="#cbd5e1" /></div>
-              <div style={{ fontWeight: 600, color: '#374151' }}>Sem atividades {view === 'today' ? 'hoje' : view === 'week' ? 'esta semana' : ''}</div>
-              <div style={{ fontSize: 13, marginTop: 4 }}>Clica em "+ Nova Atividade" para começar</div>
-            </div>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {filtered.map(act => {
-                const t = typeFor(act.type)
-                const s = STATUS_CFG[act.status]
-                const isSelected = selected?.id === act.id
-                return (
-                  <div
-                    key={act.id}
-                    onClick={() => selectActivity(act)}
-                    style={{ background: '#fff', border: `1.5px solid ${isSelected ? '#2563eb' : '#e5e7eb'}`, borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'border-color 0.15s', display: 'flex', alignItems: 'center', gap: 14 }}
-                  >
-                    <div style={{ width: 44, height: 44, borderRadius: 10, background: t.color + '15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                      {t.emoji}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontWeight: 600, color: '#0b1120', fontSize: 14 }}>{act.title}</span>
-                        <span style={{ padding: '2px 8px', borderRadius: 20, fontSize: 11, fontWeight: 500, background: s.bg, color: s.color, border: `1px solid ${s.border}` }}>{s.label}</span>
-                        {act.recurring_id && <span title="Atividade recorrente" style={{ fontSize: 11, color: '#7c3aed' }}>🔁</span>}
-                      </div>
-                      <div style={{ fontSize: 12, color: '#6b7280', marginTop: 3, display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-                        <span>🕐 {act.start_time}{act.end_time ? `–${act.end_time}` : ''}</span>
-                        {act.location && <span>📍 {act.location}</span>}
-                        {act.responsible && <span>👤 {act.responsible}</span>}
-                        <span style={{ color: t.color, fontWeight: 500 }}>{t.label}</span>
-                      </div>
-                    </div>
-                    <div style={{ fontSize: 12, color: '#9ca3af', flexShrink: 0 }}>
-                      {new Date(act.date + 'T12:00:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
+          {tiposUsados.length > 1 && (
+            <select value={filterType} onChange={e => setFilterType(e.target.value)}
+              aria-label="Tipo de atividade" style={{ ...CAIXA, width: 160 }}>
+              <option value="">Todos os tipos</option>
+              {tiposUsados.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
           )}
-        </div>
 
-        {/* Detail panel */}
-        {selected && (() => {
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {todayCount} HOJE
+              </span>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                {doneThisMonth} DE {totalThisMonth} FEITAS ESTE MÊS
+              </span>
+              {recurring.filter(r => r.active).length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                  {recurring.filter(r => r.active).length} RECORRENTE{recurring.filter(r => r.active).length === 1 ? '' : 'S'}
+                </span>
+              )}
+            </span>
+          )}
+
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <Botao onClick={printMonthlyReport} esperando={printingReport}>RELATÓRIO MENSAL</Botao>
+            <Botao onClick={() => setShowRecurringModal(true)}
+              titulo="Atividades que se repetem todas as semanas, sem recriar à mão">
+              RECORRENTES
+            </Botao>
+            <Botao feitio="principal" onClick={() => setShowModal(true)}>+ NOVA ATIVIDADE</Botao>
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--green)' }}>EM CURSO = a acontecer agora</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>CANCELADA</span>
+          <span style={MONO}>A coluna «Foram» é quem participou, não quem estava inscrito</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Quem faltou leva o motivo, e o motivo vai também para «o que não foi feito»
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {notifyMsg && <Aviso tom="bom">{notifyMsg}</Aviso>}
+
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(380px, 1fr) minmax(340px, 460px)' : '1fr',
+      }}>
+        {(largo || !selected) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 54 }}>Hora</span>
+                <span style={{ ...ROTULO, flex: 1 }}>O que é · onde</span>
+                <span style={{ ...ROTULO, width: 48 }}>Tipo</span>
+                <span style={{ ...ROTULO, width: 52, textAlign: 'right' }}>Foram</span>
+                <span style={{ ...ROTULO, width: 56, textAlign: 'right' }}>Dia</span>
+                <span style={{ ...ROTULO, width: 80 }}>Estado</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{filtered.length} de {activities.length}</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A carregar as atividades…" />
+            ) : filtered.length === 0 ? (
+              <Vazio
+                titulo={`Sem atividades ${view === 'today' ? 'hoje' : view === 'week' ? 'esta semana' : 'registadas'}.`}
+                oQueFazer="Um dia sem atividades registadas é um dia que não fica em lado nenhum — e é delas que sai o relatório mensal. As que se repetem todas as semanas podem ficar em «Recorrentes» e aparecem sozinhas."
+                acao={<Botao feitio="principal" onClick={() => setShowModal(true)}>+ NOVA ATIVIDADE</Botao>} />
+            ) : filtered.map(act => {
+              const t = typeFor(act.type)
+              const st = STATUS_CFG[act.status]
+              const foram = presentesPorAtividade.get(act.id) ?? null
+              const d = new Date(act.date + 'T12:00:00')
+              return (
+                <LinhaTabela key={act.id}
+                  aoTocar={() => selectActivity(act)}
+                  ativa={selected?.id === act.id}
+                  filete={act.status === 'ongoing' ? 'var(--green)' : act.status === 'cancelled' ? 'var(--red)' : undefined}
+                  antes={{
+                    largura: 54,
+                    conteudo: (
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-dado)',
+                        fontWeight: (act.status === 'ongoing' ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+                        color: act.status === 'ongoing' ? 'var(--green)' : 'var(--ink-3)',
+                      }}>{act.start_time?.slice(0, 5) || '—'}</span>
+                    ),
+                  }}
+                  principal={
+                    <>
+                      {act.title}
+                      {act.recurring_id && (
+                        <span title="Repete-se todas as semanas" style={{
+                          ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)',
+                        }}> · SEMANAL</span>
+                      )}
+                    </>
+                  }
+                  secundaria={[
+                    act.end_time ? `até ${act.end_time.slice(0, 5)}` : '',
+                    act.location,
+                    act.responsible,
+                  ].filter(Boolean).join(' · ') || undefined}
+                  celulas={[
+                    { rotulo: 'Tipo', valor: t.codigo, largura: 48 },
+                    {
+                      rotulo: 'Foram', valor: foram ?? '—', largura: 52, direita: true,
+                      forte: !!foram, cor: foram ? 'var(--green)' : 'var(--ink-5)',
+                    },
+                    {
+                      rotulo: 'Dia', largura: 56, direita: true, soLargo: view !== 'today',
+                      valor: `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`,
+                    },
+                    { rotulo: 'Estado', valor: st.label.toUpperCase(), largura: 80, cor: st.color, forte: act.status !== 'planned' },
+                  ]} />
+              )
+            })}
+          </Painel>
+        )}
+
+        {/* ── O DETALHE: QUEM FOI, E QUEM NÃO FOI E PORQUÊ ─────────────────── */}
+        {selected ? (() => {
           const t = typeFor(selected.type)
-          const s = STATUS_CFG[selected.status]
           return (
-            <div style={{ background: '#fff', border: '1.5px solid #e5e7eb', borderRadius: 12, padding: 20, position: 'sticky', top: 20, alignSelf: 'start', maxHeight: '80vh', overflowY: 'auto' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <span style={{ fontSize: 28 }}>{t.emoji}</span>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: '#0b1120' }}>{selected.title}</div>
-                    <div style={{ fontSize: 12, color: t.color, fontWeight: 500 }}>{t.label}</div>
-                  </div>
+            <Painel
+              cabeca={
+                <div style={{
+                  padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                  display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+                }}>
+                  <Botao onClick={() => setSelected(null)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
+                  <span style={{ minWidth: 0, flex: 1 }}>
+                    <span style={{
+                      display: 'block', fontSize: 'var(--t-destaque)',
+                      fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+                    }}>{selected.title}</span>
+                    <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+                      {t.label.toUpperCase()} · {new Date(selected.date + 'T12:00:00')
+                        .toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase()}
+                      {' · '}{selected.start_time?.slice(0, 5)}
+                      {selected.end_time ? `–${selected.end_time.slice(0, 5)}` : ''}
+                      {selected.location ? ` · ${selected.location.toUpperCase()}` : ''}
+                    </span>
+                  </span>
+                  <Botao feitio="calmo" onClick={() => deleteActivity(selected)}>APAGAR</Botao>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <button onClick={() => deleteActivity(selected)} title="Apagar atividade" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 14, padding: '2px 6px' }}>🗑</button>
-                  <button aria-label="Fechar" onClick={() => setSelected(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af', fontSize: 18 }}>×</button>                </div>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16, fontSize: 13, color: '#374151' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="calendar" size={14} color="#64748b" /> {new Date(selected.date + 'T12:00:00').toLocaleDateString('pt-PT', { weekday: 'long', day: 'numeric', month: 'long' })}</div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="clock" size={14} color="#64748b" /> {selected.start_time}{selected.end_time ? ` – ${selected.end_time}` : ''}</div>
-                {selected.location && <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}><Icon name="pin" size={14} color="#64748b" /> {selected.location}</div>}
-                {selected.responsible && <div>👤 {selected.responsible}</div>}
-                {selected.description && <div style={{ background: '#f9fafb', borderRadius: 6, padding: '8px 10px', marginTop: 4, color: '#6b7280' }}>{selected.description}</div>}
-              </div>
-
-              {/* Status buttons */}
-              <div style={{ marginBottom: 16 }}>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Estado</div>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {(Object.keys(STATUS_CFG) as Activity['status'][]).map(st => (
-                    <button
-                      key={st}
-                      onClick={() => toggleStatus(selected, st)}
-                      style={{ padding: '5px 10px', borderRadius: 6, border: `1.5px solid ${selected.status === st ? STATUS_CFG[st].color : '#e5e7eb'}`, background: selected.status === st ? STATUS_CFG[st].bg : '#fff', color: selected.status === st ? STATUS_CFG[st].color : '#6b7280', fontSize: 11, cursor: 'pointer', fontWeight: selected.status === st ? 600 : 400 }}
-                    >{STATUS_CFG[st].label}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Participations */}
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 600, color: '#9ca3af', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span>Participação · <span style={{ color: '#16a34a' }}>{attendedCount} presentes</span></span>
-                  <div style={{ display: 'flex', gap: 6 }}>
+              }
+              rodape={
+                <>
+                  <span style={{ ...MONO, color: attendedCount ? 'var(--green)' : 'var(--ink-4)' }}>
+                    {attendedCount} de {patients.length} {cfg.personNounPlural.toLowerCase()}
+                  </span>
+                  <span style={{ marginLeft: 'auto', display: 'flex', gap: 6 }}>
+                    {patients.length > 0 && <Botao onClick={markAllPresent}>MARCAR TODOS</Botao>}
                     {attendedCount > 0 && (
-                      <button onClick={notifyFamilies} disabled={notifyBusy} title="Avisar as famílias de quem participou"
-                        style={{ padding: '3px 9px', borderRadius: 5, border: '1px solid #bfdbfe', background: notifySent === selected?.id ? '#dbeafe' : '#eff6ff', color: '#2563eb', fontSize: 11, fontWeight: 700, cursor: notifyBusy ? 'wait' : 'pointer', textTransform: 'none', letterSpacing: 0 }}>
-                        {notifyBusy ? 'A enviar…' : notifySent === selected?.id ? '✓ Enviado' : '✉ Avisar famílias'}
-                      </button>
+                      <Botao onClick={notifyFamilies} esperando={notifyBusy}
+                        titulo="Avisar as famílias de quem participou">
+                        {notifySent === selected?.id ? 'AVISADAS ✓' : 'AVISAR AS FAMÍLIAS'}
+                      </Botao>
                     )}
-                    {patients.length > 0 && (
-                      <button onClick={markAllPresent} style={{ padding: '3px 9px', borderRadius: 5, border: '1px solid #bbf7d0', background: '#f0fdf4', color: '#16a34a', fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'none', letterSpacing: 0 }}>✓ Todos</button>
-                    )}
-                  </div>
-                </div>
-                {/* Um registo que nao gravou tem de se ver que nao gravou. */}
-                {erroRegisto && (
-                  <div style={{
-                    marginBottom: 8, padding: '8px 12px', background: '#fff5f5',
-                    border: '1px solid #fed7d7', borderRadius: 7,
-                    fontSize: 12, color: '#c53030', lineHeight: 1.5,
-                  }}>{erroRegisto}</div>
+                  </span>
+                </>
+              }
+            >
+              <div style={{ padding: '0 14px' }}>
+                {selected.description && (
+                  <Grupo titulo="O que é">
+                    <p style={{
+                      fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55,
+                      margin: '4px 0 0', whiteSpace: 'pre-wrap',
+                    }}>{selected.description}</p>
+                  </Grupo>
                 )}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {patients.length === 0 ? (
-                    <div style={{ fontSize: 12, color: '#9ca3af', textAlign: 'center', padding: 12 }}>Sem {cfg.personNounPlural.toLowerCase()} registados</div>
-                  ) : patients.map(p => {
-                    const part = participations.find(pp => pp.patient_id === p.id)
-                    const attended = part?.attended ?? false
-                    return (
-                      <div
-                        key={p.id}
-                        style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '6px 8px', borderRadius: 6, background: attended ? '#f0fdf4' : '#f9fafb', border: `1px solid ${attended ? '#bbf7d0' : '#e5e7eb'}` }}
-                      >
-                        <div style={{ minWidth: 0 }}>
-                          <span style={{ fontSize: 13, fontWeight: 500, color: '#0b1120' }}>{p.name}</span>
-                          {p.room_number && <span style={{ fontSize: 11, color: '#9ca3af', marginLeft: 6 }}>Q.{p.room_number}</span>}
-                          {/* O motivo por baixo do nome. Um «Ausente» seco nao
-                              diz nada a quem le o registo na semana seguinte. */}
-                          {!attended && part?.motivo && (
-                            <span style={{ display: 'block', fontSize: 11, color: '#6b7280', marginTop: 2 }}>
-                              {rotuloMotivo(part.motivo)}
+                {selected.responsible && (
+                  <Grupo titulo="Quem conduz">
+                    <span style={{ fontSize: 'var(--t-dado)' }}>{selected.responsible}</span>
+                  </Grupo>
+                )}
+
+                <Grupo titulo="Em que ponto está">
+                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                    {(Object.keys(STATUS_CFG) as Activity['status'][]).map(st => {
+                      const on = selected.status === st
+                      const c = STATUS_CFG[st]
+                      return (
+                        <button key={st} type="button" onClick={() => toggleStatus(selected, st)}
+                          className="mesa-botao" style={{
+                            ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                            textTransform: 'uppercase', padding: '0 11px',
+                            borderRadius: 'var(--r-md)', cursor: 'pointer',
+                            border: `1px solid ${on ? c.color : 'var(--border-2)'}`,
+                            background: on ? c.color : 'transparent',
+                            color: on ? 'var(--sobre-acento)' : 'var(--ink-3)',
+                            fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                          }}>{c.label}</button>
+                      )
+                    })}
+                  </div>
+                </Grupo>
+              </div>
+
+              {/* Um registo que nao gravou tem de se ver que nao gravou. */}
+              {erroRegisto && <div style={{ padding: '0 14px' }}><Aviso tom="mau">{erroRegisto}</Aviso></div>}
+
+              <div style={{ padding: '10px 0 0' }}>
+                <div style={{
+                  padding: '5px 14px', background: 'var(--bg-2)',
+                  borderTop: '1px solid var(--border-2)', borderBottom: '1px solid var(--border)',
+                }}>
+                  <span style={ROTULO}>Quem participou</span>
+                </div>
+
+                {patients.length === 0 ? (
+                  <Vazio titulo={`Ainda não há ${cfg.personNounPlural.toLowerCase()} registados.`} />
+                ) : patients.map(p => {
+                  const part = participations.find(pp => pp.patient_id === p.id)
+                  const attended = part?.attended ?? false
+                  return (
+                    <div key={p.id} style={{
+                      display: 'flex', alignItems: 'center', gap: 8,
+                      padding: '7px 14px', borderBottom: '1px solid var(--border)',
+                      borderLeft: `3px solid ${attended ? 'var(--green)' : 'transparent'}`,
+                    }}>
+                      <span style={{ flex: 1, minWidth: 0 }}>
+                        <span style={{
+                          display: 'block', fontSize: 'var(--t-dado)',
+                          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                        }}>
+                          {p.name}
+                          {p.room_number && (
+                            <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                              {' '}· {p.room_number}
                             </span>
                           )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                          {/* Depois de marcar ausente, o motivo ainda se pode
-                              acrescentar ou corrigir sem desfazer nada. */}
-                          {!attended && (
-                            <button
-                              onClick={() => perguntarPorque(p.id)}
-                              style={{ padding: '3px 8px', borderRadius: 5, border: '1px solid #e5e7eb', background: 'transparent', color: '#6b7280', fontSize: 11, cursor: 'pointer', fontWeight: 600 }}
-                            >{part?.motivo ? 'Mudar motivo' : 'Porquê?'}</button>
-                          )}
-                          <button
-                            onClick={() => toggleParticipation(p.id, !attended)}
-                            style={{ padding: '3px 10px', borderRadius: 5, border: 'none', background: attended ? '#16a34a' : '#e5e7eb', color: attended ? '#fff' : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                          >{attended ? '✓ Presente' : 'Ausente'}</button>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
+                        </span>
+                        {/* O motivo por baixo do nome. Um «Ausente» seco não
+                            diz nada a quem lê o registo na semana seguinte. */}
+                        {!attended && part?.motivo && (
+                          <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 1 }}>
+                            {rotuloMotivo(part.motivo)}
+                          </span>
+                        )}
+                      </span>
+
+                      {!attended && (
+                        <Botao feitio="calmo" onClick={() => perguntarPorque(p.id)}>
+                          {part?.motivo ? 'MUDAR O MOTIVO' : 'PORQUÊ?'}
+                        </Botao>
+                      )}
+                      <button type="button" onClick={() => toggleParticipation(p.id, !attended)}
+                        className="mesa-botao" style={{
+                          ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                          padding: '0 11px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                          border: `1px solid ${attended ? 'var(--green)' : 'var(--border-2)'}`,
+                          background: attended ? 'var(--green)' : 'transparent',
+                          color: attended ? 'var(--sobre-acento)' : 'var(--ink-4)',
+                          fontWeight: (attended ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                          flexShrink: 0,
+                        }}>{attended ? 'FOI' : 'NÃO FOI'}</button>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
+            </Painel>
           )
-        })()}
+        })() : largo ? (
+          <Painel>
+            <Vazio titulo="Escolha uma atividade."
+              oQueFazer="Abre aqui ao lado para marcar quem participou — com a lista do dia sempre à vista." />
+          </Painel>
+        ) : null}
       </div>
+    </Mesa>
 
       {/* Porque e que esta pessoa nao participou.
           Grava em dois sitios de proposito: o `motivo` fica na participacao
@@ -779,213 +907,242 @@ export function AtividadesTool() {
         />
       )}
 
-      {/* New activity modal */}
+      {/* ── NOVA ATIVIDADE ─────────────────────────────────────────────── */}
       {showModal && (
-        <div
-          onClick={e => { if (e.target === e.currentTarget) setShowModal(false) }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>Nova Atividade</h2>
-              <button onClick={() => setShowModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+        <Folha titulo="Nova atividade" aoFechar={() => setShowModal(false)}>
+          {/* Modelos rápidos — um toque preenche título, tipo e local, e
+              evita escrever «Ginástica das 10h» à mão todos os dias. */}
+          <Campo rotulo="Começar de um modelo">
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+              {ACTIVITY_TEMPLATES.map(tpl => {
+                const on = form.title === tpl.title
+                return (
+                  <button key={tpl.title} type="button" className="mesa-botao"
+                    onClick={() => setForm(p => ({ ...p, title: tpl.title, type: tpl.type, location: tpl.location }))}
+                    style={{
+                      ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.04em',
+                      padding: '0 10px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                      border: `1px solid ${on ? 'var(--green)' : 'var(--border-2)'}`,
+                      background: on ? 'var(--green)' : 'transparent',
+                      color: on ? 'var(--sobre-acento)' : 'var(--ink-4)',
+                      fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                    }}>{tpl.title}</button>
+                )
+              })}
             </div>
+          </Campo>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {/* Modelos rápidos — toque preenche título/tipo/local, evita escrever
-                  "Ginástica das 10h" à mão todos os dias. */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Modelos rápidos</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {ACTIVITY_TEMPLATES.map(tpl => (
-                    <button key={tpl.title} type="button"
-                      onClick={() => setForm(p => ({ ...p, title: tpl.title, type: tpl.type, location: tpl.location }))}
-                      style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${form.title === tpl.title ? typeFor(tpl.type).color : '#e5e7eb'}`, background: form.title === tpl.title ? typeFor(tpl.type).color + '15' : '#fff', color: form.title === tpl.title ? typeFor(tpl.type).color : '#6b7280', fontSize: 11.5, cursor: 'pointer', fontWeight: 500 }}
-                    >{typeFor(tpl.type).emoji} {tpl.title}</button>
-                  ))}
-                </div>
-              </div>
+          <Campo rotulo="O que é" para="at-titulo" obrigatorio>
+            <input id="at-titulo" value={form.title}
+              onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
+              placeholder="Ex: Ginástica de manhã" style={{ ...CAIXA, width: '100%' }} />
+          </Campo>
 
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Título *</label>
-                <input
-                  value={form.title}
-                  onChange={e => setForm(p => ({ ...p, title: e.target.value }))}
-                  placeholder="Ex: Ginástica de manhã"
-                  style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }}
-                />
-              </div>
+          {/* Os onze tipos eram onze botões — três filas de alvos de 12px no
+              telemóvel. Uma lista pendente é um alvo só. */}
+          <Campo rotulo="Tipo" para="at-tipo">
+            <select id="at-tipo" value={form.type}
+              onChange={e => setForm(p => ({ ...p, type: e.target.value }))} style={{ ...CAIXA, width: '100%' }}>
+              {TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          </Campo>
 
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Tipo</label>
-                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                  {TYPES.map(t => (
-                    <button
-                      key={t.id}
-                      onClick={() => setForm(p => ({ ...p, type: t.id }))}
-                      style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${form.type === t.id ? t.color : '#e5e7eb'}`, background: form.type === t.id ? t.color + '15' : '#fff', color: form.type === t.id ? t.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                    >{t.emoji} {t.label}</button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Data *</label>
-                  <input type="date" value={form.date} onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Início *</label>
-                  <input type="time" value={form.start_time} onChange={e => setForm(p => ({ ...p, start_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Fim</label>
-                  <input type="time" value={form.end_time} onChange={e => setForm(p => ({ ...p, end_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Local</label>
-                  <input value={form.location} onChange={e => setForm(p => ({ ...p, location: e.target.value }))} placeholder="Sala de convívio" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Responsável</label>
-                  <input value={form.responsible} onChange={e => setForm(p => ({ ...p, responsible: e.target.value }))} placeholder="Nome do colaborador" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Descrição</label>
-                <textarea value={form.description} onChange={e => setForm(p => ({ ...p, description: e.target.value }))} rows={2} placeholder="Notas adicionais..." style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, resize: 'vertical', boxSizing: 'border-box' }} />
-              </div>
-
-              {/* Avisar as famílias — ligado por defeito, mas visível e desligável. */}
-              <label style={{ display: 'flex', alignItems: 'flex-start', gap: 9, cursor: 'pointer', padding: '10px 12px', background: notifyOnCreate ? '#f0fdf4' : '#f9fafb', border: `1.5px solid ${notifyOnCreate ? '#bbf7d0' : '#e5e7eb'}`, borderRadius: 9, marginTop: 4 }}>
-                <input type="checkbox" checked={notifyOnCreate} onChange={e => setNotifyOnCreate(e.target.checked)} style={{ marginTop: 2, width: 16, height: 16, accentColor: '#16a34a', flexShrink: 0 }} />
-                <span>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 700, color: '#0b1120' }}>Avisar as famílias</span>
-                  <span style={{ display: 'block', fontSize: 11.5, color: '#64748b' }}>Manda um recado às famílias dos {cfg.personNounPlural.toLowerCase()}. Desligue para planear sem avisar.</span>
-                </span>
-              </label>
-
-              <button
-                onClick={saveActivity}
-                disabled={!form.title.trim() || saving}
-                style={{ padding: '12px 20px', background: form.title.trim() ? '#2563eb' : '#e5e7eb', color: form.title.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: form.title.trim() ? 'pointer' : 'default', marginTop: 4 }}
-              >{saving ? 'A guardar...' : 'Criar Atividade'}</button>
+          <Campo rotulo="Quando" obrigatorio>
+            <div style={{ display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 10 }}>
+              <input aria-label="Data" type="date" value={form.date}
+                onChange={e => setForm(p => ({ ...p, date: e.target.value }))} style={CAIXA} />
+              <input aria-label="Hora de início" type="time" value={form.start_time}
+                onChange={e => setForm(p => ({ ...p, start_time: e.target.value }))} style={CAIXA} />
+              <input aria-label="Hora de fim" type="time" value={form.end_time}
+                onChange={e => setForm(p => ({ ...p, end_time: e.target.value }))} style={CAIXA} />
             </div>
+          </Campo>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+            <Campo rotulo="Onde" para="at-local">
+              <input id="at-local" value={form.location}
+                onChange={e => setForm(p => ({ ...p, location: e.target.value }))}
+                placeholder="Sala de convívio" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+            <Campo rotulo="Quem conduz" para="at-resp">
+              <input id="at-resp" value={form.responsible}
+                onChange={e => setForm(p => ({ ...p, responsible: e.target.value }))}
+                placeholder="Nome de quem orienta" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
           </div>
-        </div>
+
+          <Campo rotulo="Notas" para="at-desc">
+            <textarea id="at-desc" value={form.description}
+              onChange={e => setForm(p => ({ ...p, description: e.target.value }))}
+              rows={2} placeholder="O que é preciso preparar, quem convidar…"
+              style={{ ...CAIXA_TEXTO, width: '100%' }} />
+          </Campo>
+
+          {/* Avisar as famílias — ligado por omissão, mas visível e desligável.
+              Era uma caixa verde de 60px por cima do botão de gravar; fica uma
+              linha, que é o que uma opção com um valor por omissão merece. */}
+          <label style={{
+            display: 'flex', alignItems: 'flex-start', gap: 8, cursor: 'pointer',
+            marginTop: 14, padding: '8px 0', borderTop: '1px solid var(--border)',
+          }}>
+            <input type="checkbox" checked={notifyOnCreate}
+              onChange={e => setNotifyOnCreate(e.target.checked)}
+              style={{ marginTop: 2, accentColor: 'var(--green)', flexShrink: 0 }} />
+            <span>
+              <span style={{ display: 'block', fontSize: 'var(--t-dado)', color: 'var(--ink)' }}>
+                Avisar as famílias
+              </span>
+              <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.45 }}>
+                Manda um recado às famílias. Desligue para planear sem avisar ainda.
+              </span>
+            </span>
+          </label>
+
+          <div style={{ marginTop: 14 }}>
+            <Botao feitio="principal" onClick={saveActivity} esperando={saving}
+              disabled={!form.title.trim()}>
+              CRIAR A ATIVIDADE
+            </Botao>
+          </div>
+        </Folha>
       )}
 
       {/* Atividades recorrentes — modelos que geram ocorrências semana a semana
           (ver ensureRecurringOccurrences), sem recriar a atividade à mão. */}
+      {/* ── AS QUE SE REPETEM ──────────────────────────────────────────── */}
       {showRecurringModal && (
-        <div
-          onClick={e => { if (e.target === e.currentTarget) setShowRecurringModal(false) }}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}
-        >
-          <div style={{ background: '#fff', borderRadius: '16px 16px 0 0', padding: 24, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <h2 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>🔁 Atividades recorrentes</h2>
-              <button onClick={() => setShowRecurringModal(false)} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
-            </div>
-            <p style={{ margin: '0 0 18px', fontSize: 12.5, color: '#6b7280', lineHeight: 1.5 }}>Fica sempre agendada no mesmo dia da semana — as próximas 3 semanas aparecem automaticamente na lista, marcadas com 🔁.</p>
+        <Folha titulo="Atividades que se repetem" aoFechar={() => setShowRecurringModal(false)}>
+          <p style={{
+            margin: '10px 0 0', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.55,
+          }}>
+            Ficam agendadas sempre no mesmo dia da semana. As próximas três semanas
+            aparecem sozinhas na lista, marcadas com «semanal» — não é preciso
+            recriar nada à mão.
+          </p>
 
-            {recurring.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                {recurring.map(r => {
-                  const t = typeFor(r.type)
+          {recurring.length > 0 && (
+            <Grupo titulo={`Já definidas · ${recurring.length}`}>
+              {recurring.map(r => {
+                const t = typeFor(r.type)
+                return (
+                  <div key={r.id} style={{
+                    display: 'flex', alignItems: 'center', gap: 9,
+                    padding: '8px 0', borderBottom: '1px solid var(--border)',
+                    opacity: r.active ? 1 : 0.55,
+                  }}>
+                    <span style={{ flexShrink: 0 }}><Codigo texto={t.codigo} apagado={!r.active} /></span>
+                    <span style={{ flex: 1, minWidth: 0 }}>
+                      <span style={{
+                        display: 'block', fontSize: 'var(--t-dado)',
+                        fontWeight: 'var(--peso-corpo)' as any,
+                        color: r.active ? 'var(--ink)' : 'var(--ink-5)',
+                      }}>{r.title}</span>
+                      <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                        {WEEKDAYS[r.weekday].toUpperCase()} · {r.start_time?.slice(0, 5)}
+                        {r.end_time ? `–${r.end_time.slice(0, 5)}` : ''}
+                        {r.location ? ` · ${r.location}` : ''}
+                      </span>
+                    </span>
+                    <Botao onClick={() => toggleRecurringActive(r)}>
+                      {r.active ? 'PAUSAR' : 'RETOMAR'}
+                    </Botao>
+                    <Botao feitio="calmo" onClick={() => deleteRecurring(r)}>APAGAR</Botao>
+                  </div>
+                )
+              })}
+            </Grupo>
+          )}
+
+          <Grupo titulo="Acrescentar uma">
+            <Campo rotulo="Começar de um modelo">
+              <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                {ACTIVITY_TEMPLATES.map(tpl => {
+                  const on = recurringForm.title === tpl.title
                   return (
-                    <div key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: r.active ? '#fff' : '#f9fafb', border: `1.5px solid ${r.active ? '#e5e7eb' : '#f1f5f9'}`, borderRadius: 9 }}>
-                      <span style={{ fontSize: 18, flexShrink: 0, opacity: r.active ? 1 : 0.4 }}>{t.emoji}</span>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 13.5, fontWeight: 700, color: r.active ? '#0b1120' : '#9ca3af' }}>{r.title}</div>
-                        <div style={{ fontSize: 11.5, color: '#9ca3af' }}>{WEEKDAYS[r.weekday]} · {r.start_time}{r.end_time ? `–${r.end_time}` : ''}{r.location ? ` · ${r.location}` : ''}</div>
-                      </div>
-                      <button onClick={() => toggleRecurringActive(r)} title={r.active ? 'Pausar' : 'Reativar'} style={{ padding: '5px 10px', borderRadius: 6, border: '1px solid #e5e7eb', background: '#fff', color: '#6b7280', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}>{r.active ? 'Pausar' : 'Reativar'}</button>
-                      <button onClick={() => deleteRecurring(r)} aria-label={`Apagar ${r.title}`} style={{ background: 'none', border: 'none', color: '#dc2626', cursor: 'pointer', fontSize: 14 }}>🗑</button>
-                    </div>
+                    <button key={tpl.title} type="button" className="mesa-botao"
+                      onClick={() => setRecurringForm(p => ({ ...p, title: tpl.title, type: tpl.type, location: tpl.location }))}
+                      style={{
+                        ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.04em',
+                        padding: '0 10px', borderRadius: 'var(--r-md)', cursor: 'pointer',
+                        border: `1px solid ${on ? 'var(--green)' : 'var(--border-2)'}`,
+                        background: on ? 'var(--green)' : 'transparent',
+                        color: on ? 'var(--sobre-acento)' : 'var(--ink-4)',
+                        fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                      }}>{tpl.title}</button>
                   )
                 })}
               </div>
-            )}
+            </Campo>
 
-            <div style={{ borderTop: '1px solid #f1f5f9', paddingTop: 16 }}>
-              <div style={{ fontSize: 12.5, fontWeight: 700, color: '#374151', marginBottom: 10 }}>+ Novo modelo recorrente</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Modelos rápidos</label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {ACTIVITY_TEMPLATES.map(tpl => (
-                      <button key={tpl.title} type="button"
-                        onClick={() => setRecurringForm(p => ({ ...p, title: tpl.title, type: tpl.type, location: tpl.location }))}
-                        style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${recurringForm.title === tpl.title ? typeFor(tpl.type).color : '#e5e7eb'}`, background: recurringForm.title === tpl.title ? typeFor(tpl.type).color + '15' : '#fff', color: recurringForm.title === tpl.title ? typeFor(tpl.type).color : '#6b7280', fontSize: 11.5, cursor: 'pointer', fontWeight: 500 }}
-                      >{typeFor(tpl.type).emoji} {tpl.title}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Título *</label>
-                  <input value={recurringForm.title} onChange={e => setRecurringForm(p => ({ ...p, title: e.target.value }))} placeholder="Ex: Ginástica de manhã" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Tipo</label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {TYPES.map(t => (
-                      <button key={t.id} onClick={() => setRecurringForm(p => ({ ...p, type: t.id }))}
-                        style={{ padding: '5px 10px', borderRadius: 20, border: `1.5px solid ${recurringForm.type === t.id ? t.color : '#e5e7eb'}`, background: recurringForm.type === t.id ? t.color + '15' : '#fff', color: recurringForm.type === t.id ? t.color : '#6b7280', fontSize: 12, cursor: 'pointer', fontWeight: 500 }}
-                      >{t.emoji} {t.label}</button>
-                    ))}
-                  </div>
-                </div>
-                <div>
-                  <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 6 }}>Dia da semana</label>
-                  <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-                    {WEEKDAYS_SHORT.map((w, i) => (
-                      <button key={w} onClick={() => setRecurringForm(p => ({ ...p, weekday: i }))}
-                        style={{ padding: '7px 12px', borderRadius: 8, border: `1.5px solid ${recurringForm.weekday === i ? '#7c3aed' : '#e5e7eb'}`, background: recurringForm.weekday === i ? '#f5f3ff' : '#fff', color: recurringForm.weekday === i ? '#7c3aed' : '#6b7280', fontSize: 12.5, cursor: 'pointer', fontWeight: recurringForm.weekday === i ? 700 : 500 }}
-                      >{w}</button>
-                    ))}
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Início *</label>
-                    <input type="time" value={recurringForm.start_time} onChange={e => setRecurringForm(p => ({ ...p, start_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Fim</label>
-                    <input type="time" value={recurringForm.end_time} onChange={e => setRecurringForm(p => ({ ...p, end_time: e.target.value }))} style={{ width: '100%', padding: '9px 10px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                  </div>
-                </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Local</label>
-                    <input value={recurringForm.location} onChange={e => setRecurringForm(p => ({ ...p, location: e.target.value }))} placeholder="Sala de convívio" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                  </div>
-                  <div>
-                    <label style={{ fontSize: 12, fontWeight: 600, color: '#374151', display: 'block', marginBottom: 4 }}>Responsável</label>
-                    <input value={recurringForm.responsible} onChange={e => setRecurringForm(p => ({ ...p, responsible: e.target.value }))} placeholder="Nome do colaborador" style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e5e7eb', borderRadius: 8, fontSize: 13, boxSizing: 'border-box' }} />
-                  </div>
-                </div>
-                <button
-                  onClick={saveRecurring}
-                  disabled={!recurringForm.title.trim() || savingRecurring}
-                  style={{ padding: '12px 20px', background: recurringForm.title.trim() ? '#7c3aed' : '#e5e7eb', color: recurringForm.title.trim() ? '#fff' : '#9ca3af', border: 'none', borderRadius: 8, fontWeight: 600, fontSize: 15, cursor: recurringForm.title.trim() ? 'pointer' : 'default', marginTop: 4 }}
-                >{savingRecurring ? 'A guardar...' : `Criar recorrente — todas as ${WEEKDAYS[recurringForm.weekday].toLowerCase()}s`}</button>
+            <Campo rotulo="O que é" para="rec-titulo" obrigatorio>
+              <input id="rec-titulo" value={recurringForm.title}
+                onChange={e => setRecurringForm(p => ({ ...p, title: e.target.value }))}
+                placeholder="Ex: Ginástica de manhã" style={{ ...CAIXA, width: '100%' }} />
+            </Campo>
+
+            <Campo rotulo="Tipo" para="rec-tipo">
+              <select id="rec-tipo" value={recurringForm.type}
+                onChange={e => setRecurringForm(p => ({ ...p, type: e.target.value }))}
+                style={{ ...CAIXA, width: '100%' }}>
+                {TYPES.map(t => <option key={t.id} value={t.id}>{t.label}</option>)}
+              </select>
+            </Campo>
+
+            {/* Sete alvos curtos numa fila é mesmo a forma de escolher um dia
+                da semana — mas com a altura de alvo do sistema, não 7px. */}
+            <Campo rotulo="Em que dia">
+              <div role="radiogroup" aria-label="Dia da semana" style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                {WEEKDAYS_SHORT.map((w, i) => {
+                  const on = recurringForm.weekday === i
+                  return (
+                    <button key={w} type="button" role="radio" aria-checked={on}
+                      className="mesa-botao"
+                      onClick={() => setRecurringForm(p => ({ ...p, weekday: i }))}
+                      style={{
+                        ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                        textTransform: 'uppercase', padding: '0 11px',
+                        borderRadius: 'var(--r-md)', cursor: 'pointer',
+                        border: `1px solid ${on ? 'var(--green)' : 'var(--border-2)'}`,
+                        background: on ? 'var(--green)' : 'transparent',
+                        color: on ? 'var(--sobre-acento)' : 'var(--ink-4)',
+                        fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+                      }}>{w}</button>
+                  )
+                })}
               </div>
-            </div>
-          </div>
-        </div>
-      )}
+            </Campo>
 
-      <style>{`
-        @media (max-width: 768px) {
-          .act-grid { grid-template-columns: 1fr !important; }
-        }
-      `}</style>
-    </div>
+            <Campo rotulo="A que horas" obrigatorio>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <input aria-label="Hora de início" type="time" value={recurringForm.start_time}
+                  onChange={e => setRecurringForm(p => ({ ...p, start_time: e.target.value }))} style={CAIXA} />
+                <input aria-label="Hora de fim" type="time" value={recurringForm.end_time}
+                  onChange={e => setRecurringForm(p => ({ ...p, end_time: e.target.value }))} style={CAIXA} />
+              </div>
+            </Campo>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <Campo rotulo="Onde" para="rec-local">
+                <input id="rec-local" value={recurringForm.location}
+                  onChange={e => setRecurringForm(p => ({ ...p, location: e.target.value }))}
+                  placeholder="Sala de convívio" style={{ ...CAIXA, width: '100%' }} />
+              </Campo>
+              <Campo rotulo="Quem conduz" para="rec-resp">
+                <input id="rec-resp" value={recurringForm.responsible}
+                  onChange={e => setRecurringForm(p => ({ ...p, responsible: e.target.value }))}
+                  placeholder="Nome de quem orienta" style={{ ...CAIXA, width: '100%' }} />
+              </Campo>
+            </div>
+
+            <div style={{ marginTop: 14 }}>
+              <Botao feitio="principal" onClick={saveRecurring} esperando={savingRecurring}
+                disabled={!recurringForm.title.trim()}>
+                TODAS AS {WEEKDAYS[recurringForm.weekday].toUpperCase()}S
+              </Botao>
+            </div>
+          </Grupo>
+        </Folha>
+      )}
+    </>
   )
 }

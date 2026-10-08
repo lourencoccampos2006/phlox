@@ -44,9 +44,9 @@ interface DrugData {
 }
 
 const SEV_STYLE = {
-  GRAVE:    { color: '#991b1b', bg: '#fee2e2', border: '#fca5a5' },
-  MODERADA: { color: '#92400e', bg: '#fffbeb', border: '#fde68a' },
-  LIGEIRA:  { color: '#1e40af', bg: '#eff6ff', border: '#bfdbfe' },
+  GRAVE:    { color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)' },
+  MODERADA: { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' },
+  LIGEIRA:  { color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)' },
 }
 
 interface Props {
@@ -133,11 +133,11 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
           ref={overlayRef}
           onClick={e => { if (e.target === overlayRef.current) handleClose() }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-          <div style={{ background: 'white', borderRadius: 12, width: '100%', maxWidth: 700, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
+          <div style={{ background: 'white', borderRadius: 'var(--r-xl)', width: '100%', maxWidth: 700, maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,0.25)' }}>
 
             {/* Header */}
             <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', gap: 12, alignItems: 'center', flexShrink: 0 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--green-light)', border: '1px solid var(--green-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'var(--green-light)', border: '1px solid var(--green-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.2" strokeLinecap="round"><path d="M12 3v18M3 12h18"/></svg>
               </div>
               <div style={{ flex: 1 }}>
@@ -152,7 +152,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                 />
               </div>
               <button onClick={() => fetchDrug(drugInput)} disabled={loading || !drugInput.trim()}
-                style={{ padding: '6px 14px', background: loading || !drugInput.trim() ? 'var(--bg-3)' : 'var(--green)', color: loading || !drugInput.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 6, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
+                style={{ padding: '6px 14px', background: loading || !drugInput.trim() ? 'var(--bg-3)' : 'var(--green)', color: loading || !drugInput.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', flexShrink: 0 }}>
                 {loading ? '...' : 'Pesquisar'}
               </button>
               <button aria-label="Fechar" onClick={handleClose}
@@ -169,7 +169,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
 
               {error && !loading && (
                 <div style={{ padding: '24px 20px' }}>
-                  <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '14px 16px', fontSize: 13, color: '#991b1b' }}>{error}</div>
+                  <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding: '14px 16px', fontSize: 13, color: 'var(--red)' }}>{error}</div>
                 </div>
               )}
 
@@ -187,14 +187,14 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                     <div style={{ marginBottom: 10 }}>
                       <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', margin: '0 0 4px', letterSpacing: '-0.01em', fontWeight: 400 }}>{data.name}</h2>
                       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-light)', border: '1px solid var(--green-mid)', padding: '2px 8px', borderRadius: 3 }}>{data.class}</span>
-                        {data.subclass && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 3 }}>{data.subclass}</span>}
+                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--green)', background: 'var(--green-light)', border: '1px solid var(--green-mid)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>{data.class}</span>
+                        {data.subclass && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '2px 8px', borderRadius: 'var(--r-sm)' }}>{data.subclass}</span>}
                         {data.brand_names_pt?.slice(0, 3).map(b => (
                           <span key={b} style={{ fontSize: 11, color: 'var(--ink-4)', fontStyle: 'italic' }}>{b}</span>
                         ))}
                         {data.infarmed_url && (
                           <a href={data.infarmed_url} target="_blank" rel="noopener noreferrer"
-                            style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1d4ed8', textDecoration: 'none', marginLeft: 'auto' }}>
+                            style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-2)', textDecoration: 'none', marginLeft: 'auto' }}>
                             INFARMED →
                           </a>
                         )}
@@ -231,19 +231,19 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                           <div style={lbl}>Indicações clínicas</div>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                             {data.indications?.map(i => (
-                              <span key={i} style={{ fontSize: 12, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '3px 9px', borderRadius: 4, fontFamily: 'var(--font-sans)' }}>{i}</span>
+                              <span key={i} style={{ fontSize: 12, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '3px 9px', borderRadius: 'var(--r)', fontFamily: 'var(--font-sans)' }}>{i}</span>
                             ))}
                           </div>
                         </div>
 
                         {/* Clinical pearls */}
                         {data.clinical_pearls?.length > 0 && (
-                          <div style={{ background: '#faf5ff', border: '1px solid #e9d5ff', borderLeft: '3px solid #7c3aed', borderRadius: 6, padding: '14px 16px' }}>
-                            <div style={{ ...lbl, color: '#7c3aed' }}>Pérolas clínicas</div>
+                          <div style={{ background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderLeft: '3px solid var(--roxo)', borderRadius: 'var(--r)', padding: '14px 16px' }}>
+                            <div style={{ ...lbl, color: 'var(--roxo)' }}>Pérolas clínicas</div>
                             {data.clinical_pearls.map((p, i) => (
                               <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < data.clinical_pearls.length - 1 ? 8 : 0 }}>
-                                <span style={{ color: '#7c3aed', fontFamily: 'var(--font-mono)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>◆</span>
-                                <span style={{ fontSize: 13, color: '#5b21b6', lineHeight: 1.6 }}>{p}</span>
+                                <span style={{ color: 'var(--roxo)', fontFamily: 'var(--font-mono)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>◆</span>
+                                <span style={{ fontSize: 13, color: 'var(--roxo-escuro)', lineHeight: 1.6 }}>{p}</span>
                               </div>
                             ))}
                           </div>
@@ -257,7 +257,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                               {data.key_interactions.map((inter, i) => {
                                 const s = SEV_STYLE[inter.severity] || SEV_STYLE.LIGEIRA
                                 return (
-                                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 5 }}>
+                                  <div key={i} style={{ display: 'flex', gap: 10, alignItems: 'flex-start', padding: '8px 10px', background: s.bg, border: `1px solid ${s.border}`, borderRadius: 'var(--r)' }}>
                                     <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: s.color, flexShrink: 0, marginTop: 2, letterSpacing: '0.06em' }}>{inter.severity}</span>
                                     <div>
                                       <span style={{ fontSize: 13, fontWeight: 700, color: s.color }}>{inter.drug}</span>
@@ -276,7 +276,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                             <div style={lbl}>Formas disponíveis em Portugal</div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                               {data.available_forms_pt.map(f => (
-                                <span key={f} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '2px 7px', borderRadius: 3 }}>{f}</span>
+                                <span key={f} style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '2px 7px', borderRadius: 'var(--r-sm)' }}>{f}</span>
                               ))}
                             </div>
                           </div>
@@ -294,21 +294,21 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                           { label: 'Ajuste hepático (IH)', value: data.dosing?.hepatic_note, highlight: false },
                           { label: 'Idosos', value: data.dosing?.elderly_note, highlight: false },
                         ].filter(r => r.value).map(({ label, value, highlight }) => (
-                          <div key={label} style={{ padding: '12px 14px', background: highlight ? 'var(--green-light)' : 'var(--bg-2)', border: `1px solid ${highlight ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 7 }}>
+                          <div key={label} style={{ padding: '12px 14px', background: highlight ? 'var(--green-light)' : 'var(--bg-2)', border: `1px solid ${highlight ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r-md)' }}>
                             <div style={{ ...lbl, color: highlight ? 'var(--green)' : 'var(--ink-5)' }}>{label}</div>
                             <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: highlight ? 600 : 400, lineHeight: 1.5 }}>{value}</div>
                           </div>
                         ))}
                         {data.pregnancy && (
-                          <div style={{ padding: '12px 14px', background: '#fefce8', border: '1px solid #fde68a', borderRadius: 7 }}>
-                            <div style={{ ...lbl, color: '#92400e' }}>Gravidez</div>
-                            <div style={{ fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>{data.pregnancy}</div>
+                          <div style={{ padding: '12px 14px', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)' }}>
+                            <div style={{ ...lbl, color: 'var(--amber)' }}>Gravidez</div>
+                            <div style={{ fontSize: 13, color: 'var(--amber)', lineHeight: 1.6 }}>{data.pregnancy}</div>
                           </div>
                         )}
                         {data.lactation && (
-                          <div style={{ padding: '12px 14px', background: '#fefce8', border: '1px solid #fde68a', borderRadius: 7 }}>
-                            <div style={{ ...lbl, color: '#92400e' }}>Amamentação</div>
-                            <div style={{ fontSize: 13, color: '#78350f', lineHeight: 1.6 }}>{data.lactation}</div>
+                          <div style={{ padding: '12px 14px', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)' }}>
+                            <div style={{ ...lbl, color: 'var(--amber)' }}>Amamentação</div>
+                            <div style={{ fontSize: 13, color: 'var(--amber)', lineHeight: 1.6 }}>{data.lactation}</div>
                           </div>
                         )}
                       </div>
@@ -322,7 +322,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                             <div style={lbl}>Efeitos adversos graves</div>
                             {data.adverse_effects.serious.map((e, i) => (
                               <div key={i} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: i < data.adverse_effects.serious.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
-                                <span style={{ color: '#dc2626', fontSize: 13, flexShrink: 0, marginTop: 2 }}>▲</span>
+                                <span style={{ color: 'var(--red)', fontSize: 13, flexShrink: 0, marginTop: 2 }}>▲</span>
                                 <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{e}</span>
                               </div>
                             ))}
@@ -333,18 +333,18 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                             <div style={lbl}>Efeitos adversos frequentes</div>
                             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                               {data.adverse_effects.common.map(e => (
-                                <span key={e} style={{ fontSize: 12, color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 4 }}>{e}</span>
+                                <span key={e} style={{ fontSize: 12, color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '3px 8px', borderRadius: 'var(--r)' }}>{e}</span>
                               ))}
                             </div>
                           </div>
                         )}
                         {data.adverse_effects?.monitoring?.length > 0 && (
-                          <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, padding: '14px 16px' }}>
-                            <div style={{ ...lbl, color: '#1d4ed8' }}>Monitorização necessária</div>
+                          <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px 16px' }}>
+                            <div style={{ ...lbl, color: 'var(--ink-2)' }}>Monitorização necessária</div>
                             {data.adverse_effects.monitoring.map((m, i) => (
                               <div key={i} style={{ display: 'flex', gap: 8, marginBottom: i < data.adverse_effects.monitoring.length - 1 ? 6 : 0 }}>
-                                <span style={{ color: '#1d4ed8', fontSize: 12, flexShrink: 0, marginTop: 1 }}>→</span>
-                                <span style={{ fontSize: 13, color: '#1e40af', lineHeight: 1.5 }}>{m}</span>
+                                <span style={{ color: 'var(--ink-2)', fontSize: 12, flexShrink: 0, marginTop: 1 }}>→</span>
+                                <span style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{m}</span>
                               </div>
                             ))}
                           </div>
@@ -354,7 +354,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                             <div style={lbl}>Contraindicações</div>
                             {data.contraindications.map((c, i) => (
                               <div key={i} style={{ display: 'flex', gap: 8, padding: '6px 0', borderBottom: i < data.contraindications.length - 1 ? '1px solid var(--bg-3)' : 'none' }}>
-                                <span style={{ color: '#dc2626', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>CONTRA</span>
+                                <span style={{ color: 'var(--red)', fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>CONTRA</span>
                                 <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{c}</span>
                               </div>
                             ))}
@@ -394,7 +394,7 @@ export default function DrugQuickLook({ drug: drugProp, open: openProp, onClose,
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                           {data.patient_counselling?.map((c, i) => (
-                            <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 14px', background: i % 2 === 0 ? 'var(--green-light)' : 'var(--bg-2)', border: `1px solid ${i % 2 === 0 ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 7 }}>
+                            <div key={i} style={{ display: 'flex', gap: 12, padding: '12px 14px', background: i % 2 === 0 ? 'var(--green-light)' : 'var(--bg-2)', border: `1px solid ${i % 2 === 0 ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r-md)' }}>
                               <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: 'var(--green)', flexShrink: 0, minWidth: 18 }}>{i + 1}</span>
                               <span style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.6 }}>{c}</span>
                             </div>

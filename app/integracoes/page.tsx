@@ -4,6 +4,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import ProfileSelector from '@/components/ProfileSelector'
 import { getActiveProfile, type ActiveProfile } from '@/lib/profileContext'
+import Icon from '@/components/Icon'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface ParsedVital {
   type: string
@@ -249,21 +254,32 @@ export default function IntegracoesPage() {
   const TABS = [
     { id: 'apple' as const, icon: '', label: 'Apple Saúde', desc: 'iPhone / Apple Watch' },
     { id: 'wearable' as const, icon: '⌚', label: 'Wearable CSV', desc: 'Garmin · Fitbit · Polar' },
-    { id: 'mysnspdf' as const, icon: '🏥', label: 'MySNS / Receita', desc: 'Colar texto da app' },
+    { id: 'mysnspdf' as const, icon: 'building', label: 'MySNS / Receita', desc: 'Colar texto da app' },
     { id: 'manual' as const, icon: '✍️', label: 'Entrada manual', desc: 'Digitar medicamentos' },
   ]
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Integrações</span>
+        </BarraDeTrabalho>
+      }
+    >
 
 
       <div style={{ background: 'white', borderBottom: '1px solid var(--border)' }}>
         <div className="page-container" style={{ paddingTop: 24, paddingBottom: 16 }}>
           <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
             <div>
-              <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Integrações</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink)', marginBottom: 4 }}>Importar dados de saúde</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', maxWidth: 560 }}>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 4 }}>Integrações</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', marginBottom: 4 }}>Importar dados de saúde</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', maxWidth: 560 }}>
                 Importa os teus dados diretamente da Apple Saúde, wearables ou apps médicas. Os dados ficam no teu perfil Phlox.
               </div>
             </div>
@@ -280,12 +296,12 @@ export default function IntegracoesPage() {
             <button key={tab.id} onClick={() => { setActiveTab(tab.id); setParsed(null); setError(null); setImportedCount(0) }} style={{
               display: 'flex', flexDirection: 'column', alignItems: 'flex-start', padding: '10px 14px',
               border: `2px solid ${activeTab === tab.id ? 'var(--green)' : 'var(--border)'}`,
-              borderRadius: 10, background: activeTab === tab.id ? '#f0fdf4' : 'white',
+              borderRadius: 'var(--r-lg)', background: activeTab === tab.id ? 'var(--badge-green-bg)' : 'white',
               cursor: 'pointer', textAlign: 'left', minWidth: 120,
             }}>
-              <span style={{ fontSize: 18, marginBottom: 2 }}>{tab.icon}</span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{tab.label}</span>
-              <span style={{ fontSize: 10, color: 'var(--ink-4)' }}>{tab.desc}</span>
+              <Icon name={tab.icon} size={18} />
+              <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{tab.label}</span>
+              <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)' }}>{tab.desc}</span>
             </button>
           ))}
         </div>
@@ -293,8 +309,8 @@ export default function IntegracoesPage() {
         {/* Apple Health tab */}
         {activeTab === 'apple' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Como exportar da app Saúde (iPhone)</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Como exportar da app Saúde (iPhone)</div>
               <ol style={{ margin: '12px 0', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {[
                   'Abre a app Saúde no iPhone',
@@ -303,29 +319,28 @@ export default function IntegracoesPage() {
                   'Confirma → partilha o ZIP para este browser',
                   'Extrai o ZIP e seleciona o ficheiro export.xml',
                 ].map((step, i) => (
-                  <li key={i} style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55 }}>
-                    <span style={{ fontWeight: 600, color: 'var(--ink)', marginRight: 4 }}>{i + 1}.</span>{step}
+                  <li key={i} style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55 }}>
+                    <span style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginRight: 4 }}>{i + 1}.</span>{step}
                   </li>
                 ))}
               </ol>
-              <div style={{ fontSize: 11, color: 'var(--ink-5)', background: 'var(--bg-2)', borderRadius: 8, padding: '8px 12px' }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 12px' }}>
                 🔒 O ficheiro é processado no teu browser — nunca é enviado para os nossos servidores.
               </div>
             </div>
 
-            <div style={{ background: dragging ? '#f0fdfa' : 'white', border: `2px dashed ${dragging ? '#0d9488' : 'var(--border)'}`, borderRadius: 14, padding: 32, textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
+            <div style={{ background: dragging ? 'var(--green-light)' : 'white', border: `2px dashed ${dragging ? 'var(--green-3)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)', padding: 32, textAlign: 'center', cursor: 'pointer', transition: 'background 0.15s, border-color 0.15s' }}
               onClick={() => appleRef.current?.click()}
               onDragOver={e => { e.preventDefault(); setDragging(true) }}
               onDragLeave={() => setDragging(false)}
               onDrop={e => { e.preventDefault(); setDragging(false); processAppleFile(e.dataTransfer.files?.[0]) }}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>📂</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Selecionar export.xml</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Arrasta o ficheiro aqui ou clica para selecionar</div>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Selecionar export.xml</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>Arrasta o ficheiro aqui ou clica para selecionar</div>
               <input ref={appleRef} type="file" accept=".xml" style={{ display: 'none' }} onChange={handleAppleFile} />
             </div>
 
             {error && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#991b1b' }}>
+              <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: '12px 16px', fontSize: 'var(--t-dado)', color: 'var(--red)' }}>
                 ⚠️ {error}
               </div>
             )}
@@ -345,18 +360,18 @@ export default function IntegracoesPage() {
         {/* Wearable CSV tab */}
         {activeTab === 'wearable' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Dispositivo</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>Dispositivo</div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
                 {(['Garmin', 'Fitbit', 'Polar', 'Outro'] as const).map(s => (
                   <button key={s} onClick={() => setCsvSource(s)} style={{
                     padding: '8px 16px', border: `2px solid ${csvSource === s ? 'var(--green)' : 'var(--border)'}`,
-                    borderRadius: 8, background: csvSource === s ? '#f0fdf4' : 'white',
-                    fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'var(--ink)',
+                    borderRadius: 'var(--r-md)', background: csvSource === s ? 'var(--badge-green-bg)' : 'white',
+                    fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', color: 'var(--ink)',
                   }}>{s}</button>
                 ))}
               </div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)', background: 'var(--bg-2)', borderRadius: 8, padding: '8px 12px' }}>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 12px' }}>
                 {{
                   Garmin: 'Garmin Connect → Relatórios → Exportar CSV de frequência cardíaca / peso',
                   Fitbit: 'Fitbit.com → Dados pessoais → Exportar dados → Selecionar CSV',
@@ -366,16 +381,15 @@ export default function IntegracoesPage() {
               </div>
             </div>
 
-            <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 14, padding: 32, textAlign: 'center', cursor: 'pointer' }}
+            <div style={{ background: 'white', border: '2px dashed var(--border)', borderRadius: 'var(--r-xl)', padding: 32, textAlign: 'center', cursor: 'pointer' }}
               onClick={() => csvRef.current?.click()}>
-              <div style={{ fontSize: 36, marginBottom: 8 }}>⌚</div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Selecionar ficheiro CSV</div>
-              <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Arrasta o ficheiro CSV do {csvSource} aqui</div>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Selecionar ficheiro CSV</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>Arrasta o ficheiro CSV do {csvSource} aqui</div>
               <input ref={csvRef} type="file" accept=".csv,.txt" style={{ display: 'none' }} onChange={handleCSVFile} />
             </div>
 
             {error && (
-              <div style={{ background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '12px 16px', fontSize: 13, color: '#991b1b' }}>
+              <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', padding: '12px 16px', fontSize: 'var(--t-dado)', color: 'var(--red)' }}>
                 ⚠️ {error}
               </div>
             )}
@@ -395,9 +409,9 @@ export default function IntegracoesPage() {
         {/* MySNS / Receita tab */}
         {activeTab === 'mysnspdf' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Colar lista de medicamentos</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 14 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 8 }}>Colar lista de medicamentos</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 14 }}>
                 Copia o texto da app MySNS, de uma receita médica ou de uma bula e cola aqui. O Phlox identifica automaticamente os medicamentos.
               </div>
               <textarea
@@ -405,38 +419,38 @@ export default function IntegracoesPage() {
                 onChange={e => setSnsText(e.target.value)}
                 placeholder="Ex:&#10;Metformina 500mg 2x/dia&#10;Lisinopril 10mg manhã&#10;Atorvastatina 20mg noite"
                 rows={8}
-                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 13, fontFamily: 'var(--font-mono)', resize: 'vertical', outline: 'none', lineHeight: 1.7 }}
+                style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', resize: 'vertical', outline: 'none', lineHeight: 1.7 }}
               />
               <button onClick={parseSNSText} disabled={!snsText.trim()} style={{
                 marginTop: 10, padding: '10px 20px', background: snsText.trim() ? 'var(--green)' : 'var(--bg-3)',
-                color: snsText.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8,
-                fontSize: 14, fontWeight: 700, cursor: snsText.trim() ? 'pointer' : 'default',
+                color: snsText.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)',
+                fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: snsText.trim() ? 'pointer' : 'default',
               }}>
                 🔍 Identificar medicamentos
               </button>
             </div>
 
             {parsedSns.length > 0 && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
                 <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>💊 {parsedSns.length} medicamentos identificados</span>
+                  <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{parsedSns.length} medicamentos identificados</span>
                   {!importing && importedCount === 0 && (
                     <button onClick={() => importMeds(parsedSns)} style={{
                       padding: '8px 16px', background: 'var(--green)', color: 'white',
-                      border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer',
+                      border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
                     }}>
                       Importar todos
                     </button>
                   )}
                   {importedCount > 0 && (
-                    <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>✓ {importedCount} importados</span>
+                    <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)' }}>✓ {importedCount} importados</span>
                   )}
                 </div>
                 {parsedSns.map((m, i) => (
                   <div key={i} style={{ padding: '10px 16px', borderBottom: i < parsedSns.length - 1 ? '1px solid var(--bg-2)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{m.name}</div>
-                      {m.dose && <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{m.dose}{m.frequency ? ` · ${m.frequency}` : ''}</div>}
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{m.name}</div>
+                      {m.dose && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)' }}>{m.dose}{m.frequency ? ` · ${m.frequency}` : ''}</div>}
                     </div>
                   </div>
                 ))}
@@ -447,16 +461,16 @@ export default function IntegracoesPage() {
 
         {/* Manual tab */}
         {activeTab === 'manual' && (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-            <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Adicionar medicamentos manualmente</div>
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 8 }}>Adicionar medicamentos manualmente</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginBottom: 16 }}>
               Podes adicionar medicamentos diretamente em{' '}
-              <a href="/mymeds" style={{ color: 'var(--green)', fontWeight: 600, textDecoration: 'none' }}>Os Meus Medicamentos</a>
+              <a href="/mymeds" style={{ color: 'var(--green)', fontWeight: 'var(--peso-corpo)' as any, textDecoration: 'none' }}>Os Meus Medicamentos</a>
               {' '}com todos os detalhes (dose, frequência, indicação, lembretes).
             </div>
             <a href="/mymeds" style={{
               display: 'inline-block', padding: '12px 24px', background: 'var(--green)', color: 'white',
-              border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer', textDecoration: 'none',
+              border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', textDecoration: 'none',
             }}>
               💊 Ir para Os Meus Medicamentos →
             </a>
@@ -464,33 +478,33 @@ export default function IntegracoesPage() {
         )}
 
         {/* Integration badges */}
-        <div style={{ marginTop: 24, background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 16 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>Integrações disponíveis</div>
+        <div style={{ marginTop: 24, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
+          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 12 }}>Integrações disponíveis</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {[
               { icon: '', label: 'Apple Saúde', status: 'ativo' },
               { icon: '⌚', label: 'Apple Watch', status: 'ativo' },
-              { icon: '🏃', label: 'Garmin Connect', status: 'ativo' },
+              { icon: 'target', label: 'Garmin Connect', status: 'ativo' },
               { icon: '🔵', label: 'Fitbit', status: 'ativo' },
               { icon: '🔴', label: 'Polar Flow', status: 'ativo' },
-              { icon: '🏥', label: 'MySNS', status: 'ativo' },
+              { icon: 'building', label: 'MySNS', status: 'ativo' },
               { icon: '🟢', label: 'Google Health', status: 'em breve' },
-              { icon: '🩺', label: 'SClínico', status: 'em breve' },
+              { icon: 'stethoscope', label: 'SClínico', status: 'em breve' },
             ].map(item => (
               <div key={item.label} style={{
                 display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px',
-                border: '1px solid var(--border)', borderRadius: 20, background: item.status === 'ativo' ? 'white' : 'var(--bg-2)',
+                border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', background: item.status === 'ativo' ? 'white' : 'var(--bg-2)',
               }}>
-                <span style={{ fontSize: 14 }}>{item.icon}</span>
-                <span style={{ fontSize: 12, fontWeight: 600, color: item.status === 'ativo' ? 'var(--ink)' : 'var(--ink-5)' }}>{item.label}</span>
-                {item.status === 'em breve' && <span style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>em breve</span>}
-                {item.status === 'ativo' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />}
+                <Icon name={item.icon} size={14} />
+                <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: item.status === 'ativo' ? 'var(--ink)' : 'var(--ink-5)' }}>{item.label}</span>
+                {item.status === 'em breve' && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>em breve</span>}
+                {item.status === 'ativo' && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--green)', flexShrink: 0 }} />}
               </div>
             ))}
           </div>
         </div>
       </div>
-    </div>
+    </Mesa>
   )
 }
 
@@ -505,46 +519,46 @@ function ImportPreview({ result, importing, importedCount, onImportVitals, onImp
   const vitalTypes = new Set(result.vitals.map(v => v.type))
 
   return (
-    <div style={{ background: '#f0fdf4', border: '2px solid #10b981', borderRadius: 14, padding: 20 }}>
-      <div style={{ fontSize: 14, fontWeight: 700, color: '#065f46', marginBottom: 12 }}>
+    <div style={{ background: 'var(--badge-green-bg)', border: '2px solid var(--green)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+      <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', marginBottom: 12 }}>
         ✓ Dados encontrados — {result.source}
       </div>
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', marginBottom: 16 }}>
         {result.vitals.length > 0 && (
-          <div style={{ background: 'white', border: '1px solid #6ee7b7', borderRadius: 10, padding: '12px 16px', flex: '1 1 200px' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#065f46', fontFamily: 'var(--font-mono)' }}>{vitalDays}</div>
-            <div style={{ fontSize: 12, color: '#059669', marginTop: 2 }}>dias de sinais vitais</div>
-            <div style={{ fontSize: 11, color: '#6ee7b7', marginTop: 4 }}>
+          <div style={{ background: 'white', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-lg)', padding: '12px 16px', flex: '1 1 200px' }}>
+            <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', fontFamily: 'var(--font-mono)' }}>{vitalDays}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green)', marginTop: 2 }}>dias de sinais vitais</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green-mid)', marginTop: 4 }}>
               {Array.from(vitalTypes).map(t => ({ hr: 'FC', bp_sys: 'TA', bp_dia: 'TA', spo2: 'SpO₂', weight: 'Peso', glucose: 'Glicemia', temp: 'Temp' })[t] || t).join(' · ')}
             </div>
           </div>
         )}
         {result.meds.length > 0 && (
-          <div style={{ background: 'white', border: '1px solid #6ee7b7', borderRadius: 10, padding: '12px 16px', flex: '1 1 200px' }}>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#065f46', fontFamily: 'var(--font-mono)' }}>{result.meds.length}</div>
-            <div style={{ fontSize: 12, color: '#059669', marginTop: 2 }}>medicamentos identificados</div>
+          <div style={{ background: 'white', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-lg)', padding: '12px 16px', flex: '1 1 200px' }}>
+            <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', fontFamily: 'var(--font-mono)' }}>{result.meds.length}</div>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green)', marginTop: 2 }}>medicamentos identificados</div>
           </div>
         )}
       </div>
 
       {importedCount > 0 ? (
-        <div style={{ fontSize: 14, fontWeight: 700, color: '#065f46' }}>✓ {importedCount} registos importados com sucesso!</div>
+        <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)' }}>✓ {importedCount} registos importados com sucesso!</div>
       ) : importing ? (
-        <div style={{ fontSize: 13, color: '#059669' }}>A importar...</div>
+        <div style={{ fontSize: 'var(--t-dado)', color: 'var(--green)' }}>A importar...</div>
       ) : (
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {result.vitals.length > 0 && (
             <button onClick={onImportVitals} style={{
-              padding: '10px 20px', background: '#10b981', color: 'white',
-              border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              padding: '10px 20px', background: 'var(--green)', color: 'white',
+              border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
             }}>
               📊 Importar sinais vitais
             </button>
           )}
           {result.meds.length > 0 && (
             <button onClick={onImportMeds} style={{
-              padding: '10px 20px', background: '#0d6e42', color: 'white',
-              border: 'none', borderRadius: 8, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+              padding: '10px 20px', background: 'var(--green)', color: 'white',
+              border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
             }}>
               💊 Importar medicamentos
             </button>

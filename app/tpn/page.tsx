@@ -1,6 +1,10 @@
 'use client'
 
 import { useState, useMemo } from 'react'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -186,21 +190,21 @@ function InputF({ label, value, onChange, suffix, placeholder, type = 'number', 
 }) {
   return (
     <div style={{ marginBottom: 10 }}>
-      <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
+      <label style={{ display: 'block', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</label>
       <div style={{ position: 'relative' }}>
         <input
           type={type} value={value} onChange={e => onChange(e.target.value)}
           placeholder={placeholder ?? '—'}
           style={{
             width: '100%', padding: suffix ? '7px 36px 7px 9px' : '7px 9px',
-            borderRadius: 7, border: '1px solid #e2e8f0', fontSize: 13,
-            background: 'white', color: '#0f172a', fontFamily: 'inherit',
+            borderRadius: 'var(--r-md)', border: '1px solid var(--border)', fontSize: 'var(--t-dado)',
+            background: 'white', color: 'var(--ink)', fontFamily: 'inherit',
             outline: 'none', boxSizing: 'border-box',
           }}
         />
-        {suffix && <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 10, color: '#94a3b8', pointerEvents: 'none' }}>{suffix}</span>}
+        {suffix && <span style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', pointerEvents: 'none' }}>{suffix}</span>}
       </div>
-      {note && <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 2 }}>{note}</div>}
+      {note && <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 2 }}>{note}</div>}
     </div>
   )
 }
@@ -209,16 +213,16 @@ function MacroBar({ label, g, kcal, color, pct }: { label: string; g: number; kc
   return (
     <div style={{ marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <span style={{ fontSize: 12, fontWeight: 600, color: '#374151' }}>{label}</span>
+        <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)' }}>{label}</span>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <span style={{ fontSize: 12, color: '#64748b' }}>{g.toFixed(1)} g</span>
-          <span style={{ fontSize: 12, fontWeight: 700, color }}>
-            {kcal.toFixed(0)} kcal <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 400 }}>({pct.toFixed(0)}%)</span>
+          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{g.toFixed(1)} g</span>
+          <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color }}>
+            {kcal.toFixed(0)} kcal <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontWeight: 'var(--peso-normal)' as any }}>({pct.toFixed(0)}%)</span>
           </span>
         </div>
       </div>
-      <div style={{ height: 6, background: '#f1f5f9', borderRadius: 3, overflow: 'hidden' }}>
-        <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: 3, transition: 'width 0.3s' }} />
+      <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+        <div style={{ width: `${Math.min(pct, 100)}%`, height: '100%', background: color, borderRadius: 'var(--r-sm)', transition: 'width 0.3s' }} />
       </div>
     </div>
   )
@@ -226,10 +230,10 @@ function MacroBar({ label, g, kcal, color, pct }: { label: string; g: number; kc
 
 function LabelRow({ label, value, unit, highlight }: { label: string; value: string; unit?: string; highlight?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid #f1f5f9' }}>
-      <span style={{ fontSize: 12, color: '#64748b' }}>{label}</span>
-      <span style={{ fontSize: 13, fontWeight: highlight ? 800 : 600, color: highlight ? '#0f172a' : '#374151' }}>
-        {value}<span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 400, marginLeft: 2 }}>{unit}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', borderBottom: '1px solid var(--bg-3)' }}>
+      <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{label}</span>
+      <span style={{ fontSize: 'var(--t-dado)', fontWeight: highlight ? 800 : 600, color: highlight ? 'var(--ink)' : 'var(--ink-3)' }}>
+        {value}<span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', fontWeight: 'var(--peso-normal)' as any, marginLeft: 2 }}>{unit}</span>
       </span>
     </div>
   )
@@ -245,18 +249,18 @@ function PrintLabel({ res, p }: { res: ReturnType<typeof calcTPN>; p: PatientFor
 
   return (
     <div className="print-label" style={{
-      background: 'white', border: '2px solid #0f172a', borderRadius: 4,
-      padding: '14px 16px', fontFamily: 'monospace', fontSize: 11,
+      background: 'white', border: '2px solid var(--ink)', borderRadius: 'var(--r)',
+      padding: '14px 16px', fontFamily: 'monospace', fontSize: 'var(--t-meta)',
       maxWidth: 480, margin: '0 auto',
     }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #0f172a', paddingBottom: 8, marginBottom: 8 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid var(--ink)', paddingBottom: 8, marginBottom: 8 }}>
         <div>
-          <div style={{ fontSize: 14, fontWeight: 800, letterSpacing: '-0.01em' }}>NUTRIÇÃO PARENTÉRICA</div>
-          <div style={{ fontSize: 10, color: '#374151', marginTop: 2 }}>
-            {p.access === 'central' ? '✦ VIA CENTRAL' : '◈ VIA PERIFÉRICA'}
+          <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, letterSpacing: '-0.01em' }}>NUTRIÇÃO PARENTÉRICA</div>
+          <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', marginTop: 2 }}>
+            {p.access === 'central' ? 'VIA CENTRAL' : '◈ VIA PERIFÉRICA'}
           </div>
         </div>
-        <div style={{ textAlign: 'right', fontSize: 10 }}>
+        <div style={{ textAlign: 'right', fontSize: 'var(--t-micro)' }}>
           <div>Data: {date}</div>
           <div>Início: {time_start}</div>
           <div>Fim: {time_end}</div>
@@ -264,85 +268,85 @@ function PrintLabel({ res, p }: { res: ReturnType<typeof calcTPN>; p: PatientFor
       </div>
 
       <div style={{ marginBottom: 8 }}>
-        <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: '#374151' }}>Composição / Bolsa</div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+        <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4, color: 'var(--ink-3)' }}>Composição / Bolsa</div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--t-meta)' }}>
           <tbody>
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td style={{ padding: '2px 0' }}>Aminoácidos 10%</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>{(res.aa_vol).toFixed(0)} mL</td>
-              <td style={{ textAlign: 'right', color: '#64748b' }}>({res.prot_target_g.toFixed(1)} g)</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{(res.aa_vol).toFixed(0)} mL</td>
+              <td style={{ textAlign: 'right', color: 'var(--ink-4)' }}>({res.prot_target_g.toFixed(1)} g)</td>
             </tr>
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td>Glicose 70%</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>{(res.dex_vol).toFixed(0)} mL</td>
-              <td style={{ textAlign: 'right', color: '#64748b' }}>({res.dex_g.toFixed(1)} g)</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{(res.dex_vol).toFixed(0)} mL</td>
+              <td style={{ textAlign: 'right', color: 'var(--ink-4)' }}>({res.dex_g.toFixed(1)} g)</td>
             </tr>
             {!p.lipid_omit && (
-              <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+              <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
                 <td>{lipidName}</td>
-                <td style={{ textAlign: 'right', fontWeight: 700 }}>{(res.lip_vol).toFixed(0)} mL</td>
-                <td style={{ textAlign: 'right', color: '#64748b' }}>({res.lipid_g.toFixed(1)} g)</td>
+                <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{(res.lip_vol).toFixed(0)} mL</td>
+                <td style={{ textAlign: 'right', color: 'var(--ink-4)' }}>({res.lipid_g.toFixed(1)} g)</td>
               </tr>
             )}
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td>NaCl</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>{res.na_meq} mEq</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{res.na_meq} mEq</td>
               <td />
             </tr>
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td>KCl / KH₂PO₄</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>{res.k_meq} mEq / {res.phos_mmol} mmol</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{res.k_meq} mEq / {res.phos_mmol} mmol</td>
               <td />
             </tr>
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td>MgSO₄</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>{res.mg_meq} mEq</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{res.mg_meq} mEq</td>
               <td />
             </tr>
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td>Gluconato de Ca</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>{res.ca_meq} mEq</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{res.ca_meq} mEq</td>
               <td />
             </tr>
             {+p.insulin > 0 && (
-              <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+              <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
                 <td>Insulina Regular</td>
-                <td style={{ textAlign: 'right', fontWeight: 700 }}>{p.insulin} UI</td>
+                <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>{p.insulin} UI</td>
                 <td />
               </tr>
             )}
-            <tr style={{ borderBottom: '1px dotted #d1d5db' }}>
+            <tr style={{ borderBottom: '1px dotted var(--border-2)' }}>
               <td>MVIpediatric / Traços</td>
-              <td style={{ textAlign: 'right', fontWeight: 700 }}>10 mL / 1 amp</td>
+              <td style={{ textAlign: 'right', fontWeight: 'var(--peso-forte)' as any }}>10 mL / 1 amp</td>
               <td />
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div style={{ borderTop: '2px solid #0f172a', paddingTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 4, fontSize: 11 }}>
+      <div style={{ borderTop: '2px solid var(--ink)', paddingTop: 8, display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 4, fontSize: 'var(--t-meta)' }}>
         <div>
-          <div style={{ fontWeight: 700 }}>Volume total</div>
+          <div style={{ fontWeight: 'var(--peso-forte)' as any }}>Volume total</div>
           <div>{res.total_vol} mL</div>
         </div>
         <div>
-          <div style={{ fontWeight: 700 }}>Velocidade</div>
+          <div style={{ fontWeight: 'var(--peso-forte)' as any }}>Velocidade</div>
           <div>{res.rate_mL_h} mL/h</div>
         </div>
         <div>
-          <div style={{ fontWeight: 700 }}>Osmolaridade</div>
+          <div style={{ fontWeight: 'var(--peso-forte)' as any }}>Osmolaridade</div>
           <div>{res.osmolarity.toFixed(0)} mOsm/L</div>
         </div>
       </div>
 
-      <div style={{ borderTop: '1px dotted #d1d5db', marginTop: 8, paddingTop: 6, fontSize: 10, color: '#374151', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
+      <div style={{ borderTop: '1px dotted var(--border-2)', marginTop: 8, paddingTop: 6, fontSize: 'var(--t-micro)', color: 'var(--ink-3)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
         <div>Energia total: <strong>{res.total_kcal.toFixed(0)} kcal</strong></div>
         <div>Proteína: <strong>{res.prot_target_g.toFixed(1)} g ({(res.prot_target_g/+p.weight).toFixed(2)} g/kg)</strong></div>
         <div>GIR: <strong>{res.gir_mg_kg_min.toFixed(2)} mg/kg/min</strong></div>
         <div>Glicose final: <strong>{res.final_dex_pct.toFixed(1)}%</strong></div>
       </div>
 
-      <div style={{ borderTop: '1px dotted #d1d5db', marginTop: 6, paddingTop: 5, display: 'flex', justifyContent: 'space-between', fontSize: 10, color: '#374151' }}>
+      <div style={{ borderTop: '1px dotted var(--border-2)', marginTop: 6, paddingTop: 5, display: 'flex', justifyContent: 'space-between', fontSize: 'var(--t-micro)', color: 'var(--ink-3)' }}>
         <span>Prescritor: _________________________</span>
         <span>Farmácia: _________________________</span>
       </div>
@@ -388,25 +392,35 @@ export default function TPN() {
   const dex_pct  = res ? (res.dex_kcal  / res.total_kcal) * 100 : 0
   const lip_pct  = res ? (res.lipid_kcal / res.total_kcal) * 100 : 0
 
-  const osmo_color = !res ? '#94a3b8'
-    : res.osmolarity > 1800 ? '#dc2626'
-    : res.osmolarity > 900 && p.access === 'peripheral' ? '#ca8a04'
-    : '#16a34a'
+  const osmo_color = !res ? 'var(--ink-5)'
+    : res.osmolarity > 1800 ? 'var(--red)'
+    : res.osmolarity > 900 && p.access === 'peripheral' ? 'var(--amber)'
+    : 'var(--green)'
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', fontFamily: '-apple-system,BlinkMacSystemFont,sans-serif' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Nutrição parentérica</span>
+        </BarraDeTrabalho>
+      }
+    >
 
       {/* Header */}
-      <div style={{ background: '#0f172a', padding: '16px 24px 16px', borderBottom: '1px solid #1e293b' }}>
+      <div style={{ background: 'var(--ink)', padding: '16px 24px 16px', borderBottom: '1px solid var(--ink-2)' }}>
         <div style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div>
-            <div style={{ fontSize: 11, color: '#475569', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 3 }}>
               Nutrição Clínica
             </div>
-            <h1 style={{ fontSize: 22, fontWeight: 900, color: 'white', margin: 0, letterSpacing: '-0.02em' }}>
+            <h1 style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'white', margin: 0, letterSpacing: '-0.02em' }}>
               Designer de Nutrição Parentérica
             </h1>
-            <p style={{ fontSize: 12, color: '#64748b', margin: '3px 0 0' }}>
+            <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', margin: '3px 0 0' }}>
               ASPEN 2022 · ESPEN 2023 · Cálculo completo com rótulo de bolsa
             </p>
           </div>
@@ -414,19 +428,19 @@ export default function TPN() {
             <button
               onClick={() => setShowLabel(l => !l)}
               style={{
-                padding: '8px 16px', borderRadius: 8, border: '1px solid #334155',
-                background: showLabel ? '#1e40af' : '#1e293b', color: 'white', cursor: 'pointer',
-                fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                padding: '8px 16px', borderRadius: 'var(--r-md)', border: '1px solid var(--ink-3)',
+                background: showLabel ? 'var(--ink-2)' : 'var(--ink-2)', color: 'white', cursor: 'pointer',
+                fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'inherit',
               }}
             >
-              {showLabel ? '◀ Esconder rótulo' : '🏷 Pré-visualizar rótulo'}
+              {showLabel ? '◀ Esconder rótulo' : 'Pré-visualizar rótulo'}
             </button>
             <button
               onClick={() => window.print()}
               style={{
-                padding: '8px 16px', borderRadius: 8, border: 'none',
-                background: '#0d9488', color: 'white', cursor: 'pointer',
-                fontSize: 12, fontWeight: 700, fontFamily: 'inherit',
+                padding: '8px 16px', borderRadius: 'var(--r-md)', border: 'none',
+                background: 'var(--green-3)', color: 'white', cursor: 'pointer',
+                fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'inherit',
               }}
             >
               🖨 Imprimir rótulo
@@ -437,8 +451,8 @@ export default function TPN() {
 
       <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px' }}>
         {showLabel && res && (
-          <div style={{ marginBottom: 24, padding: '20px', background: 'white', borderRadius: 14, border: '1px solid #e2e8f0' }}>
-            <div style={{ fontSize: 12, fontWeight: 700, color: '#64748b', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+          <div style={{ marginBottom: 24, padding: '20px', background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)' }}>
+            <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
               Pré-visualização do Rótulo
             </div>
             <PrintLabel res={res} p={p} />
@@ -451,8 +465,8 @@ export default function TPN() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
             {/* Patient */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14, display: 'flex', alignItems: 'center', gap: 7 }}>
                 <span>👤</span> Dados do Doente
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
@@ -460,14 +474,14 @@ export default function TPN() {
                 <InputF label="Altura" value={p.height} onChange={up('height')} suffix="cm" placeholder="170" />
                 <InputF label="Idade" value={p.age} onChange={up('age')} suffix="anos" placeholder="65" />
                 <div style={{ marginBottom: 10 }}>
-                  <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sexo</label>
+                  <label style={{ display: 'block', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', marginBottom: 3, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Sexo</label>
                   <div style={{ display: 'flex', gap: 6 }}>
                     {(['male', 'female'] as const).map(s => (
                       <button key={s} onClick={() => up('sex')(s)} style={{
-                        flex: 1, padding: '7px 4px', borderRadius: 7, border: `1px solid ${p.sex === s ? '#0d9488' : '#e2e8f0'}`,
-                        background: p.sex === s ? '#f0fdfa' : 'white', cursor: 'pointer',
-                        fontSize: 11, fontWeight: p.sex === s ? 700 : 500,
-                        color: p.sex === s ? '#0d9488' : '#64748b', fontFamily: 'inherit',
+                        flex: 1, padding: '7px 4px', borderRadius: 'var(--r-md)', border: `1px solid ${p.sex === s ? 'var(--green-3)' : 'var(--border)'}`,
+                        background: p.sex === s ? 'var(--green-light)' : 'white', cursor: 'pointer',
+                        fontSize: 'var(--t-meta)', fontWeight: p.sex === s ? 700 : 500,
+                        color: p.sex === s ? 'var(--green-3)' : 'var(--ink-4)', fontFamily: 'inherit',
                       }}>
                         {s === 'male' ? '♂ Masc' : '♀ Fem'}
                       </button>
@@ -480,19 +494,19 @@ export default function TPN() {
             </div>
 
             {/* Condition */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>🏥 Condição Clínica</div>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>Condição Clínica</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                 {(Object.entries(CONDITIONS) as [Condition, typeof CONDITIONS[Condition]][]).map(([id, c]) => (
                   <button key={id} onClick={() => handleConditionChange(id)} style={{
-                    padding: '8px 11px', borderRadius: 8, border: `1px solid ${p.condition === id ? '#0d9488' : '#f1f5f9'}`,
-                    background: p.condition === id ? '#f0fdfa' : '#fafafa',
+                    padding: '8px 11px', borderRadius: 'var(--r-md)', border: `1px solid ${p.condition === id ? 'var(--green-3)' : 'var(--bg-3)'}`,
+                    background: p.condition === id ? 'var(--green-light)' : 'var(--bg-2)',
                     cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 0.1s',
                   }}>
-                    <div style={{ fontSize: 12, fontWeight: p.condition === id ? 700 : 500, color: p.condition === id ? '#0d9488' : '#374151' }}>
+                    <div style={{ fontSize: 'var(--t-meta)', fontWeight: p.condition === id ? 700 : 500, color: p.condition === id ? 'var(--green-3)' : 'var(--ink-3)' }}>
                       {c.label}
                     </div>
-                    <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>
+                    <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 1 }}>
                       Energia {c.energy_min}–{c.energy_max} kcal/kg · Proteína {c.prot_min}–{c.prot_max} g/kg
                     </div>
                   </button>
@@ -501,35 +515,35 @@ export default function TPN() {
             </div>
 
             {/* Access + Lipids */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>⚙️ Formulação</div>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>⚙️ Formulação</div>
 
               <div style={{ marginBottom: 10 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Via de acesso</label>
+                <label style={{ display: 'block', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Via de acesso</label>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  {[{ v: 'central', l: '🔴 Central' }, { v: 'peripheral', l: '🟡 Periférico' }].map(o => (
+                  {[{ v: 'central', l: 'Central' }, { v: 'peripheral', l: 'Periférico' }].map(o => (
                     <button key={o.v} onClick={() => up('access')(o.v as AccessRoute)} style={{
-                      flex: 1, padding: '7px 6px', borderRadius: 7, border: `1px solid ${p.access === o.v ? '#0d9488' : '#e2e8f0'}`,
-                      background: p.access === o.v ? '#f0fdfa' : 'white', cursor: 'pointer',
-                      fontSize: 11, fontWeight: 700, color: p.access === o.v ? '#0d9488' : '#64748b', fontFamily: 'inherit',
+                      flex: 1, padding: '7px 6px', borderRadius: 'var(--r-md)', border: `1px solid ${p.access === o.v ? 'var(--green-3)' : 'var(--border)'}`,
+                      background: p.access === o.v ? 'var(--green-light)' : 'white', cursor: 'pointer',
+                      fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: p.access === o.v ? 'var(--green-3)' : 'var(--ink-4)', fontFamily: 'inherit',
                     }}>{o.l}</button>
                   ))}
                 </div>
               </div>
 
               <div style={{ marginBottom: 10 }}>
-                <label style={{ display: 'block', fontSize: 10, fontWeight: 700, color: '#64748b', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Emulsão lipídica</label>
+                <label style={{ display: 'block', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Emulsão lipídica</label>
                 <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                   {[{ v: 'smof', l: 'SMOFlipid' }, { v: 'olive', l: 'ClinOleic' }, { v: 'soy', l: 'Intralipid' }].map(o => (
                     <button key={o.v} onClick={() => up('lipid_type')(o.v as typeof p.lipid_type)} style={{
-                      padding: '5px 10px', borderRadius: 7, border: `1px solid ${p.lipid_type === o.v ? '#7c3aed' : '#e2e8f0'}`,
-                      background: p.lipid_type === o.v ? '#faf5ff' : 'white', cursor: 'pointer',
-                      fontSize: 11, fontWeight: p.lipid_type === o.v ? 700 : 500,
-                      color: p.lipid_type === o.v ? '#7c3aed' : '#64748b', fontFamily: 'inherit',
+                      padding: '5px 10px', borderRadius: 'var(--r-md)', border: `1px solid ${p.lipid_type === o.v ? 'var(--roxo)' : 'var(--border)'}`,
+                      background: p.lipid_type === o.v ? 'var(--roxo-claro)' : 'white', cursor: 'pointer',
+                      fontSize: 'var(--t-meta)', fontWeight: p.lipid_type === o.v ? 700 : 500,
+                      color: p.lipid_type === o.v ? 'var(--roxo)' : 'var(--ink-4)', fontFamily: 'inherit',
                     }}>{o.l}</button>
                   ))}
                 </div>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, cursor: 'pointer', fontSize: 11, color: '#374151' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 8, cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>
                   <input type="checkbox" checked={p.lipid_omit} onChange={e => up('lipid_omit')(e.target.checked)} style={{ width: 13, height: 13 }} />
                   Omitir lípidos (TGA &gt; 400 mg/dL ou outra contraindicação)
                 </label>
@@ -540,8 +554,8 @@ export default function TPN() {
             </div>
 
             {/* Electrolytes */}
-            <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 18px' }}>
-              <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 12 }}>⚗️ Eletrólitos</div>
+            <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 18px' }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>⚗️ Eletrólitos</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 12px' }}>
                 <InputF label="Sódio (Na)" value={p.na} onChange={up('na')} suffix="mEq" placeholder={`${res ? Math.round(+p.weight * 1.5) : '~90'}`} note="1–2 mEq/kg/dia" />
                 <InputF label="Potássio (K)" value={p.k} onChange={up('k')} suffix="mEq" placeholder={`${res ? Math.round(+p.weight * 1.2) : '~60'}`} note="1–2 mEq/kg/dia" />
@@ -557,10 +571,10 @@ export default function TPN() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
             {!res ? (
-              <div style={{ background: 'white', borderRadius: 14, border: '1px dashed #e2e8f0', padding: '60px 40px', textAlign: 'center' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🧪</div>
-                <div style={{ fontSize: 16, fontWeight: 700, color: '#0f172a', marginBottom: 6 }}>Preencha os dados do doente</div>
-                <div style={{ fontSize: 13, color: '#94a3b8' }}>Peso, altura e idade são necessários para calcular a formulação.</div>
+              <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px dashed var(--border)', padding: '60px 40px', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--t-numero)', marginBottom: 12 }}>🧪</div>
+                <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 6 }}>Preencha os dados do doente</div>
+                <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>Peso, altura e idade são necessários para calcular a formulação.</div>
               </div>
             ) : (
               <>
@@ -569,9 +583,9 @@ export default function TPN() {
                   <div>
                     {res.warns.map((w, i) => (
                       <div key={i} style={{
-                        padding: '9px 13px', borderRadius: 9, marginBottom: 6,
-                        background: '#fef2f2', border: '1px solid #fecaca',
-                        fontSize: 12, color: '#dc2626', display: 'flex', gap: 7,
+                        padding: '9px 13px', borderRadius: 'var(--r-lg)', marginBottom: 6,
+                        background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)',
+                        fontSize: 'var(--t-meta)', color: 'var(--red)', display: 'flex', gap: 7,
                       }}>
                         <span style={{ flexShrink: 0 }}>⚠</span> {w}
                       </div>
@@ -581,71 +595,71 @@ export default function TPN() {
 
                 {/* Condition note */}
                 {cond.note && (
-                  <div style={{ padding: '9px 13px', borderRadius: 9, background: '#fffbeb', border: '1px solid #fef3c7', fontSize: 12, color: '#92400e', display: 'flex', gap: 7 }}>
+                  <div style={{ padding: '9px 13px', borderRadius: 'var(--r-lg)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-bg)', fontSize: 'var(--t-meta)', color: 'var(--amber)', display: 'flex', gap: 7 }}>
                     <span>💡</span> {cond.note}
                   </div>
                 )}
 
                 {/* Energy summary */}
-                <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 20px' }}>
+                <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 20px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 14 }}>
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a' }}>Balanço Energético</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Balanço Energético</div>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 2 }}>
                         Alvo: {cond.energy_min}–{cond.energy_max} kcal/kg · Peso utilizado: {res.wt_energy.toFixed(0)} kg{res.use_ibw ? ' (PIB)' : ''}
                       </div>
                     </div>
                     <div style={{ textAlign: 'right' }}>
-                      <div style={{ fontSize: 28, fontWeight: 900, color: '#0d9488', lineHeight: 1 }}>{res.total_kcal.toFixed(0)}</div>
-                      <div style={{ fontSize: 11, color: '#64748b' }}>kcal/dia ({(res.total_kcal / res.wt_energy).toFixed(0)} kcal/kg)</div>
+                      <div style={{ fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green-3)', lineHeight: 1 }}>{res.total_kcal.toFixed(0)}</div>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>kcal/dia ({(res.total_kcal / res.wt_energy).toFixed(0)} kcal/kg)</div>
                     </div>
                   </div>
-                  <MacroBar label="Proteína (aminoácidos)" g={res.prot_target_g} kcal={res.prot_kcal} color="#2563eb" pct={prot_pct} />
-                  <MacroBar label="Hidratos de carbono (glicose)" g={res.dex_g} kcal={res.dex_kcal} color="#16a34a" pct={dex_pct} />
-                  {!p.lipid_omit && <MacroBar label="Lípidos (emulsão)" g={res.lipid_g} kcal={res.lipid_kcal} color="#ca8a04" pct={lip_pct} />}
+                  <MacroBar label="Proteína (aminoácidos)" g={res.prot_target_g} kcal={res.prot_kcal} color="var(--ink-2)" pct={prot_pct} />
+                  <MacroBar label="Hidratos de carbono (glicose)" g={res.dex_g} kcal={res.dex_kcal} color="var(--green)" pct={dex_pct} />
+                  {!p.lipid_omit && <MacroBar label="Lípidos (emulsão)" g={res.lipid_g} kcal={res.lipid_kcal} color="var(--amber)" pct={lip_pct} />}
                 </div>
 
                 {/* Key metrics */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
                   {[
-                    { label: 'Proteína', value: `${(res.prot_target_g / res.wt_prot).toFixed(2)}`, unit: 'g/kg/dia', color: '#2563eb', note: `${res.prot_target_g.toFixed(1)} g` },
-                    { label: 'GIR', value: res.gir_mg_kg_min.toFixed(2), unit: 'mg/kg/min', color: res.gir_mg_kg_min > 5 ? '#dc2626' : '#16a34a', note: `Máx 5.0` },
+                    { label: 'Proteína', value: `${(res.prot_target_g / res.wt_prot).toFixed(2)}`, unit: 'g/kg/dia', color: 'var(--ink-2)', note: `${res.prot_target_g.toFixed(1)} g` },
+                    { label: 'GIR', value: res.gir_mg_kg_min.toFixed(2), unit: 'mg/kg/min', color: res.gir_mg_kg_min > 5 ? 'var(--red)' : 'var(--green)', note: `Máx 5.0` },
                     { label: 'Osmolaridade', value: res.osmolarity.toFixed(0), unit: 'mOsm/L', color: osmo_color, note: p.access === 'peripheral' ? 'Periférico <900' : 'Central OK' },
-                    { label: 'Ca×P', value: res.ca_p_product.toFixed(0), unit: '', color: res.ca_p_product > 200 ? '#dc2626' : '#16a34a', note: 'Máx 200 (TNA)' },
+                    { label: 'Ca×P', value: res.ca_p_product.toFixed(0), unit: '', color: res.ca_p_product > 200 ? 'var(--red)' : 'var(--green)', note: 'Máx 200 (TNA)' },
                   ].map(m => (
-                    <div key={m.label} style={{ background: 'white', borderRadius: 12, border: `2px solid ${m.color}20`, padding: '12px 14px', textAlign: 'center' }}>
-                      <div style={{ fontSize: 22, fontWeight: 900, color: m.color, lineHeight: 1 }}>{m.value}</div>
-                      <div style={{ fontSize: 10, color: '#94a3b8', marginTop: 1 }}>{m.unit}</div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: m.color, marginTop: 3 }}>{m.label}</div>
-                      <div style={{ fontSize: 9, color: '#94a3b8', marginTop: 1 }}>{m.note}</div>
+                    <div key={m.label} style={{ background: 'white', borderRadius: 'var(--r-xl)', border: `2px solid ${m.color}20`, padding: '12px 14px', textAlign: 'center' }}>
+                      <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: m.color, lineHeight: 1 }}>{m.value}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 1 }}>{m.unit}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: m.color, marginTop: 3 }}>{m.label}</div>
+                      <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 1 }}>{m.note}</div>
                     </div>
                   ))}
                 </div>
 
                 {/* Formulation */}
-                <div style={{ background: 'white', borderRadius: 14, border: '1px solid #e2e8f0', padding: '16px 20px' }}>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: '#0f172a', marginBottom: 14 }}>🧪 Formulação da Bolsa</div>
+                <div style={{ background: 'white', borderRadius: 'var(--r-xl)', border: '1px solid var(--border)', padding: '16px 20px' }}>
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14 }}>Formulação da Bolsa</div>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Macronutrientes</div>
+                      <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Macronutrientes</div>
                       <LabelRow label="Aminoácidos 10%" value={res.aa_vol.toFixed(0)} unit="mL" />
                       <LabelRow label="Glicose 70%" value={res.dex_vol.toFixed(0)} unit="mL" />
                       {!p.lipid_omit && <LabelRow label={`${p.lipid_type === 'smof' ? 'SMOFlipid' : p.lipid_type === 'olive' ? 'ClinOleic' : 'Intralipid'} 20%`} value={res.lip_vol.toFixed(0)} unit="mL" />}
                       <LabelRow label="Eletrólitos / aditivos" value={res.electrolyte_vol.toFixed(0)} unit="mL" />
-                      <div style={{ borderTop: '2px solid #0f172a', marginTop: 6, paddingTop: 6 }}>
+                      <div style={{ borderTop: '2px solid var(--ink)', marginTop: 6, paddingTop: 6 }}>
                         <LabelRow label="Volume total" value={res.total_vol.toFixed(0)} unit="mL" highlight />
                         <LabelRow label="Velocidade (24h)" value={res.rate_mL_h.toFixed(1)} unit="mL/h" highlight />
                       </div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 10, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Eletrólitos</div>
+                      <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Eletrólitos</div>
                       <LabelRow label="Sódio (NaCl)" value={res.na_meq.toString()} unit="mEq" />
                       <LabelRow label="Potássio" value={res.k_meq.toString()} unit="mEq" />
                       <LabelRow label="Magnésio (MgSO₄)" value={res.mg_meq.toString()} unit="mEq" />
                       <LabelRow label="Fósforo (KH₂PO₄)" value={res.phos_mmol.toString()} unit="mmol" />
                       <LabelRow label="Cálcio (gluconato)" value={res.ca_meq.toString()} unit="mEq" />
                       {+p.insulin > 0 && <LabelRow label="Insulina regular" value={p.insulin} unit="UI" />}
-                      <div style={{ borderTop: '1px solid #f1f5f9', marginTop: 6, paddingTop: 6, fontSize: 11, color: '#64748b' }}>
+                      <div style={{ borderTop: '1px solid var(--bg-3)', marginTop: 6, paddingTop: 6, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
                         + MVI 10 mL + Oligoelementos 1 ampola/dia
                       </div>
                     </div>
@@ -656,7 +670,7 @@ export default function TPN() {
                 {res.notes.length > 0 && (
                   <div>
                     {res.notes.map((n, i) => (
-                      <div key={i} style={{ padding: '8px 12px', borderRadius: 8, marginBottom: 5, background: '#eff6ff', border: '1px solid #bfdbfe', fontSize: 12, color: '#1d4ed8', display: 'flex', gap: 7 }}>
+                      <div key={i} style={{ padding: '8px 12px', borderRadius: 'var(--r-md)', marginBottom: 5, background: 'var(--bg-2)', border: '1px solid var(--border)', fontSize: 'var(--t-meta)', color: 'var(--ink-2)', display: 'flex', gap: 7 }}>
                         <span>ℹ</span> {n}
                       </div>
                     ))}
@@ -664,7 +678,7 @@ export default function TPN() {
                 )}
 
                 {/* Guidelines reference */}
-                <div style={{ padding: '10px 14px', background: '#f8fafc', borderRadius: 9, border: '1px solid #f1f5f9', fontSize: 11, color: '#94a3b8' }}>
+                <div style={{ padding: '10px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', border: '1px solid var(--bg-3)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
                   ASPEN Board of Directors. <em>J Parenter Enteral Nutr.</em> 2022. ·
                   Singer P et al. ESPEN guidelines on clinical nutrition in the ICU. <em>Clin Nutr.</em> 2019;38(1):48–79.
                 </div>
@@ -675,7 +689,7 @@ export default function TPN() {
       </div>
 
       <style>{`
-        input:focus, select:focus { border-color:#0d9488 !important; box-shadow:0 0 0 3px rgba(13,148,136,0.1); }
+        input:focus, select:focus { border-color:var(--green) !important; box-shadow:0 0 0 3px rgba(13,148,136,0.1); }
         /* Coluna fixa de 340px + conteúdo: a 390px não cabe (transbordava
            147px). Em ecrã estreito passa a uma coluna. */
         @media (max-width: 900px) { .tpn-grid { grid-template-columns: minmax(0,1fr) !important; } }
@@ -685,6 +699,6 @@ export default function TPN() {
           .print-label { border:2px solid black !important; max-width:100% !important; }
         }
       `}</style>
-    </div>
+    </Mesa>
   )
 }

@@ -27,7 +27,7 @@ interface Wound { id: string; patient_id: string; status: string; stage?: string
 const INC_LABELS: Record<string, string> = { fall: 'Quedas', medication_error: 'Erros med.', pressure_ulcer: 'Úlceras', behavioral: 'Comportamental', choking: 'Engasgamento', infection: 'Infeções', other: 'Outras' }
 const ROLE_LABELS: Record<string, string> = { nurse: 'Enfermeiro(a)', caregiver: 'Ajudante', pharmacist: 'Farmacêutico(a)', doctor: 'Médico(a)', coordinator: 'Coordenador(a)', director: 'Diretor(a)', admin: 'Administrativo(a)' }
 const SHIFT_LABEL: Record<Shift, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
-const SHIFT_COLOR: Record<Shift, string> = { manha: '#d97706', tarde: '#2563eb', noite: '#6d28d9' }
+const SHIFT_COLOR: Record<Shift, string> = { manha: 'var(--amber)', tarde: 'var(--ink-2)', noite: 'var(--roxo)' }
 
 const today = () => new Date().toISOString().slice(0, 10)
 const curShift = (): Shift => { const h = new Date().getHours(); if (h >= 7 && h < 14) return 'manha'; if (h >= 14 && h < 21) return 'tarde'; return 'noite' }
@@ -37,7 +37,7 @@ function Ring({ pct, color, label, sub, size = 78 }: { pct: number; color: strin
   return (
     <div style={{ textAlign: 'center' }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="#eef0f3" strokeWidth="7" />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--bg-3)" strokeWidth="7" />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={color} strokeWidth="7" strokeLinecap="round" strokeDasharray={c} strokeDashoffset={off} transform={`rotate(-90 ${size / 2} ${size / 2})`} style={{ transition: 'stroke-dashoffset 0.6s ease' }} />
         <text x="50%" y="50%" dominantBaseline="central" textAnchor="middle" style={{ fontSize: 17, fontWeight: 800, fill: color, fontFamily: 'var(--font-mono)' }}>{pct}%</text>
       </svg>
@@ -178,21 +178,21 @@ export default function NursingHomeGestao() {
   // ── Consolidated alerts feed ──
   interface Alert { id: string; prio: number; color: string; cat: string; text: string; href: string }
   const alerts: Alert[] = []
-  if (criticalCount > 0) alerts.push({ id: 'risk-crit', prio: 0, color: '#dc2626', cat: 'Risco clínico crítico', text: `${criticalCount} residente${criticalCount !== 1 ? 's' : ''} a precisar de atenção prioritária`, href: '/radar' })
-  openInc.filter(i => i.severity === 'critical' || i.severity === 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 0, color: '#dc2626', cat: 'Ocorrência grave', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)} ${roomOf(i.patient_id)}`, href: '/incidents' }))
-  severeWounds.forEach(w => alerts.push({ id: `w${w.id}`, prio: 1, color: '#991b1b', cat: `Ferida Cat. ${w.stage}`, text: `${nameOf(w.patient_id)} ${roomOf(w.patient_id)}`, href: '/feridas' }))
-  openInc.filter(i => i.severity !== 'critical' && i.severity !== 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 2, color: '#d97706', cat: 'Ocorrência aberta', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)}`, href: '/incidents' }))
-  if (overdueAssess > 0) alerts.push({ id: 'assess', prio: 3, color: '#2563eb', cat: 'Avaliações vencidas', text: `${overdueAssess} residentes com Barthel > 90 dias`, href: '/assessments' })
-  if (carePct < 60) alerts.push({ id: 'care', prio: 3, color: '#d97706', cat: 'Registos em atraso', text: `Só ${carePct}% dos registos do turno ${SHIFT_LABEL[shift]} estão feitos`, href: '/care-log' })
+  if (criticalCount > 0) alerts.push({ id: 'risk-crit', prio: 0, color: 'var(--red)', cat: 'Risco clínico crítico', text: `${criticalCount} residente${criticalCount !== 1 ? 's' : ''} a precisar de atenção prioritária`, href: '/radar' })
+  openInc.filter(i => i.severity === 'critical' || i.severity === 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 0, color: 'var(--red)', cat: 'Ocorrência grave', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)} ${roomOf(i.patient_id)}`, href: '/incidents' }))
+  severeWounds.forEach(w => alerts.push({ id: `w${w.id}`, prio: 1, color: 'var(--red)', cat: `Ferida Cat. ${w.stage}`, text: `${nameOf(w.patient_id)} ${roomOf(w.patient_id)}`, href: '/feridas' }))
+  openInc.filter(i => i.severity !== 'critical' && i.severity !== 'major').forEach(i => alerts.push({ id: `i${i.id}`, prio: 2, color: 'var(--amber)', cat: 'Ocorrência aberta', text: `${INC_LABELS[i.type] || i.type} · ${nameOf(i.patient_id)}`, href: '/incidents' }))
+  if (overdueAssess > 0) alerts.push({ id: 'assess', prio: 3, color: 'var(--ink-2)', cat: 'Avaliações vencidas', text: `${overdueAssess} residentes com Barthel > 90 dias`, href: '/assessments' })
+  if (carePct < 60) alerts.push({ id: 'care', prio: 3, color: 'var(--amber)', cat: 'Registos em atraso', text: `Só ${carePct}% dos registos do turno ${SHIFT_LABEL[shift]} estão feitos`, href: '/care-log' })
   alerts.sort((a, b) => a.prio - b.prio)
 
   const instName = profile?.short_name || profile?.name || 'o teu lar'
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
   const secTitle = (t: string, href?: string) => (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
       <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{t}</span>
-      {href && <Link href={href} style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Abrir →</Link>}
+      {href && <Link href={href} style={{ fontSize: 11, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Abrir →</Link>}
     </div>
   )
 
@@ -207,7 +207,7 @@ export default function NursingHomeGestao() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Painel de Gestão</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Visão completa de {instName} — ocupação, equipa, clínica, qualidade.</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
             <span className="live-dot" />
             <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>Turno {SHIFT_LABEL[shift]}</span>
           </div>
@@ -216,7 +216,7 @@ export default function NursingHomeGestao() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
           {([['painel', 'Painel'], ['stock', 'Stock & Validades']] as [typeof tab, string][]).map(([t, l]) => (
-            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 16px', borderRadius: 9, border: `1.5px solid ${tab === t ? '#0d6e42' : 'var(--border)'}`, background: tab === t ? '#eef6f1' : 'white', color: tab === t ? '#0d6e42' : 'var(--ink-4)', fontSize: 13, fontWeight: tab === t ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{l}</button>
+            <button key={t} onClick={() => setTab(t)} style={{ padding: '8px 16px', borderRadius: 'var(--r-lg)', border: `1.5px solid ${tab === t ? 'var(--green)' : 'var(--border)'}`, background: tab === t ? 'var(--green-light)' : 'white', color: tab === t ? 'var(--green)' : 'var(--ink-4)', fontSize: 13, fontWeight: tab === t ? 700 : 500, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{l}</button>
           ))}
         </div>
 
@@ -225,11 +225,11 @@ export default function NursingHomeGestao() {
         {/* KPI strip */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 14 }}>
           {[
-            { label: 'Ocupação', value: `${occupied}/${totalBeds}`, sub: `${occupancyPct}%`, color: occupancyPct >= 90 ? '#dc2626' : '#0d6e42', href: '/census' },
-            { label: 'Equipa em serviço', value: onShift, sub: `de ${team.length}`, color: '#2563eb', href: '/equipa?tab=escalas' },
-            { label: 'Risco crítico', value: criticalCount, sub: warningCount ? `+${warningCount} a vigiar` : 'residentes', color: criticalCount ? '#dc2626' : warningCount ? '#d97706' : '#16a34a', href: '/radar' },
-            { label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? '#dc2626' : '#16a34a', href: '/incidents' },
-            { label: 'Feridas ativas', value: activeWounds.length, sub: severeWounds.length ? `${severeWounds.length} cat. III/IV` : 'acompanhamento', color: severeWounds.length ? '#991b1b' : '#d97706', href: '/feridas' },
+            { label: 'Ocupação', value: `${occupied}/${totalBeds}`, sub: `${occupancyPct}%`, color: occupancyPct >= 90 ? 'var(--red)' : 'var(--green)', href: '/census' },
+            { label: 'Equipa em serviço', value: onShift, sub: `de ${team.length}`, color: 'var(--ink-2)', href: '/equipa?tab=escalas' },
+            { label: 'Risco crítico', value: criticalCount, sub: warningCount ? `+${warningCount} a vigiar` : 'residentes', color: criticalCount ? 'var(--red)' : warningCount ? 'var(--amber)' : 'var(--green)', href: '/radar' },
+            { label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? 'var(--red)' : 'var(--green)', href: '/incidents' },
+            { label: 'Feridas ativas', value: activeWounds.length, sub: severeWounds.length ? `${severeWounds.length} cat. III/IV` : 'acompanhamento', color: severeWounds.length ? 'var(--red)' : 'var(--amber)', href: '/feridas' },
           ].map(k => (
             <Link key={k.label} href={k.href} style={{ textDecoration: 'none' }}>
               <div style={{ ...card, padding: '14px 16px', height: '100%' }}>
@@ -249,8 +249,8 @@ export default function NursingHomeGestao() {
           <div style={card}>
             {secTitle(`Conclusão do turno · ${SHIFT_LABEL[shift]}`)}
             <div style={{ display: 'flex', justifyContent: 'space-around', gap: 12 }}>
-              <Ring pct={loading ? 0 : carePct} color="#2563eb" label="Registos diários" sub={`${careThisShift.size}/${patients.length}`} />
-              <Ring pct={loading ? 0 : marPct} color="#0d6e42" label="MAR administrado" sub={`${marDone.size}/${patients.length}`} />
+              <Ring pct={loading ? 0 : carePct} color="var(--ink-2)" label="Registos diários" sub={`${careThisShift.size}/${patients.length}`} />
+              <Ring pct={loading ? 0 : marPct} color="var(--green)" label="MAR administrado" sub={`${marDone.size}/${patients.length}`} />
             </div>
           </div>
 
@@ -260,15 +260,15 @@ export default function NursingHomeGestao() {
             {loading ? (
               <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>A analisar…</div>
             ) : ranked.filter(r => r.level === 'critical' || r.level === 'warning').length === 0 ? (
-              <div style={{ fontSize: 12, color: '#16a34a' }}>Nenhum residente com sinais de alerta neste momento.</div>
+              <div style={{ fontSize: 12, color: 'var(--green)' }}>Nenhum residente com sinais de alerta neste momento.</div>
             ) : (
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 8 }}>
                 {ranked.filter(r => r.level === 'critical' || r.level === 'warning').slice(0, 9).map(({ p, score, level, signals }) => {
                   const st = SEVERITY_STYLE[level as Severity]
                   const top = (signals as Signal[]).filter(s => s.severity === 'critical' || s.severity === 'warning').slice(0, 2)
                   return (
-                    <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 10, padding: '10px 12px', border: `1px solid ${st.border}`, background: st.bg, borderRadius: 10 }}>
-                      <div style={{ width: 36, height: 36, borderRadius: 8, background: 'white', border: `1.5px solid ${st.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                    <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 10, padding: '10px 12px', border: `1px solid ${st.border}`, background: st.bg, borderRadius: 'var(--r-lg)' }}>
+                      <div style={{ width: 36, height: 36, borderRadius: 'var(--r-md)', background: 'white', border: `1.5px solid ${st.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <span style={{ fontSize: 14, fontWeight: 800, color: st.color }}>{score}</span>
                       </div>
                       <div style={{ minWidth: 0 }}>
@@ -287,12 +287,12 @@ export default function NursingHomeGestao() {
             {secTitle('Movimento & conformidade · este mês')}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               {[
-                { l: 'Admissões', v: admissionsMonth, c: '#0d6e42' },
-                { l: 'Saídas', v: dischargesMonth, c: '#64748b' },
-                { l: 'Ocorrências', v: incMonth.length, c: incMonth.length ? '#d97706' : '#16a34a' },
-                { l: 'Avaliações vencidas', v: overdueAssess, c: overdueAssess ? '#dc2626' : '#16a34a' },
+                { l: 'Admissões', v: admissionsMonth, c: 'var(--green)' },
+                { l: 'Saídas', v: dischargesMonth, c: 'var(--ink-4)' },
+                { l: 'Ocorrências', v: incMonth.length, c: incMonth.length ? 'var(--amber)' : 'var(--green)' },
+                { l: 'Avaliações vencidas', v: overdueAssess, c: overdueAssess ? 'var(--red)' : 'var(--green)' },
               ].map(s => (
-                <div key={s.l} style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}>
+                <div key={s.l} style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}>
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: s.c, lineHeight: 1 }}>{loading ? '—' : s.v}</div>
                   <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>{s.l}</div>
                 </div>
@@ -304,7 +304,7 @@ export default function NursingHomeGestao() {
           <div style={card}>
             {secTitle('Qualidade · ocorrências este mês', '/quality')}
             {Object.keys(incByType).length === 0 ? (
-              <div style={{ fontSize: 12, color: '#16a34a' }}>Sem ocorrências registadas este mês.</div>
+              <div style={{ fontSize: 12, color: 'var(--green)' }}>Sem ocorrências registadas este mês.</div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                 {Object.entries(incByType).sort((a, b) => b[1] - a[1]).map(([type, n]) => (
@@ -313,8 +313,8 @@ export default function NursingHomeGestao() {
                       <span style={{ color: 'var(--ink-3)' }}>{INC_LABELS[type] || type}</span>
                       <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{n}</span>
                     </div>
-                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
-                      <div style={{ height: '100%', width: `${(n / maxInc) * 100}%`, background: '#d97706', borderRadius: 3 }} />
+                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${(n / maxInc) * 100}%`, background: 'var(--amber)', borderRadius: 'var(--r-sm)' }} />
                     </div>
                   </div>
                 ))}
@@ -326,7 +326,7 @@ export default function NursingHomeGestao() {
           <div style={card}>
             {secTitle('Equipa de hoje', '/equipa?tab=escalas')}
             {shifts.length === 0 ? (
-              <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem escala marcada para hoje. <Link href="/equipa?tab=escalas" style={{ color: '#2563eb' }}>Marcar turnos →</Link></div>
+              <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem escala marcada para hoje. <Link href="/equipa?tab=escalas" style={{ color: 'var(--ink-2)' }}>Marcar turnos →</Link></div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 {(['manha', 'tarde', 'noite'] as Shift[]).map(s => {
@@ -352,17 +352,17 @@ export default function NursingHomeGestao() {
           {loading ? (
             <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>A carregar…</div>
           ) : alerts.length === 0 ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#16a34a', fontSize: 13 }}>
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--green)', fontSize: 13 }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--green)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
               Tudo em ordem — sem alertas neste momento.
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {alerts.slice(0, 12).map(a => (
-                <Link key={a.id + a.cat} href={a.href} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 9, border: '1px solid var(--border)', borderLeft: `3px solid ${a.color}`, textDecoration: 'none', background: 'white' }}>
+                <Link key={a.id + a.cat} href={a.href} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', borderLeft: `3px solid ${a.color}`, textDecoration: 'none', background: 'white' }}>
                   <span style={{ fontSize: 11, fontWeight: 700, color: a.color, minWidth: 130, flexShrink: 0 }}>{a.cat}</span>
                   <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{a.text}</span>
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2" strokeLinecap="round"><path d="M9 18l6-6-6-6"/></svg>
                 </Link>
               ))}
             </div>

@@ -22,12 +22,12 @@ async function safe(p: any): Promise<any[] | null> {
   try { const { data, error } = await p; if (error) return null; return data || [] } catch { return null }
 }
 
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
 function secTitle(t: string, href?: string) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
       <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>{t}</span>
-      {href && <Link href={href} style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Abrir →</Link>}
+      {href && <Link href={href} style={{ fontSize: 11, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Abrir →</Link>}
     </div>
   )
 }
@@ -128,11 +128,11 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
 
   // ── KPIs específicos por instituição ──
   const kpis: { label: string; value: string | number; sub: string; color: string; href: string }[] = []
-  kpis.push({ label: cfg.personNounPlural, value: patients.length, sub: 'em ficha', color: '#0b1120', href: '/patients' })
-  if (cfg.revenue !== 'internal') kpis.push({ label: cfg.revenue === 'pos_sales' ? 'Caixa hoje' : 'Faturado hoje', value: euro(revToday), sub: `${txToday} mov.`, color: '#0d6e42', href: '/faturacao' })
-  if (cfg.hasAppointments) kpis.push({ label: 'Marcações hoje', value: (apptToday ?? 0), sub: 'agenda', color: '#7c3aed', href: '/agenda' })
-  kpis.push({ label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? '#dc2626' : '#16a34a', href: '/incidents' })
-  if (compPct !== null) kpis.push({ label: 'Conformidade', value: `${compPct}%`, sub: compPending ? `${compPending} pendentes` : 'pronto', color: compPct >= 90 ? '#16a34a' : compPct >= 60 ? '#d97706' : '#dc2626', href: '/conformidade' })
+  kpis.push({ label: cfg.personNounPlural, value: patients.length, sub: 'em ficha', color: 'var(--ink)', href: '/patients' })
+  if (cfg.revenue !== 'internal') kpis.push({ label: cfg.revenue === 'pos_sales' ? 'Caixa hoje' : 'Faturado hoje', value: euro(revToday), sub: `${txToday} mov.`, color: 'var(--green)', href: '/faturacao' })
+  if (cfg.hasAppointments) kpis.push({ label: 'Marcações hoje', value: (apptToday ?? 0), sub: 'agenda', color: 'var(--roxo)', href: '/agenda' })
+  kpis.push({ label: 'Ocorrências abertas', value: openInc.length, sub: 'por resolver', color: openInc.length ? 'var(--red)' : 'var(--green)', href: '/incidents' })
+  if (compPct !== null) kpis.push({ label: 'Conformidade', value: `${compPct}%`, sub: compPending ? `${compPending} pendentes` : 'pronto', color: compPct >= 90 ? 'var(--green)' : compPct >= 60 ? 'var(--amber)' : 'var(--red)', href: '/conformidade' })
 
   // Top vendas/atos por tipo (hoje)
   const byKind: Record<string, { n: number; sum: number }> = {}
@@ -151,7 +151,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Painel de Gestão</h1>
             <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: '5px 0 0' }}>Visão completa de {instName} — {cfg.currencyFlow.toLowerCase()}, atividade e qualidade.</p>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 9 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '7px 13px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)' }}>
             <span className="live-dot" />
             <span style={{ fontSize: 12, color: 'var(--ink-3)', fontWeight: 600 }}>{new Date().toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</span>
           </div>
@@ -178,7 +178,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
           {cfg.revenue !== 'internal' && (
             <div style={card}>
               {secTitle(`${cfg.revenue === 'pos_sales' ? 'Caixa' : 'Faturação'} · este mês`, '/faturacao')}
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: '#0d6e42', lineHeight: 1 }}>{loading ? '—' : euro(revMonth)}</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: 'var(--green)', lineHeight: 1 }}>{loading ? '—' : euro(revMonth)}</div>
               <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 4 }}>Hoje: {euro(revToday)} · {txToday} movimento(s)</div>
               {Object.keys(byKind).length > 0 && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 14 }}>
@@ -188,8 +188,8 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
                         <span style={{ color: 'var(--ink-3)' }}>{KIND_LABEL[k] || k} <span style={{ color: 'var(--ink-5)' }}>· {v.n}</span></span>
                         <span style={{ fontWeight: 700, color: 'var(--ink)' }}>{euro(v.sum)}</span>
                       </div>
-                      <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${(v.sum / maxKind) * 100}%`, background: '#0d6e42', borderRadius: 3 }} />
+                      <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                        <div style={{ height: '100%', width: `${(v.sum / maxKind) * 100}%`, background: 'var(--green)', borderRadius: 'var(--r-sm)' }} />
                       </div>
                     </div>
                   ))}
@@ -203,10 +203,10 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
             <div style={card}>
               {secTitle('Fluxo de atendimento · hoje', cfg.hasWaitingRoom ? undefined : '/agenda')}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                {cfg.hasWaitingRoom && <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#2563eb', lineHeight: 1 }}>{loading ? '—' : (waitingNow ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>A aguardar</div></div>}
-                {cfg.hasWaitingRoom && <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#16a34a', lineHeight: 1 }}>{loading ? '—' : (servedToday ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Atendidos hoje</div></div>}
-                {cfg.hasAppointments && <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#7c3aed', lineHeight: 1 }}>{loading ? '—' : (apptToday ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Marcações hoje</div></div>}
-                {cfg.hasWalkins && <div style={{ background: 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#0d9488', lineHeight: 1 }}>{loading ? '—' : (encMonth ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Atendimentos (mês)</div></div>}
+                {cfg.hasWaitingRoom && <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink-2)', lineHeight: 1 }}>{loading ? '—' : (waitingNow ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>A aguardar</div></div>}
+                {cfg.hasWaitingRoom && <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--green)', lineHeight: 1 }}>{loading ? '—' : (servedToday ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Atendidos hoje</div></div>}
+                {cfg.hasAppointments && <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--roxo)', lineHeight: 1 }}>{loading ? '—' : (apptToday ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Marcações hoje</div></div>}
+                {cfg.hasWalkins && <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--green-3)', lineHeight: 1 }}>{loading ? '—' : (encMonth ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Atendimentos (mês)</div></div>}
               </div>
             </div>
           )}
@@ -216,8 +216,8 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
             <div style={card}>
               {secTitle('Stock & validades', '/stock')}
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <div style={{ background: stockLow ? '#fef2f2' : 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: stockLow ? '#dc2626' : '#16a34a', lineHeight: 1 }}>{loading ? '—' : (stockLow ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Em rutura</div></div>
-                <div style={{ background: stockExp ? '#fffbeb' : 'var(--bg-2)', borderRadius: 8, padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: stockExp ? '#d97706' : '#16a34a', lineHeight: 1 }}>{loading ? '—' : (stockExp ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Validade ≤30d</div></div>
+                <div style={{ background: stockLow ? 'var(--badge-red-bg)' : 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: stockLow ? 'var(--red)' : 'var(--green)', lineHeight: 1 }}>{loading ? '—' : (stockLow ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Em rutura</div></div>
+                <div style={{ background: stockExp ? 'var(--badge-amber-bg)' : 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '12px 14px' }}><div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: stockExp ? 'var(--amber)' : 'var(--green)', lineHeight: 1 }}>{loading ? '—' : (stockExp ?? 0)}</div><div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 3 }}>Validade ≤30d</div></div>
               </div>
             </div>
           )}
@@ -227,15 +227,15 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
             <div style={{ ...card, gridColumn: attention.length > 4 ? '1 / -1' : 'auto' }}>
               {secTitle(`${cfg.personNounPlural} a vigiar${attention.length ? ` · ${attention.length}` : ''}`, '/radar')}
               {loading ? <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>A analisar…</div>
-                : attention.length === 0 ? <div style={{ fontSize: 12, color: '#16a34a' }}>Sem sinais de alerta de momento.</div>
+                : attention.length === 0 ? <div style={{ fontSize: 12, color: 'var(--green)' }}>Sem sinais de alerta de momento.</div>
                 : (
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: 8 }}>
                     {attention.slice(0, 8).map(({ p, score, level, signals }) => {
                       const st = SEVERITY_STYLE[level as Severity]
                       const top = (signals as Signal[]).filter(s => s.severity === 'critical' || s.severity === 'warning').slice(0, 2)
                       return (
-                        <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 10, padding: '10px 12px', border: `1px solid ${st.border}`, background: st.bg, borderRadius: 10 }}>
-                          <div style={{ width: 34, height: 34, borderRadius: 8, background: 'white', border: `1.5px solid ${st.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 13, fontWeight: 800, color: st.color }}>{score}</span></div>
+                        <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none', display: 'flex', gap: 10, padding: '10px 12px', border: `1px solid ${st.border}`, background: st.bg, borderRadius: 'var(--r-lg)' }}>
+                          <div style={{ width: 34, height: 34, borderRadius: 'var(--r-md)', background: 'white', border: `1.5px solid ${st.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><span style={{ fontSize: 13, fontWeight: 800, color: st.color }}>{score}</span></div>
                           <div style={{ minWidth: 0 }}>
                             <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
                             <div style={{ fontSize: 11, color: st.color, fontWeight: 600 }}>{top.map(s => s.title).join(' · ') || st.label}</div>
@@ -251,13 +251,13 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
           {/* Equipa */}
           <div style={card}>
             {secTitle('Equipa', '/equipa?tab=escalas')}
-            {team.length === 0 ? <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem equipa registada. <Link href="/equipa?tab=escalas" style={{ color: '#2563eb' }}>Adicionar →</Link></div> : (
+            {team.length === 0 ? <div style={{ fontSize: 12, color: 'var(--ink-5)' }}>Sem equipa registada. <Link href="/equipa?tab=escalas" style={{ color: 'var(--ink-2)' }}>Adicionar →</Link></div> : (
               <>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#2563eb', lineHeight: 1 }}>{onShift}<span style={{ fontSize: 13, color: 'var(--ink-4)' }}> / {team.length}</span></div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--ink-2)', lineHeight: 1 }}>{onShift}<span style={{ fontSize: 13, color: 'var(--ink-4)' }}> / {team.length}</span></div>
                 <div style={{ fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>em serviço</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
                   {team.slice(0, 8).map(mb => (
-                    <span key={mb.id} style={{ fontSize: 11.5, color: 'var(--ink-3)', background: 'var(--bg-2)', borderRadius: 6, padding: '4px 9px' }}>{mb.name.split(' ')[0]}</span>
+                    <span key={mb.id} style={{ fontSize: 11.5, color: 'var(--ink-3)', background: 'var(--bg-2)', borderRadius: 'var(--r)', padding: '4px 9px' }}>{mb.name.split(' ')[0]}</span>
                   ))}
                 </div>
               </>
@@ -271,7 +271,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
             {secTitle(`Ocorrências abertas · ${openInc.length}`, '/incidents')}
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {openInc.slice(0, 8).map(i => (
-                <Link key={i.id} href="/incidents" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 9, border: '1px solid var(--border)', borderLeft: `3px solid ${i.severity === 'critical' || i.severity === 'major' ? '#dc2626' : '#d97706'}`, textDecoration: 'none', background: 'white' }}>
+                <Link key={i.id} href="/incidents" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', borderLeft: `3px solid ${i.severity === 'critical' || i.severity === 'major' ? 'var(--red)' : 'var(--amber)'}`, textDecoration: 'none', background: 'white' }}>
                   <span style={{ flex: 1, fontSize: 13, color: 'var(--ink)' }}>{i.type} · {patients.find(p => p.id === i.patient_id)?.name || cfg.personNoun}</span>
                   <span style={{ fontSize: 11, color: 'var(--ink-5)' }}>{new Date(i.date + 'T12:00').toLocaleDateString('pt-PT', { day: 'numeric', month: 'short' })}</span>
                 </Link>
@@ -280,7 +280,7 @@ export default function OpsGestao({ institution }: { institution: InstitutionTyp
           </div>
         )}
 
-        <div style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', padding: '18px 0', lineHeight: 1.6 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center', padding: '18px 0', lineHeight: 1.6 }}>
           Painel adaptado a {instName}. Alguns sinais só aparecem quando a ferramenta respetiva estiver em uso.
         </div>
       </div>

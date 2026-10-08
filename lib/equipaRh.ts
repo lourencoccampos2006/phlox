@@ -54,12 +54,12 @@ export interface Ausencia {
 }
 
 export const TIPOS_AUSENCIA: { id: TipoAusencia; label: string; cor: string }[] = [
-  { id: 'ferias',   label: 'Férias',   cor: '#5a6d7c' },
-  { id: 'baixa',    label: 'Baixa',    cor: '#a1544c' },
-  { id: 'falta',    label: 'Falta',    cor: '#7a5f70' },
-  { id: 'licenca',  label: 'Licença',  cor: '#6b6a80' },
-  { id: 'formacao', label: 'Formação', cor: '#5f7161' },
-  { id: 'outro',    label: 'Outro',    cor: '#7c6f5a' },
+  { id: 'ferias',   label: 'Férias',   cor: 'var(--blue)' },
+  { id: 'baixa',    label: 'Baixa',    cor: 'var(--red)' },
+  { id: 'falta',    label: 'Falta',    cor: 'var(--red)' },
+  { id: 'licenca',  label: 'Licença',  cor: 'var(--blue)' },
+  { id: 'formacao', label: 'Formação', cor: 'var(--green)' },
+  { id: 'outro',    label: 'Outro',    cor: 'var(--amber)' },
 ]
 
 export const ROTULO_AUSENCIA: Record<TipoAusencia, string> =

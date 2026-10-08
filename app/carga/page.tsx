@@ -1,43 +1,64 @@
 'use client'
 
-// /carga — Carga de trabalho vs. pessoal (Módulo 19, 2026-08-16).
+// app/carga/page.tsx
+// ─────────────────────────────────────────────────────────────────────────────
+// ONDE A ESCALA PODE APERTAR — refeito de raiz na linguagem da mesa.
 //
-// O problema: a escala (/equipa → Escalas) sabe QUEM está em cada turno, e o
-// Sentinel sabe quão exigentes são os utentes — mas os dois nunca se falaram.
-// "Lacuna" na escala era só turno vazio; um turno com uma pessoa para 20
-// residentes muito dependentes contava como coberto.
+// O problema que a página resolve: a escala sabe QUEM está em cada turno, e o
+// score clínico sabe quão exigentes são os utentes — mas os dois nunca se
+// falaram. «Lacuna» na escala era só turno vazio; um turno com uma pessoa para
+// vinte residentes muito dependentes contava como coberto.
 //
 // O que isto NÃO faz, de propósito: não inventa um rácio legal. Os rácios de
-// pessoal em ERPI são matéria regulada (Portaria) e variam com a valência e
-// o grau de dependência — o Phlox não os vai fingir. Em vez disso compara
-// cada turno com o HÁBITO DA PRÓPRIA INSTITUIÇÃO (mediana das últimas
-// semanas), a mesma filosofia do motor de tendências: o desvio face ao
-// próprio normal é o sinal, não um número universal inventado.
+// pessoal em ERPI são matéria regulada (Portaria) e variam com a valência e o
+// grau de dependência — o Phlox não os vai fingir. Compara cada turno com o
+// HÁBITO DA PRÓPRIA CASA (mediana das últimas semanas).
 //
-// A complexidade vem de lib/riskScore (idade, condições, função renal,
-// polimedicação) — o score determinístico que o /patients e o /rounds já
-// mostram. Foi por ser conceito distinto (fragilidade, não deteção de
-// sinais) que ficou deliberadamente fora da consolidação do Sentinel na
-// Fase 2 — e é exatamente o input certo aqui.
+// ── O QUE ESTAVA ERRADO NA FORMA ───────────────────────────────────────────
+//  1. A SEMANA ERA UMA LISTA DE EXCEPÇÕES. Mostravam-se só os turnos abaixo do
+//     habitual, um cartão cada. Quem olha quer ver A SEMANA — para decidir de
+//     onde tirar alguém é preciso ver os turnos que estão BEM, e esses não
+//     apareciam em sítio nenhum.
+//
+//     Passa a uma GRELHA de 7 dias × 3 turnos. Vinte e um números num ecrã,
+//     alinhados, com o habitual ao lado. É a vista que permite dizer «tire-se
+//     uma pessoa da terça de manhã, que tem três e o habitual é dois».
+//
+//  2. TRÊS INDICADORES GRANDES NO TOPO (pessoas, carga somada, exigentes) em
+//     cartões de 28px. «Carga clínica somada: 412» não é accionável: ninguém
+//     sabe se 412 é muito. Ficam na barra, pequenos, ao lado do que importa.
+//
+//  3. A ADVERTÊNCIA ERA UMA CAIXA DE TRÊS LINHAS no topo. Vai para a barra de
+//     estado, sempre visível, sem empurrar o trabalho para baixo.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import Icon from '@/components/Icon'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import { riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
 import { ptDate } from '@/lib/ptTime'
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 type Shift = 'manha' | 'tarde' | 'noite'
 const SHIFTS: Shift[] = ['manha', 'tarde', 'noite']
-const SHIFT_META: Record<Shift, { label: string; color: string; bg: string }> = {
-  manha: { label: 'Manhã', color: '#d97706', bg: '#fffbeb' },
-  tarde: { label: 'Tarde', color: '#2563eb', bg: '#eff6ff' },
-  noite: { label: 'Noite', color: '#6d28d9', bg: '#faf5ff' },
+
+// -- OS TURNOS DEIXARAM DE TER COR PROPRIA (2026-10-07) ---------------------
+// Eram tres cores: ambar de manha, azul a tarde, roxo a noite. O que os matou
+// foi uma coisa concreta: o ambar passou a querer dizer «a precisar de
+// atencao». Com a manha pintada de ambar, metade dos ecras de uma casa
+// ficavam com um aviso falso das sete as duas da tarde -- todos os dias.
+const ROTULO_TURNO: Record<Shift, string> = {
+  manha: 'Manhã', tarde: 'Tarde', noite: 'Noite',
 }
-const ACCENT = '#b45309'
+const HORAS_TURNO: Record<Shift, string> = {
+  manha: '07–14h', tarde: '14–21h', noite: '21–07h',
+}
 const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 
 // BUG CORRIGIDO 2026-08-21: usava-se `d.setHours(0,0,0,0)` + `toISOString()`,
@@ -45,8 +66,6 @@ const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 // local é 23:00 do dia ANTERIOR em UTC — ou seja, entre as 00:00 e a 01:00 a
 // janela inteira dos "próximos 7 dias" andava um dia para trás: mostrava
 // ontem (passado, inútil) e perdia o 7.º dia. Confirmado ao vivo.
-// Agora: data de calendário de Portugal (lib/ptTime) + aritmética de dias em
-// UTC puro sobre a string, que não tem fusos nem horário de verão.
 const addDays = (iso: string, n: number): string => {
   const [y, m, d] = iso.split('-').map(Number)
   const dt = new Date(Date.UTC(y, m - 1, d))
@@ -54,13 +73,18 @@ const addDays = (iso: string, n: number): string => {
   return dt.toISOString().slice(0, 10)
 }
 
-interface PatientRow { id: string; name: string; age: number | null; sex: string | null; weight: number | null; creatinine: number | null; conditions: string | null; room_number: string | null }
+interface PatientRow {
+  id: string; name: string; age: number | null; sex: string | null
+  weight: number | null; creatinine: number | null
+  conditions: string | null; room_number: string | null
+}
 
 export default function CargaPage() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
+  const largo = useLargo()
 
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -83,7 +107,7 @@ export default function CargaPage() {
       safe(scope.filter(supabase.from('shift_assignments').select('date,shift,team_member_id')).gte('date', today).lte('date', in7)),
       safe(scope.filter(supabase.from('shift_assignments').select('date,shift,team_member_id')).gte('date', back28).lt('date', today)),
     ])
-    if (p.error) { setErr('Não foi possível carregar. Verifica a ligação.'); setLoading(false); return }
+    if (p.error) { setErr('Não foi possível carregar. Verifique a ligação.'); setLoading(false); return }
 
     const counts: Record<string, number> = {}
     ;((meds.data || []) as any[]).forEach(m => { counts[m.patient_id] = (counts[m.patient_id] || 0) + 1 })
@@ -104,171 +128,299 @@ export default function CargaPage() {
   , [patients, medsCount])
   const totalLoad = useMemo(() => scored.reduce((s, x) => s + x.score, 0), [scored])
 
-  // Mediana histórica de pessoal por turno (as últimas 4 semanas) — o "normal"
-  // desta casa. Só conta turnos que tiveram gente (um turno nunca preenchido
-  // no passado não é um padrão, é ausência de dados).
+  // Mediana histórica de pessoal por turno (as últimas 4 semanas) — o «normal»
+  // desta casa. Só conta turnos que tiveram gente: um turno nunca preenchido
+  // no passado não é um padrão, é ausência de dados.
   const historicMedian = useMemo(() => {
     const byKey: Record<string, Set<string>> = {}
     histAssignments.forEach(a => { (byKey[`${a.date}|${a.shift}`] ||= new Set()).add(a.team_member_id) })
     const out: Record<Shift, number | null> = { manha: null, tarde: null, noite: null }
     SHIFTS.forEach(sk => {
-      const counts = Object.entries(byKey).filter(([k]) => k.endsWith(`|${sk}`)).map(([, v]) => v.size).filter(n => n > 0).sort((a, b) => a - b)
+      const counts = Object.entries(byKey)
+        .filter(([k]) => k.endsWith(`|${sk}`))
+        .map(([, v]) => v.size)
+        .filter(n => n > 0)
+        .sort((a, b) => a - b)
       out[sk] = counts.length ? counts[Math.floor(counts.length / 2)] : null
     })
     return out
   }, [histAssignments])
 
   // Datas de calendário de Portugal (strings), não objetos Date — evita o
-  // salto de fuso e é exatamente o formato que shift_assignments.date guarda.
+  // salto de fuso e é exactamente o formato que shift_assignments.date guarda.
   const days = useMemo(() => {
     const t = ptDate()
     return Array.from({ length: 7 }, (_, i) => addDays(t, i))
   }, [])
 
-  function staffOn(date: string, shift: Shift): number {
-    return new Set(assignments.filter(a => a.date === date && a.shift === shift).map(a => a.team_member_id)).size
-  }
+  const porTurno = useMemo(() => {
+    const m: Record<string, Set<string>> = {}
+    assignments.forEach(a => { (m[`${a.date}|${a.shift}`] ||= new Set()).add(a.team_member_id) })
+    return m
+  }, [assignments])
 
-  // Um turno "sob pressão" é: sem ninguém, ou com menos gente do que o
-  // habitual DESTA casa para esse turno. Nunca comparado com uma norma
-  // externa inventada.
-  //
-  // Só avaliamos turnos que esta casa COSTUMA preencher (tem mediana
-  // histórica). Sem isso não há base de comparação — e sem esta regra, uma
-  // instituição que ainda não usa a escala abria a página e via uma parede de
-  // alertas vermelhos sem significado nenhum, que é pior do que não ter nada.
+  const staffOn = useCallback(
+    (date: string, shift: Shift) => porTurno[`${date}|${shift}`]?.size || 0,
+    [porTurno])
+
+  /* Os turnos que esta casa AVALIA. Um centro de dia não tem noite; e um turno
+     que esta casa nunca preencheu no passado não tem base de comparação —
+     sem esta regra, quem ainda não usa a escala abria a página e via uma
+     parede de alertas vermelhos sem significado nenhum. */
+  const turnosAvaliados = useMemo(
+    () => SHIFTS.filter(sk => (cfg.hasShifts || sk !== 'noite') && historicMedian[sk] != null),
+    [cfg.hasShifts, historicMedian])
+
+  const turnosMostrados = useMemo(
+    () => SHIFTS.filter(sk => cfg.hasShifts || sk !== 'noite'),
+    [cfg.hasShifts])
+
   const pressured = useMemo(() => {
     const out: { date: string; shift: Shift; staff: number; median: number }[] = []
     days.forEach(ds => {
-      SHIFTS.forEach(sk => {
-        // Centro de dia não tem turno da noite — não o avaliamos.
-        if (!cfg.hasShifts && sk === 'noite') return
-        const med = historicMedian[sk]
-        if (med == null) return                  // nunca preenchido → sem base
+      turnosAvaliados.forEach(sk => {
+        const med = historicMedian[sk]!
         const staff = staffOn(ds, sk)
         if (staff < med) out.push({ date: ds, shift: sk, staff, median: med })
       })
     })
     return out
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [days, assignments, historicMedian, cfg.hasShifts])
+  }, [days, turnosAvaliados, historicMedian, staffOn])
 
-  // Nenhum turno com histórico = a escala ainda não é usada. Dizer isso é
-  // mais útil (e honesto) do que fingir uma análise.
-  const hasSchedulingHistory = SHIFTS.some(sk => historicMedian[sk] != null)
+  // Nenhum turno com histórico = a escala ainda não é usada. Dizer isso é mais
+  // útil (e honesto) do que fingir uma análise.
+  const hasSchedulingHistory = turnosAvaliados.length > 0
 
   const heavy = scored.filter(x => riskLevel(x.score) === 'critical' || riskLevel(x.score) === 'high')
 
+  /* A COR DE UMA CÉLULA DA GRELHA
+     Três estados, e o cinzento de «não se avalia»:
+       vermelho   ninguém escalado
+       âmbar      abaixo do habitual desta casa
+       verde      no habitual ou acima
+       cinzento   esta casa nunca preencheu este turno — sem base */
+  function celula(date: string, shift: Shift) {
+    const med = historicMedian[shift]
+    const staff = staffOn(date, shift)
+    if (med == null) return { staff, med, cor: 'var(--ink-5)' as string, sinal: '·' }
+    if (staff === 0) return { staff, med, cor: 'var(--red)', sinal: '0' }
+    if (staff < med) return { staff, med, cor: 'var(--amber)', sinal: String(staff) }
+    return { staff, med, cor: 'var(--green)', sinal: String(staff) }
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 860, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 70px' }}>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Pessoal e carga</span>
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Pessoal e carga · {cfg.unitNoun}</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Onde a escala pode apertar</h1>
-        <p style={{ fontSize: 14.5, color: '#475569', margin: '0 0 14px', lineHeight: 1.55 }}>
-          Cruza quem está escalado com o peso real de cuidado de quem cá está. Compara cada turno com o hábito desta casa — não com um rácio inventado.
-        </p>
-
-        <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#475569', lineHeight: 1.5, marginBottom: 18 }}>
-          ⓘ Apoio à decisão de escala, não uma norma legal. Os rácios de pessoal são matéria regulada e variam com a valência e o grau de dependência — confirme sempre com a legislação aplicável.
-        </div>
-
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 80, borderRadius: 14 }} />)}</div>
-        ) : err ? (
-          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, padding: 18, color: '#991b1b', fontSize: 14 }}>{err}</div>
-        ) : patients.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="users" size={36} color="#cbd5e1" /></div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#0b1120', marginBottom: 8 }}>Ainda sem {cfg.personNounPlural?.toLowerCase() || 'utentes'}</div>
-            <Link href="/patients" style={{ display: 'inline-block', padding: '12px 24px', background: ACCENT, color: 'white', borderRadius: 10, fontWeight: 700, textDecoration: 'none' }}>Adicionar {cfg.personNoun?.toLowerCase()}</Link>
-          </div>
-        ) : (
-          <>
-            {/* Carga clínica agregada */}
-            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 18 }}>
-              <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '14px 20px', flex: '1 1 160px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 800, color: '#0b1120', lineHeight: 1 }}>{patients.length}</div>
-                <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 5 }}>
-                  {patients.length === 1
-                    ? `${cfg.personNoun?.toLowerCase() || 'pessoa'} ativo`
-                    : `${cfg.personNounPlural?.toLowerCase() || 'pessoas'} ativos`}
-                </div>
-              </div>
-              <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, padding: '14px 20px', flex: '1 1 160px' }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 800, color: ACCENT, lineHeight: 1 }}>{totalLoad}</div>
-                <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 5 }}>carga clínica somada</div>
-              </div>
-              {heavy.length > 0 && (
-                <div style={{ background: 'white', border: '1px solid #fca5a5', borderRadius: 14, padding: '14px 20px', flex: '1 1 160px' }}>
-                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 28, fontWeight: 800, color: '#b91c1c', lineHeight: 1 }}>{heavy.length}</div>
-                  <div style={{ fontSize: 12.5, color: '#991b1b', marginTop: 5 }}>de cuidado exigente</div>
-                </div>
-              )}
-            </div>
-
-            {/* Turnos sob pressão */}
-            <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#0b1120', margin: '0 0 4px', fontWeight: 500 }}>Próximos 7 dias</h2>
-            {!hasSchedulingHistory ? (
-              <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '18px 20px', marginBottom: 20 }}>
-                <div style={{ fontSize: 14, color: '#0b1120', fontWeight: 600, marginBottom: 4 }}>Ainda sem escala preenchida.</div>
-                <div style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, marginBottom: 10 }}>
-                  Esta leitura compara cada turno com o hábito desta casa. Assim que houver algumas semanas de escala registada, passa a assinalar os turnos que ficam abaixo do habitual.
-                </div>
-                <Link href="/equipa?tab=escalas" style={{ fontSize: 13, fontWeight: 700, color: ACCENT, textDecoration: 'none' }}>Preencher a escala →</Link>
-              </div>
-            ) : (
-              <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 12px' }}>
-                {pressured.length === 0
-                  ? 'Nenhum turno abaixo do habitual desta casa.'
-                  : `${pressured.length} ${pressured.length === 1 ? 'turno' : 'turnos'} abaixo do habitual.`}
-              </p>
-            )}
-
-            {pressured.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 20 }}>
-                {pressured.map(({ date, shift, staff, median }) => {
-                  const sm = SHIFT_META[shift]
-                  const d = new Date(date + 'T12:00:00')
-                  const empty = staff === 0
-                  return (
-                    <div key={`${date}|${shift}`} style={{ background: 'white', border: `1.5px solid ${empty ? '#fca5a5' : '#fde68a'}`, borderRadius: 12, padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: sm.color, background: sm.bg, borderRadius: 7, padding: '5px 10px', flexShrink: 0 }}>
-                        {WD[d.getDay()]} {d.getDate()}/{d.getMonth() + 1} · {sm.label}
-                      </span>
-                      <span style={{ flex: 1, minWidth: 140, fontSize: 13.5, color: empty ? '#b91c1c' : '#b45309', fontWeight: 600 }}>
-                        {empty
-                          ? 'Ninguém escalado'
-                          : `${staff} ${staff === 1 ? 'pessoa' : 'pessoas'} — o habitual neste turno é ${median}`}
-                      </span>
-                      <Link href="/equipa?tab=escalas" style={{ fontSize: 12.5, fontWeight: 700, color: ACCENT, textDecoration: 'none', flexShrink: 0 }}>Abrir escala →</Link>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-
-            {/* Quem pesa mais — contexto acionável para decidir a escala */}
+          <span style={{ display: 'inline-flex', gap: 14, alignItems: 'center' }}>
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              {patients.length} {(patients.length === 1 ? cfg.personNoun : cfg.personNounPlural)?.toUpperCase() || 'PESSOAS'}
+            </span>
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              CARGA SOMADA {totalLoad}
+            </span>
             {heavy.length > 0 && (
-              <>
-                <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#0b1120', margin: '0 0 4px', fontWeight: 500 }}>Quem exige mais cuidado</h2>
-                <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 12px' }}>Pelo score clínico determinístico (idade, condições, função renal, número de fármacos) — o mesmo que aparece na ficha.</p>
-                <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 14, overflow: 'hidden' }}>
-                  {heavy.slice(0, 8).map(({ p, score }, i) => (
-                    <Link key={p.id} href={`/patients/${p.id}`} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: i < Math.min(heavy.length, 8) - 1 ? '1px solid #f1f5f9' : 'none', textDecoration: 'none' }}>
-                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 13, fontWeight: 800, color: riskLevel(score) === 'critical' ? '#b91c1c' : '#b45309', minWidth: 30 }}>{score}</span>
-                      <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: '#0b1120' }}>
-                        {p.name}{p.room_number ? <span style={{ fontSize: 11.5, color: '#94a3b8', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span> : null}
-                      </span>
-                      <span style={{ fontSize: 16, color: '#cbd5e1' }}>›</span>
-                    </Link>
-                  ))}
-                </div>
-              </>
+              <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                {heavy.length} DE CUIDADO EXIGENTE
+              </span>
             )}
-          </>
-        )}
-      </div>
-    </div>
+            {hasSchedulingHistory && (
+              <span style={{
+                ...MONO, fontSize: 'var(--t-meta)',
+                color: pressured.length ? 'var(--amber)' : 'var(--green)',
+                fontWeight: 'var(--peso-forte)' as any,
+              }}>
+                {pressured.length === 0
+                  ? 'NENHUM TURNO ABAIXO DO HABITUAL'
+                  : `${pressured.length} TURNO${pressured.length === 1 ? '' : 'S'} ABAIXO DO HABITUAL`}
+              </span>
+            )}
+          </span>
+
+          <div style={{ marginLeft: 'auto' }}>
+            <Link href="/equipa?tab=escalas" style={{ textDecoration: 'none' }}>
+              <Botao feitio="principal">ABRIR A ESCALA →</Botao>
+            </Link>
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--green)' }}>No habitual desta casa, ou acima</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>Abaixo do habitual</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>Ninguém escalado</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>· = esta casa nunca preencheu este turno</span>
+          {/* Não cabe numa linha de legenda, e a barra de estado é uma linha.
+              A frase curta fica, o texto inteiro vai no `title` — e está por
+              extenso no aviso de quando a escala ainda não tem histórico, que
+              é o momento em que alguém o lê. */}
+          <span title="Apoio à decisão de escala, não uma norma legal. Os rácios de pessoal em ERPI são matéria regulada e variam com a valência e o grau de dependência — confirme sempre com a legislação aplicável."
+            style={{ ...MONO, color: 'var(--ink-5)', marginLeft: 'auto' }}>
+            APOIO À DECISÃO — NÃO É NORMA LEGAL
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && <Aviso tom="mau">{err}</Aviso>}
+
+      {loading ? (
+        <Painel><ACarregar oQue="A cruzar a escala com o peso do cuidado…" /></Painel>
+      ) : patients.length === 0 ? (
+        <Painel>
+          <Vazio titulo={`Ainda não há ${(cfg.personNounPlural || 'utentes').toLowerCase()} nesta casa.`}
+            oQueFazer="Esta leitura cruza quem está escalado com o peso real de cuidado de quem cá está. Sem fichas não há peso para medir."
+            acao={<Link href="/patients" style={{ textDecoration: 'none' }}>
+              <Botao feitio="principal">ADICIONAR {(cfg.personNoun || 'pessoa').toUpperCase()} →</Botao>
+            </Link>} />
+        </Painel>
+      ) : (
+        <div style={{
+          display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+          gridTemplateColumns: largo ? 'minmax(420px, 1fr) minmax(320px, 420px)' : '1fr',
+        }}>
+          {/* ══ A SEMANA, INTEIRA ══════════════════════════════════════════════
+              Era uma lista só das excepções. Para decidir de onde tirar alguém
+              é preciso ver os turnos que estão BEM — e esses não apareciam. */}
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 76 }}>Dia</span>
+                {turnosMostrados.map(sk => (
+                  <span key={sk} style={{ ...ROTULO, flex: 1, textAlign: 'center' }}>
+                    {ROTULO_TURNO[sk]}
+                    <span style={{ color: 'var(--ink-5)' }}> {HORAS_TURNO[sk]}</span>
+                  </span>
+                ))}
+              </Cabecalho>
+            }
+            rodape={
+              hasSchedulingHistory ? (
+                <>
+                  <span style={MONO}>
+                    O habitual desta casa:{' '}
+                    {turnosAvaliados.map(sk => `${ROTULO_TURNO[sk].toLowerCase()} ${historicMedian[sk]}`).join(' · ')}
+                  </span>
+                  <span style={{ ...MONO, color: 'var(--ink-5)', marginLeft: 'auto' }}>
+                    mediana das últimas 4 semanas
+                  </span>
+                </>
+              ) : (
+                <span style={MONO}>Sem semanas de escala registadas — nada a comparar</span>
+              )
+            }
+          >
+            {!hasSchedulingHistory && (
+              <div style={{ padding: '10px 12px', borderBottom: '1px solid var(--border-2)' }}>
+                <Aviso tom="neutro" titulo="A escala ainda não está preenchida">
+                  Esta leitura compara cada turno com o hábito desta casa. Assim que houver
+                  algumas semanas de escala registada, passa a assinalar os turnos que ficam
+                  abaixo do habitual. Os números em baixo são o que já está marcado.
+                </Aviso>
+              </div>
+            )}
+
+            {days.map((ds, i) => {
+              const d = new Date(ds + 'T12:00:00')
+              const hoje = i === 0
+              const fds = d.getDay() === 0 || d.getDay() === 6
+              return (
+                <div key={ds} style={{
+                  display: 'flex', alignItems: 'stretch', gap: 10,
+                  padding: '0 12px', borderBottom: '1px solid var(--border)',
+                  borderLeft: `3px solid ${hoje ? 'var(--green)' : 'transparent'}`,
+                  background: fds ? 'var(--bg-2)' : 'transparent',
+                }}>
+                  <span style={{
+                    width: 76, flexShrink: 0, display: 'flex', flexDirection: 'column',
+                    justifyContent: 'center', padding: '8px 0',
+                  }}>
+                    <span style={{
+                      ...MONO, fontSize: 'var(--t-dado)',
+                      fontWeight: hoje ? 'var(--peso-forte)' as any : 'var(--peso-corpo)' as any,
+                      color: hoje ? 'var(--green)' : 'var(--ink-2)',
+                    }}>{WD[d.getDay()]} {String(d.getDate()).padStart(2, '0')}/{String(d.getMonth() + 1).padStart(2, '0')}</span>
+                    {(hoje || fds) && (
+                      <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                        {hoje ? 'HOJE' : 'FIM DE SEMANA'}
+                      </span>
+                    )}
+                  </span>
+
+                  {turnosMostrados.map(sk => {
+                    const c = celula(ds, sk)
+                    return (
+                      <span key={sk} style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        gap: 6, padding: '8px 0',
+                      }}>
+                        <span style={{
+                          ...MONO, fontSize: 'var(--t-destaque)', lineHeight: 1,
+                          fontWeight: 'var(--peso-forte)' as any, color: c.cor,
+                        }}>{c.sinal}</span>
+                        {c.med != null && (
+                          <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                            /{c.med}
+                          </span>
+                        )}
+                      </span>
+                    )
+                  })}
+                </div>
+              )
+            })}
+          </Painel>
+
+          {/* ══ QUEM EXIGE MAIS CUIDADO ════════════════════════════════════════ */}
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 36, textAlign: 'right' }}>Nº</span>
+                <span style={{ ...ROTULO, flex: 1 }}>Quem exige mais cuidado</span>
+                <span style={{ ...ROTULO, width: 44, textAlign: 'right' }}>{cfg.roomLabel}</span>
+              </Cabecalho>
+            }
+            rodape={
+              <span style={MONO}>
+                Pelo score clínico — idade, condições, função renal, nº de fármacos
+              </span>
+            }
+          >
+            {heavy.length === 0 ? (
+              <Vazio titulo="Ninguém no patamar de cuidado exigente."
+                oQueFazer="O score sai da idade, das condições registadas, da função renal e do número de fármacos. Se faltam dados nas fichas, o score sai mais baixo do que a realidade." />
+            ) : scored.slice(0, 40).map(({ p, score }) => {
+              const nivel = riskLevel(score)
+              const cor = nivel === 'critical' ? 'var(--red)'
+                : nivel === 'high' ? 'var(--amber)'
+                : nivel === 'moderate' ? 'var(--ink-3)' : 'var(--ink-5)'
+              return (
+                <LinhaTabela key={p.id} href={`/patients/${p.id}`}
+                  filete={nivel === 'critical' ? 'var(--red)' : undefined}
+                  antes={{
+                    largura: 36,
+                    conteudo: (
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: cor,
+                      }}>{score}</span>
+                    ),
+                  }}
+                  principal={p.name}
+                  celulas={[
+                    {
+                      rotulo: cfg.roomLabel, valor: p.room_number || '—', largura: 44, direita: true,
+                      cor: p.room_number ? 'var(--ink-4)' : 'var(--ink-5)',
+                    },
+                  ]} />
+              )
+            })}
+          </Painel>
+        </div>
+      )}
+    </Mesa>
   )
 }

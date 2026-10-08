@@ -17,7 +17,7 @@ function inline(text: string, keyPrefix: string): React.ReactNode[] {
     if (text[i] === '`') {
       const end = text.indexOf('`', i + 1)
       if (end > i) {
-        tokens.push(<code key={`${keyPrefix}-c${k++}`} style={{ background: '#f1f5f9', padding: '1px 6px', borderRadius: 4, fontSize: '0.9em', fontFamily: 'var(--font-mono)', color: '#334155' }}>{text.slice(i + 1, end)}</code>)
+        tokens.push(<code key={`${keyPrefix}-c${k++}`} style={{ background: 'var(--bg-3)', padding: '1px 6px', borderRadius: 'var(--r)', fontSize: '0.9em', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)' }}>{text.slice(i + 1, end)}</code>)
         i = end + 1; continue
       }
     }
@@ -26,7 +26,7 @@ function inline(text: string, keyPrefix: string): React.ReactNode[] {
       const end = text.indexOf('**', i + 2)
       if (end > i + 1) {
         const inner = text.slice(i + 2, end)
-        tokens.push(<strong key={`${keyPrefix}-b${k++}`} style={{ color: '#0b1120', fontWeight: 700 }}>{inline(inner, `${keyPrefix}-b${k}`)}</strong>)
+        tokens.push(<strong key={`${keyPrefix}-b${k++}`} style={{ color: 'var(--ink)', fontWeight: 700 }}>{inline(inner, `${keyPrefix}-b${k}`)}</strong>)
         i = end + 2; continue
       }
     }
@@ -35,7 +35,7 @@ function inline(text: string, keyPrefix: string): React.ReactNode[] {
       // Heurística: é itálico só se houver fecho dentro de 80 caracteres
       const end = text.indexOf('*', i + 1)
       if (end > i && end - i < 80 && text[i + 1] !== ' ' && text[end - 1] !== ' ') {
-        tokens.push(<em key={`${keyPrefix}-i${k++}`} style={{ fontStyle: 'italic', color: '#0b1120' }}>{text.slice(i + 1, end)}</em>)
+        tokens.push(<em key={`${keyPrefix}-i${k++}`} style={{ fontStyle: 'italic', color: 'var(--ink)' }}>{text.slice(i + 1, end)}</em>)
         i = end + 1; continue
       }
     }
@@ -63,7 +63,7 @@ export default function Markdown({ text }: { text: string }) {
     const Tag = `h${level}` as 'h1' | 'h2' | 'h3'
     const sizes: Record<number, string> = { 1: '1.35em', 2: '1.18em', 3: '1.05em' }
     return (
-      <Tag style={{ fontSize: sizes[level], fontWeight: 700, color: '#0b1120', margin: level === 1 ? '0 0 10px' : '14px 0 6px', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+      <Tag style={{ fontSize: sizes[level], fontWeight: 700, color: 'var(--ink)', margin: level === 1 ? '0 0 10px' : '14px 0 6px', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
         {inline(content, `h${level}-${key++}`)}
       </Tag>
     )
@@ -81,7 +81,7 @@ export default function Markdown({ text }: { text: string }) {
       const end = lines.findIndex((l, j) => j > i && l.trim().startsWith('```'))
       const code = (end > i ? lines.slice(i + 1, end) : lines.slice(i + 1)).join('\n')
       blocks.push(
-        <pre key={`pre-${key++}`} style={{ background: '#0b1120', color: '#e2e8f0', borderRadius: 8, padding: '12px 14px', margin: '10px 0', overflow: 'auto', fontSize: 12.5, lineHeight: 1.55, fontFamily: 'var(--font-mono)' }}>
+        <pre key={`pre-${key++}`} style={{ background: 'var(--ink)', color: 'var(--border)', borderRadius: 'var(--r-md)', padding: '12px 14px', margin: '10px 0', overflow: 'auto', fontSize: 12.5, lineHeight: 1.55, fontFamily: 'var(--font-mono)' }}>
           <code>{code}</code>
         </pre>
       )

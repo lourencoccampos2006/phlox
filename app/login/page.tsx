@@ -6,12 +6,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Suspense } from 'react'
 
-const INK = '#16181d'
-const INK_3 = '#545862'
-const INK_4 = '#767b86'
-const GREEN = '#0d6e42'
-const BORDER = '#e7e8ea'
-const PAPER = '#fbfaf7'
+const INK = 'var(--ink-2)'
+const INK_3 = 'var(--ink-3)'
+const INK_4 = 'var(--ink-4)'
+const GREEN = 'var(--green)'
+const BORDER = 'var(--border)'
+const PAPER = 'var(--bg-2)'
 
 const FREE_FEATURES = [
   'A sua lista de medicamentos, com lembretes',
@@ -117,7 +117,7 @@ function LoginContent() {
   if (user) return null
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fff', fontFamily: 'var(--font-sans)', color: INK }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', color: INK }}>
       <div className="lg-split">
 
         {/* ── Painel editorial (desktop) ── */}
@@ -207,10 +207,10 @@ function LoginContent() {
                 ) : (
                   <>
                     <svg width="18" height="18" viewBox="0 0 24 24" style={{ flexShrink: 0 }}>
-                      <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                      <path fill="var(--blue)" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                      <path fill="var(--green)" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                      <path fill="var(--amber)" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                      <path fill="var(--red)" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
                     </svg>
                     Entrar com Google
                   </>
@@ -235,7 +235,7 @@ function LoginContent() {
                   {emailBusy ? 'A processar…' : emailMode === 'signup' ? 'Criar conta' : 'Entrar'}
                 </button>
               </form>
-              {emailMsg && <div style={{ fontSize: 12.5, color: '#166534', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '9px 12px', marginBottom: 12 }}>{emailMsg}</div>}
+              {emailMsg && <div style={{ fontSize: 12.5, color: 'var(--green-3)', background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '9px 12px', marginBottom: 12 }}>{emailMsg}</div>}
               <div style={{ textAlign: 'center', fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 16 }}>
                 {emailMode === 'signin' ? (
                   <>Ainda não tens conta? <button onClick={() => { setEmailMode('signup'); setError(''); setEmailMsg('') }} style={{ background: 'none', border: 'none', color: 'var(--green)', fontWeight: 700, cursor: 'pointer', fontSize: 12.5, fontFamily: 'var(--font-sans)' }}>Criar conta</button></>
@@ -252,13 +252,13 @@ function LoginContent() {
               </div>
 
               <Link href="/interactions"
-                style={{ display: 'block', textAlign: 'center', fontSize: 13, color: INK_3, textDecoration: 'none', padding: '11px', borderRadius: 2, border: `1px solid ${BORDER}` }}
+                style={{ display: 'block', textAlign: 'center', fontSize: 13, color: INK_3, textDecoration: 'none', padding: '11px', borderRadius: 'var(--r-sm)', border: `1px solid ${BORDER}` }}
                 className="anon-link">
                 Usar sem conta — ferramentas gratuitas
               </Link>
 
               {/* Conta gratuita inclui — só no mobile (no desktop está no painel) */}
-              <div className="lg-free-mobile" style={{ marginTop: 22, padding: '16px 18px', background: PAPER, borderRadius: 2, border: `1px solid ${BORDER}` }}>
+              <div className="lg-free-mobile" style={{ marginTop: 22, padding: '16px 18px', background: PAPER, borderRadius: 'var(--r-sm)', border: `1px solid ${BORDER}` }}>
                 <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9.5, color: INK_4, letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 12 }}>Conta gratuita inclui</div>
                 {FREE_FEATURES.map(f => (
                   <div key={f} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>

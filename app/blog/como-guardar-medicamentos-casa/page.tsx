@@ -46,7 +46,7 @@ export default function PostGuardarMeds() {
           </div>
 
           <div style={{ marginBottom: 36 }}>
-            <div style={{ display: 'inline-block', background: '#ecfeff', color: '#0e7490', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 10, letterSpacing: '0.06em', marginBottom: 16 }}>EM CASA</div>
+            <div style={{ display: 'inline-block', background: 'var(--green-light)', color: 'var(--green-3)', fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 600, padding: '3px 10px', borderRadius: 'var(--r-lg)', letterSpacing: '0.06em', marginBottom: 16 }}>EM CASA</div>
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(28px,5vw,38px)', color: 'var(--ink)', marginBottom: 18, letterSpacing: '-0.025em', lineHeight: 1.15 }}>
               Como guardar medicamentos em casa (e quando deitar fora)
             </h1>
@@ -72,8 +72,8 @@ export default function PostGuardarMeds() {
             </ul>
             <p style={P}>Regra de ouro: guarde no frigorífico, mas <strong>nunca no congelador</strong> nem encostado à parede do fundo (onde congela). E não deixe ao alcance de crianças que abrem o frigorífico.</p>
 
-            <div style={{ background: '#ecfeff', border: '1px solid #a5f3fc', borderLeft: '4px solid #0e7490', borderRadius: '0 8px 8px 0', padding: '14px 18px', marginBottom: 28 }}>
-              <p style={{ fontSize: 14, color: '#155e75', lineHeight: 1.7, margin: 0 }}>
+            <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderLeft: '4px solid var(--green-3)', borderRadius: '0 8px 8px 0', padding: '14px 18px', marginBottom: 28 }}>
+              <p style={{ fontSize: 14, color: 'var(--green-3)', lineHeight: 1.7, margin: 0 }}>
                 <strong>Dica:</strong> mantenha sempre o medicamento <strong>dentro da caixa original com a bula</strong>. A caixa protege da luz e a bula tem a validade, a dose e as instruções. Tirar tudo para uma caixa semanal é ótimo para a rotina diária — mas guarde as embalagens originais à parte para consulta.
               </p>
             </div>
@@ -94,13 +94,13 @@ export default function PostGuardarMeds() {
             <p style={P}>Vale a pena, a cada seis meses, abrir o sítio onde guarda os medicamentos e: tirar tudo o que está fora de prazo, juntar para levar à farmácia, e confirmar que não tem dois medicamentos repetidos com a mesma substância. Quem cuida de uma pessoa idosa devia fazer isto com regularidade — é onde aparecem mais erros e medicamentos esquecidos.</p>
           </div>
 
-          <div style={{ marginTop: 44, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 12, textAlign: 'center' }}>
+          <div style={{ marginTop: 44, padding: '24px', background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', textAlign: 'center' }}>
             <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Tenha a lista de medicamentos sempre à mão</div>
             <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 18, lineHeight: 1.6 }}>No Phlox, fotografe as caixas e fique com a lista organizada — com validades, para que serve cada um e lembretes de toma no calendário do telemóvel.</p>
-            <Link href="/login" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 600 }}>Organizar a medicação →</Link>
+            <Link href="/login" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 600 }}>Organizar a medicação →</Link>
           </div>
 
-          <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+          <div style={{ marginTop: 32, padding: '14px 16px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
             <p style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.7, margin: 0, fontFamily: 'var(--font-mono)' }}>
               Artigo informativo. Em caso de dúvida sobre a conservação de um medicamento específico, consulte a bula ou pergunte na farmácia. Base: INFARMED, VALORMED, DGS.
             </p>

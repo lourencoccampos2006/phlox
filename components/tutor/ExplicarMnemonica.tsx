@@ -132,15 +132,15 @@ export default function ExplicarMnemonica() {
     setMnemonic(s); setConcept(s.topic || ''); setTab('mnemonica'); setShowLibrary(false)
   }
 
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px' }
 
   return (
     <div>
       <div style={{ ...card, marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, gap: 8, flexWrap: 'wrap' }}>
-          <div style={{ fontSize: 13, color: '#475569' }}>Explica a fundo, mnemónica, e plano de estudo guiado — a partir do mesmo conceito.</div>
+          <div style={{ fontSize: 13, color: 'var(--ink-3)' }}>Explica a fundo, mnemónica, e plano de estudo guiado — a partir do mesmo conceito.</div>
           {savedMnemonics.length > 0 && (
-            <button onClick={() => setShowLibrary(s => !s)} style={{ padding: '6px 12px', background: 'white', border: '1.5px solid #e9d5ff', borderRadius: 8, fontSize: 11.5, fontWeight: 700, color: '#7c3aed', cursor: 'pointer', flexShrink: 0 }}>
+            <button onClick={() => setShowLibrary(s => !s)} style={{ padding: '6px 12px', background: 'white', border: '1.5px solid var(--roxo-borda)', borderRadius: 'var(--r-md)', fontSize: 11.5, fontWeight: 700, color: 'var(--roxo)', cursor: 'pointer', flexShrink: 0 }}>
               {showLibrary ? 'Fechar' : `🧠 Biblioteca · ${savedMnemonics.length}`}
             </button>
           )}
@@ -149,28 +149,28 @@ export default function ExplicarMnemonica() {
           value={concept} onChange={e => setConcept(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && runExplica()}
           placeholder="Ex: insuficiência cardíaca · betabloqueadores · ciclo de Krebs…"
-          style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 10, padding: '12px 14px', fontSize: 14.5, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+          style={{ width: '100%', boxSizing: 'border-box', border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '12px 14px', fontSize: 14.5, fontFamily: 'var(--font-sans)', outline: 'none' }} />
         <div style={{ display: 'flex', gap: 6, marginTop: 10, flexWrap: 'wrap' }}>
           <button onClick={() => runExplica()} disabled={!concept.trim() || loadingE}
-            style={{ flex: '1 1 180px', padding: '11px 16px', background: concept.trim() && !loadingE ? '#7c3aed' : 'var(--bg-3)', color: concept.trim() && !loadingE ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 800, cursor: concept.trim() && !loadingE ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+            style={{ flex: '1 1 180px', padding: '11px 16px', background: concept.trim() && !loadingE ? 'var(--roxo)' : 'var(--bg-3)', color: concept.trim() && !loadingE ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 13.5, fontWeight: 800, cursor: concept.trim() && !loadingE ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
             {loadingE ? 'A explicar…' : '✨ Explicar a fundo'}
           </button>
           <button onClick={runMnemonica} disabled={!concept.trim() || loadingM}
-            style={{ flex: '1 1 140px', padding: '11px 16px', background: 'white', color: '#7c3aed', border: '1.5px solid #ddd6fe', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: concept.trim() && !loadingM ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+            style={{ flex: '1 1 140px', padding: '11px 16px', background: 'white', color: 'var(--roxo)', border: '1.5px solid var(--roxo-meio)', borderRadius: 'var(--r-lg)', fontSize: 13.5, fontWeight: 700, cursor: concept.trim() && !loadingM ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
             {loadingM ? '…' : '🧠 Mnemónica'}
           </button>
           <button onClick={runStudy} disabled={!concept.trim() || loadingS}
-            style={{ flex: '1 1 140px', padding: '11px 16px', background: 'white', color: '#0d6e42', border: '1.5px solid #bbf7d0', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: concept.trim() && !loadingS ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
+            style={{ flex: '1 1 140px', padding: '11px 16px', background: 'white', color: 'var(--green)', border: '1.5px solid var(--green-mid)', borderRadius: 'var(--r-lg)', fontSize: 13.5, fontWeight: 700, cursor: concept.trim() && !loadingS ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)' }}>
             {loadingS ? '…' : '📚 Plano de estudo'}
           </button>
         </div>
-        {error && <div style={{ marginTop: 10, padding: '9px 11px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 7, fontSize: 12.5, color: '#991b1b' }}>{error}</div>}
+        {error && <div style={{ marginTop: 10, padding: '9px 11px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, color: 'var(--red)' }}>{error}</div>}
         {history.length > 0 && !explanation && !mnemonic && !studyPlan && (
           <div style={{ marginTop: 12 }}>
             <div style={{ fontSize: 10.5, fontWeight: 800, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7, fontFamily: 'var(--font-mono)' }}>Já explicaste</div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               {history.map(h => (
-                <button key={h.concept} onClick={() => { setConcept(h.concept); runExplica(h.concept) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#581c87', background: 'white', border: '1px solid #e9d5ff', borderRadius: 20, padding: '6px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
+                <button key={h.concept} onClick={() => { setConcept(h.concept); runExplica(h.concept) }} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: 'var(--roxo-escuro)', background: 'white', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-xl)', padding: '6px 12px', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: 600 }}>
                   ↻ {h.concept}
                 </button>
               ))}
@@ -184,12 +184,12 @@ export default function ExplicarMnemonica() {
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>As tuas mnemónicas guardadas</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {savedMnemonics.map(s => (
-              <div key={s.id} style={{ padding: '12px 14px', background: 'var(--bg-2)', borderRadius: 10, display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+              <div key={s.id} style={{ padding: '12px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 10, color: '#7c3aed', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{s.topic}</div>
-                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: '#581c87', lineHeight: 1.4 }}>{s.mnemonic}</div>
+                  <div style={{ fontSize: 10, color: 'var(--roxo)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 3 }}>{s.topic}</div>
+                  <div style={{ fontFamily: 'var(--font-serif)', fontSize: 16, color: 'var(--roxo-escuro)', lineHeight: 1.4 }}>{s.mnemonic}</div>
                 </div>
-                <button onClick={() => openSavedMnemonic(s)} style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: 'white', border: '1px solid #e9d5ff', borderRadius: 6, padding: '5px 9px', cursor: 'pointer' }}>Abrir</button>
+                <button onClick={() => openSavedMnemonic(s)} style={{ fontSize: 11, fontWeight: 700, color: 'var(--roxo)', background: 'white', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r)', padding: '5px 9px', cursor: 'pointer' }}>Abrir</button>
                 <button onClick={() => persistSavedMnemonics(savedMnemonics.filter(x => x.id !== s.id))} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: 'var(--ink-5)' }}>×</button>
               </div>
             ))}
@@ -206,7 +206,7 @@ export default function ExplicarMnemonica() {
               ['estudo', '📚 Plano', !!studyPlan],
             ] as [Tab, string, boolean][]).filter(([, , has]) => has).map(([id, l]) => (
               <button key={id} onClick={() => setTab(id)}
-                style={{ padding: '10px 14px', background: tab === id ? '#faf5ff' : 'white', border: 'none', borderBottom: `2.5px solid ${tab === id ? '#7c3aed' : 'transparent'}`, fontSize: 13, fontWeight: tab === id ? 800 : 600, color: tab === id ? '#7c3aed' : 'var(--ink-3)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>{l}</button>
+                style={{ padding: '10px 14px', background: tab === id ? 'var(--roxo-claro)' : 'white', border: 'none', borderBottom: `2.5px solid ${tab === id ? 'var(--roxo)' : 'transparent'}`, fontSize: 13, fontWeight: tab === id ? 800 : 600, color: tab === id ? 'var(--roxo)' : 'var(--ink-3)', cursor: 'pointer', whiteSpace: 'nowrap', fontFamily: 'var(--font-sans)' }}>{l}</button>
             ))}
           </div>
 
@@ -216,7 +216,7 @@ export default function ExplicarMnemonica() {
                 <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
                   {(['simple', 'exam', 'clinical'] as const).map(l => (
                     <button key={l} onClick={() => setLevel(l)}
-                      style={{ padding: '5px 12px', borderRadius: 999, border: `1.5px solid ${level === l ? '#7c3aed' : 'var(--border)'}`, background: level === l ? '#faf5ff' : 'white', color: level === l ? '#7c3aed' : 'var(--ink-3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+                      style={{ padding: '5px 12px', borderRadius: 999, border: `1.5px solid ${level === l ? 'var(--roxo)' : 'var(--border)'}`, background: level === l ? 'var(--roxo-claro)' : 'white', color: level === l ? 'var(--roxo)' : 'var(--ink-3)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
                       {l === 'simple' ? 'Simples' : l === 'exam' ? 'Exame' : 'Clínico'}
                     </button>
                   ))}
@@ -224,9 +224,9 @@ export default function ExplicarMnemonica() {
                 <div style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.7 }}>{explanation[level]}</div>
               </div>
               {explanation.analogy && (
-                <div style={{ ...card, background: '#eff6ff', borderColor: '#bfdbfe' }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#1d4ed8', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>🌉 Analogia</div>
-                  <div style={{ fontSize: 13.5, color: '#0b1120', lineHeight: 1.6 }}>{explanation.analogy}</div>
+                <div style={{ ...card, background: 'var(--bg-2)', borderColor: 'var(--border)' }}>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-2)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>🌉 Analogia</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.6 }}>{explanation.analogy}</div>
                 </div>
               )}
               {explanation.key_points?.length > 0 && (
@@ -238,35 +238,35 @@ export default function ExplicarMnemonica() {
                 </div>
               )}
               {explanation.common_mistake && (
-                <div style={{ ...card, background: '#fffbeb', borderColor: '#fde68a' }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#b45309', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⚠ Erro comum</div>
-                  <div style={{ fontSize: 13.5, color: '#78350f', lineHeight: 1.6 }}>{explanation.common_mistake}</div>
+                <div style={{ ...card, background: 'var(--badge-amber-bg)', borderColor: 'var(--badge-amber-border)' }}>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--amber)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 6 }}>⚠ Erro comum</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--amber)', lineHeight: 1.6 }}>{explanation.common_mistake}</div>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
                 <SaveButton kind="explanation" title={explanation.concept || concept}
                   preview={explanation.simple?.slice(0, 200)} href="/tutor"
-                  data={explanation} color="#7c3aed" />
+                  data={explanation} color="var(--roxo)" />
               </div>
             </div>
           )}
 
           {tab === 'mnemonica' && mnemonic && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <div style={{ ...card, background: 'linear-gradient(135deg,#faf5ff,#f5f3ff)', borderColor: '#e9d5ff', textAlign: 'center' }}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: '#6b21a8', letterSpacing: '0.04em' }}>{mnemonic.mnemonic}</div>
+              <div style={{ ...card, background: 'linear-gradient(135deg,var(--roxo-claro),var(--blue-light))', borderColor: 'var(--roxo-borda)', textAlign: 'center' }}>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'var(--roxo-escuro)', letterSpacing: '0.04em' }}>{mnemonic.mnemonic}</div>
               </div>
               <Link href={`/mnemonicas?concept=${encodeURIComponent(concept)}`}
-                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'white', border: '1px dashed #e9d5ff', borderRadius: 9, textDecoration: 'none' }}>
-                <span style={{ fontSize: 12.5, color: '#6b21a8' }}>Ver a imagem mental completa + guardar num baralho pessoal</span>
-                <span style={{ fontSize: 12, fontWeight: 700, color: '#7c3aed', whiteSpace: 'nowrap' }}>Abrir Mnemónicas →</span>
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 14px', background: 'white', border: '1px dashed var(--roxo-borda)', borderRadius: 'var(--r-lg)', textDecoration: 'none' }}>
+                <span style={{ fontSize: 12.5, color: 'var(--roxo-escuro)' }}>Ver a imagem mental completa + guardar num baralho pessoal</span>
+                <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--roxo)', whiteSpace: 'nowrap' }}>Abrir Mnemónicas →</span>
               </Link>
               {mnemonic.breakdown?.length > 0 && (
                 <div style={card}>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {mnemonic.breakdown.map((b, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 10px', background: 'var(--bg-2)', borderRadius: 7 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: '#7c3aed', minWidth: 22 }}>{b.letter}</span>
+                      <div key={i} style={{ display: 'flex', gap: 10, padding: '7px 10px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
+                        <span style={{ fontFamily: 'var(--font-mono)', fontWeight: 800, color: 'var(--roxo)', minWidth: 22 }}>{b.letter}</span>
                         <span style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.55 }}>{b.stands_for}</span>
                       </div>
                     ))}
@@ -274,23 +274,23 @@ export default function ExplicarMnemonica() {
                 </div>
               )}
               {mnemonic.tip && (
-                <div style={{ ...card, background: '#f0fdf4', borderColor: '#bbf7d0' }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#15803d', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5 }}>💡 Dica</div>
-                  <div style={{ fontSize: 13, color: '#166534', lineHeight: 1.55 }}>{mnemonic.tip}</div>
+                <div style={{ ...card, background: 'var(--badge-green-bg)', borderColor: 'var(--green-mid)' }}>
+                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--green)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 5 }}>💡 Dica</div>
+                  <div style={{ fontSize: 13, color: 'var(--green-3)', lineHeight: 1.55 }}>{mnemonic.tip}</div>
                 </div>
               )}
               {mnemonic.alt && <div style={{ fontSize: 13, color: 'var(--ink-4)', textAlign: 'center' }}>Alternativa: <strong style={{ color: 'var(--ink-2)' }}>{mnemonic.alt}</strong></div>}
-              <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 10, padding: '11px 14px', fontSize: 12, color: '#64748b', lineHeight: 1.55 }}>
+              <div style={{ background: 'var(--bg-2)', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-lg)', padding: '11px 14px', fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.55 }}>
                 💭 <strong>Importante:</strong> mnemónicas ajudam a memorizar listas. Para perceberes <em>mesmo</em> {concept}, usa o separador "Explicação" e o "Plano de estudo".
               </div>
               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-                <button onClick={toggleSaveMnemonic} style={{ padding: '9px 16px', borderRadius: 8, border: '1.5px solid #e9d5ff', background: isMnemonicSaved ? '#faf5ff' : 'white', color: '#7c3aed', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={toggleSaveMnemonic} style={{ padding: '9px 16px', borderRadius: 'var(--r-md)', border: '1.5px solid var(--roxo-borda)', background: isMnemonicSaved ? 'var(--roxo-claro)' : 'white', color: 'var(--roxo)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
                   {isMnemonicSaved ? '★ Guardada' : '☆ Guardar'}
                 </button>
-                <button onClick={copyMnemonic} style={{ padding: '9px 16px', borderRadius: 8, border: '1.5px solid var(--border)', background: 'white', color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Copiar</button>
+                <button onClick={copyMnemonic} style={{ padding: '9px 16px', borderRadius: 'var(--r-md)', border: '1.5px solid var(--border)', background: 'white', color: 'var(--ink-3)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Copiar</button>
                 <SaveButton kind="mnemonic" title={`${concept}: ${mnemonic.mnemonic}`}
                   preview={mnemonic.breakdown?.map(b => `${b.letter}—${b.stands_for}`).join(', ')}
-                  href="/tutor" data={{ topic: concept, ...mnemonic }} color="#7c3aed" />
+                  href="/tutor" data={{ topic: concept, ...mnemonic }} color="var(--roxo)" />
               </div>
             </div>
           )}
@@ -299,15 +299,15 @@ export default function ExplicarMnemonica() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {studyPlan.steps?.length > 0 && (
                 <div style={card}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>📚 Como estudar isto</div>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>📚 Como estudar isto</div>
                   <ol style={{ margin: 0, paddingLeft: 22, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.7 }}>
                     {studyPlan.steps.map((s, i) => <li key={i} style={{ marginBottom: 4 }}>{s}</li>)}
                   </ol>
                 </div>
               )}
               {studyPlan.questions?.length > 0 && (
-                <div style={{ ...card, background: '#eff6ff', borderColor: '#bfdbfe' }}>
-                  <div style={{ fontSize: 11, fontWeight: 800, color: '#1d4ed8', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>❓ Para te testares</div>
+                <div style={{ ...card, background: 'var(--bg-2)', borderColor: 'var(--border)' }}>
+                  <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--ink-2)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>❓ Para te testares</div>
                   <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.7 }}>
                     {studyPlan.questions.map((q, i) => <li key={i} style={{ marginBottom: 4 }}>{q}</li>)}
                   </ul>
@@ -322,8 +322,8 @@ export default function ExplicarMnemonica() {
                 </div>
               )}
               <div style={{ display: 'flex', gap: 6 }}>
-                <Link href="/study/notas" style={{ flex: 1, textAlign: 'center', padding: 11, background: '#0d6e42', color: 'white', textDecoration: 'none', borderRadius: 9, fontSize: 13, fontWeight: 800 }}>Levar para revisão espaçada →</Link>
-                <Link href="/biblioteca" style={{ flex: 1, textAlign: 'center', padding: 11, background: 'white', color: '#0d6e42', textDecoration: 'none', borderRadius: 9, fontSize: 13, fontWeight: 700, border: '1.5px solid #bbf7d0' }}>Procurar nos meus PDFs</Link>
+                <Link href="/study/notas" style={{ flex: 1, textAlign: 'center', padding: 11, background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 800 }}>Levar para revisão espaçada →</Link>
+                <Link href="/biblioteca" style={{ flex: 1, textAlign: 'center', padding: 11, background: 'white', color: 'var(--green)', textDecoration: 'none', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 700, border: '1.5px solid var(--green-mid)' }}>Procurar nos meus PDFs</Link>
               </div>
             </div>
           )}

@@ -6,6 +6,11 @@ import Link from 'next/link'
 import { logStudy } from '@/lib/studyProgress'
 import StudyProgressBar from '@/components/StudyProgressBar'
 import { reportError } from '@/lib/clientError'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+import Icon from '@/components/Icon'
 
 // ─── Domínios de estudo — TODAS as áreas das ciências da saúde ───────────────
 
@@ -13,10 +18,10 @@ const DOMAINS = [
   {
     id: 'farmacologia',
     label: 'Farmacologia',
-    icon: '💊',
-    color: '#0d6e42',
-    bg: '#f0fdf5',
-    border: '#bbf7d0',
+    icon: 'pill',
+    color: 'var(--green)',
+    bg: 'var(--green-light)',
+    border: 'var(--green-mid)',
     desc: 'Mecanismos, interações, farmacocinética',
     topics: [
       // ── Cardiovasculares ─────────────────────────────────────────────
@@ -63,10 +68,10 @@ const DOMAINS = [
   {
     id: 'medicina_interna',
     label: 'Medicina Interna',
-    icon: '🫀',
-    color: '#dc2626',
-    bg: '#fef2f2',
-    border: '#fecaca',
+    icon: 'heart',
+    color: 'var(--red)',
+    bg: 'var(--badge-red-bg)',
+    border: 'var(--badge-red-border)',
     desc: 'Cardiologia, pneumologia, gastro, nefrologia',
     topics: [
       // ── Cardiologia ─────────────────────────────────────────────────
@@ -112,10 +117,10 @@ const DOMAINS = [
   {
     id: 'emergencia',
     label: 'Emergência',
-    icon: '🚨',
-    color: '#b45309',
-    bg: '#fffbeb',
-    border: '#fde68a',
+    icon: 'alert',
+    color: 'var(--amber)',
+    bg: 'var(--badge-amber-bg)',
+    border: 'var(--badge-amber-border)',
     desc: 'Algoritmos, protocolos, suporte de vida',
     topics: [
       // ── Suporte de vida ──────────────────────────────────────────────
@@ -157,10 +162,10 @@ const DOMAINS = [
   {
     id: 'cirurgia',
     label: 'Cirurgia',
-    icon: '🔪',
-    color: '#1d4ed8',
-    bg: '#eff6ff',
-    border: '#bfdbfe',
+    icon: 'grid',
+    color: 'var(--ink-2)',
+    bg: 'var(--bg-2)',
+    border: 'var(--border)',
     desc: 'Pré e pós-operatório, patologia cirúrgica',
     topics: [
       // ── Abdómen ───────────────────────────────────────────────────────
@@ -192,10 +197,10 @@ const DOMAINS = [
   {
     id: 'pediatria',
     label: 'Pediatria',
-    icon: '👶',
-    color: '#7c3aed',
-    bg: '#faf5ff',
-    border: '#e9d5ff',
+    icon: 'family',
+    color: 'var(--roxo)',
+    bg: 'var(--roxo-claro)',
+    border: 'var(--roxo-borda)',
     desc: 'Desenvolvimento, doenças pediátricas, doses',
     topics: [
       // ── Desenvolvimento e prevenção ──────────────────────────────────
@@ -231,10 +236,10 @@ const DOMAINS = [
   {
     id: 'gineco_obstetricia',
     label: 'Ginecologia e Obstetrícia',
-    icon: '🤰',
-    color: '#be185d',
-    bg: '#fdf2f8',
-    border: '#fbcfe8',
+    icon: 'family',
+    color: 'var(--red)',
+    bg: 'var(--red-light)',
+    border: 'var(--red-light)',
     desc: 'Gravidez, parto, patologia ginecológica',
     topics: [
       // ── Obstetrícia — pré-natal ──────────────────────────────────────
@@ -276,10 +281,10 @@ const DOMAINS = [
   {
     id: 'anatomia_fisiologia',
     label: 'Anatomia e Fisiologia',
-    icon: '🫁',
-    color: '#0891b2',
-    bg: '#ecfeff',
-    border: '#a5f3fc',
+    icon: 'heart',
+    color: 'var(--green)',
+    bg: 'var(--green-light)',
+    border: 'var(--green-mid)',
     desc: 'Estrutura e função dos sistemas',
     topics: [
       // ── Cardiovascular ───────────────────────────────────────────────
@@ -318,8 +323,8 @@ const DOMAINS = [
   {
     id: 'semiologia',
     label: 'Semiologia',
-    icon: '🩺',
-    color: '#374151',
+    icon: 'stethoscope',
+    color: 'var(--ink-3)',
     bg: 'var(--bg-2)',
     border: 'var(--border)',
     desc: 'Exame físico, sinais e sintomas',
@@ -350,10 +355,10 @@ const DOMAINS = [
   {
     id: 'enfermagem',
     label: 'Enfermagem Clínica',
-    icon: '💉',
-    color: '#0f766e',
-    bg: '#f0fdfa',
-    border: '#99f6e4',
+    icon: 'pill',
+    color: 'var(--green-3)',
+    bg: 'var(--green-light)',
+    border: 'var(--green-mid)',
     desc: 'Técnicas, protocolos, cuidados',
     topics: [
       // ── Administração de medicação ───────────────────────────────────
@@ -395,10 +400,10 @@ const DOMAINS = [
   {
     id: 'nutricao',
     label: 'Nutrição Clínica',
-    icon: '🥗',
-    color: '#65a30d',
-    bg: '#f7fee7',
-    border: '#d9f99d',
+    icon: 'meal',
+    color: 'var(--green)',
+    bg: 'var(--green-light)',
+    border: 'var(--green-mid)',
     desc: 'Dietética, suporte nutricional, patologias',
     topics: [
       // ── Avaliação ────────────────────────────────────────────────────
@@ -468,27 +473,26 @@ function FlashcardsMode({ topic, domain, cards, onBack, onSession }: {
     const pct = Math.round(((easy + medium) / results.length) * 100)
     return (
       <div style={{ maxWidth:600, margin:'0 auto', textAlign:'center', padding:'48px 20px' }}>
-        <div style={{ fontSize:56, marginBottom:16 }}>{pct>=80?'🏆':pct>=60?'👍':'📚'}</div>
-        <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:'var(--ink)', marginBottom:8 }}>Sessão concluída</div>
-        <div style={{ fontFamily:'var(--font-serif)', fontSize:48, color:domain.color, marginBottom:16 }}>{pct}%</div>
+        <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-numero)', color:'var(--ink)', marginBottom:8 }}>Sessão concluída</div>
+        <div style={{ ...MONO, fontSize:'var(--t-numero)', fontWeight:'var(--peso-forte)' as any, color:domain.color, marginBottom:16 }}>{pct}%</div>
         <div style={{ display:'flex', gap:20, justifyContent:'center', marginBottom:28 }}>
-          {[['Fácil', easy, '#0d6e42'], ['Médio', medium, '#d97706'], ['Difícil', hard, '#dc2626']].map(([l,v,c]) => (
+          {[['Fácil', easy, 'var(--green)'], ['Médio', medium, 'var(--amber)'], ['Difícil', hard, 'var(--red)']].map(([l,v,c]) => (
             <div key={l as string}>
-              <div style={{ fontFamily:'var(--font-serif)', fontSize:28, color:c as string }}>{v}</div>
-              <div style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{l}</div>
+              <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-numero)', color:c as string }}>{v}</div>
+              <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{l}</div>
             </div>
           ))}
         </div>
-        <div style={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius:8, padding:'12px 16px', marginBottom:24, fontSize:13, color:'var(--ink-3)' }}>
+        <div style={{ background:'var(--bg-2)', border:'1px solid var(--border)', borderRadius: 'var(--r-md)', padding:'12px 16px', marginBottom:24, fontSize: 'var(--t-dado)', color:'var(--ink-3)' }}>
           {hard > 0 ? `${hard} cartão${hard>1?'s':''} marcado${hard>1?'s':''} para revisão prioritária.` : 'Excelente! Todos os cartões dominados.'}
         </div>
         <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
           <button onClick={() => { setIndex(0); setFlipped(false); setResults([]); setDone(false) }}
-            style={{ background:domain.color, color:'white', border:'none', borderRadius:8, padding:'11px 22px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            style={{ background:domain.color, color:'white', border:'none', borderRadius: 'var(--r-md)', padding:'11px 22px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
             Repetir
           </button>
           <button onClick={onBack}
-            style={{ background:'white', color:'var(--ink-3)', border:'1px solid var(--border)', borderRadius:8, padding:'11px 22px', fontSize:14, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            style={{ background:'white', color:'var(--ink-3)', border:'1px solid var(--border)', borderRadius: 'var(--r-md)', padding:'11px 22px', fontSize: 'var(--t-corpo)', cursor:'pointer', fontFamily:'var(--font-sans)' }}>
             Voltar
           </button>
         </div>
@@ -502,47 +506,47 @@ function FlashcardsMode({ topic, domain, cards, onBack, onSession }: {
   return (
     <div style={{ maxWidth:680, margin:'0 auto' }}>
       <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:8 }}>
-        <div style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--ink-4)' }}>{topic} · {index+1}/{cards.length}</div>
-        <div style={{ display:'flex', gap:10, fontSize:11, fontFamily:'var(--font-mono)' }}>
-          <span style={{ color:'#0d6e42' }}>{results.filter(r=>r==='easy').length} fácil</span>
-          <span style={{ color:'#d97706' }}>{results.filter(r=>r==='medium').length} médio</span>
-          <span style={{ color:'#dc2626' }}>{results.filter(r=>r==='hard').length} difícil</span>
+        <div style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', color:'var(--ink-4)' }}>{topic} · {index+1}/{cards.length}</div>
+        <div style={{ display:'flex', gap:10, fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)' }}>
+          <span style={{ color:'var(--green)' }}>{results.filter(r=>r==='easy').length} fácil</span>
+          <span style={{ color:'var(--amber)' }}>{results.filter(r=>r==='medium').length} médio</span>
+          <span style={{ color:'var(--red)' }}>{results.filter(r=>r==='hard').length} difícil</span>
         </div>
       </div>
-      <div style={{ height:5, background:'var(--bg-3)', borderRadius:3, marginBottom:24, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:`${progress}%`, background:domain.color, borderRadius:3, transition:'width 0.3s' }} />
+      <div style={{ height:5, background:'var(--bg-3)', borderRadius: 'var(--r-sm)', marginBottom:24, overflow:'hidden' }}>
+        <div style={{ height:'100%', width:`${progress}%`, background:domain.color, borderRadius: 'var(--r-sm)', transition:'width 0.3s' }} />
       </div>
 
       <div onClick={() => setFlipped(!flipped)}
-        style={{ background:'white', border:`2px solid ${flipped ? domain.color : 'var(--border)'}`, borderRadius:12, padding:'44px 28px', minHeight:240, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', marginBottom:20, transition:'border-color 0.2s', position:'relative' }}>
+        style={{ background:'white', border:`2px solid ${flipped ? domain.color : 'var(--border)'}`, borderRadius: 'var(--r-xl)', padding:'44px 28px', minHeight:240, cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', textAlign:'center', marginBottom:20, transition:'border-color 0.2s', position:'relative' }}>
         <div style={{ position:'absolute', top:14, left:16, right:16, display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-          <span style={{ fontSize:9, fontFamily:'var(--font-mono)', color:flipped?domain.color:'var(--ink-5)', letterSpacing:'0.12em', textTransform:'uppercase' }}>
+          <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:flipped?domain.color:'var(--ink-5)', letterSpacing:'0.12em', textTransform:'uppercase' }}>
             {flipped ? '✓ RESPOSTA' : 'PERGUNTA'}
           </span>
-          <span style={{ fontSize:11, color:'var(--ink-5)' }}>toca para {flipped?'ocultar':'revelar'}</span>
+          <span style={{ fontSize: 'var(--t-meta)', color:'var(--ink-5)' }}>toca para {flipped?'ocultar':'revelar'}</span>
         </div>
         {!flipped
-          ? <p style={{ fontFamily:'var(--font-serif)', fontSize:20, color:'var(--ink)', lineHeight:1.5, margin:0, maxWidth:520 }}>{card.front}</p>
-          : <p style={{ fontSize:15, color:'var(--ink-2)', lineHeight:1.8, margin:0, maxWidth:520 }}>{card.back}</p>
+          ? <p style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:'var(--ink)', lineHeight:1.5, margin:0, maxWidth:520 }}>{card.front}</p>
+          : <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-2)', lineHeight:1.8, margin:0, maxWidth:520 }}>{card.back}</p>
         }
       </div>
 
       {flipped ? (
         <div style={{ display:'grid', gridTemplateColumns:'repeat(3, 1fr)', gap:8 }}>
           {[
-            { label:'Difícil', sub:'Vou rever', rating:'hard' as const, bg:'#fee2e2', border:'#fca5a5', color:'#991b1b' },
-            { label:'Médio', sub:'Quase certo', rating:'medium' as const, bg:'#fef9c3', border:'#fde68a', color:'#854d0e' },
-            { label:'Fácil', sub:'Sei bem', rating:'easy' as const, bg:'#d1fae5', border:'#6ee7b7', color:'#065f46' },
+            { label:'Difícil', sub:'Vou rever', rating:'hard' as const, bg:'var(--badge-red-bg)', border:'var(--badge-red-border)', color:'var(--red)' },
+            { label:'Médio', sub:'Quase certo', rating:'medium' as const, bg:'var(--amber-light)', border:'var(--badge-amber-border)', color:'var(--badge-amber-fg)' },
+            { label:'Fácil', sub:'Sei bem', rating:'easy' as const, bg:'var(--badge-green-bg)', border:'var(--green-mid)', color:'var(--green)' },
           ].map(btn => (
             <button key={btn.rating} onClick={() => answer(btn.rating)}
-              style={{ padding:'12px 8px', background:btn.bg, border:`1.5px solid ${btn.border}`, borderRadius:8, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
-              <div style={{ fontSize:14, fontWeight:700, color:btn.color, marginBottom:2 }}>{btn.label}</div>
-              <div style={{ fontSize:11, color:btn.color, opacity:0.7 }}>{btn.sub}</div>
+              style={{ padding:'12px 8px', background:btn.bg, border:`1.5px solid ${btn.border}`, borderRadius: 'var(--r-md)', cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+              <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color:btn.color, marginBottom:2 }}>{btn.label}</div>
+              <div style={{ fontSize: 'var(--t-meta)', color:btn.color, opacity:0.7 }}>{btn.sub}</div>
             </button>
           ))}
         </div>
       ) : (
-        <div style={{ textAlign:'center', padding:'14px 0', fontSize:13, color:'var(--ink-4)' }}>
+        <div style={{ textAlign:'center', padding:'14px 0', fontSize: 'var(--t-dado)', color:'var(--ink-4)' }}>
           Avalia o teu conhecimento depois de revelar a resposta
         </div>
       )}
@@ -565,15 +569,14 @@ function QuizMode({ topic, domain, questions, onBack, onSession }: {
     const pct = Math.round((score/questions.length)*100)
     return (
       <div style={{ maxWidth:600, margin:'0 auto', textAlign:'center', padding:'48px 20px' }}>
-        <div style={{ fontSize:52, marginBottom:14 }}>{pct>=80?'🏆':pct>=60?'📚':'💪'}</div>
-        <div style={{ fontFamily:'var(--font-serif)', fontSize:26, color:'var(--ink)', marginBottom:8 }}>Quiz concluído</div>
-        <div style={{ fontSize:52, fontWeight:700, color:pct>=70?domain.color:pct>=50?'#d97706':'#dc2626', margin:'8px 0 16px' }}>{pct}%</div>
-        <p style={{ fontSize:15, color:'var(--ink-3)', marginBottom:28 }}>{score} correctas em {questions.length} perguntas</p>
+        <div style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-numero)', color:'var(--ink)', marginBottom:8 }}>Quiz concluído</div>
+        <div style={{ ...MONO, fontSize:'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, color:pct>=70?domain.color:pct>=50?'var(--amber)':'var(--red)', margin:'8px 0 16px' }}>{pct}%</div>
+        <p style={{ fontSize: 'var(--t-corpo)', color:'var(--ink-3)', marginBottom:28 }}>{score} correctas em {questions.length} perguntas</p>
         <div style={{ display:'flex', gap:10, justifyContent:'center', flexWrap:'wrap' }}>
           <button onClick={() => { setIndex(0); setSelected(null); setScore(0); setDone(false) }}
-            style={{ background:domain.color, color:'white', border:'none', borderRadius:8, padding:'11px 22px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>Repetir</button>
+            style={{ background:domain.color, color:'white', border:'none', borderRadius: 'var(--r-md)', padding:'11px 22px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-sans)' }}>Repetir</button>
           <button onClick={onBack}
-            style={{ background:'white', color:'var(--ink-3)', border:'1px solid var(--border)', borderRadius:8, padding:'11px 22px', fontSize:14, cursor:'pointer', fontFamily:'var(--font-sans)' }}>Voltar</button>
+            style={{ background:'white', color:'var(--ink-3)', border:'1px solid var(--border)', borderRadius: 'var(--r-md)', padding:'11px 22px', fontSize: 'var(--t-corpo)', cursor:'pointer', fontFamily:'var(--font-sans)' }}>Voltar</button>
         </div>
       </div>
     )
@@ -594,27 +597,27 @@ function QuizMode({ topic, domain, questions, onBack, onSession }: {
   return (
     <div style={{ maxWidth:680, margin:'0 auto' }}>
       <div style={{ display:'flex', justifyContent:'space-between', marginBottom:8 }}>
-        <span style={{ fontSize:12, fontFamily:'var(--font-mono)', color:'var(--ink-4)' }}>{topic} · {index+1}/{questions.length}</span>
-        <span style={{ fontSize:12, fontFamily:'var(--font-mono)', color:domain.color }}>{score} correctas</span>
+        <span style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', color:'var(--ink-4)' }}>{topic} · {index+1}/{questions.length}</span>
+        <span style={{ fontSize: 'var(--t-meta)', fontFamily:'var(--font-mono)', color:domain.color }}>{score} correctas</span>
       </div>
-      <div style={{ height:5, background:'var(--bg-3)', borderRadius:3, marginBottom:24, overflow:'hidden' }}>
-        <div style={{ height:'100%', width:`${(index/questions.length)*100}%`, background:domain.color, borderRadius:3 }} />
+      <div style={{ height:5, background:'var(--bg-3)', borderRadius: 'var(--r-sm)', marginBottom:24, overflow:'hidden' }}>
+        <div style={{ height:'100%', width:`${(index/questions.length)*100}%`, background:domain.color, borderRadius: 'var(--r-sm)' }} />
       </div>
 
-      <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'24px 22px 20px', marginBottom:12 }}>
-        <p style={{ fontFamily:'var(--font-serif)', fontSize:18, color:'var(--ink)', lineHeight:1.6, margin:'0 0 20px' }}>{q.question}</p>
+      <div style={{ background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-xl)', padding:'24px 22px 20px', marginBottom:12 }}>
+        <p style={{ fontFamily:'var(--font-serif)', fontSize: 'var(--t-destaque)', color:'var(--ink)', lineHeight:1.6, margin:'0 0 20px' }}>{q.question}</p>
         <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
           {q.options.map((opt, i) => {
             let bg='var(--bg-2)', border='var(--border-2)', color='var(--ink-2)'
             if (selected !== null) {
-              if (i===q.correct) { bg='#d1fae5'; border='#6ee7b7'; color='#065f46' }
-              else if (i===selected) { bg='#fee2e2'; border='#fca5a5'; color='#991b1b' }
+              if (i===q.correct) { bg='var(--badge-green-bg)'; border='var(--green-mid)'; color='var(--green)' }
+              else if (i===selected) { bg='var(--badge-red-bg)'; border='var(--badge-red-border)'; color='var(--red)' }
               else { bg='white'; color='var(--ink-5)' }
             }
             return (
               <button key={i} onClick={() => answer(i)}
-                style={{ background:bg, border:`1px solid ${border}`, borderRadius:7, padding:'12px 14px', fontSize:14, color, cursor:selected===null?'pointer':'default', textAlign:'left', fontFamily:'var(--font-sans)', lineHeight:1.5, display:'flex', alignItems:'flex-start', gap:10, transition:'all 0.15s' }}>
-                <span style={{ fontFamily:'var(--font-mono)', fontSize:11, minWidth:18, flexShrink:0, marginTop:1 }}>{String.fromCharCode(65+i)}.</span>
+                style={{ background:bg, border:`1px solid ${border}`, borderRadius: 'var(--r-md)', padding:'12px 14px', fontSize: 'var(--t-corpo)', color, cursor:selected===null?'pointer':'default', textAlign:'left', fontFamily:'var(--font-sans)', lineHeight:1.5, display:'flex', alignItems:'flex-start', gap:10, transition:'all 0.15s' }}>
+                <span style={{ fontFamily:'var(--font-mono)', fontSize: 'var(--t-meta)', minWidth:18, flexShrink:0, marginTop:1 }}>{String.fromCharCode(65+i)}.</span>
                 {opt}
               </button>
             )
@@ -624,12 +627,12 @@ function QuizMode({ topic, domain, questions, onBack, onSession }: {
 
       {selected !== null && (
         <>
-          <div style={{ background:'#f0fdf5', border:'1px solid #bbf7d0', borderLeft:`4px solid ${domain.color}`, borderRadius:8, padding:'14px 18px', marginBottom:12 }}>
-            <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--green-2)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6 }}>EXPLICAÇÃO</div>
-            <p style={{ fontSize:13, color:'var(--ink-2)', lineHeight:1.7, margin:0 }}>{q.explanation}</p>
+          <div style={{ background:'var(--green-light)', border:'1px solid var(--green-mid)', borderLeft:`4px solid ${domain.color}`, borderRadius: 'var(--r-md)', padding:'14px 18px', marginBottom:12 }}>
+            <div style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--green-2)', letterSpacing:'0.12em', textTransform:'uppercase', marginBottom:6 }}>EXPLICAÇÃO</div>
+            <p style={{ fontSize: 'var(--t-dado)', color:'var(--ink-2)', lineHeight:1.7, margin:0 }}>{q.explanation}</p>
           </div>
           <button onClick={next}
-            style={{ width:'100%', background:domain.color, color:'white', border:'none', borderRadius:8, padding:'13px', fontSize:14, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
+            style={{ width:'100%', background:domain.color, color:'white', border:'none', borderRadius: 'var(--r-md)', padding:'13px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-sans)' }}>
             {index<questions.length-1 ? 'Próxima →' : 'Ver resultado'}
           </button>
         </>
@@ -733,28 +736,42 @@ export default function StudyPage() {
   }
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', fontFamily:'var(--font-sans)' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--roxo)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Estudar</span>
+          {/* O «← Voltar» estava solto por cima do conteúdo, a ocupar uma
+              linha inteira. Na barra, está no mesmo sítio em todos os modos. */}
+          {mode !== 'home' && <Botao onClick={goBack}>← VOLTAR</Botao>}
+          {selectedDomain && (
+            <span style={{ ...MONO, color: 'var(--ink-3)', fontWeight: 'var(--peso-forte)' as any }}>
+              {String(selectedDomain.label || '').toUpperCase()}
+            </span>
+          )}
+          {selectedTopic && <span style={{ ...MONO, color: 'var(--ink-4)' }}>{selectedTopic}</span>}
+          {mode === 'home' && !selectedDomain && (
+            <span style={{ ...MONO, color: 'var(--ink-4)' }}>
+              {DOMAINS.reduce((acc, d) => acc + d.topics.length, 0)} TÓPICOS · {DOMAINS.length} DOMÍNIOS
+            </span>
+          )}
+        </BarraDeTrabalho>
+      }
+    >
 
-      <div className="page-container page-body">
+      <div>
 
         {mode === 'home' && !selectedDomain && <StudyProgressBar />}
 
-        {mode !== 'home' && (
-          <button onClick={goBack}
-            style={{ background:'none', border:'none', fontSize:13, color:'var(--ink-4)', cursor:'pointer', fontFamily:'var(--font-sans)', marginBottom:24, padding:0, display:'flex', alignItems:'center', gap:6 }}>
-            ← Voltar
-          </button>
-        )}
-
         {error && (
-          <div style={{ background:'var(--red-light)', border:'1px solid #fca5a5', borderRadius:8, padding:'12px 16px', marginBottom:20, fontSize:13, color:'var(--red)' }}>{error}</div>
+          <div style={{ background:'var(--red-light)', border:'1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding:'12px 16px', marginBottom:20, fontSize: 'var(--t-dado)', color:'var(--red)' }}>{error}</div>
         )}
 
         {loading && (
-          <div style={{ background:'white', border:'1px solid var(--border)', borderRadius:12, padding:'56px', textAlign:'center' }}>
-            <div style={{ width:36, height:36, border:`3px solid ${selectedDomain?.color || 'var(--green)'}30`, borderTop:`3px solid ${selectedDomain?.color || 'var(--green)'}`, borderRadius:'50%', animation:'spin 0.7s linear infinite', margin:'0 auto 16px' }} />
-            <div style={{ fontSize:13, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.12em' }}>A gerar conteúdo pedagógico para {selectedTopic}...</div>
-          </div>
+          <Painel><ACarregar oQue={`A preparar o material sobre ${selectedTopic}…`} /></Painel>
         )}
 
         {/* HOME */}
@@ -762,51 +779,50 @@ export default function StudyPage() {
           <>
             {!selectedDomain ? (
               <>
-                {/* Header */}
-                <div style={{ marginBottom:28 }}>
-                  <div style={{ fontSize:9, fontFamily:'var(--font-mono)', color:'var(--ink-4)', letterSpacing:'0.14em', textTransform:'uppercase', marginBottom:8 }}>Plataforma de Estudo · Plus</div>
-                  <h1 style={{ fontFamily:'var(--font-serif)', fontSize:'clamp(22px,3vw,32px)', color:'var(--ink)', fontWeight:400, marginBottom:8, letterSpacing:'-0.01em' }}>
-                    Todas as áreas das ciências da saúde
-                  </h1>
-                  <p style={{ fontSize:14, color:'var(--ink-3)', lineHeight:1.6 }}>
-                    {DOMAINS.reduce((acc, d) => acc + d.topics.length, 0)} tópicos · {DOMAINS.length} domínios · Flashcards e quizzes gerados por AI · Repetição espaçada (SRS)
-                  </p>
-                </div>
+                {/* O título em serifa de 32px e a migalha saíram: «Todas as
+                    áreas das ciências da saúde» é verdade e não ajuda a
+                    escolher nenhuma. As contagens, que ajudam, subiram para
+                    a barra de trabalho. */}
 
                 {/* Ferramentas de estudo (antes eram entradas soltas no menu — agora
                     vivem aqui, no centro de estudo). */}
                 <div style={{ display:'flex', gap:8, flexWrap:'wrap', marginBottom:24 }}>
                   {[
-                    { href:'/study/notas', icon:'📝', label:'Notas' },
-                    { href:'/study/documentos', icon:'📄', label:'Documentos' },
-                    { href:'/study/ecg', icon:'💓', label:'ECGs' },
-                    { href:'/study/lab', icon:'🧪', label:'Análises' },
-                    { href:'/study/procedimentos', icon:'🩺', label:'Procedimentos' },
-                    { href:'/study/professor', icon:'🎓', label:'Modo Professor' },
-                    { href:'/study/plano', icon:'🗓️', label:'Plano de estudo' },
-                    { href:'/study/resumos', icon:'📋', label:'Resumos' },
+                    { href:'/study/notas', icon:'note', label:'Notas' },
+                    { href:'/study/documentos', icon:'layers', label:'Documentos' },
+                    { href:'/study/ecg', icon:'heart', label:'ECGs' },
+                    { href:'/study/lab', icon:'flask', label:'Análises' },
+                    { href:'/study/procedimentos', icon:'stethoscope', label:'Procedimentos' },
+                    { href:'/study/professor', icon:'user', label:'Modo Professor' },
+                    { href:'/study/plano', icon:'calendar', label:'Plano de estudo' },
+                    { href:'/study/resumos', icon:'clipboard', label:'Resumos' },
                   ].map(x => (
-                    <Link key={x.href} href={x.href} style={{ display:'flex', alignItems:'center', gap:6, padding:'8px 13px', borderRadius:9, border:'1.5px solid var(--border)', background:'white', color:'var(--ink)', textDecoration:'none', fontSize:13, fontWeight:600 }}>
-                      <span>{x.icon}</span>{x.label}
+                    <Link key={x.href} href={x.href} style={{
+                      display:'flex', alignItems:'center', gap:7, minHeight:'var(--alvo)', padding:'0 12px',
+                      borderRadius:'var(--r-sm)', border:'1px solid var(--border)', background:'var(--bg)',
+                      color:'var(--ink-2)', textDecoration:'none',
+                      fontFamily:'var(--font-mono)', fontSize:'var(--t-meta)', letterSpacing:'.04em',
+                      fontWeight:'var(--peso-corpo)' as any,
+                    }}>
+                      <Icon name={x.icon} size={14} color="var(--ink-4)" />{x.label}
                     </Link>
                   ))}
                 </div>
 
                 {!isStudent && (
-                  <div style={{ background:'#faf5ff', border:'2px solid #e9d5ff', borderRadius:12, padding:'24px', marginBottom:24, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
-                    <span style={{ fontSize:32, flexShrink:0 }}>🎓</span>
+                  <div style={{ background:'var(--roxo-claro)', border:'2px solid var(--roxo-borda)', borderRadius: 'var(--r-xl)', padding:'24px', marginBottom:24, display:'flex', alignItems:'center', gap:16, flexWrap:'wrap' }}>
                     <div style={{ flex:1, minWidth:200 }}>
-                      <div style={{ fontSize:15, fontWeight:700, color:'#5b21b6', marginBottom:4 }}>Plano Plus — estudo sem limites</div>
-                      <div style={{ fontSize:13, color:'#7c3aed', lineHeight:1.6 }}>Farmacologia, Medicina Interna, Emergência, Cirurgia, Pediatria e mais. Flashcards e quizzes por IA, repetição espaçada e progresso real — por 3,99€/mês.</div>
+                      <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color:'var(--roxo-escuro)', marginBottom:4 }}>Plano Plus — estudo sem limites</div>
+                      <div style={{ fontSize: 'var(--t-dado)', color:'var(--roxo)', lineHeight:1.6 }}>Farmacologia, Medicina Interna, Emergência, Cirurgia, Pediatria e mais. Flashcards e quizzes por IA, repetição espaçada e progresso real — por 3,99€/mês.</div>
                     </div>
-                    <Link href="/checkout?plan=student" style={{ background:'#7c3aed', color:'white', textDecoration:'none', padding:'11px 22px', borderRadius:8, fontSize:14, fontWeight:700, flexShrink:0 }}>
+                    <Link href="/checkout?plan=student" style={{ background:'var(--roxo)', color:'white', textDecoration:'none', padding:'11px 22px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, flexShrink:0 }}>
                       Activar Plus →
                     </Link>
                   </div>
                 )}
 
                 {/* Domain cards */}
-                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap:10 }}>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(min(100%, 228px), 1fr))', gap:6 }}>
                   {DOMAINS.map(domain => {
                     const domainSessions = domain.topics.reduce((acc, t) => acc + (sessionStats[t]?.sessions || 0), 0)
                     const topicsStudied = domain.topics.filter(t => sessionStats[t]?.sessions > 0).length
@@ -815,28 +831,29 @@ export default function StudyPage() {
                     return (
                       <button key={domain.id} onClick={() => { setSelectedDomain(domain); setActiveDomainId(domain.id) }}
                         disabled={!isStudent}
-                        style={{ display:'flex', flexDirection:'column', padding:'20px', background:isStudent?'white':'var(--bg-2)', border:`1px solid ${domain.border}`, borderRadius:12, cursor:isStudent?'pointer':'not-allowed', textAlign:'left', transition:'all 0.15s', opacity:isStudent?1:0.6 }}
+                        /* Era 20px de enchimento, raio `--r-xl` e um emoji de
+                           30px. Dez cartões assim são dois ecrãs para escolher
+                           uma área. O filete da esquerda é que passa a dizer
+                           qual é — a cor fica, o desenho aperta. */
+                        style={{ display:'flex', flexDirection:'column', padding:'11px 13px', background:isStudent?'var(--bg)':'var(--bg-2)', border:'1px solid var(--border)', borderLeft:`3px solid ${domain.color}`, borderRadius:'var(--r-sm)', cursor:isStudent?'pointer':'not-allowed', textAlign:'left', opacity:isStudent?1:0.6 }}
                         className="domain-card">
-                        <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                          <span style={{ fontSize:24 }}>{domain.icon}</span>
-                          <div>
-                            <div style={{ fontSize:15, fontWeight:700, color:domain.color, letterSpacing:'-0.01em' }}>{domain.label}</div>
-                            <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginTop:2 }}>{domain.topics.length} tópicos</div>
-                          </div>
+                        <div style={{ display:'flex', alignItems:'baseline', gap:8, marginBottom:4 }}>
+                          <span style={{ fontSize:'var(--t-corpo)', fontWeight:'var(--peso-forte)' as any, color:'var(--ink)' }}>{domain.label}</span>
+                          <span style={{ fontSize:'var(--t-meta)', color:'var(--ink-5)', fontFamily:'var(--font-mono)' }}>{domain.topics.length}</span>
                         </div>
-                        <div style={{ fontSize:12, color:'var(--ink-3)', lineHeight:1.5, marginBottom:12 }}>{domain.desc}</div>
+                        <div style={{ fontSize:'var(--t-meta)', color:'var(--ink-4)', lineHeight:1.45, marginBottom:9 }}>{domain.desc}</div>
                         {domainSessions > 0 ? (
                           <div style={{ marginTop:'auto' }}>
                             <div style={{ display:'flex', justifyContent:'space-between', marginBottom:4 }}>
-                              <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{topicsStudied}/{domain.topics.length} estudados</span>
-                              <span style={{ fontSize:10, fontFamily:'var(--font-mono)', color:domain.color }}>{Math.round(avgScore)}% média</span>
+                              <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:'var(--ink-4)', textTransform:'uppercase', letterSpacing:'0.08em' }}>{topicsStudied}/{domain.topics.length} estudados</span>
+                              <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', color:domain.color }}>{Math.round(avgScore)}% média</span>
                             </div>
-                            <div style={{ height:3, background:domain.border, borderRadius:2, overflow:'hidden' }}>
-                              <div style={{ height:'100%', width:`${(topicsStudied/domain.topics.length)*100}%`, background:domain.color, borderRadius:2 }} />
+                            <div style={{ height:3, background:domain.border, borderRadius: 'var(--r-sm)', overflow:'hidden' }}>
+                              <div style={{ height:'100%', width:`${(topicsStudied/domain.topics.length)*100}%`, background:domain.color, borderRadius: 'var(--r-sm)' }} />
                             </div>
                           </div>
                         ) : (
-                          <div style={{ marginTop:'auto', fontSize:11, color:domain.color, fontFamily:'var(--font-mono)', fontWeight:700 }}>
+                          <div style={{ marginTop:'auto', fontSize: 'var(--t-meta)', color:domain.color, fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any }}>
                             {isStudent ? 'Começar →' : 'Requer Plus'}
                           </div>
                         )}
@@ -850,13 +867,13 @@ export default function StudyPage() {
                 {/* Domain topics */}
                 <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:24 }}>
                   <button onClick={() => setSelectedDomain(null)}
-                    style={{ background:'none', border:'none', fontSize:13, color:'var(--ink-4)', cursor:'pointer', fontFamily:'var(--font-sans)', padding:0, display:'flex', alignItems:'center', gap:4 }}>
+                    style={{ background:'none', border:'none', fontSize: 'var(--t-dado)', color:'var(--ink-4)', cursor:'pointer', fontFamily:'var(--font-sans)', padding:0, display:'flex', alignItems:'center', gap:4 }}>
                     ← Domínios
                   </button>
                   <div style={{ width:1, height:16, background:'var(--border)' }} />
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:18 }}>{selectedDomain.icon}</span>
-                    <span style={{ fontSize:16, fontWeight:700, color:selectedDomain.color }}>{selectedDomain.label}</span>
+                    <Icon name={selectedDomain.icon} size={16} />
+                    <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color:selectedDomain.color }}>{selectedDomain.label}</span>
                   </div>
                 </div>
 
@@ -866,23 +883,23 @@ export default function StudyPage() {
                   <input value={customTopic} onChange={e => setCustomTopic(e.target.value)}
                     onKeyDown={e => { if (e.key==='Enter' && customTopic.trim()) start(customTopic.trim(), intent === 'quiz' ? 'quiz' : 'flashcards') }}
                     placeholder="Escreve o teu tema (ex: insuficiência cardíaca, ciclo de Krebs…)"
-                    style={{ flex:'1 1 260px', border:`1.5px solid ${selectedDomain.border}`, borderRadius:9, padding:'11px 14px', fontSize:14, fontFamily:'var(--font-sans)', outline:'none', background:'white' }} />
+                    style={{ flex:'1 1 260px', border:`1.5px solid ${selectedDomain.border}`, borderRadius: 'var(--r-lg)', padding:'11px 14px', fontSize: 'var(--t-corpo)', fontFamily:'var(--font-sans)', outline:'none', background:'white' }} />
                   <button onClick={() => customTopic.trim() && start(customTopic.trim(), 'flashcards')} disabled={!customTopic.trim() || loading}
-                    style={{ padding:'11px 16px', background:customTopic.trim()?selectedDomain.color:'var(--bg-3)', color:customTopic.trim()?'white':'var(--ink-5)', border:'none', borderRadius:9, fontSize:13, fontWeight:700, cursor:customTopic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)' }}>Flashcards</button>
+                    style={{ padding:'11px 16px', background:customTopic.trim()?selectedDomain.color:'var(--bg-3)', color:customTopic.trim()?'white':'var(--ink-5)', border:'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor:customTopic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)' }}>Flashcards</button>
                   <button onClick={() => customTopic.trim() && start(customTopic.trim(), 'quiz')} disabled={!customTopic.trim() || loading}
-                    style={{ padding:'11px 16px', background:'white', color:customTopic.trim()?selectedDomain.color:'var(--ink-5)', border:`1.5px solid ${customTopic.trim()?selectedDomain.border:'var(--border)'}`, borderRadius:9, fontSize:13, fontWeight:700, cursor:customTopic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)' }}>Quiz</button>
+                    style={{ padding:'11px 16px', background:'white', color:customTopic.trim()?selectedDomain.color:'var(--ink-5)', border:`1.5px solid ${customTopic.trim()?selectedDomain.border:'var(--border)'}`, borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor:customTopic.trim()?'pointer':'not-allowed', fontFamily:'var(--font-sans)' }}>Quiz</button>
                 </div>
 
                 <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                   {selectedDomain.topics.map(topic => {
                     const ts = sessionStats[topic]
-                    const scoreColor = !ts ? 'var(--ink-4)' : ts.lastScore>=80?'#0d6e42':ts.lastScore>=60?'#d97706':'#dc2626'
+                    const scoreColor = !ts ? 'var(--ink-4)' : ts.lastScore>=80?'var(--green)':ts.lastScore>=60?'var(--amber)':'var(--red)'
                     return (
-                      <div key={topic} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'white', border:'1px solid var(--border)', borderRadius:10, transition:'border-color 0.15s' }}
+                      <div key={topic} style={{ display:'flex', alignItems:'center', gap:12, padding:'14px 16px', background:'white', border:'1px solid var(--border)', borderRadius: 'var(--r-lg)', transition:'border-color 0.15s' }}
                         className="topic-row">
                         <div style={{ flex:1, minWidth:0 }}>
-                          <div style={{ fontSize:14, fontWeight:600, color:'var(--ink)', letterSpacing:'-0.01em' }}>{topic}</div>
-                          {ts && <div style={{ fontSize:11, color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginTop:2 }}>{ts.sessions} sessão{ts.sessions>1?'ões':''} · último score: <span style={{ color:scoreColor, fontWeight:700 }}>{ts.lastScore}%</span></div>}
+                          <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color:'var(--ink)', letterSpacing:'-0.01em' }}>{topic}</div>
+                          {ts && <div style={{ fontSize: 'var(--t-meta)', color:'var(--ink-4)', fontFamily:'var(--font-mono)', marginTop:2 }}>{ts.sessions} sessão{ts.sessions>1?'ões':''} · último score: <span style={{ color:scoreColor, fontWeight: 'var(--peso-forte)' as any }}>{ts.lastScore}%</span></div>}
                         </div>
                         <div style={{ display:'flex', gap:6, flexShrink:0 }}>
                           {/* O modo que veio do hub (?mode=) fica como ação principal (preenchida). */}
@@ -891,8 +908,8 @@ export default function StudyPage() {
                             return (
                               <button key={m} onClick={() => start(topic, m)}
                                 style={primary
-                                  ? { padding:'8px 14px', background:selectedDomain.color, color:'white', border:'none', borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }
-                                  : { padding:'8px 14px', background:'white', color:selectedDomain.color, border:`1.5px solid ${selectedDomain.border}`, borderRadius:7, fontSize:12, fontWeight:700, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
+                                  ? { padding:'8px 14px', background:selectedDomain.color, color:'white', border:'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-mono)' }
+                                  : { padding:'8px 14px', background:'white', color:selectedDomain.color, border:`1.5px solid ${selectedDomain.border}`, borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor:'pointer', fontFamily:'var(--font-mono)' }}>
                                 {m === 'flashcards' ? 'Flashcards' : 'Quiz'}
                               </button>
                             )
@@ -924,6 +941,6 @@ export default function StudyPage() {
         .domain-card:hover{box-shadow:0 4px 16px rgba(0,0,0,0.06);transform:translateY(-2px)}
         .topic-row:hover{border-color:var(--border-2)!important}
       `}</style>
-    </div>
+    </Mesa>
   )
 }

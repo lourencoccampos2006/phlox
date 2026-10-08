@@ -32,16 +32,19 @@ import CuidadosDeRotina from '@/components/institution/CuidadosDeRotina'
 import EtiquetasDoUtente from '@/components/institution/EtiquetasDoUtente'
 import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
 import ProcessoIndividual from '@/components/institution/ProcessoIndividual'
-import Cardex from '@/components/institution/Cardex'
+import Essencial from '@/components/institution/Essencial'
 import BensDoUtente from '@/components/institution/BensDoUtente'
 import VacinasDoUtente from '@/components/institution/VacinasDoUtente'
 import AusenciasDoUtente from '@/components/institution/AusenciasDoUtente'
 import { nomeDoPlano } from '@/lib/plano'
 import { registoEmPalavras } from '@/lib/registoEmPalavras'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor, useLargo,
+} from '@/components/ui/mesa'
 
 const MONO: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
-  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700,
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
+  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 'var(--peso-forte)' as any,
 }
 
 const TURNOS: Record<string, string> = { manha: 'Manhã', tarde: 'Tarde', noite: 'Noite' }
@@ -70,8 +73,8 @@ function Etiqueta({ tom, children }: { tom: 'verde' | 'ambar' | 'cinza'; childre
   }[tom]
   return (
     <span style={{
-      fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.09em', textTransform: 'uppercase',
-      fontWeight: 700, padding: '3px 8px', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap',
+      fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.09em', textTransform: 'uppercase',
+      fontWeight: 'var(--peso-forte)' as any, padding: '3px 8px', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap',
       background: cores.bg, border: `1px solid ${cores.bd}`, color: cores.fg,
     }}>{children}</span>
   )
@@ -110,9 +113,10 @@ type Props = {
   aoMudar?: (recarregar: () => void) => void
 }
 
-type Aba = 'hoje' | 'cardex' | 'plano' | 'historico' | 'registos' | 'documentos'
+type Aba = 'hoje' | 'essencial' | 'plano' | 'historico' | 'registos' | 'documentos'
 
 export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos, pedidos, revisaoMedicacao, children, aoMudar }: Props) {
+  const largo = useLargo()
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
@@ -140,7 +144,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     // `evolucao` continua a ser aceite: e o nome que os enderecos ja partilhados
     // tem, e um link que deixa de funcionar e pior do que um nome antigo.
     if (q === 'evolucao') { setAba('historico'); return }
-    if (q && ['hoje', 'cardex', 'plano', 'historico', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
+    if (q && ['hoje', 'essencial', 'plano', 'historico', 'registos', 'documentos'].includes(q)) setAba(q as Aba)
   }, [])
   const irPara = (a: Aba) => {
     setAba(a)
@@ -166,7 +170,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     const tol = async (q: any) => { try { const r = await q; return r.error ? { data: [] } : r } catch { return { data: [] } } }
     const [p, md, mar, cr, att, ct, inc] = await Promise.all([
       tol(supabase.from('patients').select('*').eq('id', pid).maybeSingle()),
-      // `select('*')` e nao a lista dos campos. O Cardex precisa da via, do
+      // `select('*')` e nao a lista dos campos. O essencial precisa da via, do
       // SOS (com o maximo por dia e o intervalo) e das HORAS por turno — e
       // `patient_meds.horas` so existe depois do sprint170. Nomear uma coluna
       // que a base ainda nao tem faz o PostgREST recusar a consulta INTEIRA e
@@ -279,12 +283,12 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     return campos.length ? campos : null
   }, [registos])
 
-  if (carregando) return <div style={{ padding: 'var(--space-14)', color: 'var(--ink-4)', fontSize: 14 }}>A carregar…</div>
+  if (carregando) return <div style={{ padding: 'var(--space-14)', color: 'var(--ink-4)', fontSize: 'var(--t-corpo)' }}>A carregar…</div>
   if (!utente) {
     return (
       <div style={{ padding: 'var(--space-14)' }}>
-        <p style={{ fontSize: 14, color: 'var(--ink-3)', marginBottom: 'var(--space-5)' }}>Não foi possível encontrar esta pessoa.</p>
-        <Link href="/patients" style={{ color: cor, fontWeight: 700, fontSize: 14 }}>← Voltar a {cfg.personNounPlural.toLowerCase()}</Link>
+        <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', marginBottom: 'var(--space-5)' }}>Não foi possível encontrar esta pessoa.</p>
+        <Link href="/patients" style={{ color: cor, fontWeight: 'var(--peso-forte)' as any, fontSize: 'var(--t-corpo)' }}>← Voltar a {cfg.personNounPlural.toLowerCase()}</Link>
       </div>
     )
   }
@@ -323,75 +327,69 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     utente.room_number ? (institution === 'day_care' ? `Sala ${utente.room_number}` : `Quarto ${utente.room_number}`) : null,
   ].filter(Boolean).join(' · ')
 
+  /* A MOLDURA DA FICHA — refeita (2026-10-08).
+
+     O NOME DEIXA DE FUGIR. Era uma serifa de 44px no topo de uma página com
+     seis separadores, medicação, plano, histórico e documentos: a meio de
+     qualquer um deles já não se sabia de quem era a ficha aberta. Numa ficha
+     de utente isso não é um detalhe de estilo — trocar de pessoa aqui tem
+     consequências. Sobe para a barra, que não foge ao rolar, e leva consigo
+     as etiquetas, que são o que alguém tem de saber antes de ler o resto. */
   return (
-    <div style={{ padding: 'var(--space-11) clamp(16px,3vw,32px) var(--space-18)', maxWidth: 780, margin: '0 auto' }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any,
+            color: 'var(--ink)', letterSpacing: '-.01em', whiteSpace: 'nowrap',
+            overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: largo ? 280 : '100%',
+          }} title={utente.name}>{utente.name}</span>
 
-      <Link href="/patients" style={{ ...MONO, textDecoration: 'none', display: 'inline-block', marginBottom: 'var(--space-8)' }}>
-        ← {cfg.personNounPlural}
-      </Link>
-
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 'var(--space-9)', flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0 }}>
-          <h1 style={{
-            fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,4.2vw,44px)', fontWeight: 500,
-            color: 'var(--ink)', letterSpacing: '-0.025em', lineHeight: 1.08, margin: 0,
-          }}>{utente.name}</h1>
           {subtitulo && (
-            <div style={{ ...MONO, marginTop: 'var(--space-5)', display: 'flex', alignItems: 'center', gap: 7 }}>
+            <span style={{ ...MONO, display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--ink-4)' }}>
               {chegada && <span style={{ width: 6, height: 6, borderRadius: '50%', background: cor }} />}
               {subtitulo}
-            </div>
+            </span>
           )}
-        </div>
-        <Link href={`/care-log?patient=${pid}`} style={{
-          padding: '12px 22px', background: 'var(--ink)', color: 'white', borderRadius: 'var(--r-md)',
-          fontSize: 13.5, fontWeight: 700, textDecoration: 'none', whiteSpace: 'nowrap', flexShrink: 0,
-        }}>Registar o dia</Link>
-      </div>
 
-      {/* As etiquetas ficam logo debaixo do nome, e nao numa seccao la em
-          baixo: «risco de queda» e «disfagia» sao o que alguem tem de saber
-          ANTES de ler o resto da ficha. */}
-      <EtiquetasDoUtente pid={pid} cor={cor} />
+          <Seletor
+            opcoes={(([
+              ['hoje', 'Hoje'],
+              ['essencial', 'O essencial'],
+              ['plano', nomeDoPlano(institution).curto],
+              ['historico', 'Histórico'],
+              ['registos', 'Registos'],
+              ['documentos', 'Documentos'],
+            ] as [Aba, string][]).filter(([id]) =>
+              id === 'plano' ? scope.veDetalhe('utentes.plano')
+              : id === 'documentos' ? scope.veDetalhe('utentes.documentos')
+              : true,
+            )).map(([id, rotulo]) => ({ id, rotulo }))}
+            ativa={aba} aoMudar={irPara} />
 
-      {/* ── As abas ─────────────────────────────────────────────────────── */}
-      <nav style={{
-        display: 'flex', gap: 'var(--space-3)', marginTop: 'var(--space-9)',
-        borderBottom: '1px solid var(--border)', overflowX: 'auto',
-      }}>
-        {/* Duas pessoas, a mesma ficha, separadores diferentes. Um separador
-            que a pessoa nao pode ver nao fica cinzento: nao existe para ela.
-            (sprint164 — `nao:utentes.plano`, `nao:utentes.documentos`.) */}
-        {(([
-          ['hoje', 'Hoje'],
-          // O Cardex vem logo depois do «Hoje», e antes do plano: é a folha de
-          // quem está a chegar ao turno, e essa pessoa não vai procurar.
-          ['cardex', 'Cardex'],
-          ['plano', nomeDoPlano(institution).curto],
-          ['historico', 'Histórico'],
-          ['registos', 'Registos'],
-          ['documentos', 'Documentos'],
-        ] as [Aba, string][]).filter(([id]) =>
-          id === 'plano' ? scope.veDetalhe('utentes.plano')
-          : id === 'documentos' ? scope.veDetalhe('utentes.documentos')
-          : true,
-        )).map(([id, rotulo]) => {
-          const on = aba === id
-          return (
-            <button key={id} onClick={() => irPara(id)} style={{
-              padding: '11px 14px', background: 'none', border: 'none', cursor: 'pointer',
-              fontFamily: 'inherit', fontSize: 14, whiteSpace: 'nowrap', marginBottom: -1,
-              fontWeight: on ? 800 : 600, color: on ? cor : 'var(--ink-4)',
-              borderBottom: `2.5px solid ${on ? cor : 'transparent'}`,
-            }}>{rotulo}</button>
-          )
-        })}
-      </nav>
+          <span style={{ marginLeft: largo ? 'auto' : undefined }}>
+            <Link href={`/care-log?patient=${pid}`} style={{ textDecoration: 'none' }}>
+              <Botao feitio="principal">REGISTAR O DIA</Botao>
+            </Link>
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          {/* As etiquetas descem para cá. Continuam a ser a primeira coisa
+              que se vê — mas agora vêem-se em TODOS os separadores, e não só
+              por cima do «Hoje». «Risco de queda» não deixa de ser verdade
+              quando se abre o histórico. */}
+          <EtiquetasDoUtente pid={pid} cor={cor} />
+        </BarraDeEstado>
+      }
+    >
 
-      {/* O Cardex só se monta quando alguém o abre. Ver a nota sobre a bolinha
-          no separador, em components/institution/Cardex.tsx. */}
-      {aba === 'cardex' && (
-        <Cardex utente={utente} meds={meds} contactos={contactos} cor={cor} />
+      {/* O essencial só se monta quando alguém o abre. Ver a nota sobre a bolinha
+          no separador, em components/institution/Essencial.tsx. */}
+      {aba === 'essencial' && (
+        <Essencial utente={utente} meds={meds} contactos={contactos} cor={cor} />
       )}
 
       {aba === 'plano' && scope.veDetalhe('utentes.plano') && (
@@ -444,7 +442,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
             {presenca && (
               <button onClick={() => mudarPresenca(null)} disabled={aMarcar} style={{
                 background: 'none', border: 'none', padding: 0, fontFamily: 'inherit',
-                fontSize: 11.5, fontWeight: 600, color: 'var(--ink-4)',
+                fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)',
                 cursor: aMarcar ? 'wait' : 'pointer', textDecoration: 'underline',
               }}>retirar a marca</button>
             )}
@@ -458,10 +456,10 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
               const on = estadoPresenca === v
               return (
                 <button key={v} onClick={() => mudarPresenca(on ? null : v)} disabled={aMarcar} style={{
-                  minHeight: 44, padding: '0 16px', borderRadius: 'var(--r-md)',
+                  minHeight: 'var(--alvo)', padding: '0 16px', borderRadius: 'var(--r-md)',
                   border: `1px solid ${on ? cor : 'var(--border-2)'}`,
                   background: on ? cor : 'var(--bg)', color: on ? 'white' : 'var(--ink-3)',
-                  fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
+                  fontFamily: 'inherit', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any,
                   cursor: aMarcar ? 'wait' : 'pointer', opacity: aMarcar ? 0.6 : 1,
                 }}>{rotulo}</button>
               )
@@ -477,12 +475,12 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           )}
           {avisoFamilia && (
             <div style={{
-              marginTop: 10, fontSize: 12.5, color: 'var(--ink-2)',
+              marginTop: 10, fontSize: 'var(--t-meta)', color: 'var(--ink-2)',
               background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px',
             }}>{avisoFamilia}</div>
           )}
           {institution === 'day_care' && !presenca && (
-            <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 9 }}>
+            <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 9 }}>
               A família recebe um recado automático quando marcares a chegada e a saída.
             </div>
           )}
@@ -514,17 +512,17 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         }}>
           <div style={{ minWidth: 0 }}>
             <div style={{ ...MONO, color: 'rgba(255,255,255,0.55)', marginBottom: 'var(--space-4)' }}>A seguir</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'white', letterSpacing: '-0.02em' }}>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'white', letterSpacing: '-0.02em' }}>
               {porDar[0].name}{porDar[0].dose ? ` ${porDar[0].dose}` : ''}
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.62)', marginTop: 5 }}>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'rgba(255,255,255,0.62)', marginTop: 5 }}>
               {porDar[0].turnos.length ? `Toma d${porDar[0].turnos.length === 1 ? 'a ' + porDar[0].turnos[0].toLowerCase() : 'e vários turnos'}` : 'Por dar'}
               {porDar.length > 1 ? ` · mais ${porDar.length - 1} por dar` : ''}
             </div>
           </div>
           <Link href={`/mar?patient=${pid}`} style={{
             padding: '11px 24px', background: 'white', color: 'var(--ink)', borderRadius: 'var(--r-md)',
-            fontSize: 13.5, fontWeight: 700, textDecoration: 'none', flexShrink: 0,
+            fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none', flexShrink: 0,
           }}>Dar</Link>
         </div>
       )}
@@ -533,18 +531,18 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       <Seccao titulo={`O dia d${(utente.sex || '').toLowerCase().startsWith('f') ? 'ela' : 'ele'}`}
         extra={porDar.length ? `${porDar.length} por fazer` : undefined}>
         {linhaDoDia.length === 0 ? (
-          <p style={{ fontSize: 14, color: 'var(--ink-4)', padding: 'var(--space-9) 0', lineHeight: 1.6 }}>
-            Ainda não há nada registado hoje. <Link href={`/care-log?patient=${pid}`} style={{ color: cor, fontWeight: 700 }}>Começar o registo →</Link>
+          <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', padding: 'var(--space-9) 0', lineHeight: 1.6 }}>
+            Ainda não há nada registado hoje. <Link href={`/care-log?patient=${pid}`} style={{ color: cor, fontWeight: 'var(--peso-forte)' as any }}>Começar o registo →</Link>
           </p>
         ) : linhaDoDia.map((i, k) => (
           <div key={k} style={{
             display: 'grid', gridTemplateColumns: '58px 1fr', gap: 'var(--space-7)',
             padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)', alignItems: 'start',
           }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink-5)', paddingTop: 2 }}>{i.hora}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', paddingTop: 2 }}>{i.hora}</span>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>{i.titulo}</div>
-              {i.detalhe && <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.5 }}>{i.detalhe}</div>}
+              <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any }}>{i.titulo}</div>
+              {i.detalhe && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.5 }}>{i.detalhe}</div>}
             </div>
           </div>
         ))}
@@ -557,8 +555,8 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
         <Seccao titulo="Nunca esquecer">
           {utente.allergies && (
             <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)' }}>
-              <span style={{ ...MONO, color: '#b91c1c' }}>Alergias</span>
-              <span style={{ fontSize: 14.5, color: 'var(--ink)' }}>{utente.allergies}</span>
+              <span style={{ ...MONO, color: 'var(--red)' }}>Alergias</span>
+              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{utente.allergies}</span>
             </div>
           )}
           {/* "Cuidados" — no design é a linha do meio, e o exemplo dela é
@@ -568,20 +566,20 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
               antes de lhe tocar. */}
           {utente.life_story?.sensitivities && (
             <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)' }}>
-              <span style={{ ...MONO, color: '#92400e' }}>Cuidados</span>
-              <span style={{ fontSize: 14.5, color: 'var(--ink)' }}>{utente.life_story.sensitivities}</span>
+              <span style={{ ...MONO, color: 'var(--amber)' }}>Cuidados</span>
+              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{utente.life_story.sensitivities}</span>
             </div>
           )}
           {utente.conditions && (
             <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)' }}>
               <span style={MONO}>Condições</span>
-              <span style={{ fontSize: 14.5, color: 'var(--ink-2)' }}>{utente.conditions}</span>
+              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)' }}>{utente.conditions}</span>
             </div>
           )}
           {ocorrencias.length > 0 && (
             <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0' }}>
-              <span style={{ ...MONO, color: '#92400e' }}>Em aberto</span>
-              <span style={{ fontSize: 14.5, color: 'var(--ink-2)' }}>
+              <span style={{ ...MONO, color: 'var(--amber)' }}>Em aberto</span>
+              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)' }}>
                 {ocorrencias.map(o => o.description || o.type).join(' · ')}
               </span>
             </div>
@@ -592,18 +590,18 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       {/* Medicação */}
       <Seccao titulo="Medicação" extra={medicacao.length ? `${noCentro} aqui${emCasa ? ` · ${emCasa} em casa` : ''}` : undefined}>
         {medicacao.length === 0 ? (
-          <p style={{ fontSize: 14, color: 'var(--ink-4)', padding: 'var(--space-9) 0' }}>Sem medicação registada.</p>
+          <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', padding: 'var(--space-9) 0' }}>Sem medicação registada.</p>
         ) : medicacao.map(m => (
           <div key={m.id} style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-7)',
             padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)',
           }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 15, color: 'var(--ink)' }}>
-                <span style={{ fontWeight: 600 }}>{m.name}</span>
+              <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>
+                <span style={{ fontWeight: 'var(--peso-corpo)' as any }}>{m.name}</span>
                 {m.dose && <span style={{ color: 'var(--ink-4)' }}> {m.dose}</span>}
               </div>
-              <div style={{ ...MONO, fontSize: 9.5, marginTop: 4 }}>
+              <div style={{ ...MONO, fontSize: 'var(--t-micro)', marginTop: 4 }}>
                 {[m.turnos.join(' · ') || m.frequency, m.indication, ONDE[m.take_location] || null].filter(Boolean).join(' · ')}
               </div>
             </div>
@@ -653,7 +651,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           <div style={{ display: 'flex', gap: 'var(--space-14)', flexWrap: 'wrap', padding: 'var(--space-9) 0' }}>
             {sinais.map(s => (
               <div key={s.k}>
-                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 30, color: 'var(--ink)', lineHeight: 1 }}>{String(s.v)}</div>
+                <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', lineHeight: 1 }}>{String(s.v)}</div>
                 <div style={{ ...MONO, marginTop: 6 }}>{s.l}</div>
               </div>
             ))}
@@ -672,10 +670,10 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           <Seccao titulo="A pessoa">
             <div style={{ padding: 'var(--space-9) 0 0', display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
               {partes.map((t: string, i: number) => (
-                <p key={i} style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>{t}</p>
+                <p key={i} style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>{t}</p>
               ))}
               {!partes.length && utente.notes && (
-                <p style={{ fontSize: 15, color: 'var(--ink-2)', lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>{utente.notes}</p>
+                <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.75, margin: 0, whiteSpace: 'pre-wrap' }}>{utente.notes}</p>
               )}
             </div>
           </Seccao>
@@ -700,8 +698,8 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
               padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)',
             }}>
               <div style={{ minWidth: 0 }}>
-                <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>{c.name}</div>
-                <div style={{ ...MONO, fontSize: 9.5, marginTop: 4 }}>
+                <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any }}>{c.name}</div>
+                <div style={{ ...MONO, fontSize: 'var(--t-micro)', marginTop: 4 }}>
                   {[c.relationship, c.is_emergency ? 'contacto SOS' : null, c.phone].filter(Boolean).join(' · ')}
                 </div>
               </div>
@@ -711,7 +709,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
             </div>
           ))}
           {contactos.length === 0 && (
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', padding: 'var(--space-9) 0 0' }}>Sem contactos registados.</p>
+            <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', padding: 'var(--space-9) 0 0' }}>Sem contactos registados.</p>
           )}
           {acoesContactos && (
             <div style={{ display: 'flex', gap: 'var(--space-3)', flexWrap: 'wrap', paddingTop: 'var(--space-8)' }}>
@@ -729,6 +727,6 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           Ficam fora das abas, e nao dentro de «Hoje», por isso. */}
       {children}
 
-    </div>
+    </Mesa>
   )
 }

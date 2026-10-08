@@ -56,7 +56,7 @@ export default function AvisoDeSetup({ codigo, oQue, compacto }: {
         onClick={copiar}
         title="Copiar o código para nos enviar"
         style={{
-          flexShrink: 0, minHeight: 32, padding: '0 10px', borderRadius: 6,
+          flexShrink: 0, minHeight: 32, padding: '0 10px', borderRadius: 'var(--r)',
           border: '1px solid var(--border-2)', background: 'var(--bg)',
           fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 600,
           letterSpacing: '0.08em', color: 'var(--ink-4)', cursor: 'pointer',

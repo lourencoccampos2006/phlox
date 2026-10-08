@@ -67,6 +67,12 @@ const EMPTY_PLAN: Omit<CarePlan, 'patient_id'> = {
 }
 
 // Fundido em "Avaliações" (/assessments) como aba "Planos de cuidados" (CarePlansTool).
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, CAIXA, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
+
 export default function CarePlansRedirect() {
   const r = useRouter()
   useEffect(() => { r.replace('/assessments?tab=planos') }, [r])
@@ -79,6 +85,7 @@ export function CarePlansTool() {
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
   const [patients, setPatients] = useState<Patient[]>([])
+  const largo = useLargo()
   const [plans, setPlans] = useState<Record<string, CarePlan>>({})
   const [loading, setLoading] = useState(true)
   const [selected, setSelected] = useState<Patient | null>(null)
@@ -310,61 +317,65 @@ export function CarePlansTool() {
     return Math.round((filled / checks.length) * 100)
   }
 
-  if (selected) {
+  /* O PLANO DE UMA PESSOA.
+     Era uma PAGINA a parte (`if (selected) return`), e um plano individual
+     escreve-se a olhar para o que os outros tem — para comparar dois era
+     preciso sair, procurar o segundo e perder o primeiro de vista. Passa a
+     ser a coluna da direita. */
+  const planoAberto = selected ? (() => {
     const completeness = hasPlan(selected.id) ? planCompleteness(selected.id) : 0
     return (
-      <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-        <div className="page-container page-body" style={{ maxWidth: 820 }}>
+      <>
           {/* Top bar */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 10 }}>
             <button onClick={() => setSelected(null)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 13, color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
+              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-dado)', color: 'var(--ink-3)', display: 'flex', alignItems: 'center', gap: 6, fontFamily: 'var(--font-sans)', padding: 0 }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
               Todos os {cfg.personNounPlural.toLowerCase()}
             </button>
             <div style={{ display: 'flex', gap: 8 }}>
               <button onClick={handlePrint}
-                style={{ padding: '8px 16px', background: '#1d4ed8', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                style={{ padding: '8px 16px', background: 'var(--ink-2)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', gap: 6 }}>
                 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
                 Imprimir
               </button>
               <button onClick={save} disabled={saving}
-                style={{ padding: '8px 20px', background: saving ? 'var(--bg-3)' : saveOk ? '#16a34a' : 'var(--green)', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
+                style={{ padding: '8px 20px', background: saving ? 'var(--bg-3)' : saveOk ? 'var(--green)' : 'var(--green)', color: saving ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: saving ? 'not-allowed' : 'pointer', fontFamily: 'var(--font-sans)', transition: 'background 0.2s' }}>
                 {saving ? 'A guardar...' : saveOk ? '✓ Guardado' : 'Guardar plano'}
               </button>
             </div>
           </div>
 
-          {saveError && <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, padding: '10px 14px', fontSize: 13, color: '#991b1b', marginBottom: 16 }}>{saveError}</div>}
+          {saveError && <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding: '10px 14px', fontSize: 'var(--t-dado)', color: 'var(--red)', marginBottom: 16 }}>{saveError}</div>}
 
           {/* Resident header */}
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <div>
-              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', fontWeight: 400, margin: '0 0 4px' }}>{selected.name}</h2>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>
+              <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, margin: '0 0 4px' }}>{selected.name}</h2>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
                 {selected.room_number ? `Quarto ${selected.room_number}` : 'Sem quarto definido'}
                 {selected.age ? ` · ${selected.age} anos` : ''}
               </div>
             </div>
             {hasPlan(selected.id) && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)' }}>Completude</div>
-                <div style={{ width: 80, height: 8, background: 'var(--bg-2)', borderRadius: 4, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${completeness}%`, background: completeness >= 80 ? '#16a34a' : completeness >= 50 ? '#ca8a04' : '#dc2626', borderRadius: 4, transition: 'width 0.3s' }} />
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>Completude</div>
+                <div style={{ width: 80, height: 8, background: 'var(--bg-2)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
+                  <div style={{ height: '100%', width: `${completeness}%`, background: completeness >= 80 ? 'var(--green)' : completeness >= 50 ? 'var(--amber)' : 'var(--red)', borderRadius: 'var(--r-sm)', transition: 'width 0.3s' }} />
                 </div>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, fontWeight: 700, color: completeness >= 80 ? '#16a34a' : completeness >= 50 ? '#ca8a04' : '#dc2626' }}>{completeness}%</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: completeness >= 80 ? 'var(--green)' : completeness >= 50 ? 'var(--amber)' : 'var(--red)' }}>{completeness}%</div>
               </div>
             )}
           </div>
 
           {/* ── Sugestões do motor de ecossistema ── */}
           {riskSignals && riskSignals.length > 0 && (
-            <div style={{ background: 'white', border: `1.5px solid ${SEVERITY_STYLE[riskLevel].border}`, borderRadius: 12, padding: '16px 18px', marginBottom: 20 }}>
+            <div style={{ background: 'white', border: `1.5px solid ${SEVERITY_STYLE[riskLevel].border}`, borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 15 }}>🧩</span>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sugestões a partir do estado clínico</div>
+                <span style={{ fontSize: 'var(--t-corpo)' }}>🧩</span>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sugestões a partir do estado clínico</div>
               </div>
-              <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginBottom: 12 }}>O Phlox detetou estes sinais. Toca em <strong>Aplicar</strong> para adicionar as medidas/objetivos ao plano.</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 12 }}>O Phlox detetou estes sinais. Toca em <strong>Aplicar</strong> para adicionar as medidas/objetivos ao plano.</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {riskSignals.map((sig, i) => {
                   const st = SEVERITY_STYLE[sig.severity]
@@ -372,16 +383,16 @@ export function CarePlansTool() {
                   const items = [...(s.goals || []), ...(s.fall || []), ...(s.pu || []), ...(s.note ? [s.note.text] : [])]
                   if (!items.length) return null
                   return (
-                    <div key={i} style={{ border: `1px solid ${st.border}`, background: st.bg, borderRadius: 10, padding: '10px 12px' }}>
+                    <div key={i} style={{ border: `1px solid ${st.border}`, background: st.bg, borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
                       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
                         <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 13, fontWeight: 700, color: st.color }}>{sig.title}</div>
-                          <div style={{ fontSize: 11.5, color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.45 }}>{sig.detail}</div>
+                          <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: st.color }}>{sig.title}</div>
+                          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.45 }}>{sig.detail}</div>
                           <ul style={{ margin: '7px 0 0', paddingLeft: 16 }}>
-                            {items.slice(0, 4).map((it, k) => <li key={k} style={{ fontSize: 11.5, color: 'var(--ink-2)', marginBottom: 1 }}>{it}</li>)}
+                            {items.slice(0, 4).map((it, k) => <li key={k} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', marginBottom: 1 }}>{it}</li>)}
                           </ul>
                         </div>
-                        <button onClick={() => applySuggestion(sig)} style={{ flexShrink: 0, padding: '6px 13px', background: st.color, color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Aplicar</button>
+                        <button onClick={() => applySuggestion(sig)} style={{ flexShrink: 0, padding: '6px 13px', background: st.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Aplicar</button>
                       </div>
                     </div>
                   )
@@ -415,8 +426,8 @@ export function CarePlansTool() {
               </Field>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
                 <input type="checkbox" id="fr" checked={form.fluid_restriction} onChange={e => setForm(p => ({ ...p, fluid_restriction: e.target.checked }))}
-                  style={{ width: 15, height: 15, accentColor: '#3b82f6' }} />
-                <label htmlFor="fr" style={{ fontSize: 12, color: 'var(--ink-2)', cursor: 'pointer' }}>Restrição hídrica</label>
+                  style={{ width: 15, height: 15, accentColor: 'var(--ink-3)' }} />
+                <label htmlFor="fr" style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', cursor: 'pointer' }}>Restrição hídrica</label>
               </div>
               {form.fluid_restriction && (
                 <Field label="Limite (ml/dia)">
@@ -434,7 +445,7 @@ export function CarePlansTool() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {FALL_PREVENTION_OPTIONS.map(opt => (
                   <button key={opt} onClick={() => toggle('fall_prevention', opt)}
-                    style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: form.fall_prevention.includes(opt) ? 700 : 400, background: form.fall_prevention.includes(opt) ? '#dbeafe' : 'var(--bg-2)', color: form.fall_prevention.includes(opt) ? '#1d4ed8' : 'var(--ink-3)', border: `1.5px solid ${form.fall_prevention.includes(opt) ? '#93c5fd' : 'var(--border)'}`, transition: 'all 0.1s' }}>
+                    style={{ padding: '5px 10px', borderRadius: 'var(--r-sm)', fontSize: 'var(--t-meta)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: form.fall_prevention.includes(opt) ? 700 : 400, background: form.fall_prevention.includes(opt) ? 'var(--bg-2)' : 'var(--bg-2)', color: form.fall_prevention.includes(opt) ? 'var(--ink-2)' : 'var(--ink-3)', border: `1.5px solid ${form.fall_prevention.includes(opt) ? 'var(--border-2)' : 'var(--border)'}`, transition: 'all 0.1s' }}>
                     {form.fall_prevention.includes(opt) ? '✓ ' : ''}{opt}
                   </button>
                 ))}
@@ -446,7 +457,7 @@ export function CarePlansTool() {
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                 {PU_PREVENTION_OPTIONS.map(opt => (
                   <button key={opt} onClick={() => toggle('pressure_ulcer_prevention', opt)}
-                    style={{ padding: '5px 10px', borderRadius: 6, fontSize: 11, cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: form.pressure_ulcer_prevention.includes(opt) ? 700 : 400, background: form.pressure_ulcer_prevention.includes(opt) ? '#fef3c7' : 'var(--bg-2)', color: form.pressure_ulcer_prevention.includes(opt) ? '#92400e' : 'var(--ink-3)', border: `1.5px solid ${form.pressure_ulcer_prevention.includes(opt) ? '#fde68a' : 'var(--border)'}`, transition: 'all 0.1s' }}>
+                    style={{ padding: '5px 10px', borderRadius: 'var(--r-sm)', fontSize: 'var(--t-meta)', cursor: 'pointer', fontFamily: 'var(--font-sans)', fontWeight: form.pressure_ulcer_prevention.includes(opt) ? 700 : 400, background: form.pressure_ulcer_prevention.includes(opt) ? 'var(--badge-amber-bg)' : 'var(--bg-2)', color: form.pressure_ulcer_prevention.includes(opt) ? 'var(--amber)' : 'var(--ink-3)', border: `1.5px solid ${form.pressure_ulcer_prevention.includes(opt) ? 'var(--badge-amber-border)' : 'var(--border)'}`, transition: 'all 0.1s' }}>
                     {form.pressure_ulcer_prevention.includes(opt) ? '✓ ' : ''}{opt}
                   </button>
                 ))}
@@ -482,7 +493,7 @@ export function CarePlansTool() {
             </Section>
 
             {/* Goals — full width */}
-            <div style={{ gridColumn: '1/-1', background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
+            <div style={{ gridColumn: '1/-1', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '16px 18px' }}>
               <SectionTitle icon="🎯" title="Objetivos de Cuidado" />
               <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
                 <input value={newGoal} onChange={e => setNewGoal(e.target.value)}
@@ -490,19 +501,19 @@ export function CarePlansTool() {
                   placeholder="Adicionar objetivo (ex: Manter autonomia na higiene oral)..."
                   style={{ ...inputSt, flex: 1 }} />
                 <button onClick={addGoal}
-                  style={{ padding: '9px 16px', background: '#16a34a', color: 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                  style={{ padding: '9px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
                   + Adicionar
                 </button>
               </div>
               {form.goals.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--ink-5)', textAlign: 'center', padding: '12px 0' }}>Nenhum objetivo definido</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', textAlign: 'center', padding: '12px 0' }}>Nenhum objetivo definido</div>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {form.goals.map((g, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 7, padding: '8px 12px' }}>
-                      <span style={{ color: '#16a34a', fontSize: 14 }}>✓</span>
-                      <span style={{ flex: 1, fontSize: 13, color: 'var(--ink-2)' }}>{g}</span>
-                      <button aria-label="Eliminar" onClick={() => removeGoal(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, color: '#dc2626', padding: '0 2px', lineHeight: 1 }}>×</button>                    </div>
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)', borderRadius: 'var(--r-md)', padding: '8px 12px' }}>
+                      <span style={{ color: 'var(--green)', fontSize: 'var(--t-corpo)' }}>✓</span>
+                      <span style={{ flex: 1, fontSize: 'var(--t-dado)', color: 'var(--ink-2)' }}>{g}</span>
+                      <button aria-label="Eliminar" onClick={() => removeGoal(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 'var(--t-corpo)', color: 'var(--red)', padding: '0 2px', lineHeight: 1 }}>×</button>                    </div>
                   ))}
                 </div>
               )}
@@ -510,120 +521,175 @@ export function CarePlansTool() {
           </div>
 
           <div style={{ height: 32 }} />
-        </div>
-        <style>{`
-          @media (max-width: 768px) {
-            .cp-grid { grid-template-columns: 1fr !important; }
-          }
-        `}</style>
-      </div>
+      </>
     )
-  }
+  })() : null
+
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     A lista era uma grelha de cartões de 260px, cada um com a sua barra de
+     progresso. Num lar de sessenta pessoas são sessenta cartões, e a pergunta
+     que se faz a esta página — «de quem é que falta acabar o plano?» — só se
+     respondia lendo sessenta barras uma a uma.
+
+     Passa a tabela, com a completude em coluna. E o plano abre ao lado, com a
+     lista sempre à vista: um plano individual escreve-se a olhar para o que
+     os outros têm.
+     ══════════════════════════════════════════════════════════════════════════ */
+  const semPlano = patients.length - Object.keys(plans).length
+  const porAcabar = patients.filter(p => hasPlan(p.id) && planCompleteness(p.id) < 80).length
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div className="page-container page-body">
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Planos de cuidados</span>
 
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.16em', textTransform: 'uppercase', marginBottom: 6 }}>Lar · Cuidados</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,32px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: '0 0 8px' }}>Planos Individuais de Cuidados</h1>
-          <p style={{ fontSize: 14, color: 'var(--ink-4)', maxWidth: 560, lineHeight: 1.6 }}>Plano de cuidados personalizado por residente. Documento oficial para a equipa e para a ACSS.</p>
-        </div>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Procurar ${cfg.personNoun.toLowerCase()} ou ${cfg.roomLabel.toLowerCase()}…`}
+            aria-label="Procurar" style={{ ...CAIXA, width: 250 }} />
 
-        {/* Stats bar */}
-        <div style={{ display: 'flex', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-          {[
-            { label: 'Total', value: patients.length, color: 'var(--ink)', bg: 'white' },
-            { label: 'Com plano', value: Object.keys(plans).length, color: '#16a34a', bg: '#f0fdf4' },
-            { label: 'Sem plano', value: patients.length - Object.keys(plans).length, color: '#dc2626', bg: '#fef2f2' },
-            { label: '≥80% completo', value: patients.filter(p => planCompleteness(p.id) >= 80).length, color: '#1d4ed8', bg: '#eff6ff' },
-          ].map(s => (
-            <div key={s.label} style={{ background: s.bg, border: '1px solid var(--border)', borderRadius: 9, padding: '10px 16px', display: 'flex', gap: 8, alignItems: 'center' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: s.color, lineHeight: 1 }}>{s.value}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{s.label}</span>
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              {semPlano > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--red)', fontWeight: 'var(--peso-forte)' as any }}>
+                  {semPlano} SEM PLANO
+                </span>
+              )}
+              {porAcabar > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)' }}>
+                  {porAcabar} POR ACABAR
+                </span>
+              )}
+              {semPlano === 0 && porAcabar === 0 && patients.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--green)' }}>
+                  TODOS COM PLANO FEITO
+                </span>
+              )}
+            </span>
+          )}
+
+          {selected && (
+            <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+              <Botao onClick={handlePrint}>IMPRIMIR</Botao>
+              <Botao feitio="principal" onClick={save} esperando={saving}>
+                {saveOk ? 'GUARDADO ✓' : 'GUARDAR O PLANO'}
+              </Botao>
             </div>
-          ))}
-        </div>
+          )}
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>SEM PLANO</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>Menos de 80% preenchido</span>
+          <span style={{ ...MONO, color: 'var(--green)' }}>Feito</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Documento oficial para a equipa e para uma inspeção — por isso a completude conta
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {saveError && <Aviso tom="mau">{saveError}</Aviso>}
 
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Pesquisar residente ou quarto..."
-          style={{ width: '100%', maxWidth: 380, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 14px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', marginBottom: 16 }} />
-
-        {loading ? (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(240px,1fr))', gap: 10 }}>
-            {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 10 }} />)}
-          </div>
-        ) : filteredPatients.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '48px', textAlign: 'center' }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', marginBottom: 8 }}>Sem {cfg.personNounPlural.toLowerCase()}</div>
-            <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.6 }}>Adiciona {cfg.personNounPlural.toLowerCase()} em <strong>{cfg.personNounPlural}</strong> primeiro.</p>
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,260px),1fr))', gap: 10 }}>
-            {filteredPatients.map(patient => {
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo ? 'minmax(320px, 420px) minmax(420px, 1fr)' : '1fr',
+      }}>
+        {(largo || !selected) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 34 }}>{cfg.roomLabel.slice(0, 2)}</span>
+                <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural}</span>
+                <span style={{ ...ROTULO, width: 40, textAlign: 'right' }}>Idade</span>
+                <span style={{ ...ROTULO, width: 96, textAlign: 'right' }}>Plano</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{filteredPatients.length} de {patients.length}</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A carregar os planos…" />
+            ) : filteredPatients.length === 0 ? (
+              <Vazio
+                titulo={patients.length === 0
+                  ? `Ainda não há ${cfg.personNounPlural.toLowerCase()}.`
+                  : 'Ninguém com esse nome.'}
+                oQueFazer={patients.length === 0
+                  ? `Um plano de cuidados escreve-se sobre alguém. Acrescente ${cfg.personNounPlural.toLowerCase()} primeiro.`
+                  : 'Experimente limpar a pesquisa.'} />
+            ) : filteredPatients.map(patient => {
               const has = hasPlan(patient.id)
               const pct = has ? planCompleteness(patient.id) : 0
-              const barColor = pct >= 80 ? '#16a34a' : pct >= 50 ? '#ca8a04' : '#dc2626'
+              const cor = !has ? 'var(--red)'
+                : pct >= 80 ? 'var(--green)'
+                : pct >= 50 ? 'var(--amber)' : 'var(--red)'
               return (
-                <div key={patient.id} onClick={() => openPlan(patient)}
-                  style={{ background: 'white', border: `1.5px solid ${has ? 'var(--border)' : '#fca5a5'}`, borderRadius: 10, padding: '14px 16px', cursor: 'pointer', transition: 'box-shadow 0.12s' }}
-                  onMouseEnter={e => (e.currentTarget.style.boxShadow = '0 2px 12px rgba(0,0,0,0.07)')}
-                  onMouseLeave={e => (e.currentTarget.style.boxShadow = 'none')}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8 }}>
-                    <div>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 2 }}>{patient.name}</div>
-                      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>
-                        {patient.room_number ? `Q ${patient.room_number}` : 'Sem quarto'}
-                        {patient.age ? ` · ${patient.age}a` : ''}
-                      </div>
-                    </div>
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, padding: '2px 8px', borderRadius: 4, background: has ? '#f0fdf4' : '#fee2e2', color: has ? '#16a34a' : '#dc2626', border: `1px solid ${has ? '#bbf7d0' : '#fca5a5'}` }}>
-                      {has ? 'Com plano' : 'Sem plano'}
-                    </span>
-                  </div>
-                  {has && (
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 3 }}>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)' }}>Completude</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: barColor }}>{pct}%</span>
-                      </div>
-                      <div style={{ height: 5, background: 'var(--bg-2)', borderRadius: 3, overflow: 'hidden' }}>
-                        <div style={{ height: '100%', width: `${pct}%`, background: barColor, borderRadius: 3 }} />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                <LinhaTabela key={patient.id}
+                  aoTocar={() => openPlan(patient)}
+                  ativa={selected?.id === patient.id}
+                  filete={!has ? 'var(--red)' : pct < 80 ? 'var(--amber)' : undefined}
+                  antes={{
+                    largura: 34,
+                    conteudo: (
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
+                        color: patient.room_number ? 'var(--ink-3)' : 'var(--ink-5)',
+                      }}>{patient.room_number || '—'}</span>
+                    ),
+                  }}
+                  principal={patient.name}
+                  celulas={[
+                    {
+                      rotulo: 'Idade', valor: patient.age ? `${patient.age}a` : '—',
+                      largura: 40, direita: true, soLargo: true,
+                    },
+                    {
+                      rotulo: 'Plano', largura: 96, direita: true, forte: true, cor,
+                      valor: has ? `${pct}%` : 'SEM PLANO',
+                    },
+                  ]} />
               )
             })}
-          </div>
+          </Painel>
         )}
+
+        {selected ? (
+          <Painel>{planoAberto}</Painel>
+        ) : largo ? (
+          <Painel>
+            <Vazio titulo={`Escolha um ${cfg.personNoun.toLowerCase()}.`}
+              oQueFazer="O plano abre aqui ao lado, com a lista sempre à vista — porque um plano individual se escreve a olhar para o que os outros têm." />
+          </Painel>
+        ) : null}
       </div>
-    </div>
+    </Mesa>
   )
 }
 
-function Section({ title, icon, children }: { title: string; icon: string; children: React.ReactNode }) {
+/* As peças do plano. Eram cartões brancos com raio `--r-xl` e um emoji no
+   título de cada secção; passam a grupos com um filete e um rótulo em mono. */
+function Section({ title, children }: { title: string; icon?: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px' }}>
-      <SectionTitle icon={icon} title={title} />
+    <div style={{ padding: '10px 0', borderTop: '1px solid var(--border-2)' }}>
+      <div style={{ ...ROTULO, marginBottom: 8 }}>{title}</div>
       {children}
     </div>
   )
 }
 
-function SectionTitle({ icon, title }: { icon: string; title: string }) {
-  return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12 }}>
-      <span style={{ fontSize: 15 }}>{icon}</span>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>{title}</div>
-    </div>
-  )
+function SectionTitle({ title }: { icon?: string; title: string }) {
+  return <div style={{ ...ROTULO, marginBottom: 8 }}>{title}</div>
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ marginBottom: 10 }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>{label}</div>
+    <div style={{ marginBottom: 9 }}>
+      <div style={{ ...ROTULO, marginBottom: 3 }}>{label}</div>
       {children}
     </div>
   )
@@ -631,20 +697,19 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Select({ value, onChange, options }: { value: string; onChange: (v: string) => void; options: string[] }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', background: 'white', color: 'var(--ink)', outline: 'none' }}>
+    <select value={value} onChange={e => onChange(e.target.value)} style={{ ...CAIXA, width: '100%' }}>
       {options.map(o => <option key={o} value={o}>{o || '—'}</option>)}
     </select>
   )
 }
 
-function Textarea({ value, onChange, placeholder, rows = 3 }: { value: string; onChange: (v: string) => void; placeholder?: string; rows?: number }) {
+function Textarea({ value, onChange, placeholder, rows = 3 }: {
+  value: string; onChange: (v: string) => void; placeholder?: string; rows?: number
+}) {
   return (
     <textarea value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} rows={rows}
-      style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '7px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', resize: 'vertical', outline: 'none', lineHeight: 1.5 }} />
+      style={{ ...CAIXA_TEXTO, width: '100%' }} />
   )
 }
 
-const inputSt: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px',
-  fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box',
-}
+const inputSt: React.CSSProperties = { ...CAIXA, width: '100%' }

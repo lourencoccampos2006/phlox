@@ -10,9 +10,9 @@ import { newApiKey, ALL_SCOPES, type Scope } from '@/lib/apiKey'
 
 interface Key { id: string; name: string; prefix: string; scopes: string[]; active: boolean; last_used_at?: string | null; expires_at?: string | null; created_at: string }
 
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
 
 export default function ApiKeysPage() {
   const { user, supabase } = useAuth() as any
@@ -78,26 +78,26 @@ export default function ApiKeysPage() {
             <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,3vw,34px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: 0 }}>Chaves de API</h1>
             <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: '5px 0 0', lineHeight: 1.6 }}>Liga o teu ERP, BI ou app móvel ao Phlox. Chaves rotáveis, com scopes e rate limit por chave.</p>
           </div>
-          {!missing && <button onClick={() => { setName(''); setScopes(['sales:read']); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: '#0d6e42', color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Nova chave</button>}
+          {!missing && <button onClick={() => { setName(''); setScopes(['sales:read']); setErr(''); setShowForm(true) }} style={{ padding: '10px 16px', background: 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>+ Nova chave</button>}
         </div>
 
         {secretJustCreated && (
-          <div style={{ ...card, marginBottom: 14, borderColor: '#fde68a', background: '#fffbeb' }}>
-            <div style={{ fontSize: 13, fontWeight: 700, color: '#92400e', marginBottom: 8 }}>Copia agora — só verás esta chave uma vez</div>
-            <div style={{ background: 'var(--bg-2)', padding: '12px 14px', borderRadius: 8, fontFamily: 'var(--font-mono)', fontSize: 13, color: '#0b1120', wordBreak: 'break-all' }}>{secretJustCreated}</div>
+          <div style={{ ...card, marginBottom: 14, borderColor: 'var(--badge-amber-border)', background: 'var(--badge-amber-bg)' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--amber)', marginBottom: 8 }}>Copia agora — só verás esta chave uma vez</div>
+            <div style={{ background: 'var(--bg-2)', padding: '12px 14px', borderRadius: 'var(--r-md)', fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--ink)', wordBreak: 'break-all' }}>{secretJustCreated}</div>
             <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={() => { navigator.clipboard.writeText(secretJustCreated) }} style={{ padding: '7px 12px', background: '#92400e', color: 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Copiar</button>
-              <button onClick={() => setSecretJustCreated(null)} style={{ padding: '7px 12px', background: 'white', color: '#92400e', border: '1px solid #fde68a', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Já copiei</button>
+              <button onClick={() => { navigator.clipboard.writeText(secretJustCreated) }} style={{ padding: '7px 12px', background: 'var(--amber)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Copiar</button>
+              <button onClick={() => setSecretJustCreated(null)} style={{ padding: '7px 12px', background: 'white', color: 'var(--amber)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Já copiei</button>
             </div>
           </div>
         )}
 
         {missing ? (
-          <div style={{ background: '#fffbeb', border: '1.5px solid #fde68a', borderRadius: 12, padding: 24, color: '#92400e', fontSize: 13.5 }}>
+          <div style={{ background: 'var(--badge-amber-bg)', border: '1.5px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 24, color: 'var(--amber)', fontSize: 13.5 }}>
             Esta funcionalidade está temporariamente indisponível. Tenta novamente daqui a pouco.
           </div>
         ) : loading ? (
-          <div className="skeleton" style={{ height: 160, borderRadius: 14 }} />
+          <div className="skeleton" style={{ height: 160, borderRadius: 'var(--r-xl)' }} />
         ) : keys.length === 0 ? (
           <div style={{ ...card, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13, padding: 36 }}>Sem chaves. Cria a primeira em “+ Nova chave”.</div>
         ) : (
@@ -107,15 +107,15 @@ export default function ApiKeysPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, flexWrap: 'wrap' }}>
                   <div style={{ minWidth: 0, flex: 1 }}>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{k.name}</div>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>{k.prefix}<span style={{ color: '#cbd5e1' }}>.•••••••••••••••</span></div>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-4)', marginTop: 3 }}>{k.prefix}<span style={{ color: 'var(--border-2)' }}>.•••••••••••••••</span></div>
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 6 }}>
-                      {k.scopes.map(s => <span key={s} style={{ fontSize: 10.5, fontWeight: 600, color: '#0d6e42', background: '#eef6f1', padding: '2px 7px', borderRadius: 5 }}>{s}</span>)}
+                      {k.scopes.map(s => <span key={s} style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--green)', background: 'var(--green-light)', padding: '2px 7px', borderRadius: 'var(--r)' }}>{s}</span>)}
                     </div>
                     <div style={{ fontSize: 11, color: 'var(--ink-5)', marginTop: 6 }}>{k.last_used_at ? `Usada ${new Date(k.last_used_at).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}` : 'Nunca usada'}</div>
                   </div>
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'flex-start' }}>
-                    {k.active ? <button onClick={() => revoke(k.id)} style={{ padding: '6px 11px', borderRadius: 7, border: '1px solid #fca5a5', background: '#fef2f2', color: '#dc2626', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Revogar</button>
-                              : <span style={{ fontSize: 11, color: '#dc2626', fontWeight: 700 }}>Revogada</span>}
+                    {k.active ? <button onClick={() => revoke(k.id)} style={{ padding: '6px 11px', borderRadius: 'var(--r-md)', border: '1px solid var(--badge-red-border)', background: 'var(--badge-red-bg)', color: 'var(--red)', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Revogar</button>
+                              : <span style={{ fontSize: 11, color: 'var(--red)', fontWeight: 700 }}>Revogada</span>}
                     <button aria-label="Eliminar" onClick={() => del(k.id)} style={{ fontSize: 16, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>×</button>                  </div>
                 </div>
               </div>
@@ -130,10 +130,10 @@ export default function ApiKeysPage() {
             <li><code>GET /api/v1/sales?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> · scope <code>sales:read</code></li>
             <li><code>POST /api/v1/sales</code> · scope <code>sales:write</code></li>
           </ul>
-          Rate limit: 60 pedidos por minuto e por chave. Mais detalhes em <Link href="/api-docs" style={{ color: '#2563eb', fontWeight: 600, textDecoration: 'none' }}>/api-docs</Link>.
+          Rate limit: 60 pedidos por minuto e por chave. Mais detalhes em <Link href="/api-docs" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>/api-docs</Link>.
         </div>
 
-        {err && <div style={{ marginTop: 14, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 10, color: '#991b1b', fontSize: 13 }}>{err}</div>}
+        {err && <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', color: 'var(--red)', fontSize: 13 }}>{err}</div>}
       </div>
 
       {showForm && (
@@ -148,13 +148,13 @@ export default function ApiKeysPage() {
                 <span style={lbl}>Scopes</span>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                   {ALL_SCOPES.map(s => (
-                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 8, border: `1.5px solid ${scopes.includes(s) ? '#0d6e42' : 'var(--border)'}`, background: scopes.includes(s) ? '#eef6f1' : 'white', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink-2)' }}>
+                    <label key={s} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 10px', borderRadius: 'var(--r-md)', border: `1.5px solid ${scopes.includes(s) ? 'var(--green)' : 'var(--border)'}`, background: scopes.includes(s) ? 'var(--green-light)' : 'white', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink-2)' }}>
                       <input type="checkbox" checked={scopes.includes(s)} onChange={() => toggleScope(s)} /> {s}
                     </label>
                   ))}
                 </div>
               </div>
-              <button onClick={create} disabled={creating} style={{ padding: 12, background: creating ? 'var(--bg-3)' : '#0d6e42', color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: creating ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{creating ? 'A criar…' : 'Criar chave'}</button>
+              <button onClick={create} disabled={creating} style={{ padding: 12, background: creating ? 'var(--bg-3)' : 'var(--green)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 700, cursor: creating ? 'wait' : 'pointer', fontFamily: 'var(--font-sans)', marginTop: 4 }}>{creating ? 'A criar…' : 'Criar chave'}</button>
             </div>
           </div>
         </div>

@@ -26,7 +26,7 @@ import { useAuth } from '@/components/AuthContext'
 interface Redemption { id: string; invitee_email?: string | null; at: string; upgraded: boolean; upgraded_at?: string | null }
 interface Reach { code: string; uses: number; redemptions: Redemption[]; upgraded: number }
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 export default function ReachPage() {
   const { supabase } = useAuth() as any
@@ -74,25 +74,25 @@ export default function ReachPage() {
           </p>
         </div>
 
-        {err && <div style={{ marginBottom: 14, padding: '12px 16px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, color: '#991b1b', fontSize: 13.5 }}>{err}</div>}
+        {err && <div style={{ marginBottom: 14, padding: '12px 16px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)', color: 'var(--red)', fontSize: 13.5 }}>{err}</div>}
 
         {loading ? (
-          <div className="skeleton" style={{ height: 200, borderRadius: 16 }} />
+          <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-xl)' }} />
         ) : r ? (
           <>
             {/* Código */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 16, padding: '22px 24px' }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '22px 24px' }}>
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 800, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 10 }}>O seu código</div>
               <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(30px,5vw,42px)', fontWeight: 400, letterSpacing: '0.02em', color: ACCENT }}>{r.code}</div>
               <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-                <button onClick={copyLink} style={{ padding: '10px 18px', background: ACCENT, color: 'white', border: 'none', borderRadius: 10, fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{copied ? '✓ Copiado' : 'Copiar link'}</button>
-                <button onClick={share} style={{ padding: '10px 18px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}`, borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Partilhar</button>
+                <button onClick={copyLink} style={{ padding: '10px 18px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 800, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>{copied ? '✓ Copiado' : 'Copiar link'}</button>
+                <button onClick={share} style={{ padding: '10px 18px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}`, borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Partilhar</button>
               </div>
               <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 12, fontFamily: 'var(--font-mono)', wordBreak: 'break-all' }}>{link}</div>
             </div>
 
             {/* Progresso — honesto: o que se vê aqui é exatamente o que o motor dá, sem escalões inventados */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '20px 22px', marginTop: 14 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px 22px', marginTop: 14 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 28, flexWrap: 'wrap', marginBottom: r.redemptions.length ? 14 : 0 }}>
                 <div>
                   <div style={{ fontFamily: 'var(--font-serif)', fontSize: 32, fontWeight: 400, color: ACCENT, lineHeight: 1 }}>{r.upgraded}</div>
@@ -118,9 +118,9 @@ export default function ReachPage() {
                   <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.06em', fontFamily: 'var(--font-mono)', marginBottom: 8 }}>Últimos convites</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                     {r.redemptions.slice(0, 8).map(d => (
-                      <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 12px', borderRadius: 8, background: d.upgraded ? '#f0fdf4' : 'var(--bg-2)', fontSize: 12.5 }}>
+                      <div key={d.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 10, padding: '7px 12px', borderRadius: 'var(--r-md)', background: d.upgraded ? 'var(--badge-green-bg)' : 'var(--bg-2)', fontSize: 12.5 }}>
                         <span style={{ color: 'var(--ink-2)' }}>{d.invitee_email || 'utilizador anónimo'}{d.upgraded ? ' — upgrade ✓' : ''}</span>
-                        <span style={{ color: '#9ca3af' }}>{new Date(d.at).toLocaleDateString('pt-PT')}</span>
+                        <span style={{ color: 'var(--ink-5)' }}>{new Date(d.at).toLocaleDateString('pt-PT')}</span>
                       </div>
                     ))}
                   </div>
@@ -129,8 +129,8 @@ export default function ReachPage() {
             </div>
 
             <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-              <Link href="/trust" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Trust Center →</Link>
-              <Link href="/pricing" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver planos →</Link>
+              <Link href="/trust" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Trust Center →</Link>
+              <Link href="/pricing" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Ver planos →</Link>
             </div>
           </>
         ) : null}

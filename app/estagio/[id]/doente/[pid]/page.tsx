@@ -7,7 +7,7 @@ import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { usePhloxContext } from '@/lib/copilotContext'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 interface Followup {
   id: string; followup_date: string; shift: string|null
@@ -116,23 +116,23 @@ export default function DoentePage({ params }: { params: Promise<{ id: string; p
     if (j.error) alert(j.error); else setAiResult({ title: 'Feedback da IA', text: j.improved || j.feedback || j.result || JSON.stringify(j) })
   }
 
-  if (loading || !patient) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
+  if (loading || !patient) return <main style={{ padding: 24 }}><p style={{ color: 'var(--ink-4)' }}>A carregar…</p></main>
 
   return (
     <main style={{ padding: '20px clamp(12px, 3vw, 28px)', maxWidth: 1100, margin: '0 auto' }}>
-      <Link href={`/estagio/${internshipId}`} style={{ fontSize: 12, color: '#6b7280', textDecoration: 'none' }}>← Voltar ao estágio</Link>
+      <Link href={`/estagio/${internshipId}`} style={{ fontSize: 12, color: 'var(--ink-4)', textDecoration: 'none' }}>← Voltar ao estágio</Link>
 
       {/* Header do doente */}
-      <header style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 14, padding: 18, marginTop: 10, marginBottom: 14 }}>
+      <header style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18, marginTop: 10, marginBottom: 14 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
           <div>
             <h1 style={{ margin: 0, fontSize: 26 }}>{patient.initials || '—'}</h1>
-            <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>
+            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 2 }}>
               {patient.age && `${patient.age} anos`} {patient.sex && `· ${patient.sex}`}
               {patient.admission_date && ` · admissão ${new Date(patient.admission_date).toLocaleDateString('pt-PT')}`}
             </div>
-            {patient.diagnosis && <div style={{ fontSize: 15, fontWeight: 600, color: '#111827', marginTop: 8 }}>{patient.diagnosis}</div>}
-            {patient.chief_complaint && <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>{patient.chief_complaint}</div>}
+            {patient.diagnosis && <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--ink)', marginTop: 8 }}>{patient.diagnosis}</div>}
+            {patient.chief_complaint && <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4 }}>{patient.chief_complaint}</div>}
           </div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             <button onClick={aiDdx} disabled={busy} style={btn('ghost')}>🧠 DDx IA</button>
@@ -141,18 +141,18 @@ export default function DoentePage({ params }: { params: Promise<{ id: string; p
         </div>
 
         {patient.background && (
-          <div style={{ marginTop: 12, padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13, color: '#374151', whiteSpace: 'pre-wrap' }}>
+          <div style={{ marginTop: 12, padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--ink-3)', whiteSpace: 'pre-wrap' }}>
             {patient.background}
           </div>
         )}
       </header>
 
       {/* Tabs da ficha */}
-      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid #e5e7eb', marginBottom: 14, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', gap: 4, borderBottom: '1px solid var(--border)', marginBottom: 14, overflowX: 'auto' }}>
         {([['evolucao', `📈 Evolução (${followups.length})`], ['procedimentos', `⚙️ Procedimentos (${procedures.length})`], ['medicacao', '💊 Medicação'], ['objetivos', '🎯 Objetivos']] as [DTab, string][]).map(([t, l]) => (
           <button key={t} onClick={() => setDtab(t)} style={{
             padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-            fontSize: 13, fontWeight: 600, color: dtab === t ? ACCENT : '#6b7280',
+            fontSize: 13, fontWeight: 600, color: dtab === t ? ACCENT : 'var(--ink-4)',
             borderBottom: `2px solid ${dtab === t ? ACCENT : 'transparent'}`, marginBottom: -1,
           }}>{l}</button>
         ))}
@@ -165,25 +165,25 @@ export default function DoentePage({ params }: { params: Promise<{ id: string; p
             <button onClick={() => setShowAdd(true)} style={btn('primary')}>+ Evolução SOAP</button>
           </div>
           {followups.length === 0 ? (
-            <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 10, padding: 20, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>
+            <div style={{ background: 'white', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-lg)', padding: 20, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>
               Sem evoluções. Adiciona a primeira nota SOAP.
             </div>
           ) : (
             <div style={{ display: 'grid', gap: 8 }}>
               {followups.map((f: Followup) => (
-                <div key={f.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 14 }}>
+                <div key={f.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 14 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
                     <span style={{ fontWeight: 700, fontSize: 14 }}>
                       {new Date(f.followup_date).toLocaleDateString('pt-PT')} {f.shift && `· ${f.shift}`}
                     </span>
-                    {f.discussed_with_supervisor && <span style={{ padding: '2px 8px', background: '#dcfce7', color: '#065f46', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>discutido</span>}
+                    {f.discussed_with_supervisor && <span style={{ padding: '2px 8px', background: 'var(--badge-green-bg)', color: 'var(--green)', borderRadius: 999, fontSize: 10, fontWeight: 700 }}>discutido</span>}
                   </div>
-                  {f.subjective && <SoapBlock label="S — Subjectivo" color="#1d4ed8" text={f.subjective} />}
-                  {f.objective && <SoapBlock label="O — Objectivo" color="#7c3aed" text={f.objective} />}
-                  {f.assessment && <SoapBlock label="A — Avaliação" color="#b45309" text={f.assessment} />}
-                  {f.plan && <SoapBlock label="P — Plano" color="#0d6e42" text={f.plan} />}
+                  {f.subjective && <SoapBlock label="S — Subjectivo" color="var(--ink-2)" text={f.subjective} />}
+                  {f.objective && <SoapBlock label="O — Objectivo" color="var(--roxo)" text={f.objective} />}
+                  {f.assessment && <SoapBlock label="A — Avaliação" color="var(--amber)" text={f.assessment} />}
+                  {f.plan && <SoapBlock label="P — Plano" color="var(--green)" text={f.plan} />}
                   {f.supervisor_feedback && (
-                    <div style={{ marginTop: 8, padding: 8, background: '#fef3c7', borderRadius: 6, fontSize: 12 }}>
+                    <div style={{ marginTop: 8, padding: 8, background: 'var(--badge-amber-bg)', borderRadius: 'var(--r)', fontSize: 12 }}>
                       <b>Feedback supervisor:</b> {f.supervisor_feedback}
                     </div>
                   )}
@@ -218,35 +218,35 @@ export default function DoentePage({ params }: { params: Promise<{ id: string; p
       {/* Resultado IA legível */}
       {aiResult && (
         <div onClick={() => setAiResult(null)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 22, maxWidth: 600, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 22, maxWidth: 600, width: '100%', maxHeight: '85vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <h3 style={{ margin: 0, fontSize: 18 }}>{aiResult.title}</h3>
-              <button aria-label="Fechar" onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: '#9ca3af' }}>×</button>            </div>
+              <button aria-label="Fechar" onClick={() => setAiResult(null)} style={{ border: 'none', background: 'none', fontSize: 22, cursor: 'pointer', color: 'var(--ink-5)' }}>×</button>            </div>
             {aiResult.ddx ? (
               <div style={{ display: 'grid', gap: 10 }}>
                 {(aiResult.ddx.differential || []).map((d: any, i: number) => {
-                  const c = d.probability === 'alta' ? '#dc2626' : d.probability === 'média' ? '#d97706' : '#6b7280'
+                  const c = d.probability === 'alta' ? 'var(--red)' : d.probability === 'média' ? 'var(--amber)' : 'var(--ink-4)'
                   return (
                     <div key={i} style={{ borderLeft: `3px solid ${c}`, paddingLeft: 12 }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                         <span style={{ fontWeight: 700, fontSize: 14 }}>{d.dx}</span>
                         <span style={{ fontSize: 11, fontWeight: 700, color: c, textTransform: 'uppercase' }}>{d.probability}</span>
                       </div>
-                      <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{d.reason}</div>
+                      <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 2 }}>{d.reason}</div>
                     </div>
                   )
                 })}
                 {aiResult.ddx.next_steps?.length > 0 && (
-                  <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid #f1f5f9' }}>
-                    <div style={{ fontSize: 11, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Próximos passos</div>
-                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: '#374151', lineHeight: 1.7 }}>
+                  <div style={{ marginTop: 6, paddingTop: 10, borderTop: '1px solid var(--bg-3)' }}>
+                    <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Próximos passos</div>
+                    <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13.5, color: 'var(--ink-3)', lineHeight: 1.7 }}>
                       {aiResult.ddx.next_steps.map((s: string, i: number) => <li key={i}>{s}</li>)}
                     </ul>
                   </div>
                 )}
               </div>
             ) : (
-              <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{aiResult.text}</div>
+              <div style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{aiResult.text}</div>
             )}
           </div>
         </div>
@@ -272,16 +272,16 @@ function PatientProcedures({ procedures, onAdd, onDel }: { procedures: any[]; on
         <button onClick={() => { if (name.trim()) { onAdd({ procedure_name: name.trim(), level }); setName('') } }} style={btn('primary')}>+ Registar</button>
       </div>
       {procedures.length === 0 ? (
-        <div style={{ background: 'white', border: '1px dashed #d1d5db', borderRadius: 10, padding: 18, textAlign: 'center', color: '#6b7280', fontSize: 13 }}>Sem procedimentos registados neste doente.</div>
+        <div style={{ background: 'white', border: '1px dashed var(--border-2)', borderRadius: 'var(--r-lg)', padding: 18, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Sem procedimentos registados neste doente.</div>
       ) : (
         <div style={{ display: 'grid', gap: 6 }}>
           {procedures.map(p => (
-            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid #e5e7eb', borderRadius: 8, padding: '10px 12px' }}>
+            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px' }}>
               <div>
                 <span style={{ fontWeight: 600, fontSize: 14 }}>{p.procedure_name}</span>
-                <span style={{ fontSize: 11, color: '#6b7280', marginLeft: 8 }}>{LEVELS[p.level] || p.level}</span>
+                <span style={{ fontSize: 11, color: 'var(--ink-4)', marginLeft: 8 }}>{LEVELS[p.level] || p.level}</span>
               </div>
-              <button onClick={() => onDel(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 12 }}>Apagar</button>
+              <button onClick={() => onDel(p.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--red)', fontSize: 12 }}>Apagar</button>
             </div>
           ))}
         </div>
@@ -296,8 +296,8 @@ function EditableField({ label, placeholder, initial, onSave }: { label: string;
   const [saved, setSaved] = useState(false)
   useEffect(() => { setV(initial) }, [initial])
   return (
-    <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16 }}>
-      <div style={{ fontSize: 12, fontWeight: 700, color: '#374151', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{label}</div>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16 }}>
+      <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{label}</div>
       <textarea value={v} onChange={e => { setV(e.target.value); setSaved(false) }} rows={4} placeholder={placeholder} style={{ ...input, resize: 'vertical' }} />
       <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 10, marginTop: 8 }}>
         {saved && <span style={{ fontSize: 12, color: ACCENT, fontWeight: 600 }}>Guardado ✓</span>}
@@ -311,7 +311,7 @@ function SoapBlock({ label, color, text }: { label: string; color: string; text:
   return (
     <div style={{ marginTop: 6 }}>
       <div style={{ fontSize: 10, color, fontWeight: 700, letterSpacing: 0.5, marginBottom: 2 }}>{label}</div>
-      <div style={{ fontSize: 13, color: '#111827', lineHeight: 1.5 }}>{text}</div>
+      <div style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.5 }}>{text}</div>
     </div>
   )
 }
@@ -351,10 +351,10 @@ function FollowupModal({ onClose, onSave }: { onClose: () => void; onSave: (row:
 function Modal({ children, onClose, title, wide }: any) {
   return (
     <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9000, padding: 16 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 14, padding: 20, maxWidth: wide ? 640 : 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 20, maxWidth: wide ? 640 : 480, width: '100%', maxHeight: '90vh', overflowY: 'auto' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
           <h3 style={{ margin: 0, fontSize: 17, fontWeight: 700 }}>{title}</h3>
-          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: '#9ca3af' }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 22, color: 'var(--ink-5)' }}>×</button>
         </div>
         {children}
       </div>
@@ -362,10 +362,10 @@ function Modal({ children, onClose, title, wide }: any) {
   )
 }
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <label style={{ display: 'block' }}><div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>{children}</label>
+  return <label style={{ display: 'block' }}><div style={{ fontSize: 11, fontWeight: 700, color: 'var(--ink-3)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 }}>{label}</div>{children}</label>
 }
-const input: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
+const input: React.CSSProperties = { width: '100%', padding: '8px 12px', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', fontSize: 14, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
 function btn(kind: 'primary' | 'ghost'): React.CSSProperties {
-  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 8, cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 13 }
-  return { padding: '8px 14px', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', background: 'white', color: '#374151', fontWeight: 600, fontSize: 13 }
+  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 13 }
+  return { padding: '8px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', background: 'white', color: 'var(--ink-3)', fontWeight: 600, fontSize: 13 }
 }

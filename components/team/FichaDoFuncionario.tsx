@@ -38,7 +38,7 @@ const MONO: React.CSSProperties = {
   textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6, display: 'block',
 }
 const inp: React.CSSProperties = {
-  width: '100%', border: '1.5px solid var(--border)', borderRadius: 8,
+  width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)',
   padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)',
   outline: 'none', boxSizing: 'border-box', background: 'white',
 }
@@ -132,7 +132,7 @@ export default function FichaDoFuncionario({ membroId, nome, cor }: {
         {resumo}
       </div>
 
-      {erro && <div style={{ fontSize: 12.5, color: '#b91c1c', fontWeight: 600, marginBottom: 10 }}>{erro}</div>}
+      {erro && <div style={{ fontSize: 12.5, color: 'var(--red)', fontWeight: 600, marginBottom: 10 }}>{erro}</div>}
 
       {/* ── O que pede ação ───────────────────────────────────────────────
           Em cima e só quando existe. Uma caixa de «tudo bem» em cada ficha
@@ -140,7 +140,7 @@ export default function FichaDoFuncionario({ membroId, nome, cor }: {
           alguma coisa. */}
       {(risco.length > 0 || foraHoje.length > 0) && (
         <div style={{
-          padding: '10px 12px', borderRadius: 9, marginBottom: 12,
+          padding: '10px 12px', borderRadius: 'var(--r-lg)', marginBottom: 12,
           background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)',
         }}>
           {foraHoje.map(a => (
@@ -166,7 +166,7 @@ export default function FichaDoFuncionario({ membroId, nome, cor }: {
           permite saber quem está por renovar.
         </p>
       ) : (
-        <div style={{ borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 8 }}>
+        <div style={{ borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 8 }}>
           {formacoes.map((f, i) => {
             const e = estadoDaFormacao(f, hoje)
             return (
@@ -213,7 +213,7 @@ export default function FichaDoFuncionario({ membroId, nome, cor }: {
           Nada registado. Com início e fim, quem volta de férias volta sozinho à escala.
         </p>
       ) : (
-        <div style={{ borderRadius: 9, border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 8 }}>
+        <div style={{ borderRadius: 'var(--r-lg)', border: '1px solid var(--border)', overflow: 'hidden', marginBottom: 8 }}>
           {ausencias.map((a, i) => {
             const t = TIPOS_AUSENCIA.find(x => x.id === a.tipo)
             const futura = a.inicio > hoje
@@ -256,7 +256,7 @@ export default function FichaDoFuncionario({ membroId, nome, cor }: {
 function BotaoAbrir({ cor, onClick, rotulo }: { cor: string; onClick: () => void; rotulo: string }) {
   return (
     <button onClick={onClick} style={{
-      minHeight: 34, padding: '0 12px', borderRadius: 8, marginBottom: 4,
+      minHeight: 34, padding: '0 12px', borderRadius: 'var(--r-md)', marginBottom: 4,
       border: `1.5px dashed ${cor}`, background: 'transparent',
       fontFamily: 'inherit', fontSize: 12, fontWeight: 700, color: cor, cursor: 'pointer',
     }}>{rotulo}</button>
@@ -271,7 +271,7 @@ function FormularioFormacao({ cor, aoFechar, aoGravar }: {
   const valido = f.tema.trim() !== '' && !!f.data
 
   return (
-    <div style={{ padding: 11, borderRadius: 9, border: `1px solid ${cor}`, background: 'var(--bg-2)', marginBottom: 8 }}>
+    <div style={{ padding: 11, borderRadius: 'var(--r-lg)', border: `1px solid ${cor}`, background: 'var(--bg-2)', marginBottom: 8 }}>
       <input autoFocus value={f.tema} onChange={e => setF(x => ({ ...x, tema: e.target.value }))}
         placeholder="Ex.: Suporte básico de vida" style={inp} />
       <div style={{ display: 'flex', gap: 7, flexWrap: 'wrap', marginTop: 7 }}>
@@ -309,7 +309,7 @@ function FormularioAusencia({ cor, aoFechar, aoGravar }: {
   const valido = !!a.inicio && (!a.fim || a.fim >= a.inicio)
 
   return (
-    <div style={{ padding: 11, borderRadius: 9, border: `1px solid ${cor}`, background: 'var(--bg-2)', marginBottom: 8 }}>
+    <div style={{ padding: 11, borderRadius: 'var(--r-lg)', border: `1px solid ${cor}`, background: 'var(--bg-2)', marginBottom: 8 }}>
       <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 8 }}>
         {TIPOS_AUSENCIA.map(t => {
           const on = a.tipo === t.id
@@ -317,7 +317,7 @@ function FormularioAusencia({ cor, aoFechar, aoGravar }: {
             <button key={t.id} onClick={() => setA(x => ({ ...x, tipo: t.id }))} style={{
               minHeight: 32, padding: '0 10px', borderRadius: 999, cursor: 'pointer',
               border: `1.5px solid ${on ? t.cor : 'var(--border-2)'}`,
-              background: on ? t.cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
+              background: on ? t.cor : 'transparent', color: on ? 'var(--bg)' : 'var(--ink-3)',
               fontFamily: 'inherit', fontSize: 11.5, fontWeight: 700,
             }}>{t.label}</button>
           )
@@ -340,7 +340,7 @@ function FormularioAusencia({ cor, aoFechar, aoGravar }: {
         sabe quanto dura, e é mais honesto do que inventar um dia.
       </div>
       {!valido && a.fim && (
-        <div style={{ fontSize: 11.5, color: '#b45309', fontWeight: 600, marginTop: 6 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--amber)', fontWeight: 600, marginTop: 6 }}>
           A data de regresso não pode ser antes do início.
         </div>
       )}
@@ -355,13 +355,13 @@ function Botoes({ cor, valido, aoFechar, aoGravar }: {
   return (
     <div style={{ display: 'flex', gap: 7, marginTop: 9 }}>
       <button onClick={aoGravar} disabled={!valido} style={{
-        minHeight: 36, padding: '0 14px', borderRadius: 8, border: 'none',
-        background: valido ? cor : 'var(--bg-3)', color: valido ? '#fff' : 'var(--ink-5)',
+        minHeight: 36, padding: '0 14px', borderRadius: 'var(--r-md)', border: 'none',
+        background: valido ? cor : 'var(--bg-3)', color: valido ? 'var(--bg)' : 'var(--ink-5)',
         fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
         cursor: valido ? 'pointer' : 'default',
       }}>Registar</button>
       <button onClick={aoFechar} style={{
-        minHeight: 36, padding: '0 12px', borderRadius: 8,
+        minHeight: 36, padding: '0 12px', borderRadius: 'var(--r-md)',
         border: '1px solid var(--border-2)', background: 'transparent',
         fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-4)', cursor: 'pointer',
       }}>Cancelar</button>

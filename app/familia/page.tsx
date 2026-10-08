@@ -23,6 +23,10 @@ import { ptDate } from '@/lib/ptTime'
 import PushNudge from '@/components/PushNudge'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 interface Profile { id: string; name: string; relation?: string; age?: number; sex?: string; weight?: number; conditions?: string; allergies?: string }
 interface Med { id: string; profile_id: string; name: string; pills_remaining?: number; pills_per_day?: number }
@@ -30,12 +34,12 @@ interface Vital { profile_id: string; recorded_at: string; bp_sys?: number; bp_d
 interface Sym { profile_id: string; at: string; pain?: number; temperature?: number; symptoms?: string[] }
 interface LinkInfo { code: string; verify_digits: string; patient_name: string }
 
-const ACCENT = '#b45309'
+const ACCENT = 'var(--amber)'
 const RELATION_OPTIONS = ['Pai', 'Mãe', 'Filho', 'Filha', 'Cônjuge', 'Parceiro/a', 'Avô', 'Avó', 'Irmão', 'Irmã', 'Outro']
 const initials = (n: string) => n.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase()
 const SEV: Record<string, { c: string; b: string; bd: string }> = {
-  critical: { c: '#991b1b', b: '#fee2e2', bd: '#fca5a5' },
-  major: { c: '#b91c1c', b: '#fef2f2', bd: '#fca5a5' },
+  critical: { c: 'var(--red)', b: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)' },
+  major: { c: 'var(--red)', b: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)' },
 }
 
 export default function FamiliaPage() {
@@ -92,12 +96,16 @@ export default function FamiliaPage() {
 
   useEffect(() => { load(); loadLinks() }, [load, loadLinks])
 
-  if (!user) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ textAlign: 'center' }}><div style={{ fontSize: 36, marginBottom: 12 }}>👨‍👩‍👧</div><Link href="/login" style={{ color: 'var(--green)', fontWeight: 700 }}>Iniciar sessão →</Link></div>
-    </div>
-  )
+  /* ESTES DOIS ESTAVAM DEPOIS DO `if (!user) return` — 2026-10-08.
+     Quando o `user` ainda não tinha chegado, a página saía antes e estes dois
+     `useState` não corriam; quando chegava, corriam. O React conta os hooks
+     pela ORDEM, e viu a ordem mudar entre dois renders:
 
+         React has detected a change in the order of Hooks called by FamiliaPage
+
+     Não é um aviso de estilo: a partir do ponto onde a ordem diverge, o React
+     entrega a CADA hook o estado que pertencia a outro. Subiram para cima do
+     return, que é onde todos os hooks têm de estar. */
   // ── A leitura longitudinal ───────────────────────────────────────────────
   // O analyzeFamilyMember lê o INSTANTE (medicação atual, última tensão). Isto
   // lê as SEMANAS: adesão real, silêncio, e o que está a piorar face ao
@@ -105,6 +113,10 @@ export default function FamiliaPage() {
   const [longit, setLongit] = useState<Record<string, { sinais: any[]; entrada: EntradaCuidador }>>({})
   const [aberto, setAberto] = useState<string | null>(null)
 
+  /* E este também — era o terceiro hook depois do return. Já tem a sua
+     própria guarda `if (!user || !profiles.length) return` lá dentro, que é
+     onde essa verificação pertence: o hook corre sempre, o TRABALHO é que
+     só acontece quando há dados. */
   useEffect(() => {
     if (!user || !profiles.length) return
     let vivo = true
@@ -123,6 +135,24 @@ export default function FamiliaPage() {
     return () => { vivo = false }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, supabase, profiles.length, Object.keys(links).length])
+
+  if (!user) return (
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Família</span>
+        </BarraDeTrabalho>
+      }
+    >
+      <div style={{ textAlign: 'center' }}><Link href="/login" style={{ color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>Iniciar sessão →</Link></div>
+    </Mesa>
+  )
+
 
   /** Tudo o que ficou registado sobre uma pessoa, por dia. */
   function eventosDe(perfilId: string): EventoLinha[] {
@@ -178,21 +208,32 @@ export default function FamiliaPage() {
   ).filter(x => !dismissed.has(x.key)).sort((a, b) => (a.s.severity === 'critical' ? 0 : 1) - (b.s.severity === 'critical' ? 0 : 1))
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Família</span>
+        </BarraDeTrabalho>
+      }
+    >
       <div style={{ maxWidth: 560, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 80px' }}>
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>Cuidar</div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>A sua família</h1>
-        <p style={{ fontSize: 14.5, color: '#64748b', margin: '0 0 20px', lineHeight: 1.5 }}>Quem acompanha, e o que precisa de si — o resto vive no perfil de cada um.</p>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 'var(--peso-forte)' as any, marginBottom: 6 }}>Cuidar</div>
+        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,5vw,34px)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>A sua família</h1>
+        <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', margin: '0 0 20px', lineHeight: 1.5 }}>Quem acompanha, e o que precisa de si — o resto vive no perfil de cada um.</p>
 
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 14 }} />)}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 'var(--r-xl)' }} />)}</div>
         ) : profiles.length === 0 && !chooserOpen ? (
-          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
-            <div style={{ fontSize: 34, marginBottom: 14 }}>👨‍👩‍👧</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 21, color: '#0b1120', marginBottom: 8 }}>De quem está a cuidar?</div>
-            <div style={{ fontSize: 14.5, color: '#64748b', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para o pai, a mãe, um filho — ou ligue-se ao lar/centro de dia se já lá estiverem, com o código que a instituição lhe dá.</div>
-            <button onClick={() => setChooserOpen(true)} style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 12, fontSize: 16, fontWeight: 800, border: 'none', cursor: 'pointer' }}>+ Adicionar a primeira pessoa</button>
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '34px 22px', textAlign: 'center' }}>
+            <div style={{ fontSize: 'var(--t-numero)', marginBottom: 14 }}>👨‍👩‍👧</div>
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 8 }}>De quem está a cuidar?</div>
+            <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', marginBottom: 22, lineHeight: 1.6, maxWidth: 380, margin: '0 auto 22px' }}>Crie um espaço para o pai, a mãe, um filho — ou ligue-se ao lar/centro de dia se já lá estiverem, com o código que a instituição lhe dá.</div>
+            <button onClick={() => setChooserOpen(true)} style={{ display: 'inline-block', padding: '14px 26px', background: ACCENT, color: 'white', borderRadius: 'var(--r-xl)', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, border: 'none', cursor: 'pointer' }}>+ Adicionar a primeira pessoa</button>
           </div>
         ) : (
           <>
@@ -200,20 +241,20 @@ export default function FamiliaPage() {
 
             {attention.length > 0 && (
               <div style={{ marginBottom: 22 }}>
-                <div style={{ fontSize: 11, fontWeight: 800, color: '#991b1b', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Precisa de atenção hoje</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>Precisa de atenção hoje</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   {attention.map(({ p, s, key }) => {
                     const sv = SEV[s.severity]
                     return (
-                      <div key={key} style={{ background: sv.b, border: `1px solid ${sv.bd}`, borderRadius: 14, padding: '14px 16px' }}>
+                      <div key={key} style={{ background: sv.b, border: `1px solid ${sv.bd}`, borderRadius: 'var(--r-xl)', padding: '14px 16px' }}>
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                          <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'white', border: `1px solid ${sv.bd}`, color: sv.c, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 800, flexShrink: 0 }}>{initials(p.name)}</span>
+                          <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'white', border: `1px solid ${sv.bd}`, color: sv.c, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>{initials(p.name)}</span>
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: 14, fontWeight: 800, color: '#0b1120' }}>{p.name.split(' ')[0]} · {s.title}</div>
-                            <div style={{ fontSize: 13, color: sv.c, lineHeight: 1.5, marginTop: 2 }}>{s.detail}</div>
+                            <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.name.split(' ')[0]} · {s.title}</div>
+                            <div style={{ fontSize: 'var(--t-dado)', color: sv.c, lineHeight: 1.5, marginTop: 2 }}>{s.detail}</div>
                             <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-                              <Link href={`/perfil/${p.id}`} style={{ fontSize: 12.5, fontWeight: 700, color: 'white', background: sv.c, borderRadius: 8, padding: '7px 13px', textDecoration: 'none' }}>Abrir perfil →</Link>
-                              <button onClick={() => setDismissed(d => new Set(d).add(key))} style={{ fontSize: 12.5, fontWeight: 600, color: '#94a3b8', background: 'none', border: 'none', cursor: 'pointer' }}>Dispensar</button>
+                              <Link href={`/perfil/${p.id}`} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'white', background: sv.c, borderRadius: 'var(--r-md)', padding: '7px 13px', textDecoration: 'none' }}>Abrir perfil →</Link>
+                              <button onClick={() => setDismissed(d => new Set(d).add(key))} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-5)', background: 'none', border: 'none', cursor: 'pointer' }}>Dispensar</button>
                             </div>
                           </div>
                         </div>
@@ -232,21 +273,21 @@ export default function FamiliaPage() {
                   <div key={p.id}>
                   <Link href={`/perfil/${p.id}`} style={{
                     display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', textDecoration: 'none',
-                    background: 'white', border: `1px solid ${!linked && level === 'critical' ? '#fca5a5' : '#e9eaec'}`, borderRadius: 14,
+                    background: 'white', border: `1px solid ${!linked && level === 'critical' ? 'var(--badge-red-border)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)',
                   }}>
-                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: linked ? '#eff6ff' : '#fef3c7', color: linked ? '#1d4ed8' : ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, fontWeight: 700, flexShrink: 0 }}>{initials(p.name)}</div>
+                    <div style={{ width: 42, height: 42, borderRadius: '50%', background: linked ? 'var(--bg-2)' : 'var(--badge-amber-bg)', color: linked ? 'var(--ink-2)' : ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>{initials(p.name)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 15.5, fontWeight: 700, color: '#0b1120' }}>{p.name}</div>
+                      <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.name}</div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
-                        {p.relation && <span style={{ fontSize: 11, color: '#94a3b8' }}>{p.relation}</span>}
+                        {p.relation && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{p.relation}</span>}
                         {linked ? (
-                          <span style={{ fontSize: 10, fontWeight: 800, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 6, padding: '2px 8px' }}>🏡 No lar/centro</span>
+                          <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 8px' }}>No lar/centro</span>
                         ) : meta ? (
-                          <span style={{ fontSize: 10, fontWeight: 800, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 6, padding: '2px 8px' }}>{meta.label}</span>
+                          <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 'var(--r)', padding: '2px 8px' }}>{meta.label}</span>
                         ) : null}
                       </div>
                     </div>
-                    <span style={{ fontSize: 18, color: '#cbd5e1', flexShrink: 0 }}>›</span>
+                    <span style={{ fontSize: 'var(--t-destaque)', color: 'var(--border-2)', flexShrink: 0 }}>›</span>
                   </Link>
 
                   {/* ── Como tem estado ─────────────────────────────────────
@@ -259,10 +300,10 @@ export default function FamiliaPage() {
                       <button onClick={() => setAberto(aberto === p.id ? null : p.id)}
                         style={{
                           width: '100%', textAlign: 'left', background: 'white',
-                          border: '1px solid #e9eaec', borderTop: 'none',
+                          border: '1px solid var(--border)', borderTop: 'none',
                           borderRadius: '0 0 12px 12px', padding: '9px 16px',
-                          fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-                          color: '#64748b', cursor: 'pointer',
+                          fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any,
+                          color: 'var(--ink-4)', cursor: 'pointer',
                           display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                         }}>
                         <span>
@@ -272,11 +313,11 @@ export default function FamiliaPage() {
                             return a ? ` · ${a.pct}% da medicação marcada em 14 dias` : ''
                           })()}
                         </span>
-                        <span style={{ fontSize: 15, color: '#cbd5e1' }}>{aberto === p.id ? '−' : '+'}</span>
+                        <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--border-2)' }}>{aberto === p.id ? '−' : '+'}</span>
                       </button>
                       {aberto === p.id && (
                         <div style={{
-                          background: 'white', border: '1px solid #e9eaec', borderTop: 'none',
+                          background: 'white', border: '1px solid var(--border)', borderTop: 'none',
                           borderRadius: '0 0 12px 12px', padding: '16px 18px 14px', marginTop: -1,
                         }}>
                           <LinhaDoTempo
@@ -292,7 +333,7 @@ export default function FamiliaPage() {
                 )
               })}
 
-              <button onClick={() => setChooserOpen(true)} style={{ display: 'block', width: '100%', padding: '14px', background: 'white', border: '2px dashed #fde68a', borderRadius: 14, textAlign: 'center', fontSize: 13.5, fontWeight: 700, color: ACCENT, cursor: 'pointer' }}>+ Adicionar familiar</button>
+              <button onClick={() => setChooserOpen(true)} style={{ display: 'block', width: '100%', padding: '14px', background: 'white', border: '2px dashed var(--badge-amber-border)', borderRadius: 'var(--r-xl)', textAlign: 'center', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: ACCENT, cursor: 'pointer' }}>+ Adicionar familiar</button>
             </div>
           </>
         )}
@@ -306,7 +347,7 @@ export default function FamiliaPage() {
           onCreated={(newId) => { setChooserOpen(false); router.push(`/perfil/${newId}`) }}
         />
       )}
-    </div>
+    </Mesa>
   )
 }
 
@@ -352,75 +393,75 @@ function AddFamilyChooser({ onClose, canAdd, authHeaders, onCreated }: {
     setBusy(false)
   }
 
-  const card: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left', padding: '16px 18px', background: 'white', border: '1.5px solid #e9eaec', borderRadius: 14, cursor: 'pointer', fontFamily: 'inherit' }
-  const inp: React.CSSProperties = { border: '1.5px solid #e9eaec', borderRadius: 9, padding: '10px 13px', fontSize: 14, outline: 'none', width: '100%', boxSizing: 'border-box' }
+  const card: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 14, width: '100%', textAlign: 'left', padding: '16px 18px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 'var(--r-xl)', cursor: 'pointer', fontFamily: 'inherit' }
+  const inp: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 13px', fontSize: 'var(--t-corpo)', outline: 'none', width: '100%', boxSizing: 'border-box' }
 
   return (
     <div onMouseDown={e => { if (e.target === e.currentTarget) onClose() }} style={{ position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(8,12,24,0.5)', display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
-      <div style={{ background: '#fbfaf8', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', padding: '22px 20px 28px' }}>
+      <div style={{ background: 'var(--bg-2)', borderRadius: '18px 18px 0 0', width: '100%', maxWidth: 480, maxHeight: '85vh', overflowY: 'auto', padding: '22px 20px 28px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: '#0b1120', fontWeight: 500 }}>
+          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', fontWeight: 'var(--peso-corpo)' as any }}>
             {mode === 'choose' ? 'Adicionar familiar' : mode === 'manual' ? 'Preencher os dados' : 'Ligar ao lar/centro de dia'}
           </div>
-          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: '50%', background: 'white', border: '1px solid #e9eaec', cursor: 'pointer', fontSize: 16, color: '#94a3b8' }}>×</button>
+          <button onClick={onClose} aria-label="Fechar" style={{ width: 30, height: 30, borderRadius: '50%', background: 'white', border: '1px solid var(--border)', cursor: 'pointer', fontSize: 'var(--t-destaque)', color: 'var(--ink-5)' }}>×</button>
         </div>
 
         {!canAdd && mode === 'choose' ? (
-          <div style={{ fontSize: 13.5, color: '#94a3b8', background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: 16, textAlign: 'center' }}>
-            No plano gratuito e Plus pode acompanhar 1 familiar. Com o Pro, acompanha os que quiser. <Link href="/pricing" style={{ color: ACCENT, fontWeight: 700 }}>Ver planos →</Link>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, textAlign: 'center' }}>
+            No plano gratuito e Plus pode acompanhar 1 familiar. Com o Pro, acompanha os que quiser. <Link href="/pricing" style={{ color: ACCENT, fontWeight: 'var(--peso-forte)' as any }}>Ver planos →</Link>
           </div>
         ) : mode === 'choose' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <button onClick={() => setMode('manual')} style={card}>
-              <span style={{ fontSize: 26 }}>✍️</span>
+              <span style={{ fontSize: 'var(--t-numero)' }}>✍️</span>
               <span>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: '#0b1120' }}>Vou preencher eu</span>
-                <span style={{ display: 'block', fontSize: 12.5, color: '#64748b', marginTop: 1 }}>Nome, medicação, alergias — o que quiser, quando quiser</span>
+                <span style={{ display: 'block', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Vou preencher eu</span>
+                <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 1 }}>Nome, medicação, alergias — o que quiser, quando quiser</span>
               </span>
             </button>
             <button onClick={() => setMode('institution')} style={card}>
-              <span style={{ fontSize: 26 }}>🏡</span>
+              <span style={{ fontSize: 'var(--t-numero)' }}>🏡</span>
               <span>
-                <span style={{ display: 'block', fontSize: 15, fontWeight: 700, color: '#0b1120' }}>Já está num lar ou centro de dia</span>
-                <span style={{ display: 'block', fontSize: 12.5, color: '#64748b', marginTop: 1 }}>Tem o código? Ligamos o perfil automaticamente</span>
+                <span style={{ display: 'block', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Já está num lar ou centro de dia</span>
+                <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 1 }}>Tem o código? Ligamos o perfil automaticamente</span>
               </span>
             </button>
           </div>
         ) : mode === 'manual' ? (
           <div>
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</label>
+            <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Nome</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Nome" autoFocus style={{ ...inp, marginTop: 6, marginBottom: 12 }} />
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Relação</label>
+            <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Relação</label>
             <select value={relation} onChange={e => setRelation(e.target.value)} style={{ ...inp, marginTop: 6, marginBottom: 16, background: 'white' }}>
               <option value="">Escolher…</option>
               {RELATION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
-            {error && <div style={{ fontSize: 12.5, color: '#dc2626', marginBottom: 12 }}>{error}</div>}
+            {error && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginBottom: 12 }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={createManual} disabled={busy || !name.trim()} style={{ flex: 1, padding: '12px', background: busy || !name.trim() ? '#e2e8f0' : ACCENT, color: busy || !name.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer' }}>{busy ? 'A criar…' : 'Criar perfil'}</button>
-              <button onClick={() => setMode('choose')} style={{ padding: '12px 16px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>← Voltar</button>
+              <button onClick={createManual} disabled={busy || !name.trim()} style={{ flex: 1, padding: '12px', background: busy || !name.trim() ? 'var(--border)' : ACCENT, color: busy || !name.trim() ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: busy ? 'wait' : 'pointer' }}>{busy ? 'A criar…' : 'Criar perfil'}</button>
+              <button onClick={() => setMode('choose')} style={{ padding: '12px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', cursor: 'pointer' }}>← Voltar</button>
             </div>
           </div>
         ) : (
           <div>
-            <p style={{ fontSize: 13, color: '#64748b', lineHeight: 1.55, margin: '0 0 14px' }}>Peça à instituição o código de acesso da família — o nome e os dados de {relation || 'quem procura'} vêm de lá automaticamente.</p>
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>A sua relação</label>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.55, margin: '0 0 14px' }}>Peça à instituição o código de acesso da família — o nome e os dados de {relation || 'quem procura'} vêm de lá automaticamente.</p>
+            <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>A sua relação</label>
             <select value={relation} onChange={e => setRelation(e.target.value)} style={{ ...inp, marginTop: 6, marginBottom: 12, background: 'white' }}>
               <option value="">Escolher…</option>
               {RELATION_OPTIONS.map(r => <option key={r} value={r}>{r}</option>)}
             </select>
-            <label style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Código da instituição</label>
+            <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Código da instituição</label>
             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Ex: PHLOX-AB12CD" style={{ ...inp, marginTop: 6, marginBottom: 12, fontFamily: 'var(--font-mono)' }} />
             {needsVerify && (
               <>
-                <label style={{ fontSize: 11.5, fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimos 4 dígitos do telemóvel registado</label>
+                <label style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Últimos 4 dígitos do telemóvel registado</label>
                 <input value={verify} onChange={e => setVerify(e.target.value.replace(/\D/g, '').slice(0, 4))} placeholder="0000" inputMode="numeric" style={{ ...inp, marginTop: 6, marginBottom: 12, fontFamily: 'var(--font-mono)' }} />
               </>
             )}
-            {error && <div style={{ fontSize: 12.5, color: '#dc2626', marginBottom: 12 }}>{error}</div>}
+            {error && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', marginBottom: 12 }}>{error}</div>}
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={linkFromInstitution} disabled={busy || !code.trim() || (needsVerify && verify.length !== 4)} style={{ flex: 1, padding: '12px', background: busy || !code.trim() ? '#e2e8f0' : '#1d4ed8', color: busy || !code.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: busy ? 'wait' : 'pointer' }}>{busy ? 'A ligar…' : needsVerify ? 'Confirmar' : 'Ligar'}</button>
-              <button onClick={() => setMode('choose')} style={{ padding: '12px 16px', background: 'white', color: '#64748b', border: '1px solid #e9eaec', borderRadius: 10, fontSize: 14, cursor: 'pointer' }}>← Voltar</button>
+              <button onClick={linkFromInstitution} disabled={busy || !code.trim() || (needsVerify && verify.length !== 4)} style={{ flex: 1, padding: '12px', background: busy || !code.trim() ? 'var(--border)' : 'var(--ink-2)', color: busy || !code.trim() ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: busy ? 'wait' : 'pointer' }}>{busy ? 'A ligar…' : needsVerify ? 'Confirmar' : 'Ligar'}</button>
+              <button onClick={() => setMode('choose')} style={{ padding: '12px 16px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', cursor: 'pointer' }}>← Voltar</button>
             </div>
           </div>
         )}

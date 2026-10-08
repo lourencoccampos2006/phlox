@@ -1,6 +1,10 @@
 'use client'
 
 import { useState } from 'react'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 const INFECTION_SITES = [
   'Pneumonia adquirida na comunidade (PAC)',
@@ -181,44 +185,54 @@ export default function AntibioticsPage() {
     })
   }
 
-  const sevColor = severity === 'sepsis_shock' ? '#991b1b' : severity === 'grave' ? '#c2410c' : severity === 'moderada' ? '#0369a1' : '#065f46'
+  const sevColor = severity === 'sepsis_shock' ? 'var(--red)' : severity === 'grave' ? 'var(--amber)' : severity === 'moderada' ? 'var(--green-3)' : 'var(--green)'
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-
-      {/* Header */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
-        <div className="page-container" style={{ paddingTop: 24, paddingBottom: 20 }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.35)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Farmácia Clínica · Antibioterapia</div>
-          <div style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: 'white', marginBottom: 6 }}>Antibioterapia Empírica</div>
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', maxWidth: 560 }}>
-            Orientação de antibioterapia baseada em ESCMID/EUCAST 2024, IDSA, DGS PPCIRA. Inclui ajuste renal, step-down IV→oral, cobertura MRSA/ESBL e stewardship.
-          </div>
-        </div>
-      </div>
-
-      <div className="page-container page-body" style={{ maxWidth: 900 }}>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Antibioterapia empírica</span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        /* Era uma banda escura com o título em serifa branca, e por baixo um
+           parágrafo de quarenta e oito palavras a listar as guidelines. Isso
+           é PROCEDÊNCIA — diz de onde vem o que se lê — e procedência vive na
+           barra de estado, não por cima do trabalho. */
+        <BarraDeEstado>
+          <span style={MONO}>ESCMID/EUCAST 2024 · IDSA · DGS PPCIRA</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Com ajuste renal, passagem de endovenoso a oral, cobertura MRSA/ESBL
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      <div>
         <div style={{ display: 'grid', gridTemplateColumns: result ? '1fr 1.4fr' : '1fr', gap: 16, alignItems: 'start' }}>
 
           {/* Input panel */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
 
             {/* Site + Severity */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Local de infeção e gravidade</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14 }}>Local de infeção e gravidade</div>
 
-              <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 }}>Local de infeção *</label>
+              <label style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 }}>Local de infeção *</label>
               <select value={site} onChange={e => setSite(e.target.value)}
-                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, marginBottom: 14, fontFamily: 'var(--font-sans)', background: 'white' }}>
+                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', marginBottom: 14, fontFamily: 'var(--font-sans)', background: 'white' }}>
                 <option value="">— Selecionar —</option>
                 {INFECTION_SITES.map(s => <option key={s} value={s}>{s}</option>)}
               </select>
 
-              <label style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 }}>Gravidade clínica</label>
+              <label style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 5 }}>Gravidade clínica</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
                 {SEVERITY.map(s => (
                   <button key={s.value} onClick={() => setSeverity(s.value)}
-                    style={{ padding: '8px 10px', borderRadius: 8, border: `2px solid ${severity === s.value ? sevColor : 'var(--border)'}`, background: severity === s.value ? sevColor : 'var(--bg-2)', color: severity === s.value ? 'white' : 'var(--ink-3)', fontSize: 11, cursor: 'pointer', textAlign: 'left', lineHeight: 1.3 }}>
+                    style={{ padding: '8px 10px', borderRadius: 'var(--r-md)', border: `2px solid ${severity === s.value ? sevColor : 'var(--border)'}`, background: severity === s.value ? sevColor : 'var(--bg-2)', color: severity === s.value ? 'white' : 'var(--ink-3)', fontSize: 'var(--t-meta)', cursor: 'pointer', textAlign: 'left', lineHeight: 1.3 }}>
                     {s.label}
                   </button>
                 ))}
@@ -226,8 +240,8 @@ export default function AntibioticsPage() {
             </div>
 
             {/* Demographics */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Dados do doente</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14 }}>Dados do doente</div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10, marginBottom: 12 }}>
                 {[
                   { label: 'Idade (anos)', val: age, set: setAge, placeholder: 'ex: 68' },
@@ -235,26 +249,26 @@ export default function AntibioticsPage() {
                   { label: 'Creatinina (mg/dL)', val: creatinine, set: setCreatinine, placeholder: 'ex: 1.8' },
                 ].map(f => (
                   <div key={f.label}>
-                    <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>{f.label}</label>
+                    <label style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>{f.label}</label>
                     <input value={f.val} onChange={e => f.set(e.target.value)} placeholder={f.placeholder}
-                      style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-mono)', boxSizing: 'border-box' }} />
+                      style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', boxSizing: 'border-box' }} />
                   </div>
                 ))}
               </div>
-              <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Alergias</label>
+              <label style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Alergias</label>
               <input value={allergies} onChange={e => setAllergies(e.target.value)} placeholder="ex: Penicilina (anafilaxia), Sulfonamidas"
-                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12, boxSizing: 'border-box' }} />
+                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-meta)', boxSizing: 'border-box' }} />
             </div>
 
             {/* MRSA risks */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Fatores de risco MRSA</div>
-              <div style={{ fontSize: 11, color: 'var(--ink-5)', marginBottom: 12 }}>Selecionar os que se aplicam</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Fatores de risco MRSA</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginBottom: 12 }}>Selecionar os que se aplicam</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {MRSA_RISKS.map(r => (
-                  <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--ink-2)' }}>
+                  <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-2)' }}>
                     <input type="checkbox" checked={mrsaRisks.includes(r)} onChange={() => toggleMrsa(r)}
-                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#991b1b' }} />
+                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--red)' }} />
                     {r}
                   </label>
                 ))}
@@ -262,14 +276,14 @@ export default function AntibioticsPage() {
             </div>
 
             {/* ESBL risks */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 4 }}>Fatores de risco ESBL / Pseudomonas</div>
-              <div style={{ fontSize: 11, color: 'var(--ink-5)', marginBottom: 12 }}>Selecionar os que se aplicam</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 4 }}>Fatores de risco ESBL / Pseudomonas</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginBottom: 12 }}>Selecionar os que se aplicam</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {ESBL_RISKS.map(r => (
-                  <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12, color: 'var(--ink-2)' }}>
+                  <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 'var(--t-meta)', color: 'var(--ink-2)' }}>
                     <input type="checkbox" checked={esblRisks.includes(r)} onChange={() => toggleEsbl(r)}
-                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: '#0369a1' }} />
+                      style={{ width: 14, height: 14, cursor: 'pointer', accentColor: 'var(--green-3)' }} />
                     {r}
                   </label>
                 ))}
@@ -277,31 +291,31 @@ export default function AntibioticsPage() {
             </div>
 
             {/* Additional context */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 14 }}>Contexto clínico adicional</div>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 20 }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 14 }}>Contexto clínico adicional</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div>
-                  <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Antibióticos prévios</label>
+                  <label style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Antibióticos prévios</label>
                   <input value={priorAntibiotics} onChange={e => setPriorAntibiotics(e.target.value)} placeholder="ex: Amoxicilina 500mg × 5 dias (há 2 semanas)"
-                    style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12, boxSizing: 'border-box' }} />
+                    style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-meta)', boxSizing: 'border-box' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Resultado de cultura / antibiograma</label>
+                  <label style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Resultado de cultura / antibiograma</label>
                   <textarea value={cultureResult} onChange={e => setCultureResult(e.target.value)} placeholder="ex: Urina — E. coli > 100.000 UFC/mL. Sensível a ciprofloxacina, fosfomicina. Resistente a ampicilina."
-                    rows={3} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' }} />
+                    rows={3} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-meta)', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' }} />
                 </div>
                 <div>
-                  <label style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Contexto adicional</label>
+                  <label style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', display: 'block', marginBottom: 4 }}>Contexto adicional</label>
                   <textarea value={context} onChange={e => setContext(e.target.value)} placeholder="ex: Pós-operatório de cirurgia abdominal, imunodeprimido, neoplasia hematológica..."
-                    rows={2} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12, resize: 'vertical', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' }} />
+                    rows={2} style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-meta)', resize: 'vertical', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' }} />
                 </div>
               </div>
             </div>
 
-            {error && <div style={{ padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{error}</div>}
+            {error && <div style={{ padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', color: 'var(--red)' }}>{error}</div>}
 
             <button onClick={submit} disabled={loading}
-              style={{ width: '100%', padding: '14px', background: loading ? '#9ca3af' : '#0f172a', color: 'white', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: loading ? 'default' : 'pointer' }}>
+              style={{ width: '100%', padding: '14px', background: loading ? 'var(--ink-5)' : 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: loading ? 'default' : 'pointer' }}>
               {loading
                 ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                     <span style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
@@ -316,59 +330,59 @@ export default function AntibioticsPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 
               {/* Header card */}
-              <div style={{ background: '#0f172a', borderRadius: 14, padding: 20, color: 'white' }}>
-                <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Orientação de Antibioterapia</div>
-                <div style={{ fontSize: 16, fontWeight: 700, marginBottom: 4 }}>{result.site}</div>
+              <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: 20, color: 'white' }}>
+                <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 6 }}>Orientação de Antibioterapia</div>
+                <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, marginBottom: 4 }}>{result.site}</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
                   {result.likely_pathogens.map((p, i) => (
-                    <span key={i} style={{ padding: '3px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: 4, fontSize: 11, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)' }}>{p}</span>
+                    <span key={i} style={{ padding: '3px 8px', background: 'rgba(255,255,255,0.1)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)' }}>{p}</span>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: 8 }}>
                   <button onClick={copyReport}
-                    style={{ padding: '8px 14px', background: copied ? '#065f46' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 7, color: 'white', fontSize: 12, cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
+                    style={{ padding: '8px 14px', background: copied ? 'var(--green)' : 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 'var(--r-md)', color: 'white', fontSize: 'var(--t-meta)', cursor: 'pointer', fontFamily: 'var(--font-mono)' }}>
                     {copied ? '✓ Copiado' : '⎘ Copiar relatório'}
                   </button>
                   <button onClick={() => window.print()}
-                    style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 7, color: 'white', fontSize: 12, cursor: 'pointer' }}>
+                    style={{ padding: '8px 14px', background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: 'var(--r-md)', color: 'white', fontSize: 'var(--t-meta)', cursor: 'pointer' }}>
                     Imprimir
                   </button>
                 </div>
               </div>
 
               {/* Empirical 1st line */}
-              <div style={{ background: 'white', border: '2px solid #6ee7b7', borderRadius: 12, padding: 18 }}>
+              <div style={{ background: 'white', border: '2px solid var(--green-mid)', borderRadius: 'var(--r-xl)', padding: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ padding: '2px 8px', background: '#d1fae5', color: '#065f46', borderRadius: 4, fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase' }}>1.ª Linha</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Antibioterapia Empírica</span>
+                  <span style={{ padding: '2px 8px', background: 'var(--badge-green-bg)', color: 'var(--green)', borderRadius: 'var(--r)', fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase' }}>1.ª Linha</span>
+                  <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Antibioterapia Empírica</span>
                 </div>
-                <div style={{ fontSize: 14, fontWeight: 700, color: '#065f46', marginBottom: 8, fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>{result.empirical_first_line.regimen}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-3)', marginBottom: 6, lineHeight: 1.5 }}>{result.empirical_first_line.rationale}</div>
+                <div style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', marginBottom: 8, fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>{result.empirical_first_line.regimen}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginBottom: 6, lineHeight: 1.5 }}>{result.empirical_first_line.rationale}</div>
                 {result.empirical_first_line.allergies_note && (
-                  <div style={{ padding: '8px 10px', background: '#fef9c3', borderRadius: 6, fontSize: 11, color: '#854d0e', lineHeight: 1.5 }}>
+                  <div style={{ padding: '8px 10px', background: 'var(--amber-light)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', color: 'var(--badge-amber-fg)', lineHeight: 1.5 }}>
                     <strong>Alergia à penicilina:</strong> {result.empirical_first_line.allergies_note}
                   </div>
                 )}
               </div>
 
               {/* Empirical 2nd line */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ padding: '2px 8px', background: '#f1f5f9', color: '#475569', borderRadius: 4, fontSize: 10, fontFamily: 'var(--font-mono)', fontWeight: 700, textTransform: 'uppercase' }}>2.ª Linha</span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>Alternativa</span>
+                  <span style={{ padding: '2px 8px', background: 'var(--bg-3)', color: 'var(--ink-3)', borderRadius: 'var(--r)', fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, textTransform: 'uppercase' }}>2.ª Linha</span>
+                  <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>Alternativa</span>
                 </div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)', marginBottom: 6, fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>{result.empirical_second_line.regimen}</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>{result.empirical_second_line.rationale}</div>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', marginBottom: 6, fontFamily: 'var(--font-mono)', lineHeight: 1.5 }}>{result.empirical_second_line.regimen}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.5 }}>{result.empirical_second_line.rationale}</div>
               </div>
 
               {/* MRSA coverage */}
               {result.mrsa_coverage.needed && (
-                <div style={{ background: '#fff7ed', border: '2px solid #fdba74', borderRadius: 12, padding: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#c2410c', marginBottom: 8 }}>⚠ Cobertura MRSA recomendada</div>
-                  <div style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: '#9a3412', fontWeight: 700, marginBottom: 6 }}>
+                <div style={{ background: 'var(--amber-light)', border: '2px solid var(--badge-amber-border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)', marginBottom: 8 }}>⚠ Cobertura MRSA recomendada</div>
+                  <div style={{ fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', color: 'var(--badge-red-fg)', fontWeight: 'var(--peso-forte)' as any, marginBottom: 6 }}>
                     Adicionar: {result.mrsa_coverage.add_on} {result.mrsa_coverage.dose}
                   </div>
-                  <div style={{ fontSize: 11, color: '#c2410c' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)' }}>
                     Fatores de risco: {result.mrsa_coverage.risk_factors.join(' · ')}
                   </div>
                 </div>
@@ -376,52 +390,52 @@ export default function AntibioticsPage() {
 
               {/* ESBL coverage */}
               {result.esbl_pseudomonas_coverage.needed && (
-                <div style={{ background: '#faf5ff', border: '2px solid #c4b5fd', borderRadius: 12, padding: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: '#6d28d9', marginBottom: 8 }}>⚠ Cobertura ESBL/Pseudomonas recomendada</div>
-                  <div style={{ fontSize: 13, fontFamily: 'var(--font-mono)', color: '#5b21b6', fontWeight: 700, marginBottom: 6 }}>{result.esbl_pseudomonas_coverage.regimen}</div>
-                  <div style={{ fontSize: 11, color: '#7c3aed' }}>
+                <div style={{ background: 'var(--roxo-claro)', border: '2px solid var(--roxo-meio)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--roxo)', marginBottom: 8 }}>⚠ Cobertura ESBL/Pseudomonas recomendada</div>
+                  <div style={{ fontSize: 'var(--t-dado)', fontFamily: 'var(--font-mono)', color: 'var(--roxo-escuro)', fontWeight: 'var(--peso-forte)' as any, marginBottom: 6 }}>{result.esbl_pseudomonas_coverage.regimen}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--roxo)' }}>
                     Fatores de risco: {result.esbl_pseudomonas_coverage.risk_factors.join(' · ')}
                   </div>
                 </div>
               )}
 
               {/* IV to Oral */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Step-down IV → Oral</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 10 }}>Step-down IV → Oral</div>
                 <div style={{ marginBottom: 8 }}>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Critérios de elegibilidade</div>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Critérios de elegibilidade</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     {result.iv_to_oral.eligible_criteria.map((c, i) => (
-                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--ink-2)', alignItems: 'flex-start' }}>
-                        <span style={{ color: '#059669', flexShrink: 0, marginTop: 1 }}>✓</span>
+                      <div key={i} style={{ display: 'flex', gap: 8, fontSize: 'var(--t-meta)', color: 'var(--ink-2)', alignItems: 'flex-start' }}>
+                        <span style={{ color: 'var(--green)', flexShrink: 0, marginTop: 1 }}>✓</span>
                         <span>{c}</span>
                       </div>
                     ))}
                   </div>
                 </div>
-                <div style={{ padding: '8px 10px', background: '#f0fdf4', borderRadius: 6, fontSize: 12, fontFamily: 'var(--font-mono)', color: '#065f46', fontWeight: 600 }}>
+                <div style={{ padding: '8px 10px', background: 'var(--badge-green-bg)', borderRadius: 'var(--r)', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--green)', fontWeight: 'var(--peso-corpo)' as any }}>
                   Oral: {result.iv_to_oral.oral_regimen}
                 </div>
               </div>
 
               {/* Duration */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 12 }}>Duração de tratamento</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>Duração de tratamento</div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                  <div style={{ padding: '10px 12px', background: '#f8fafc', borderRadius: 8, border: '1px solid var(--border)' }}>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Standard</div>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{result.duration.standard}</div>
+                  <div style={{ padding: '10px 12px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Standard</div>
+                    <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', fontFamily: 'var(--font-mono)' }}>{result.duration.standard}</div>
                   </div>
-                  <div style={{ padding: '10px 12px', background: '#fff7ed', borderRadius: 8, border: '1px solid #fed7aa' }}>
-                    <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#c2410c', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Prolongar se</div>
-                    <div style={{ fontSize: 12, color: '#9a3412', lineHeight: 1.4 }}>{result.duration.extended}</div>
+                  <div style={{ padding: '10px 12px', background: 'var(--amber-light)', borderRadius: 'var(--r-md)', border: '1px solid var(--badge-amber-border)' }}>
+                    <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--amber)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Prolongar se</div>
+                    <div style={{ fontSize: 'var(--t-meta)', color: 'var(--badge-red-fg)', lineHeight: 1.4 }}>{result.duration.extended}</div>
                   </div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Critérios para parar</div>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5 }}>Critérios para parar</div>
                   {result.duration.stop_criteria.map((c, i) => (
-                    <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12, color: 'var(--ink-2)', alignItems: 'flex-start', marginBottom: 3 }}>
-                      <span style={{ color: '#dc2626', flexShrink: 0 }}>◼</span>
+                    <div key={i} style={{ display: 'flex', gap: 8, fontSize: 'var(--t-meta)', color: 'var(--ink-2)', alignItems: 'flex-start', marginBottom: 3 }}>
+                      <span style={{ color: 'var(--red)', flexShrink: 0 }}>◼</span>
                       <span>{c}</span>
                     </div>
                   ))}
@@ -430,16 +444,16 @@ export default function AntibioticsPage() {
 
               {/* Renal adjustment */}
               {result.renal_adjustment.length > 0 && (
-                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Ajuste de dose renal</div>
+                <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 10 }}>Ajuste de dose renal</div>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                     {result.renal_adjustment.map((r, i) => (
-                      <div key={i} style={{ padding: '8px 10px', background: '#f0f9ff', borderRadius: 6, border: '1px solid #bae6fd' }}>
+                      <div key={i} style={{ padding: '8px 10px', background: 'var(--green-light)', borderRadius: 'var(--r)', border: '1px solid var(--green-light)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 4 }}>
-                          <span style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-mono)', color: '#0369a1' }}>{r.drug}</span>
-                          <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: '#7c3aed', padding: '2px 6px', background: '#ede9fe', borderRadius: 4 }}>TFG {'<'} {r.gfr_below} mL/min</span>
+                          <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-mono)', color: 'var(--green-3)' }}>{r.drug}</span>
+                          <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--roxo)', padding: '2px 6px', background: 'var(--roxo-claro)', borderRadius: 'var(--r)' }}>TFG {'<'} {r.gfr_below} mL/min</span>
                         </div>
-                        <div style={{ fontSize: 11, color: '#0c4a6e', marginTop: 4, lineHeight: 1.4 }}>{r.adjustment}</div>
+                        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green-3)', marginTop: 4, lineHeight: 1.4 }}>{r.adjustment}</div>
                       </div>
                     ))}
                   </div>
@@ -447,25 +461,25 @@ export default function AntibioticsPage() {
               )}
 
               {/* Monitoring */}
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Monitorização</div>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 10 }}>Monitorização</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {result.monitoring.map((m, i) => (
-                    <span key={i} style={{ padding: '4px 10px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 20, fontSize: 11, color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>{m}</span>
+                    <span key={i} style={{ padding: '4px 10px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', fontFamily: 'var(--font-mono)' }}>{m}</span>
                   ))}
                 </div>
               </div>
 
               {/* De-escalation + stewardship */}
-              <div style={{ background: '#f8fafc', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>De-escalonamento após culturas</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 14 }}>{result.de_escalation}</div>
-                <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Stewardship</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-2)', lineHeight: 1.6 }}>{result.stewardship_notes}</div>
+              <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 8 }}>De-escalonamento após culturas</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', lineHeight: 1.6, marginBottom: 14 }}>{result.de_escalation}</div>
+                <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 8 }}>Stewardship</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', lineHeight: 1.6 }}>{result.stewardship_notes}</div>
               </div>
 
               {/* Disclaimer */}
-              <div style={{ padding: '12px 16px', background: '#fef9c3', border: '1px solid #fde68a', borderRadius: 8, fontSize: 11, color: '#854d0e', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
+              <div style={{ padding: '12px 16px', background: 'var(--amber-light)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', color: 'var(--badge-amber-fg)', fontFamily: 'var(--font-mono)', lineHeight: 1.6 }}>
                 ⚠ Orientação de suporte à decisão clínica. Sempre adaptar ao antibiograma local, ao perfil do doente e às guidelines institucionais. Não substitui avaliação médica ou farmacêutica presencial. Revisão 48-72h mandatória.
               </div>
             </div>
@@ -473,6 +487,6 @@ export default function AntibioticsPage() {
         </div>
       </div>
       <style>{`@keyframes spin { to { transform: rotate(360deg) } }`}</style>
-    </div>
+    </Mesa>
   )
 }

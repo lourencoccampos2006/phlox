@@ -330,14 +330,14 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         {podeEditar ? (
           <button onClick={criarPlano} style={{
             minHeight: 46, padding: '0 22px', borderRadius: 'var(--r-lg)', border: 'none',
-            background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer',
           }}>Começar o plano</button>
         ) : (
           <div style={{ fontSize: 13, color: 'var(--ink-5)' }}>
             Fale com quem gere a casa para o plano ser criado.
           </div>
         )}
-        {erro && <div style={{ marginTop: 12, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+        {erro && <div style={{ marginTop: 12, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
       </div>
       </>
     )
@@ -348,7 +348,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
       {erro && (
         <div style={{
           marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
-          background: '#fff5f5', border: '1px solid #fed7d7', color: '#c53030',
+          background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', color: 'var(--red)',
           fontSize: 13, fontWeight: 600,
         }}>{erro}</div>
       )}
@@ -369,7 +369,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {revisao && (
             <span style={{
-              fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 20,
+              fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 'var(--r-xl)',
               background: revisao.chama ? 'var(--badge-amber-bg)' : 'var(--bg-2)',
               border: `1px solid ${revisao.chama ? 'var(--badge-amber-border)' : 'var(--border)'}`,
               color: revisao.chama ? 'var(--badge-amber-fg)' : 'var(--ink-4)',
@@ -561,7 +561,7 @@ function CaixaDeTexto({ titulo, ajuda, valor, podeEditar, aoGuardar, cor }: {
           <div style={{ display: 'flex', gap: 9, marginTop: 8 }}>
             <button onClick={() => { aoGuardar(texto); setAEditar(false) }} style={{
               minHeight: 38, padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
-              background: cor, color: '#fff', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+              background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
             }}>Guardar</button>
             <button onClick={() => { setTexto(valor); setAEditar(false) }} style={{
               minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
@@ -745,7 +745,7 @@ function NovoObjetivo({ cor, aoCriar, aoCancelar }: {
           style={{
             minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
             background: titulo.trim() ? cor : 'var(--bg-3)',
-            color: titulo.trim() ? '#fff' : 'var(--ink-5)',
+            color: titulo.trim() ? 'var(--bg)' : 'var(--ink-5)',
             fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
             cursor: titulo.trim() ? 'pointer' : 'default',
           }}>Acrescentar</button>
@@ -809,7 +809,7 @@ function NovaAcao({ cor, aoCriar, aoCancelar }: {
                   style={{
                     minWidth: 42, minHeight: 36, borderRadius: 'var(--r-md)', cursor: 'pointer',
                     border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
-                    background: on ? cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
+                    background: on ? cor : 'transparent', color: on ? 'var(--bg)' : 'var(--ink-3)',
                     fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
                   }}>{d.curto}</button>
               )
@@ -844,7 +844,7 @@ function NovaAcao({ cor, aoCriar, aoCancelar }: {
           disabled={!valido}
           style={{
             minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-            background: valido ? cor : 'var(--bg-3)', color: valido ? '#fff' : 'var(--ink-5)',
+            background: valido ? cor : 'var(--bg-3)', color: valido ? 'var(--bg)' : 'var(--ink-5)',
             fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: valido ? 'pointer' : 'default',
           }}>Acrescentar</button>
         <button onClick={aoCancelar} style={{
@@ -889,7 +889,7 @@ function NovaRevisao({ cor, aoGuardar, aoCancelar }: {
             const on = decisao === d.id
             return (
               <button key={d.id} onClick={() => setDecisao(d.id)} style={{
-                minHeight: 38, padding: '0 14px', borderRadius: 20, cursor: 'pointer',
+                minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-xl)', cursor: 'pointer',
                 border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
                 background: on ? cor + '14' : 'transparent', color: on ? cor : 'var(--ink-3)',
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
@@ -905,7 +905,7 @@ function NovaRevisao({ cor, aoGuardar, aoCancelar }: {
           disabled={!texto.trim()}
           style={{
             minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-            background: texto.trim() ? cor : 'var(--bg-3)', color: texto.trim() ? '#fff' : 'var(--ink-5)',
+            background: texto.trim() ? cor : 'var(--bg-3)', color: texto.trim() ? 'var(--bg)' : 'var(--ink-5)',
             fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: texto.trim() ? 'pointer' : 'default',
           }}>Registar revisão</button>
         <button onClick={aoCancelar} style={{

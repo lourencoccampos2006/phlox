@@ -36,14 +36,14 @@ export interface Cor {
  * cada uma quer dizer, e a cor passa a ser decoração.
  */
 export const CORES_DE_ETIQUETA: Record<string, Cor> = {
-  cinza:    { fundo: '#f3f4f6', borda: '#d1d5db', texto: '#374151', solido: '#6b7280' },
-  vermelho: { fundo: '#fee2e2', borda: '#fca5a5', texto: '#991b1b', solido: '#dc2626' },
-  laranja:  { fundo: '#fff7ed', borda: '#fed7aa', texto: '#9a3412', solido: '#ea580c' },
-  amarelo:  { fundo: '#fffbeb', borda: '#fde68a', texto: '#92400e', solido: '#d97706' },
-  verde:    { fundo: '#f0fdf4', borda: '#bbf7d0', texto: '#166534', solido: '#16a34a' },
-  azul:     { fundo: '#eff6ff', borda: '#bfdbfe', texto: '#1e40af', solido: '#2563eb' },
-  roxo:     { fundo: '#f5f3ff', borda: '#ddd6fe', texto: '#5b21b6', solido: '#7c3aed' },
-  rosa:     { fundo: '#fdf2f8', borda: '#fbcfe8', texto: '#9d174d', solido: '#db2777' },
+  cinza:    { fundo: 'var(--bg-3)', borda: 'var(--border-2)', texto: 'var(--badge-blue-fg)', solido: 'var(--blue)' },
+  vermelho: { fundo: 'var(--red-light)', borda: 'var(--badge-red-border)', texto: 'var(--red)', solido: 'var(--red)' },
+  laranja:  { fundo: 'var(--amber-light)', borda: 'var(--badge-amber-border)', texto: 'var(--badge-red-fg)', solido: 'var(--amber)' },
+  amarelo:  { fundo: 'var(--amber-light)', borda: 'var(--badge-amber-border)', texto: 'var(--badge-amber-fg)', solido: 'var(--amber)' },
+  verde:    { fundo: 'var(--green-light)', borda: 'var(--green-mid)', texto: 'var(--green-3)', solido: 'var(--green)' },
+  azul:     { fundo: 'var(--blue-light)', borda: 'var(--blue-light)', texto: 'var(--blue)', solido: 'var(--blue)' },
+  roxo:     { fundo: 'var(--blue-light)', borda: 'var(--roxo-meio)', texto: 'var(--roxo-escuro)', solido: 'var(--roxo)' },
+  rosa:     { fundo: 'var(--red-light)', borda: 'var(--red-light)', texto: 'var(--red)', solido: 'var(--red)' },
 }
 
 export const NOMES_DAS_CORES = Object.keys(CORES_DE_ETIQUETA)

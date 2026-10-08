@@ -155,8 +155,8 @@ export default function MapaLeaflet({
         L.marker([casa.lat, casa.lon], {
           icon: L.divIcon({
             className: '', iconSize: [26, 26], iconAnchor: [13, 13],
-            html: `<div style="width:26px;height:26px;border-radius:7px;background:var(--ink,#16211f);
-              display:flex;align-items:center;justify-content:center;color:#fff;font:700 13px/1 system-ui;
+            html: `<div style="width:26px;height:26px;border-radius:7px;background:var(--ink,var(--ink-2));
+              display:flex;align-items:center;justify-content:center;color:var(--bg);font:700 13px/1 system-ui;
               box-shadow:0 1px 5px rgba(0,0,0,.3)">&#8962;</div>`,
           }),
         }).addTo(camada.current).bindTooltip(casa.nome, { direction: 'top' })
@@ -166,13 +166,13 @@ export default function MapaLeaflet({
       ordenadas.forEach((p, i) => {
         pontos.push([p.lat, p.lon])
         const feito = p.feito
-        const fundo = feito ? '#94a3b8' : cor
+        const fundo = feito ? 'var(--ink-5)' : cor
         const mk = L.marker([p.lat, p.lon], {
           icon: L.divIcon({
             className: '', iconSize: [30, 30], iconAnchor: [15, 15],
             html: `<div style="width:30px;height:30px;border-radius:50%;background:${fundo};
-              border:2.5px solid #fff;display:flex;align-items:center;justify-content:center;
-              color:#fff;font:700 12px/1 system-ui;box-shadow:0 1px 5px rgba(0,0,0,.35);
+              border:2.5px solid var(--bg);display:flex;align-items:center;justify-content:center;
+              color:var(--bg);font:700 12px/1 system-ui;box-shadow:0 1px 5px rgba(0,0,0,.35);
               ${feito ? 'opacity:.65' : ''}">${feito ? '&#10003;' : i + 1}</div>`,
           }),
         }).addTo(camada.current)
@@ -207,7 +207,7 @@ export default function MapaLeaflet({
         </div>
         {otimizar && comGeo.length > 1 && (
           <button onClick={otimizar} disabled={aCalcular} style={{
-            background: 'none', border: '1px solid var(--border)', borderRadius: 7,
+            background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r-md)',
             padding: '5px 11px', fontFamily: 'inherit', fontSize: 12, fontWeight: 650,
             color: aCalcular ? 'var(--ink-5)' : 'var(--ink-2)', cursor: aCalcular ? 'wait' : 'pointer',
           }}>
@@ -236,7 +236,7 @@ export default function MapaLeaflet({
       )}
 
       {erro && (
-        <div style={{ marginTop: 9, fontSize: 12.5, color: '#b45309', lineHeight: 1.55 }}>{erro}</div>
+        <div style={{ marginTop: 9, fontSize: 12.5, color: 'var(--amber)', lineHeight: 1.55 }}>{erro}</div>
       )}
 
       {semGeo.length > 0 && (

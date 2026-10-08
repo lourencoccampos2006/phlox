@@ -6,11 +6,11 @@
 //
 // Medidas, espaçamentos, tamanhos de letra e grelhas são os do desenho — não
 // aproximações. Onde o desenho usa um valor que existe como token do produto
-// (var(--ink-4) para #767b86, var(--border) para #e7e8ea…) usa-se o token; onde
+// (var(--ink-4) para var(--ink-4), var(--border) para var(--border)…) usa-se o token; onde
 // não existe, fica o valor literal do desenho.
 //
 // A única coisa que muda em relação ao HTML é o verde: no desenho está fixo em
-// #0d6e42, aqui é a cor de acento do tipo de instituição (teal no centro de
+// var(--green), aqui é a cor de acento do tipo de instituição (teal no centro de
 // dia, âmbar no lar). É a mesma peça, pintada pela casa.
 //
 // Todas as peças aceitam `vazio`: quando não há dados, a moldura do cartão
@@ -110,16 +110,19 @@ export type DadosLista = {
 
 /* ── Constantes do desenho ────────────────────────────────────────────────── */
 
-const CINZA_LINHA = '#c8ccd2'   // a segunda linha do gráfico (comparação)
-const CINZA_MEIO = '#8e939c'    // o segundo arco da rosca
-const RISCA = '#f2f3f4'         // separadores internos, mais leves que --border
+/* Estes três eram hexadecimais escritos à mão — e o comentário do topo deste
+   mesmo ficheiro já dizia que onde há token se usa o token. Ficaram para trás
+   na primeira passagem; agora apontam para os tokens que lhes correspondem. */
+const CINZA_LINHA = 'var(--border-2)'   // a segunda linha do gráfico (comparação)
+const CINZA_MEIO = 'var(--ink-5)'       // o segundo arco da rosca
+const RISCA = 'var(--border)'           // separadores internos
 
 const MONO_ETIQUETA: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10, fontWeight: 500,
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-corpo)' as any,
   letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--ink-4)',
 }
 const MONO_MINI: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 9.5, fontWeight: 500,
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-corpo)' as any,
   letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--ink-5)',
 }
 
@@ -131,14 +134,14 @@ export function Cartao({ span, padding, children, className }: {
   return (
     <div className={`pn-cel pn-s${span}${className ? ' ' + className : ''}`} style={{
       gridColumn: `span ${span}`, background: 'var(--bg)', border: '1px solid var(--border)',
-      borderRadius: 'var(--r-lg)', padding, minWidth: 0,
+      borderRadius: 'var(--r-md)', padding, minWidth: 0,
     }}>{children}</div>
   )
 }
 
 function Vazio({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ fontSize: 13, color: 'var(--ink-4)', lineHeight: 1.55, padding: '18px 0 6px', textWrap: 'pretty' as any }}>
+    <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.55, padding: '18px 0 6px', textWrap: 'pretty' as any }}>
       {children}
     </div>
   )
@@ -167,24 +170,25 @@ export function FaixaKpi({ kpis, cor }: { kpis: Kpi[]; cor: string }) {
     <div className="pn-kpis" style={{
       display: 'grid', gridTemplateColumns: `repeat(${kpis.length},minmax(0,1fr))`,
       background: 'var(--bg)', border: '1px solid var(--border)',
-      borderRadius: 'var(--r-lg)', overflow: 'hidden',
+      borderRadius: 'var(--r-md)', overflow: 'hidden',
     }}>
       {kpis.map((k, i) => (
         <div key={k.etiqueta} style={{
           padding: '16px 20px', minWidth: 0,
           borderLeft: i ? '1px solid var(--bg-3)' : 'none',
         }}>
-          <div style={{ ...MONO_ETIQUETA, fontSize: 9.5, letterSpacing: '0.16em' }}>{k.etiqueta}</div>
+          <div style={{ ...MONO_ETIQUETA, fontSize: 'var(--t-micro)', letterSpacing: '0.16em' }}>{k.etiqueta}</div>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 4, marginTop: 10 }}>
             <span style={{
-              fontFamily: 'var(--font-serif)', fontSize: 29, fontWeight: 400, lineHeight: 0.9,
-              letterSpacing: '-0.02em', color: k.alerta ? '#b91c1c' : 'var(--ink)',
+              fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums',
+              fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, lineHeight: 0.9,
+              letterSpacing: '-0.02em', color: k.alerta ? 'var(--red)' : 'var(--ink)',
             }}>{k.valor}</span>
-            {k.de && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink-5)' }}>{k.de}</span>}
+            {k.de && <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{k.de}</span>}
           </div>
           <div className="pn-kpi-nota" style={{ display: 'flex', alignItems: 'center', gap: 7, marginTop: 10, minWidth: 0 }}>
             <Faisca serie={k.serie} cor={cor} />
-            <span style={{ fontSize: 11.5, color: 'var(--ink-4)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.nota}</span>
+            <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{k.nota}</span>
           </div>
         </div>
       ))}
@@ -221,10 +225,10 @@ export function CartaoLinha({ dados, cor, corSuave, periodos }: {
           <div style={{ display: 'flex', gap: 2, background: RISCA, borderRadius: 'var(--r)', padding: 2 }}>
             {periodos.map(p => (
               <button key={p.id} onClick={p.escolher} style={{
-                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 9.5,
+                border: 'none', cursor: 'pointer', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)',
                 letterSpacing: '0.1em', textTransform: 'uppercase', padding: '5px 10px',
                 borderRadius: 'var(--r-flat)', background: p.ativo ? 'var(--bg)' : 'transparent',
-                color: p.ativo ? 'var(--ink)' : 'var(--ink-4)', fontWeight: 500,
+                color: p.ativo ? 'var(--ink)' : 'var(--ink-4)', fontWeight: 'var(--peso-corpo)' as any,
               }}>{p.rotulo}</button>
             ))}
           </div>
@@ -234,10 +238,10 @@ export function CartaoLinha({ dados, cor, corSuave, periodos }: {
       {dados.vazio ? <Vazio>{dados.vazio}</Vazio> : (
         <>
           <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 32, lineHeight: 0.9, letterSpacing: '-0.02em', color: 'var(--ink)' }}>{dados.valor}</span>
+            <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 'var(--t-numero)', fontWeight: 'var(--peso-forte)' as any, lineHeight: 0.9, color: 'var(--ink)' }}>{dados.valor}</span>
             {dados.delta && (
               <span style={{
-                fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.1em',
+                fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.1em',
                 textTransform: 'uppercase', color: dados.deltaBom ? cor : 'var(--ink-4)',
               }}>{dados.delta}</span>
             )}
@@ -288,7 +292,7 @@ export function CartaoBarras({ dados, cor }: { dados: DadosBarras; cor: string }
               const alvo = i === (dados.destaque ?? dados.itens.length - 1) && b.valor > 0
               return (
               <div key={b.rotulo} style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 8, height: '100%', minWidth: 0 }}>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: alvo ? 'var(--ink)' : 'var(--ink-5)' }}>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: alvo ? 'var(--ink)' : 'var(--ink-5)' }}>
                   {b.texto ?? b.valor}
                 </span>
                 <div style={{
@@ -301,7 +305,7 @@ export function CartaoBarras({ dados, cor }: { dados: DadosBarras; cor: string }
               )
             })}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 14, paddingTop: 13, borderTop: `1px solid ${RISCA}`, lineHeight: 1.5, textWrap: 'pretty' as any }}>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 14, paddingTop: 13, borderTop: `1px solid ${RISCA}`, lineHeight: 1.5, textWrap: 'pretty' as any }}>
             {dados.rodape}
           </div>
         </>
@@ -331,16 +335,16 @@ export function CartaoRosca({ dados, cor }: { dados: DadosRosca; cor: string }) 
                 strokeDasharray={C.toFixed(1)} strokeDashoffset={(C * (1 - fa)).toFixed(1)} />
             </svg>
             <span style={{ position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 24, lineHeight: 1, letterSpacing: '-0.02em', color: 'var(--ink)' }}>{dados.grande}</span>
-              <span style={{ ...MONO_MINI, fontSize: 9, letterSpacing: '0.12em', marginTop: 3 }}>{dados.unidade}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, lineHeight: 1, color: 'var(--ink)' }}>{dados.grande}</span>
+              <span style={{ ...MONO_MINI, fontSize: 'var(--t-micro)', letterSpacing: '0.12em', marginTop: 3 }}>{dados.unidade}</span>
             </span>
           </span>
           <div style={{ flex: 1, minWidth: 120, display: 'flex', flexDirection: 'column' }}>
             {dados.legenda.map(d => (
               <div key={d.rotulo} style={{ display: 'flex', alignItems: 'center', gap: 9, padding: '8px 0', borderBottom: `1px solid ${RISCA}` }}>
-                <span style={{ width: 8, height: 8, borderRadius: 2, background: d.cor, flexShrink: 0 }} />
-                <span style={{ flex: 1, minWidth: 0, fontSize: 12.5, color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.rotulo}</span>
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--ink)' }}>{d.valor}</span>
+                <span style={{ width: 8, height: 8, borderRadius: 'var(--r-sm)', background: d.cor, flexShrink: 0 }} />
+                <span style={{ flex: 1, minWidth: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-3)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{d.rotulo}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink)' }}>{d.valor}</span>
               </div>
             ))}
           </div>
@@ -364,7 +368,7 @@ export function CartaoTabela({ dados, cor }: { dados: DadosTabela; cor: string }
         <>
           <div className="pn-tab" style={{ gridTemplateColumns: dados.cols, display: 'grid', gap: 12, padding: '14px 0 9px', borderBottom: '1px solid var(--border)' }}>
             {dados.cabecalho.map(h => (
-              <span key={h} style={{ ...MONO_MINI, fontSize: 9.5, letterSpacing: '0.14em' }}>{h}</span>
+              <span key={h} style={{ ...MONO_MINI, fontSize: 'var(--t-micro)', letterSpacing: '0.14em' }}>{h}</span>
             ))}
           </div>
           {dados.linhas.map(r => {
@@ -372,16 +376,16 @@ export function CartaoTabela({ dados, cor }: { dados: DadosTabela; cor: string }
               <>
                 <span style={{ minWidth: 0, display: 'flex', alignItems: 'center', gap: 9 }}>
                   <span style={{ width: 6, height: 6, borderRadius: '50%', flexShrink: 0, background: r.destaque ? 'var(--ink)' : CINZA_LINHA }} />
-                  <span style={{ fontSize: 13.5, fontWeight: 500, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.a}</span>
+                  <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.a}</span>
                 </span>
-                <span style={{ fontSize: 12.5, color: 'var(--ink-4)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.b}</span>
+                <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.b}</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: 9, minWidth: 0 }}>
                   {r.barra != null && (
-                    <span style={{ flex: 1, height: 4, borderRadius: 2, background: RISCA, overflow: 'hidden', minWidth: 40 }}>
+                    <span style={{ flex: 1, height: 4, borderRadius: 'var(--r-sm)', background: RISCA, overflow: 'hidden', minWidth: 40 }}>
                       <span style={{ display: 'block', height: '100%', width: `${Math.max(0, Math.min(100, r.barra))}%`, background: r.barra >= 80 ? cor : r.destaque ? 'var(--ink)' : CINZA_MEIO }} />
                     </span>
                   )}
-                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11.5, color: 'var(--ink)', flexShrink: 0 }}>{r.c}</span>
+                  <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink)', flexShrink: 0 }}>{r.c}</span>
                 </span>
                 <span style={{ ...MONO_MINI, textAlign: 'right', color: r.destaque ? 'var(--ink)' : 'var(--ink-5)' }}>{r.etiqueta}</span>
               </>
@@ -413,13 +417,13 @@ export function CartaoLista({ dados, span = 4 }: { dados: DadosLista; span?: num
         <div key={li.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 11, padding: '13px 0', borderBottom: `1px solid ${RISCA}` }}>
           <span style={{ flexShrink: 0, marginTop: 2 }}><Icon name={li.icone} size={16} color="var(--ink-3)" /></span>
           <span style={{ flex: 1, minWidth: 0 }}>
-            <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.35 }}>{li.titulo}</span>
-            <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 4, lineHeight: 1.45, textWrap: 'pretty' as any }}>{li.sub}</span>
+            <span style={{ display: 'block', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', lineHeight: 1.35 }}>{li.titulo}</span>
+            <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 4, lineHeight: 1.45, textWrap: 'pretty' as any }}>{li.sub}</span>
           </span>
           <Link href={li.href} style={{
             flexShrink: 0, minHeight: 44, display: 'inline-flex', alignItems: 'center',
-            border: '1px solid var(--border-2)', color: 'var(--ink)', borderRadius: 7,
-            padding: '0 12px', fontSize: 11.5, fontWeight: 600, textDecoration: 'none',
+            border: '1px solid var(--border-2)', color: 'var(--ink)', borderRadius: 'var(--r-md)',
+            padding: '0 12px', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, textDecoration: 'none',
           }}>{li.cta}</Link>
         </div>
       ))}
@@ -445,7 +449,7 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
     <Cartao span={span} padding="18px 20px 16px">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <span style={MONO_ETIQUETA}>Ferramentas · {p ? p.nome : `${pastas.length} pastas`}</span>
-        <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>Toca numa pasta para a abrir</span>
+        <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>Toca numa pasta para a abrir</span>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(158px,1fr))', gap: 12, marginTop: 16 }}>
@@ -463,13 +467,13 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
                   senão a grelha 2×2 colapsa e o cartão fica com outra forma. */}
               <span style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 3, padding: 5, background: RISCA, borderRadius: 'var(--r-lg)', flexShrink: 0 }}>
                 {Array.from({ length: 4 }, (_, i) => (
-                  <span key={i} style={{ width: 17, height: 17, borderRadius: 5, background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <span key={i} style={{ width: 17, height: 17, borderRadius: 'var(--r)', background: 'var(--bg)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     {f.mini[i] && <Icon name={f.mini[i]} size={11} color="var(--ink-3)" />}
                   </span>
                 ))}
               </span>
               <span style={{ minWidth: 0, flex: 1 }}>
-                <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.nome}</span>
+                <span style={{ display: 'block', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.nome}</span>
                 <span style={{ ...MONO_MINI, display: 'block', marginTop: 4 }}>
                   {f.ferramentas.length} {f.ferramentas.length === 1 ? 'ferramenta' : 'ferramentas'}
                 </span>
@@ -486,10 +490,10 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
       {p && (
         <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, color: 'var(--ink)' }}>{p.nome}</span>
+            <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{p.nome}</span>
             <button onClick={fechar} style={{
-              minHeight: 44, background: 'none', border: '1px solid var(--border-2)', borderRadius: 7,
-              padding: '0 13px', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+              minHeight: 44, background: 'none', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)',
+              padding: '0 13px', fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', cursor: 'pointer',
             }}>Fechar</button>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(232px,1fr))', gap: 10 }}>
@@ -502,8 +506,8 @@ export function CartaoPastas({ pastas, aberta, abrir, fechar, span = 8 }: {
                   <Icon name={t.icone} size={15} color="var(--ink-3)" />
                 </span>
                 <span style={{ minWidth: 0, flex: 1 }}>
-                  <span style={{ display: 'block', fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{t.label}</span>
-                  <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45, textWrap: 'pretty' as any }}>{t.hint}</span>
+                  <span style={{ display: 'block', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{t.label}</span>
+                  <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 3, lineHeight: 1.45, textWrap: 'pretty' as any }}>{t.hint}</span>
                 </span>
                 <Distintivo href={t.href} cor="var(--ink)" />
               </Link>
@@ -564,7 +568,7 @@ export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, sp
     <Cartao span={span} padding="18px 20px 16px">
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <span style={MONO_ETIQUETA}>Presenças de hoje</span>
-        <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>
+        <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
           {tudoMarcado ? resumo : `${porMarcar} por marcar de ${pessoas.length}`}
         </span>
       </div>
@@ -573,10 +577,10 @@ export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, sp
         <Vazio>A sua conta é só de leitura — vê as presenças, mas não as pode marcar.</Vazio>
       ) : tudoMarcado && !aberto ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 14, flexWrap: 'wrap' }}>
-          <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>Está tudo marcado. {resumo}.</span>
+          <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)' }}>Está tudo marcado. {resumo}.</span>
           <button onClick={() => setAberto(true)} style={{
-            minHeight: 44, background: 'none', border: '1px solid var(--border-2)', borderRadius: 7,
-            padding: '0 13px', fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'var(--ink)', cursor: 'pointer',
+            minHeight: 44, background: 'none', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)',
+            padding: '0 13px', fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', cursor: 'pointer',
           }}>Rever</button>
         </div>
       ) : (
@@ -584,7 +588,7 @@ export function CartaoPresencas({ pessoas, marcar, aGuardar, cor, podeEditar, sp
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(72px,1fr))', gap: 10, marginTop: 16 }}>
             {pessoas.map(p => <Cara key={p.id} p={p} cor={cor} guardando={aGuardar.has(p.id)} marcar={marcar} />)}
           </div>
-          <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 14, textWrap: 'pretty' as any }}>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 14, textWrap: 'pretty' as any }}>
             Um toque marca a chegada, outro marca a saída. Para corrigir um engano, abre a ficha da pessoa.
           </div>
         </>
@@ -622,7 +626,7 @@ function Cara({ p, cor, guardando, marcar }: {
           width: 52, height: 52, borderRadius: '50%', overflow: 'hidden',
           border: `2px ${p.estado ? 'solid' : 'dashed'} ${anel}`,
           background: p.foto ? 'var(--bg-2)' : corDaPessoa(p.id),
-          color: 'white', fontSize: 16, fontWeight: 700,
+          color: 'white', fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any,
           filter: p.estado === 'absent' ? 'grayscale(1)' : 'none',
         }}>
           {p.foto
@@ -635,16 +639,16 @@ function Cara({ p, cor, guardando, marcar }: {
             position: 'absolute', right: -2, bottom: -2, width: 18, height: 18, borderRadius: '50%',
             background: p.estado === 'present' ? cor : 'var(--ink-4)', color: 'white',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, fontWeight: 700, border: '2px solid var(--bg)',
+            fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, border: '2px solid var(--bg)',
           }}>{p.estado === 'present' ? '✓' : '→'}</span>
         )}
       </span>
       <span style={{
-        fontSize: 11, fontWeight: 600, color: p.estado ? 'var(--ink)' : 'var(--ink-4)',
+        fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, color: p.estado ? 'var(--ink)' : 'var(--ink-4)',
         maxWidth: '100%', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         textDecoration: p.estado === 'absent' ? 'line-through' : 'none',
       }}>{p.nome.split(' ')[0]}</span>
-      <span style={{ ...MONO_MINI, fontSize: 9, lineHeight: 1.2, textAlign: 'center' }}>
+      <span style={{ ...MONO_MINI, fontSize: 'var(--t-micro)', lineHeight: 1.2, textAlign: 'center' }}>
         {p.estado === 'present' ? (p.hora || 'presente')
           : p.estado === 'left' ? `saiu ${p.hora || ''}`.trim()
           : p.estado === 'absent' ? 'faltou' : ''}

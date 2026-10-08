@@ -28,10 +28,10 @@ export default function PaymentIssueBanner() {
   }
 
   return (
-    <div style={{ background: '#fef2f2', borderBottom: '1px solid #fecaca', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap', fontSize: 13, position: 'sticky', top: 0, zIndex: 60 }}>
-      <span style={{ color: '#991b1b' }}>⚠️ Não conseguimos cobrar a tua subscrição — as funcionalidades pagas ficaram em pausa até atualizares o método de pagamento.</span>
-      <Link href="/pricing" style={{ color: '#991b1b', fontWeight: 800, textDecoration: 'underline' }}>Atualizar pagamento →</Link>
-      <button onClick={dismiss} style={{ background: 'none', border: 'none', color: '#991b1b', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: 0.7 }}>✕</button>
+    <div style={{ background: 'var(--badge-red-bg)', borderBottom: '1px solid var(--badge-red-border)', padding: '10px 16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, flexWrap: 'wrap', fontSize: 13, position: 'sticky', top: 0, zIndex: 60 }}>
+      <span style={{ color: 'var(--red)' }}>⚠️ Não conseguimos cobrar a tua subscrição — as funcionalidades pagas ficaram em pausa até atualizares o método de pagamento.</span>
+      <Link href="/pricing" style={{ color: 'var(--red)', fontWeight: 800, textDecoration: 'underline' }}>Atualizar pagamento →</Link>
+      <button onClick={dismiss} style={{ background: 'none', border: 'none', color: 'var(--red)', cursor: 'pointer', fontSize: 13, fontWeight: 700, opacity: 0.7 }}>✕</button>
     </div>
   )
 }

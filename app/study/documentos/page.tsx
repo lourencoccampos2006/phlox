@@ -8,7 +8,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { extractFromFile } from '@/lib/docExtract'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 interface Doc { id: string; title: string; kind: string; chunk_count: number; char_count: number; created_at: string }
 interface Source { n: number; title: string; snippet: string }
@@ -96,53 +96,53 @@ export default function DocumentosPage() {
     await load()
   }
 
-  if (loading) return <main style={{ padding: 24 }}><p style={{ color: '#6b7280' }}>A carregar…</p></main>
+  if (loading) return <main style={{ padding: 24 }}><p style={{ color: 'var(--ink-4)' }}>A carregar…</p></main>
 
   return (
     <main style={{ padding: '18px clamp(14px,4vw,32px)', maxWidth: 900, margin: '0 auto' }}>
       <div style={{ marginBottom: 14 }}>
-        <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#8b8f99', marginBottom: 4 }}>Os meus documentos</div>
+        <div style={{ fontFamily: 'var(--font-mono,monospace)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 4 }}>Os meus documentos</div>
         <h1 style={{ margin: 0, fontSize: 'clamp(22px,4vw,30px)', fontFamily: 'var(--font-serif,serif)', fontWeight: 500 }}>Pergunta ao teu próprio material.</h1>
-        <p style={{ color: '#6b7280', fontSize: 14, marginTop: 6 }}>Carrega as tuas sebentas, slides e PDFs. A IA responde com base neles e cita a fonte.</p>
+        <p style={{ color: 'var(--ink-4)', fontSize: 14, marginTop: 6 }}>Carrega as tuas sebentas, slides e PDFs. A IA responde com base neles e cita a fonte.</p>
       </div>
 
       {/* Upload */}
-      <div onClick={() => fileRef.current?.click()} style={{ border: '1.5px dashed #c4b5fd', borderRadius: 12, padding: 20, textAlign: 'center', cursor: 'pointer', background: '#faf5ff', marginBottom: 16 }}>
+      <div onClick={() => fileRef.current?.click()} style={{ border: '1.5px dashed var(--roxo-meio)', borderRadius: 'var(--r-xl)', padding: 20, textAlign: 'center', cursor: 'pointer', background: 'var(--roxo-claro)', marginBottom: 16 }}>
         <div style={{ fontSize: 26, marginBottom: 4 }}>📚</div>
-        <div style={{ fontWeight: 700, color: '#6d28d9' }}>Carregar PDF, Word, slides ou texto</div>
-        <div style={{ fontSize: 12, color: '#8b8f99', marginTop: 2 }}>{uploading || 'O texto é extraído no teu browser e indexado de forma privada.'}</div>
+        <div style={{ fontWeight: 700, color: 'var(--roxo)' }}>Carregar PDF, Word, slides ou texto</div>
+        <div style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 2 }}>{uploading || 'O texto é extraído no teu browser e indexado de forma privada.'}</div>
         <input ref={fileRef} type="file" accept=".pdf,.docx,.pptx,.txt,.md" multiple onChange={onFiles} style={{ display: 'none' }} />
       </div>
 
-      {err && <div style={{ background: '#fbf2f2', color: '#a82828', padding: 10, borderRadius: 8, fontSize: 13, marginBottom: 12 }}>{err}</div>}
+      {err && <div style={{ background: 'var(--red-light)', color: 'var(--red)', padding: 10, borderRadius: 'var(--r-md)', fontSize: 13, marginBottom: 12 }}>{err}</div>}
 
       {/* Lista de documentos — com ações Resumir / Flashcards (do antigo /biblioteca) */}
       {docs.length > 0 && (
         <div style={{ display: 'grid', gap: 8, marginBottom: 18 }}>
           {docs.map(d => (
-            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid #e7e8ea', borderRadius: 10, padding: '8px 10px 8px 14px', flexWrap: 'wrap' }}>
+            <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '8px 10px 8px 14px', flexWrap: 'wrap' }}>
               <span style={{ fontWeight: 600, fontSize: 13.5, flex: 1, minWidth: 120 }}>{d.title}</span>
-              <span style={{ fontSize: 11, color: '#8b8f99' }}>{d.chunk_count} trechos</span>
+              <span style={{ fontSize: 11, color: 'var(--ink-5)' }}>{d.chunk_count} trechos</span>
               <button onClick={() => summarizeDoc(d.id, d.title)} disabled={!!docBusy} style={docAct}>{docBusy === d.id + ':sum' ? '…' : '📄 Resumir'}</button>
               <button onClick={() => flashcardsDoc(d.id, d.title)} disabled={!!docBusy} style={docAct}>{docBusy === d.id + ':fc' ? '…' : '🃏 Flashcards'}</button>
-              <button aria-label="Eliminar" onClick={() => removeDoc(d.id)} style={{ border: 'none', background: '#f3f4f6', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', color: '#6b7280' }}>×</button>            </div>
+              <button aria-label="Eliminar" onClick={() => removeDoc(d.id)} style={{ border: 'none', background: 'var(--bg-3)', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', color: 'var(--ink-4)' }}>×</button>            </div>
           ))}
         </div>
       )}
 
       {/* Resultado de resumo / flashcards */}
       {docOutput && (
-        <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 18, marginBottom: 16 }}>
+        <article style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18, marginBottom: 16 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
             <b style={{ fontSize: 14 }}>{docOutput.summary ? `Resumo · ${docOutput.title}` : `Flashcards · ${docOutput.title}`}</b>
-            <button aria-label="Fechar" onClick={() => setDocOutput(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: '#9ca3af' }}>×</button>          </div>
-          {docOutput.summary && <div style={{ fontSize: 14, color: '#374151', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{docOutput.summary.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^## /gm, '')}</div>}
+            <button aria-label="Fechar" onClick={() => setDocOutput(null)} style={{ border: 'none', background: 'none', cursor: 'pointer', fontSize: 18, color: 'var(--ink-5)' }}>×</button>          </div>
+          {docOutput.summary && <div style={{ fontSize: 14, color: 'var(--ink-3)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{docOutput.summary.replace(/\*\*(.+?)\*\*/g, '$1').replace(/^## /gm, '')}</div>}
           {docOutput.cards && (
             <div style={{ display: 'grid', gap: 8 }}>
               {docOutput.cards.map((c, i) => (
                 <div key={i} style={{ borderLeft: `3px solid ${ACCENT}`, paddingLeft: 12 }}>
                   <div style={{ fontWeight: 600, fontSize: 13.5 }}>{c.front}</div>
-                  <div style={{ fontSize: 13, color: '#6b7280', marginTop: 2 }}>{c.back}</div>
+                  <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 2 }}>{c.back}</div>
                 </div>
               ))}
             </div>
@@ -152,24 +152,24 @@ export default function DocumentosPage() {
 
       {/* Perguntar */}
       {docs.length === 0 ? (
-        <p style={{ color: '#6b7280', fontSize: 14, textAlign: 'center', padding: 20 }}>Carrega pelo menos um documento para começar a perguntar.</p>
+        <p style={{ color: 'var(--ink-4)', fontSize: 14, textAlign: 'center', padding: 20 }}>Carrega pelo menos um documento para começar a perguntar.</p>
       ) : (
         <>
           <form onSubmit={e => { e.preventDefault(); ask() }} style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
             <input value={question} onChange={e => setQuestion(e.target.value)} placeholder="Ex: O que diz a minha sebenta sobre insuficiência cardíaca?"
-              style={{ flex: 1, padding: '11px 13px', border: '1px solid #e7e8ea', borderRadius: 8, fontSize: 14, boxSizing: 'border-box' }} />
-            <button type="submit" disabled={busy || !question.trim()} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontWeight: 700, cursor: 'pointer', opacity: busy || !question.trim() ? 0.5 : 1 }}>{busy ? '…' : 'Perguntar'}</button>
+              style={{ flex: 1, padding: '11px 13px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 14, boxSizing: 'border-box' }} />
+            <button type="submit" disabled={busy || !question.trim()} style={{ padding: '11px 20px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontWeight: 700, cursor: 'pointer', opacity: busy || !question.trim() ? 0.5 : 1 }}>{busy ? '…' : 'Perguntar'}</button>
           </form>
 
           {answer && (
-            <article style={{ background: 'white', border: '1px solid #e7e8ea', borderRadius: 12, padding: 18, marginTop: 10 }}>
-              <div style={{ fontSize: 14.5, color: '#16181d', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{answer}</div>
+            <article style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18, marginTop: 10 }}>
+              <div style={{ fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{answer}</div>
               {sources.length > 0 && (
-                <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #e7e8ea' }}>
-                  <div style={{ fontSize: 11, color: '#8b8f99', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Dos teus documentos</div>
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid var(--border)' }}>
+                  <div style={{ fontSize: 11, color: 'var(--ink-5)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Dos teus documentos</div>
                   {sources.map(s => (
-                    <div key={s.n} style={{ fontSize: 12.5, color: '#374151', marginBottom: 6, paddingLeft: 8, borderLeft: `2px solid ${ACCENT}` }}>
-                      <b>[{s.n}] {s.title}</b><br /><span style={{ color: '#6b7280' }}>{s.snippet}…</span>
+                    <div key={s.n} style={{ fontSize: 12.5, color: 'var(--ink-3)', marginBottom: 6, paddingLeft: 8, borderLeft: `2px solid ${ACCENT}` }}>
+                      <b>[{s.n}] {s.title}</b><br /><span style={{ color: 'var(--ink-4)' }}>{s.snippet}…</span>
                     </div>
                   ))}
                 </div>
@@ -182,4 +182,4 @@ export default function DocumentosPage() {
   )
 }
 
-const docAct: React.CSSProperties = { padding: '5px 10px', background: 'white', border: '1px solid #e7e8ea', borderRadius: 7, fontSize: 12, fontWeight: 600, color: '#374151', cursor: 'pointer' }
+const docAct: React.CSSProperties = { padding: '5px 10px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer' }

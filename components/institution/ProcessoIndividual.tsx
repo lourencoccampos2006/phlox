@@ -120,11 +120,11 @@ export default function ProcessoIndividual({ pid, nome, cor }: {
           pedido tem de conseguir chegar ao fim, senão a barra nunca enche e ao
           fim de duas semanas ninguém volta a olhar para ela. */}
       <div style={{ marginTop: 'var(--space-7)' }}>
-        <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}>
+        <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}>
           <div style={{
             height: '100%', width: `${b.pct}%`,
             background: completo ? 'var(--badge-green-fg)' : cor,
-            borderRadius: 3, transition: 'width .5s',
+            borderRadius: 'var(--r-sm)', transition: 'width .5s',
           }} />
         </div>
 
@@ -183,7 +183,7 @@ export default function ProcessoIndividual({ pid, nome, cor }: {
                         width: 18, height: 18, flexShrink: 0, marginTop: 2, borderRadius: '50%',
                         border: `1.5px solid ${ok ? 'var(--badge-green-fg)' : 'var(--border-2)'}`,
                         background: ok ? 'var(--badge-green-fg)' : 'transparent',
-                        color: '#fff', fontSize: 11, lineHeight: '15px', textAlign: 'center', fontWeight: 700,
+                        color: 'var(--bg)', fontSize: 11, lineHeight: '15px', textAlign: 'center', fontWeight: 700,
                       }}>{ok ? '✓' : ''}</span>
 
                       <div style={{ minWidth: 0, flex: 1 }}>

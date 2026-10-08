@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
+import { Painel, Cabecalho, Codigo, MONO, ROTULO } from '@/components/ui/mesa'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { CATEGORIAS, precisamDeAtencao, type ArtigoDoUtente, type Movimento } from '@/lib/stockUtente'
@@ -64,38 +65,50 @@ export default function StockDosUtentes({ cor }: { cor: string }) {
   if (!emFalta.length) return null
 
   return (
-    <div style={{ marginBottom: 22 }}>
-      <div style={{
-        fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: '#dc2626',
-        textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8,
-      }}>A acabar, por utente ({emFalta.length})</div>
-
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-        {emFalta.map(({ artigo, situacao }) => {
-          const cat = CATEGORIAS[artigo.categoria] || CATEGORIAS.geral
-          const grave = situacao.aviso === 'acabou'
-          return (
-            <Link key={artigo.id} href={`/patients/${artigo.patient_id}`} style={{
-              display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-              padding: '12px 14px', minHeight: 44, textDecoration: 'none',
-              borderRadius: 10, border: `1px solid ${grave ? '#fed7d7' : 'var(--badge-amber-border)'}`,
-              background: grave ? '#fff5f5' : 'var(--badge-amber-bg)',
-            }}>
-              <span style={{ minWidth: 0 }}>
-                <span style={{ display: 'block', fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>
-                  <span aria-hidden style={{ marginRight: 5 }}>{cat.icone}</span>
-                  {nomes[artigo.patient_id] || 'Utente'} — {artigo.nome}
-                </span>
-                <span style={{
-                  display: 'block', fontSize: 11.5, marginTop: 3,
-                  color: grave ? '#c53030' : 'var(--badge-amber-fg)', fontWeight: 600,
-                }}>{situacao.frase}</span>
-              </span>
-              <span style={{ flexShrink: 0, fontSize: 12, fontWeight: 700, color: cor }}>ver ficha</span>
-            </Link>
-          )
-        })}
-      </div>
-    </div>
+    <Painel
+      cabeca={
+        <Cabecalho>
+          <span style={{ ...ROTULO, color: 'var(--red)', flex: 1 }}>
+            A acabar, por {emFalta.length === 1 ? 'utente' : 'utente'} · {emFalta.length}
+          </span>
+        </Cabecalho>
+      }
+      rodape={
+        <span style={MONO}>
+          Isto é o stock de cada pessoa, não o da casa — quem traz as suas próprias fraldas
+        </span>
+      }
+    >
+      {emFalta.map(({ artigo, situacao }) => {
+        const cat = CATEGORIAS[artigo.categoria] || CATEGORIAS.geral
+        const grave = situacao.aviso === 'acabou'
+        return (
+          <Link key={artigo.id} href={`/patients/${artigo.patient_id}`} style={{
+            display: 'flex', alignItems: 'center', gap: 10,
+            padding: '8px 12px', textDecoration: 'none', color: 'var(--ink)',
+            borderBottom: '1px solid var(--border)',
+            borderLeft: `3px solid ${grave ? 'var(--red)' : 'var(--amber)'}`,
+          }}>
+            <span style={{ width: 48, flexShrink: 0 }}><Codigo texto={cat.codigo} /></span>
+            <span style={{ minWidth: 0, flex: 1 }}>
+              <span style={{
+                display: 'block', fontSize: 'var(--t-dado)',
+                fontWeight: 'var(--peso-corpo)' as any,
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>{nomes[artigo.patient_id] || 'Utente'} — {artigo.nome}</span>
+              <span style={{
+                display: 'block', fontSize: 'var(--t-meta)', marginTop: 1,
+                color: grave ? 'var(--red)' : 'var(--amber)',
+                fontWeight: 'var(--peso-corpo)' as any,
+              }}>{situacao.frase}</span>
+            </span>
+            <span style={{
+              ...MONO, flexShrink: 0, fontSize: 'var(--t-meta)',
+              fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)',
+            }}>VER A FICHA →</span>
+          </Link>
+        )
+      })}
+    </Painel>
   )
 }

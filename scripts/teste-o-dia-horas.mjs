@@ -20,7 +20,7 @@
 //
 //   node --experimental-strip-types --loader ./scripts/loader-ts.mjs scripts/teste-o-dia-horas.mjs
 // ─────────────────────────────────────────────────────────────────────────────
-import { horaValida, minutosDe, porHora, porPessoa, tarefasDaMedicacao } from '../lib/oDia.ts'
+import { horaValida, minutosDe, porHora, porPessoa, tarefasDaMedicacao , blocosDoDia} from '../lib/oDia.ts'
 
 let falhas = 0
 const ok = (t, cond, extra = '') => {
@@ -170,6 +170,82 @@ console.log('\ntarefasDaMedicacao — a hora por turno')
   const mau = tarefasDaMedicacao(pessoas, [{ ...med, horas: { manha: 'de manhã' } }], [], 'manha')
   ok('uma hora que não é hora fica a null', mau[0].hora === null,
     'em vez de ir para o fundo da lista como NaN')
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   BLOCOS DE TEMPO — o desenho B
+   ══════════════════════════════════════════════════════════════════════════
+   O erro que isto não pode cometer é gritar «ficou para trás» sobre trabalho
+   que foi feito. Uma toma das 8h dada às 8h05 passou E está tratada. */
+const T = (chave, hora, feito = false, extra = {}) => ({
+  chave, fonte: 'medicacao', patientId: 'p1', nome: 'Maria', oQue: chave,
+  turno: 'manha', hora, area: 'medicacao', feito, ref: {}, ...extra,
+})
+
+console.log('\nblocosDoDia — o turno partido pelo relógio')
+{
+  const bs = blocosDoDia([
+    T('cedo', '07:00'),            // ficou para trás (agora = 10:00)
+    T('quase', '09:40'),           // agora
+    T('ja', '10:30'),              // agora (+30)
+    T('logo', '15:00'),            // mais tarde
+    T('banho', null),              // a qualquer hora
+  ], '10:00')
+  const por = id => bs.find(b => b.id === id)
+  ok('«ficou para trás» tem a toma das 7h', por('passou').tarefas.map(t => t.chave).join() === 'cedo')
+  ok('«agora» tem as duas da janela',
+    por('agora').tarefas.map(t => t.chave).join() === 'quase,ja',
+    por('agora').tarefas.map(t => t.chave).join())
+  ok('«mais tarde» tem a das 15h', por('maistarde').tarefas.map(t => t.chave).join() === 'logo')
+  ok('«a qualquer hora» tem o banho', por('semhora').tarefas.map(t => t.chave).join() === 'banho')
+  ok('cada tarefa aparece uma vez só',
+    bs.reduce((n, b) => n + b.tarefas.length, 0) === 5)
+}
+
+console.log('\no que já foi feito não «fica para trás»')
+{
+  const bs = blocosDoDia([T('dada', '07:00', true)], '10:00')
+  ok('uma toma antiga JÁ DADA não entra no bloco do atraso',
+    !bs.some(b => b.id === 'passou'),
+    'gritar sobre trabalho bem feito ensina a ignorar o grito')
+  ok('mas também não desaparece',
+    bs.reduce((n, b) => n + b.tarefas.length, 0) === 1,
+    bs.map(b => `${b.id}:${b.tarefas.length}`).join(' '))
+}
+{
+  const bs = blocosDoDia([T('recusou', '07:00', false, { naoPrestado: { motivo: 'recusou', nota: null } })], '10:00')
+  ok('uma toma recusada também não fica «para trás»',
+    !bs.some(b => b.id === 'passou'),
+    'já foi tratada — ficou registada como não prestada')
+}
+
+console.log('\nos blocos vazios não aparecem')
+{
+  const bs = blocosDoDia([T('banho', null)], '10:00')
+  ok('só o bloco que tem alguma coisa', bs.length === 1 && bs[0].id === 'semhora',
+    bs.map(b => b.id).join())
+  ok('e nenhum tem zero tarefas', bs.every(b => b.tarefas.length > 0),
+    'um cabeçalho que diz «0» ensina a saltar os cabeçalhos todos')
+}
+
+console.log('\nsem relógio válido, não se inventam blocos')
+{
+  const bs = blocosDoDia([T('cedo', '07:00'), T('banho', null)], 'xx:xx')
+  ok('o que tem hora vai todo para «mais tarde»',
+    bs.find(b => b.id === 'maistarde')?.tarefas.length === 1,
+    bs.map(b => `${b.id}:${b.tarefas.length}`).join(' '))
+  ok('e não se acusa ninguém de atraso', !bs.some(b => b.id === 'passou'))
+}
+
+console.log('\nquais é que abrem sozinhos')
+{
+  const bs = blocosDoDia([T('cedo', '07:00'), T('quase', '09:40'), T('logo', '15:00')], '10:00')
+  ok('«ficou para trás» abre', bs.find(b => b.id === 'passou').aberto)
+  ok('«agora» abre', bs.find(b => b.id === 'agora').aberto)
+  ok('«mais tarde» fica fechado', !bs.find(b => b.id === 'maistarde').aberto,
+    'é o que faz o telemóvel mostrar cinco coisas em vez de quarenta')
+  ok('só «ficou para trás» é vermelho',
+    bs.filter(b => b.tom === 'mau').map(b => b.id).join() === 'passou')
 }
 
 console.log(falhas

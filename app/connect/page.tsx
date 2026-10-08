@@ -10,6 +10,10 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import Link from 'next/link'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
+  Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -63,27 +67,27 @@ interface ConnectMessage {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const TYPE_META: Record<ConsultType, { label: string; color: string }> = {
-  interaction:    { label: 'Interação medicamentosa',  color: '#dc2626' },
-  dose:           { label: 'Ajuste de dose',           color: '#d97706' },
-  alternative:    { label: 'Alternativa terapêutica',  color: '#1d4ed8' },
-  adherence:      { label: 'Problema de adesão',       color: '#7c3aed' },
-  monitoring:     { label: 'Monitorização',            color: '#0891b2' },
-  reconciliation: { label: 'Reconciliação',            color: '#0d6e42' },
-  other:          { label: 'Outra consulta',           color: '#374151' },
+  interaction:    { label: 'Interação medicamentosa',  color: 'var(--red)' },
+  dose:           { label: 'Ajuste de dose',           color: 'var(--amber)' },
+  alternative:    { label: 'Alternativa terapêutica',  color: 'var(--ink-2)' },
+  adherence:      { label: 'Problema de adesão',       color: 'var(--roxo)' },
+  monitoring:     { label: 'Monitorização',            color: 'var(--green)' },
+  reconciliation: { label: 'Reconciliação',            color: 'var(--green)' },
+  other:          { label: 'Outra consulta',           color: 'var(--ink-3)' },
 }
 
 const STATUS_META: Record<ConsultStatus, { label: string; color: string; bg: string }> = {
-  pending:       { label: 'Aguarda resposta',  color: '#d97706', bg: '#fffbeb' },
-  accepted:      { label: 'Aceite',            color: '#0d6e42', bg: '#f0fdf5' },
-  rejected:      { label: 'Não aceite',        color: '#dc2626', bg: '#fee2e2' },
-  resolved:      { label: 'Resolvido',         color: '#374151', bg: 'var(--bg-2)' },
-  in_discussion: { label: 'Em discussão',      color: '#1d4ed8', bg: '#eff6ff' },
+  pending:       { label: 'Aguarda resposta',  color: 'var(--amber)', bg: 'var(--badge-amber-bg)' },
+  accepted:      { label: 'Aceite',            color: 'var(--green)', bg: 'var(--green-light)' },
+  rejected:      { label: 'Não aceite',        color: 'var(--red)', bg: 'var(--badge-red-bg)' },
+  resolved:      { label: 'Resolvido',         color: 'var(--ink-3)', bg: 'var(--bg-2)' },
+  in_discussion: { label: 'Em discussão',      color: 'var(--ink-2)', bg: 'var(--bg-2)' },
 }
 
 const PRIORITY_META = {
-  urgent: { label: 'Urgente', color: '#991b1b', bg: '#fee2e2' },
-  high:   { label: 'Alta',    color: '#854d0e', bg: '#fef9c3' },
-  normal: { label: 'Normal',  color: '#374151', bg: 'var(--bg-2)' },
+  urgent: { label: 'Urgente', color: 'var(--red)', bg: 'var(--badge-red-bg)' },
+  high:   { label: 'Alta',    color: 'var(--badge-amber-fg)', bg: 'var(--amber-light)' },
+  normal: { label: 'Normal',  color: 'var(--ink-3)', bg: 'var(--bg-2)' },
 }
 
 const ROLE_LABELS: Record<UserRole, string> = {
@@ -143,44 +147,44 @@ function ProfessionalDirectory({ onSelect }: { onSelect: (p: Professional) => vo
   useEffect(() => { search() }, [role])
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden', marginBottom: 16 }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', marginBottom: 16 }}>
       <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
-        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
+        <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
           Diretório de profissionais
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
           <input value={query} onChange={e => setQuery(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && search()}
             placeholder="Nome, instituição, especialidade..."
-            style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+            style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
           <select value={role} onChange={e => setRole(e.target.value as any)}
-            style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', cursor: 'pointer' }}>
+            style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-sans)', outline: 'none', background: 'white', cursor: 'pointer' }}>
             <option value="all">Todos os papéis</option>
             {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
           </select>
           <button onClick={search} disabled={loading}
-            style={{ padding: '8px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+            style={{ padding: '8px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
             Pesquisar
           </button>
         </div>
       </div>
       <div style={{ maxHeight: 240, overflowY: 'auto' }}>
         {loading ? (
-          <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>A pesquisar...</div>
+          <div style={{ padding: '20px', textAlign: 'center', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>A pesquisar...</div>
         ) : results.length === 0 ? (
-          <div style={{ padding: '20px', textAlign: 'center', fontSize: 13, color: 'var(--ink-4)' }}>
+          <div style={{ padding: '20px', textAlign: 'center', fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>
             Nenhum profissional encontrado. Os profissionais precisam de activar a visibilidade nas definições de perfil.
           </div>
         ) : results.map((p, i) => (
           <button key={p.id} onClick={() => onSelect(p)}
             style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '11px 16px', background: 'white', border: 'none', borderBottom: i < results.length - 1 ? '1px solid var(--bg-3)' : 'none', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}
             className="dir-item">
-            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>
+            <div style={{ width: 34, height: 34, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', flexShrink: 0 }}>
               {(p.display_name || p.connect_handle).charAt(0).toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.display_name}</div>
-              <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginTop: 1 }}>
+              <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.display_name}</div>
+              <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', marginTop: 1 }}>
                 {ROLE_LABELS[p.professional_role as UserRole] || p.professional_role}
                 {p.institution && <span> · {p.institution}</span>}
                 {p.speciality && <span> · {p.speciality}</span>}
@@ -263,28 +267,28 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
   }
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden' }}>
       {/* Header */}
       <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-2)' }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 8 }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
-              <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{consult.subject}</span>
+              <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{consult.subject}</span>
               {consult.priority !== 'normal' && (
-                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: p.color, background: p.bg, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.label}</span>
+                <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: p.color, background: p.bg, padding: '2px 6px', borderRadius: 'var(--r-sm)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{p.label}</span>
               )}
             </div>
             <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)' }}>
                 {consult.from_name} → {consult.to_name || ROLE_LABELS[consult.to_role]}
               </span>
-              <span style={{ fontSize: 9, color: t.color, fontFamily: 'var(--font-mono)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t.label}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 9, fontWeight: 700, color: s.color, background: s.bg, padding: '2px 6px', borderRadius: 3, letterSpacing: '0.04em', textTransform: 'uppercase', marginLeft: 'auto' }}>{s.label}</span>
+              <span style={{ fontSize: 'var(--t-micro)', color: t.color, fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{t.label}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: s.color, background: s.bg, padding: '2px 6px', borderRadius: 'var(--r-sm)', letterSpacing: '0.04em', textTransform: 'uppercase', marginLeft: 'auto' }}>{s.label}</span>
             </div>
           </div>
           {isOwn && consult.status !== 'resolved' && (
             <button onClick={resolve}
-              style={{ padding: '5px 10px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: 5, cursor: 'pointer', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>
+              style={{ padding: '5px 10px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: 'var(--r)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', flexShrink: 0 }}>
               Resolver
             </button>
           )}
@@ -292,11 +296,11 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
 
         {/* Patient + medications */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-3)' }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>
             Doente: {consult.patient_name}{consult.patient_age ? `, ${consult.patient_age}a` : ''}
           </span>
           {consult.medications?.map(m => (
-            <span key={m} style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#1d4ed8', background: '#eff6ff', border: '1px solid #bfdbfe', padding: '1px 7px', borderRadius: 3 }}>{m}</span>
+            <span key={m} style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', padding: '1px 7px', borderRadius: 'var(--r-sm)' }}>{m}</span>
           ))}
         </div>
       </div>
@@ -304,20 +308,20 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
       {/* Initial body */}
       <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--bg-3)' }}>
         <div style={{ display: 'flex', gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', flexShrink: 0 }}>
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', flexShrink: 0 }}>
             {consult.from_name.charAt(0)}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', gap: 8, marginBottom: 5, alignItems: 'center' }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)' }}>{consult.from_name}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)' }}>{ROLE_LABELS[consult.from_role]}</span>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', marginLeft: 'auto' }}>{timeAgo(consult.created_at)}</span>
+              <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{consult.from_name}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)' }}>{ROLE_LABELS[consult.from_role]}</span>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginLeft: 'auto' }}>{timeAgo(consult.created_at)}</span>
             </div>
-            <p style={{ fontSize: 13, color: 'var(--ink)', lineHeight: 1.7, margin: 0 }}>{consult.body}</p>
+            <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', lineHeight: 1.7, margin: 0 }}>{consult.body}</p>
             {consult.ai_suggestion && (
-              <div style={{ marginTop: 10, padding: '10px 12px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 7 }}>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Análise Phlox</div>
-                <div style={{ fontSize: 12, color: '#14532d', lineHeight: 1.6 }}>{consult.ai_suggestion}</div>
+              <div style={{ marginTop: 10, padding: '10px 12px', background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)' }}>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Análise Phlox</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green-3)', lineHeight: 1.6 }}>{consult.ai_suggestion}</div>
               </div>
             )}
           </div>
@@ -327,19 +331,19 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
       {/* Thread messages */}
       <div style={{ maxHeight: 240, overflowY: 'auto', padding: '10px 18px' }}>
         {loading ? (
-          <div style={{ textAlign: 'center', padding: 16, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--ink-4)' }}>A carregar...</div>
+          <div style={{ textAlign: 'center', padding: 16, fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>A carregar...</div>
         ) : messages.map(msg => (
           <div key={msg.id} style={{ display: 'flex', gap: 10, marginBottom: 10, justifyContent: msg.from_user_id === userId ? 'flex-end' : 'flex-start' }}>
             {msg.from_user_id !== userId && (
-              <div style={{ width: 28, height: 28, borderRadius: '50%', background: msg.is_system ? '#f0fdf5' : 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: msg.is_system ? '#0d6e42' : 'var(--ink-3)', flexShrink: 0 }}>
+              <div style={{ width: 28, height: 28, borderRadius: '50%', background: msg.is_system ? 'var(--green-light)' : 'var(--bg-2)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: msg.is_system ? 'var(--green)' : 'var(--ink-3)', flexShrink: 0 }}>
                 {msg.from_name.charAt(0)}
               </div>
             )}
-            <div style={{ maxWidth: '75%', padding: '9px 13px', background: msg.is_system ? '#f0fdf5' : msg.from_user_id === userId ? 'var(--ink)' : 'white', border: `1px solid ${msg.is_system ? '#bbf7d0' : msg.from_user_id === userId ? 'transparent' : 'var(--border)'}`, borderRadius: msg.from_user_id === userId ? '12px 12px 4px 12px' : msg.is_system ? 8 : '4px 12px 12px 12px' }}>
+            <div style={{ maxWidth: '75%', padding: '9px 13px', background: msg.is_system ? 'var(--green-light)' : msg.from_user_id === userId ? 'var(--ink)' : 'white', border: `1px solid ${msg.is_system ? 'var(--green-mid)' : msg.from_user_id === userId ? 'transparent' : 'var(--border)'}`, borderRadius: msg.from_user_id === userId ? '12px 12px 4px 12px' : msg.is_system ? 8 : '4px 12px 12px 12px' }}>
               {msg.from_user_id !== userId && !msg.is_system && (
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{msg.from_name}</div>
+                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.08em' }}>{msg.from_name}</div>
               )}
-              <div style={{ fontSize: 13, color: msg.is_system ? '#0d6e42' : msg.from_user_id === userId ? 'white' : 'var(--ink)', lineHeight: 1.5 }}>{msg.content}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: msg.is_system ? 'var(--green)' : msg.from_user_id === userId ? 'white' : 'var(--ink)', lineHeight: 1.5 }}>{msg.content}</div>
             </div>
           </div>
         ))}
@@ -348,15 +352,15 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
 
       {/* Response controls — for non-owner when pending */}
       {canRespond && (
-        <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', background: '#fffbeb' }}>
-          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Responder à recomendação</div>
+        <div style={{ padding: '10px 18px', borderTop: '1px solid var(--border)', background: 'var(--badge-amber-bg)' }}>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--badge-amber-fg)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>Responder à recomendação</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => { const t = prompt('Comentário (opcional):') || ''; respond(true, t) }}
-              style={{ flex: 1, padding: '8px', background: '#d1fae5', color: '#065f46', border: '1px solid #6ee7b7', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              style={{ flex: 1, padding: '8px', background: 'var(--badge-green-bg)', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
               Aceitar recomendação
             </button>
             <button onClick={() => { const t = prompt('Motivo (opcional):') || ''; respond(false, t) }}
-              style={{ flex: 1, padding: '8px', background: '#fee2e2', color: '#991b1b', border: '1px solid #fca5a5', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              style={{ flex: 1, padding: '8px', background: 'var(--badge-red-bg)', color: 'var(--red)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
               Não aceitar
             </button>
           </div>
@@ -371,7 +375,7 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 8 }}>
               {['Concordo com a recomendação.', 'Vou monitorizar e dou feedback.', 'Podes detalhar a dose/posologia?', 'Já comuniquei ao médico assistente.'].map(t => (
                 <button key={t} onClick={() => setInput(t)}
-                  style={{ padding: '5px 10px', borderRadius: 16, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)', background: 'white', color: 'var(--ink-3)' }}>
+                  style={{ padding: '5px 10px', borderRadius: 'var(--r-xl)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer', border: '1px solid var(--border)', background: 'white', color: 'var(--ink-3)' }}>
                   {t}
                 </button>
               ))}
@@ -381,9 +385,9 @@ function ConsultThread({ consult, userId, supabase, myName, myRole, onUpdate }: 
             <input value={input} onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
               placeholder="Adicionar comentário..."
-              style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+              style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
             <button onClick={sendMessage} disabled={!input.trim() || sending}
-              style={{ padding: '9px 16px', background: input.trim() ? 'var(--ink)' : 'var(--bg-3)', color: input.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              style={{ padding: '9px 16px', background: input.trim() ? 'var(--ink)' : 'var(--bg-3)', color: input.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
               {sending ? '…' : 'Enviar'}
             </button>
           </div>
@@ -449,38 +453,38 @@ function NewConsultForm({ myRole, myName, supabase, onSubmit, onCancel }: {
     setSubmitting(false)
   }
 
-  const input_s = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 7, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }
-  const label_s = { fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 5, display: 'block' }
+  const input_s = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }
+  const label_s = { fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase' as const, letterSpacing: '0.1em', marginBottom: 5, display: 'block' }
 
   if (step === 'recipient') return (
-    <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 12, overflow: 'hidden' }}>
+    <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
       <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)' }}>
-        <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 700, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
+        <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>
           Nova consulta · Passo 1: Para quem?
         </div>
-        <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>
+        <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)' }}>
           Encontra um profissional específico ou envia a todos os do papel seleccionado.
         </div>
       </div>
       <div style={{ padding: '16px 20px' }}>
         <ProfessionalDirectory onSelect={p => { setSelectedPro(p); setStep('form') }} />
         <div style={{ borderTop: '1px solid var(--border)', paddingTop: 14 }}>
-          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', marginBottom: 10 }}>Ou enviar a todos os profissionais do papel:</div>
+          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 10 }}>Ou enviar a todos os profissionais do papel:</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
             {(Object.entries(ROLE_LABELS) as [UserRole, string][]).filter(([k]) => k !== myRole).map(([k, v]) => (
               <button key={k} onClick={() => setBroadcastRole(k)}
-                style={{ padding: '7px 14px', border: `1.5px solid ${broadcastRole === k ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 6, background: broadcastRole === k ? 'var(--ink)' : 'white', color: broadcastRole === k ? 'white' : 'var(--ink-3)', cursor: 'pointer', fontSize: 12, fontWeight: broadcastRole === k ? 700 : 400, fontFamily: 'var(--font-sans)' }}>
+                style={{ padding: '7px 14px', border: `1.5px solid ${broadcastRole === k ? 'var(--ink)' : 'var(--border)'}`, borderRadius: 'var(--r)', background: broadcastRole === k ? 'var(--ink)' : 'white', color: broadcastRole === k ? 'white' : 'var(--ink-3)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: broadcastRole === k ? 700 : 400, fontFamily: 'var(--font-sans)' }}>
                 {v}
               </button>
             ))}
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => { setSelectedPro(null); setStep('form') }}
-              style={{ padding: '10px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+              style={{ padding: '10px 18px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
               Enviar a {ROLE_LABELS[broadcastRole]}s →
             </button>
             <button onClick={onCancel}
-              style={{ padding: '10px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontFamily: 'var(--font-sans)' }}>
+              style={{ padding: '10px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)' }}>
               Cancelar
             </button>
           </div>
@@ -490,13 +494,13 @@ function NewConsultForm({ myRole, myName, supabase, onSubmit, onCancel }: {
   )
 
   return (
-    <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 12, padding: 20 }}>
+    <div style={{ background: 'white', border: '1.5px solid var(--ink)', borderRadius: 'var(--r-xl)', padding: 20 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 18 }}>
         <button onClick={() => setStep('recipient')}
-          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', fontSize: 13, fontFamily: 'var(--font-sans)', padding: 0 }}>
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-4)', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', padding: 0 }}>
           ← Alterar destinatário
         </button>
-        <div style={{ fontSize: 13, color: 'var(--ink)', fontWeight: 700 }}>
+        <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)', fontWeight: 'var(--peso-forte)' as any }}>
           Para: {selectedPro ? selectedPro.display_name : `Todos os ${ROLE_LABELS[broadcastRole]}s`}
         </div>
       </div>
@@ -536,7 +540,7 @@ function NewConsultForm({ myRole, myName, supabase, onSubmit, onCancel }: {
         <label style={label_s}>Medicamentos (um por linha)</label>
         <textarea value={form.medications} onChange={e => set('medications', e.target.value)}
           placeholder={'Warfarina 5mg\nIbuprofeno 400mg SOS'} rows={2}
-          style={{ ...input_s, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 12, lineHeight: 1.6 }} />
+          style={{ ...input_s, resize: 'vertical', fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', lineHeight: 1.6 }} />
       </div>
 
       <div style={{ marginBottom: 12 }}>
@@ -547,23 +551,23 @@ function NewConsultForm({ myRole, myName, supabase, onSubmit, onCancel }: {
       </div>
 
       {aiSuggestion && (
-        <div style={{ padding: '10px 13px', background: '#f0fdf5', border: '1px solid #bbf7d0', borderRadius: 8, marginBottom: 12 }}>
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: '#0d6e42', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Análise Phlox</div>
-          <div style={{ fontSize: 12, color: '#14532d', lineHeight: 1.6 }}>{aiSuggestion}</div>
+        <div style={{ padding: '10px 13px', background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', marginBottom: 12 }}>
+          <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>Análise Phlox</div>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--green-3)', lineHeight: 1.6 }}>{aiSuggestion}</div>
         </div>
       )}
 
       <div style={{ display: 'flex', gap: 8 }}>
         <button onClick={handleSubmit} disabled={submitting || !form.subject.trim() || !form.body.trim() || !form.patient_name.trim()}
-          style={{ flex: 1, padding: '11px', background: form.subject.trim() && form.body.trim() ? 'var(--ink)' : 'var(--bg-3)', color: form.subject.trim() && form.body.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+          style={{ flex: 1, padding: '11px', background: form.subject.trim() && form.body.trim() ? 'var(--ink)' : 'var(--bg-3)', color: form.subject.trim() && form.body.trim() ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
           {submitting ? 'A enviar...' : 'Enviar consulta →'}
         </button>
         <button onClick={() => { if (form.body.trim()) analyse() }}
-          style={{ padding: '11px 14px', background: 'white', color: '#0d6e42', border: '1px solid #bbf7d0', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-sans)' }}>
+          style={{ padding: '11px 14px', background: 'white', color: 'var(--green)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)' }}>
           {analysing ? '...' : 'Análise AI'}
         </button>
         <button onClick={onCancel}
-          style={{ padding: '11px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 8, cursor: 'pointer', fontSize: 12, fontFamily: 'var(--font-sans)' }}>
+          style={{ padding: '11px 14px', background: 'white', color: 'var(--ink-4)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-sans)' }}>
           Cancelar
         </button>
       </div>
@@ -656,69 +660,90 @@ export default function ConnectPage() {
   const tabStyle = (t: string) => ({
     padding: '9px 16px', background: 'none', border: 'none',
     borderBottom: `2px solid ${tab === t ? 'var(--ink)' : 'transparent'}`,
-    cursor: 'pointer', fontSize: 11, fontWeight: 700,
+    cursor: 'pointer', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
     color: tab === t ? 'var(--ink)' : 'var(--ink-4)',
     fontFamily: 'var(--font-sans)', letterSpacing: '0.04em',
     textTransform: 'uppercase' as const, marginBottom: -1,
   })
 
   if (!isPro) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Ligações</span>
+        </BarraDeTrabalho>
+      }
+    >
 
       <div className="page-container page-body" style={{ maxWidth: 600, margin: '0 auto' }}>
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '56px 36px', textAlign: 'center' }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '56px 36px', textAlign: 'center' }}>
           <div className="eyebrow" style={{ justifyContent: 'center', marginBottom: 16 }}>Phlox Connect</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 28, color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.01em', marginBottom: 12 }}>
+          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, letterSpacing: '-0.01em', marginBottom: 12 }}>
             Comunicação clínica entre profissionais.
           </h1>
-          <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28, maxWidth: 420, margin: '0 auto 28px' }}>
+          <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', lineHeight: 1.7, marginBottom: 28, maxWidth: 420, margin: '0 auto 28px' }}>
             Encontra qualquer farmacêutico, médico ou enfermeiro com conta Phlox. Envias a consulta — eles respondem. Auditável e estruturado. Pro e Institucional.
           </p>
-          <Link href="/pricing" style={{ display: 'inline-block', background: 'var(--ink)', color: 'white', textDecoration: 'none', padding: '13px 32px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>
+          <Link href="/pricing" style={{ display: 'inline-block', background: 'var(--ink)', color: 'white', textDecoration: 'none', padding: '13px 32px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any }}>
             Activar Pro →
           </Link>
         </div>
       </div>
-    </div>
+    </Mesa>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)', display: 'flex', flexDirection: 'column' }}>
+        <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)',
+            fontWeight: 'var(--peso-forte)' as any,
+          }}>Ligações</span>
+        </BarraDeTrabalho>
+      }
+    >
 
 
       {/* Header */}
-      <div style={{ background: '#0f172a', borderBottom: '1px solid #1e293b' }}>
+      <div style={{ background: 'var(--ink)', borderBottom: '1px solid var(--ink-2)' }}>
         <div className="page-container" style={{ paddingTop: 20, paddingBottom: 0 }}>
-          <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: '#475569', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
-            <Link href="/cockpit" style={{ color: '#475569', textDecoration: 'none' }}>Cockpit</Link>
+          <div style={{ fontSize: 'var(--t-meta)', fontFamily: 'var(--font-mono)', color: 'var(--ink-3)', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <Link href="/cockpit" style={{ color: 'var(--ink-3)', textDecoration: 'none' }}>Cockpit</Link>
             <span>›</span>
-            <span style={{ color: '#64748b' }}>Connect</span>
+            <span style={{ color: 'var(--ink-4)' }}>Connect</span>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14, flexWrap: 'wrap' }}>
             <div style={{ flex: 1 }}>
-              <div className="eyebrow" style={{ color: '#475569', marginBottom: 6 }}>Phlox Connect · Comunicação Inter-Profissional</div>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#f8fafc', fontWeight: 400 }}>
+              <div className="eyebrow" style={{ color: 'var(--ink-3)', marginBottom: 6 }}>Phlox Connect · Comunicação Inter-Profissional</div>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--bg-2)', fontWeight: 'var(--peso-normal)' as any }}>
                 Consultas clínicas
               </div>
             </div>
             <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <select value={myRole} onChange={e => setMyRole(e.target.value as UserRole)}
-                style={{ background: '#1e293b', color: '#94a3b8', border: '1px solid #334155', borderRadius: 7, padding: '8px 12px', fontSize: 12, fontFamily: 'var(--font-sans)', outline: 'none', cursor: 'pointer' }}>
+                style={{ background: 'var(--ink-2)', color: 'var(--ink-5)', border: '1px solid var(--ink-3)', borderRadius: 'var(--r-md)', padding: '8px 12px', fontSize: 'var(--t-meta)', fontFamily: 'var(--font-sans)', outline: 'none', cursor: 'pointer' }}>
                 {Object.entries(ROLE_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
               <button onClick={() => { setSelected(null); setComposing(true) }}
-                style={{ padding: '9px 18px', background: '#22c55e', color: '#0f172a', border: 'none', borderRadius: 8, cursor: 'pointer', fontSize: 13, fontWeight: 800, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
+                style={{ padding: '9px 18px', background: 'var(--green)', color: 'var(--ink)', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap' }}>
                 Nova consulta
               </button>
             </div>
           </div>
-          <div style={{ display: 'flex', borderTop: '1px solid #1e293b' }}>
+          <div style={{ display: 'flex', borderTop: '1px solid var(--ink-2)' }}>
             {([['inbox','Recebidas'], ['sent','Enviadas'], ['all','Todas']] as const).map(([id, label]) => (
               <button key={id} onClick={() => setTab(id)}
-                style={{ ...tabStyle(id), color: tab === id ? '#f8fafc' : '#475569', borderBottomColor: tab === id ? '#22c55e' : 'transparent' }}>
+                style={{ ...tabStyle(id), color: tab === id ? 'var(--bg-2)' : 'var(--ink-3)', borderBottomColor: tab === id ? 'var(--green)' : 'transparent' }}>
                 {label}
                 {id === 'inbox' && pendingCount > 0 && (
-                  <span style={{ marginLeft: 6, background: '#dc2626', color: 'white', fontSize: 9, padding: '1px 5px', borderRadius: 10, fontFamily: 'var(--font-mono)' }}>{pendingCount}</span>
+                  <span style={{ marginLeft: 6, background: 'var(--red)', color: 'white', fontSize: 'var(--t-micro)', padding: '1px 5px', borderRadius: 'var(--r-lg)', fontFamily: 'var(--font-mono)' }}>{pendingCount}</span>
                 )}
               </button>
             ))}
@@ -731,27 +756,27 @@ export default function ConnectPage() {
         {/* List */}
         <div style={{ background: 'white', borderRight: '1px solid var(--border)', overflowY: 'auto' }}>
           {composing && !selected && (
-            <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', background: '#fffbeb' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#854d0e', textTransform: 'uppercase', letterSpacing: '0.08em' }}>A redigir nova consulta...</div>
+            <div style={{ padding: '10px', borderBottom: '1px solid var(--border)', background: 'var(--badge-amber-bg)' }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', color: 'var(--badge-amber-fg)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>A redigir nova consulta...</div>
             </div>
           )}
           {/* O pedido nao saiu. Fica dito aqui, com o formulario ainda aberto. */}
           {erroEnvio && (
             <div style={{
-              padding: '10px 14px', borderBottom: '1px solid #fed7d7', background: '#fff5f5',
-              fontSize: 12.5, color: '#c53030', lineHeight: 1.5,
+              padding: '10px 14px', borderBottom: '1px solid var(--badge-red-border)', background: 'var(--badge-red-bg)',
+              fontSize: 'var(--t-meta)', color: 'var(--red)', lineHeight: 1.5,
             }}>{erroEnvio}</div>
           )}
           {loading ? (
             <div style={{ padding: 14, display: 'flex', flexDirection: 'column', gap: 6 }}>
-              {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 6 }} />)}
+              {[0,1,2,3].map(i => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 'var(--r)' }} />)}
             </div>
           ) : filtered.length === 0 ? (
             <div style={{ padding: '32px 16px', textAlign: 'center', color: 'var(--ink-4)' }}>
-              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', textTransform: 'uppercase', letterSpacing: '0.12em', marginBottom: 8 }}>
                 {tab === 'inbox' ? 'Sem consultas recebidas' : 'Sem consultas enviadas'}
               </div>
-              <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+              <div style={{ fontSize: 'var(--t-meta)', lineHeight: 1.5 }}>
                 {tab === 'inbox' ? 'As consultas de outros profissionais aparecem aqui — incluindo consultas gerais enviadas para o teu papel.' : 'Clica em "Nova consulta" para contactar um colega.'}
               </div>
             </div>
@@ -762,16 +787,16 @@ export default function ConnectPage() {
             return (
               <button key={c.id} onClick={() => { setSelected(c); setComposing(false) }}
                 style={{ width: '100%', display: 'flex', gap: 10, padding: '11px 14px', background: selected?.id === c.id ? 'var(--bg)' : 'white', border: 'none', borderBottom: '1px solid var(--bg-3)', cursor: 'pointer', textAlign: 'left', transition: 'background 0.1s' }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.status === 'pending' && !isOwn ? '#d97706' : c.status === 'accepted' ? '#0d6e42' : 'var(--bg-3)', marginTop: 5, flexShrink: 0 }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: c.status === 'pending' && !isOwn ? 'var(--amber)' : c.status === 'accepted' ? 'var(--green)' : 'var(--bg-3)', marginTop: 5, flexShrink: 0 }} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{c.subject}</div>
-                  <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', marginBottom: 2 }}>{c.subject}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {isOwn ? `Para: ${c.to_name || ROLE_LABELS[c.to_role]}` : `De: ${c.from_name}`} · {c.patient_name}
                   </div>
                 </div>
                 <div style={{ flexShrink: 0, textAlign: 'right' }}>
-                  <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: s.color, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{s.label}</div>
-                  <div style={{ fontSize: 9, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{timeAgo(c.created_at)}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color: s.color, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>{s.label}</div>
+                  <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{timeAgo(c.created_at)}</div>
                 </div>
               </button>
             )
@@ -788,8 +813,8 @@ export default function ConnectPage() {
               myName={user?.name || 'Profissional'} myRole={myRole} onUpdate={updateConsult} />
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: 'var(--ink-4)', gap: 10 }}>
-              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)', textAlign: 'center' }}>Selecciona uma consulta</div>
-              <div style={{ fontSize: 13, color: 'var(--ink-4)', textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
+              <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', textAlign: 'center' }}>Selecciona uma consulta</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', textAlign: 'center', maxWidth: 300, lineHeight: 1.6 }}>
                 Ou cria uma nova para contactar um colega de qualquer instituição.
               </div>
             </div>
@@ -805,6 +830,6 @@ export default function ConnectPage() {
           .connect-grid > div:last-child { min-height: 400px; padding: 12px 14px !important; }
         }
       `}</style>
-    </div>
+    </Mesa>
   )
 }

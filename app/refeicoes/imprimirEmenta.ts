@@ -39,56 +39,56 @@ const CSS = `
   @page { size: A4; margin: 14mm 13mm; }
   * { box-sizing: border-box; }
   body {
-    margin: 0; color: #14150f; background: #fff;
+    margin: 0; color: var(--ink); background: var(--bg);
     font-family: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, serif;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
   .mono { font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace; }
-  header { border-bottom: 1.5px solid #14150f; padding-bottom: 9px; margin-bottom: 22px;
+  header { border-bottom: 1.5px solid var(--ink); padding-bottom: 9px; margin-bottom: 22px;
            display: flex; align-items: flex-end; justify-content: space-between; gap: 20px; }
-  .casa { font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: #6b6d63;
+  .casa { font-size: 9.5px; letter-spacing: .22em; text-transform: uppercase; color: var(--ink-4);
           font-family: ui-monospace, Menlo, Consolas, monospace; }
   h1 { font-size: 30px; font-weight: 400; margin: 5px 0 0; letter-spacing: -.015em; }
-  .periodo { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: #6b6d63;
+  .periodo { font-size: 10px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-4);
              font-family: ui-monospace, Menlo, Consolas, monospace; text-align: right; white-space: nowrap; }
-  footer { margin-top: 26px; border-top: 1px solid #d9dad2; padding-top: 8px;
-           font-size: 9px; color: #8b8d83; display: flex; justify-content: space-between;
+  footer { margin-top: 26px; border-top: 1px solid var(--border-2); padding-top: 8px;
+           font-size: 9px; color: var(--ink-4); display: flex; justify-content: space-between;
            font-family: ui-monospace, Menlo, Consolas, monospace; }
 
   /* ── um dia ─────────────────────────────────────────────── */
   .refeicao { margin-bottom: 26px; break-inside: avoid; }
   .refeicao > .titulo { font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
-    color: #6b6d63; font-family: ui-monospace, Menlo, Consolas, monospace;
-    border-bottom: 1px solid #e6e7e0; padding-bottom: 5px; margin-bottom: 11px; }
+    color: var(--ink-4); font-family: ui-monospace, Menlo, Consolas, monospace;
+    border-bottom: 1px solid var(--border); padding-bottom: 5px; margin-bottom: 11px; }
   .curso { display: flex; align-items: baseline; gap: 14px; margin-bottom: 7px; }
   .curso .m { flex: 0 0 74px; font-size: 9px; letter-spacing: .14em; text-transform: uppercase;
-              color: #9a9c92; font-family: ui-monospace, Menlo, Consolas, monospace; padding-top: 3px; }
+              color: var(--ink-5); font-family: ui-monospace, Menlo, Consolas, monospace; padding-top: 3px; }
   .curso .p { font-size: 20px; line-height: 1.3; }
-  .vazio { color: #b9bab1; font-style: italic; font-size: 15px; }
+  .vazio { color: var(--border-2); font-style: italic; font-size: 15px; }
 
   /* ── semana ─────────────────────────────────────────────── */
   table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  th, td { vertical-align: top; padding: 9px 8px; border-bottom: 1px solid #e6e7e0; }
-  thead th { border-bottom: 1.5px solid #14150f; text-align: left; }
+  th, td { vertical-align: top; padding: 9px 8px; border-bottom: 1px solid var(--border); }
+  thead th { border-bottom: 1.5px solid var(--ink); text-align: left; }
   th .d { font-size: 13px; font-weight: 600; }
-  th .n { font-size: 9px; color: #8b8d83; font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 400; }
-  td.rot { width: 92px; border-right: 1px solid #e6e7e0; }
+  th .n { font-size: 9px; color: var(--ink-4); font-family: ui-monospace, Menlo, Consolas, monospace; font-weight: 400; }
+  td.rot { width: 92px; border-right: 1px solid var(--border); }
   td.rot .r { font-size: 11.5px; font-weight: 600; }
-  td.rot .m { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: #9a9c92;
+  td.rot .m { font-size: 8.5px; letter-spacing: .12em; text-transform: uppercase; color: var(--ink-5);
               font-family: ui-monospace, Menlo, Consolas, monospace; margin-top: 2px; }
   td .prato { font-size: 12px; line-height: 1.35; }
-  tr.fim td { border-bottom: 1.5px solid #cfd0c8; }
+  tr.fim td { border-bottom: 1.5px solid var(--border-2); }
 
   /* ── mês ────────────────────────────────────────────────── */
   .mes { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .mes th { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: #6b6d63;
-            font-family: ui-monospace, Menlo, Consolas, monospace; border-bottom: 1.5px solid #14150f;
+  .mes th { font-size: 9px; letter-spacing: .16em; text-transform: uppercase; color: var(--ink-4);
+            font-family: ui-monospace, Menlo, Consolas, monospace; border-bottom: 1.5px solid var(--ink);
             padding-bottom: 6px; text-align: left; }
-  .mes td { height: 86px; border: 1px solid #e6e7e0; padding: 6px 7px; }
-  .mes .num { font-size: 10px; color: #9a9c92; font-family: ui-monospace, Menlo, Consolas, monospace; }
+  .mes td { height: 86px; border: 1px solid var(--border); padding: 6px 7px; }
+  .mes .num { font-size: 10px; color: var(--ink-5); font-family: ui-monospace, Menlo, Consolas, monospace; }
   .mes .pr { font-size: 10.5px; line-height: 1.3; margin-top: 4px; }
-  .mes .so { font-size: 9px; color: #6b6d63; margin-top: 3px; }
-  .mes td.fora { background: #fafaf7; }
+  .mes .so { font-size: 9px; color: var(--ink-4); margin-top: 3px; }
+  .mes td.fora { background: var(--bg-2); }
 `
 
 function moldura(casa: string, titulo: string, periodo: string, corpo: string) {

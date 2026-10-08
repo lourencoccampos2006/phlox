@@ -20,7 +20,7 @@ export default function EscolherFerramentas({ modo, principal }: { modo: string;
   const [escolhidas, setEscolhidas] = useState<string[] | null>(null)
   useEffect(() => { setEscolhidas(getEscolha(modo)) }, [modo])
 
-  if (escolhidas === null) return <div className="skeleton" style={{ height: 160, borderRadius: 10 }} />
+  if (escolhidas === null) return <div className="skeleton" style={{ height: 160, borderRadius: 'var(--r-lg)' }} />
 
   const opcoes = escolhiveis(modo, principal)
   const porCategoria = new Map<string, typeof opcoes>()
@@ -53,7 +53,7 @@ export default function EscolherFerramentas({ modo, principal }: { modo: string;
             <div style={{
               display: 'flex', flexDirection: 'column', gap: 1,
               background: 'var(--border)', border: '1px solid var(--border)',
-              borderRadius: 9, overflow: 'hidden',
+              borderRadius: 'var(--r-lg)', overflow: 'hidden',
             }}>
               {lista.map(o => {
                 const on = escolhidas.includes(o.id)
@@ -76,7 +76,7 @@ export default function EscolherFerramentas({ modo, principal }: { modo: string;
                         {selo && (
                           <span style={{
                             fontSize: 9.5, fontWeight: 700, color: selo.color, background: selo.bg,
-                            padding: '1.5px 6px', borderRadius: 4, textTransform: 'uppercase',
+                            padding: '1.5px 6px', borderRadius: 'var(--r)', textTransform: 'uppercase',
                             letterSpacing: '0.05em',
                           }}>{selo.label}</span>
                         )}

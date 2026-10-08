@@ -9,7 +9,7 @@ import { usePhloxContext } from '@/lib/copilotContext'
 import { logStudy } from '@/lib/studyProgress'
 import { reportError } from '@/lib/clientError'
 
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 interface LabRef {
   id: string; parameter: string; unit: string
@@ -68,48 +68,48 @@ export default function LabPage() {
   return (
     <main style={{ padding: '20px clamp(16px, 4vw, 32px)', maxWidth: 1200, margin: '0 auto' }}>
       <h1 style={{ margin: 0, fontSize: 26 }}>Laboratório</h1>
-      <p style={{ color: '#6b7280', margin: '4px 0 16px', fontSize: 14 }}>
+      <p style={{ color: 'var(--ink-4)', margin: '4px 0 16px', fontSize: 14 }}>
         Valores de referência + interpretação automática de análises.
       </p>
 
       {/* Interpretação livre */}
-      <section style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 16, marginBottom: 22 }}>
+      <section style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 16, marginBottom: 22 }}>
         <h2 style={{ margin: '0 0 8px', fontSize: 16 }}>Cola análises → interpreta</h2>
         <textarea value={labText} onChange={e => setLabText(e.target.value)} rows={5}
           placeholder="Cola texto bruto das análises (ex: Hb 8.2 g/dL, Plaquetas 120 ×10⁹/L, Cr 2.1 mg/dL...)"
-          style={{ width: '100%', padding: 10, border: '1px solid #d1d5db', borderRadius: 8, fontFamily: 'inherit', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
+          style={{ width: '100%', padding: 10, border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', fontFamily: 'inherit', fontSize: 13, boxSizing: 'border-box', resize: 'vertical' }}
         />
         <button onClick={analyse} disabled={busy || !labText.trim()} style={{ ...btn('primary'), marginTop: 8 }}>
           {busy ? 'A interpretar…' : 'Interpretar'}
         </button>
-        {err && <div style={{ marginTop: 12, padding: 10, background: '#fee2e2', color: '#991b1b', borderRadius: 8, fontSize: 13 }}>{err}</div>}
+        {err && <div style={{ marginTop: 12, padding: 10, background: 'var(--badge-red-bg)', color: 'var(--red)', borderRadius: 'var(--r-md)', fontSize: 13 }}>{err}</div>}
         {analysis && (
           <div style={{ marginTop: 12 }}>
             {/* Resumo geral */}
             {(analysis.summary || analysis.patient_summary) && (
               <div style={{
-                padding: 14, borderRadius: 10, marginBottom: 12,
-                background: analysis.overall_status === 'CRÍTICO' || analysis.overall_status === 'GRAVE' ? '#fee2e2'
-                          : analysis.overall_status === 'ATENÇÃO' || analysis.overall_status === 'ALERTA' ? '#fef3c7'
-                          : '#dcfce7',
+                padding: 14, borderRadius: 'var(--r-lg)', marginBottom: 12,
+                background: analysis.overall_status === 'CRÍTICO' || analysis.overall_status === 'GRAVE' ? 'var(--badge-red-bg)'
+                          : analysis.overall_status === 'ATENÇÃO' || analysis.overall_status === 'ALERTA' ? 'var(--badge-amber-bg)'
+                          : 'var(--badge-green-bg)',
               }}>
                 {analysis.overall_status && (
                   <div style={{ fontSize: 11, fontWeight: 800, letterSpacing: 0.5, marginBottom: 6,
-                    color: analysis.overall_status === 'CRÍTICO' || analysis.overall_status === 'GRAVE' ? '#991b1b'
-                         : analysis.overall_status === 'ATENÇÃO' || analysis.overall_status === 'ALERTA' ? '#92400e'
-                         : '#065f46',
+                    color: analysis.overall_status === 'CRÍTICO' || analysis.overall_status === 'GRAVE' ? 'var(--red)'
+                         : analysis.overall_status === 'ATENÇÃO' || analysis.overall_status === 'ALERTA' ? 'var(--amber)'
+                         : 'var(--green)',
                   }}>{analysis.overall_status}</div>
                 )}
-                <p style={{ margin: 0, fontSize: 14, color: '#111827', lineHeight: 1.5 }}>{analysis.patient_summary || analysis.summary}</p>
-                {analysis.reassurance && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#374151', fontStyle: 'italic' }}>{analysis.reassurance}</p>}
+                <p style={{ margin: 0, fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>{analysis.patient_summary || analysis.summary}</p>
+                {analysis.reassurance && <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--ink-3)', fontStyle: 'italic' }}>{analysis.reassurance}</p>}
               </div>
             )}
 
             {/* Achados-chave */}
             {analysis.key_findings && analysis.key_findings.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <h3 style={{ fontSize: 13, color: '#374151', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Achados principais</h3>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#374151', lineHeight: 1.6 }}>
+                <h3 style={{ fontSize: 13, color: 'var(--ink-3)', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Achados principais</h3>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.6 }}>
                   {analysis.key_findings.map((k: string, i: number) => <li key={i}>{k}</li>)}
                 </ul>
               </div>
@@ -118,26 +118,26 @@ export default function LabPage() {
             {/* Valores individuais */}
             {analysis.values && analysis.values.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <h3 style={{ fontSize: 13, color: '#374151', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Valores analisados ({analysis.values.length})</h3>
+                <h3 style={{ fontSize: 13, color: 'var(--ink-3)', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>Valores analisados ({analysis.values.length})</h3>
                 <div style={{ display: 'grid', gap: 6 }}>
                   {analysis.values.map((v: any, i: number) => (
                     <div key={i} style={{
-                      padding: 10, borderRadius: 8, border: '1px solid #e5e7eb',
-                      background: v.status === 'CRÍTICO' ? '#fef2f2'
-                                : v.status === 'BAIXO' || v.status === 'ALTO' ? '#fffbeb'
-                                : '#f9fafb',
+                      padding: 10, borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
+                      background: v.status === 'CRÍTICO' ? 'var(--badge-red-bg)'
+                                : v.status === 'BAIXO' || v.status === 'ALTO' ? 'var(--badge-amber-bg)'
+                                : 'var(--bg-2)',
                     }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', flexWrap: 'wrap', gap: 6 }}>
                         <span style={{ fontWeight: 700, fontSize: 14 }}>{v.name}</span>
                         <span style={{
                           padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700,
-                          background: v.status === 'CRÍTICO' ? '#fee2e2' : v.status === 'BAIXO' || v.status === 'ALTO' ? '#fef3c7' : '#dcfce7',
-                          color: v.status === 'CRÍTICO' ? '#991b1b' : v.status === 'BAIXO' || v.status === 'ALTO' ? '#92400e' : '#065f46',
+                          background: v.status === 'CRÍTICO' ? 'var(--badge-red-bg)' : v.status === 'BAIXO' || v.status === 'ALTO' ? 'var(--badge-amber-bg)' : 'var(--badge-green-bg)',
+                          color: v.status === 'CRÍTICO' ? 'var(--red)' : v.status === 'BAIXO' || v.status === 'ALTO' ? 'var(--amber)' : 'var(--green)',
                         }}>{v.value}</span>
                       </div>
-                      {v.reference && <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>Ref: {v.reference}</div>}
-                      {v.interpretation && <p style={{ margin: '6px 0 0', fontSize: 13, color: '#374151', lineHeight: 1.5 }}>{v.interpretation}</p>}
-                      {v.follow_up && <p style={{ margin: '6px 0 0', fontSize: 12, color: '#1e40af', fontWeight: 600 }}>↪ {v.follow_up}</p>}
+                      {v.reference && <div style={{ fontSize: 11, color: 'var(--ink-4)', marginTop: 2 }}>Ref: {v.reference}</div>}
+                      {v.interpretation && <p style={{ margin: '6px 0 0', fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>{v.interpretation}</p>}
+                      {v.follow_up && <p style={{ margin: '6px 0 0', fontSize: 12, color: 'var(--ink-2)', fontWeight: 600 }}>↪ {v.follow_up}</p>}
                     </div>
                   ))}
                 </div>
@@ -146,9 +146,9 @@ export default function LabPage() {
 
             {/* Perguntas ao médico */}
             {analysis.questions_for_doctor && analysis.questions_for_doctor.length > 0 && (
-              <div style={{ marginBottom: 12, padding: 12, background: '#eff6ff', borderRadius: 8 }}>
-                <h3 style={{ fontSize: 12, color: '#1e40af', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>💬 Perguntas a fazer ao médico</h3>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#1e40af', lineHeight: 1.6 }}>
+              <div style={{ marginBottom: 12, padding: 12, background: 'var(--bg-2)', borderRadius: 'var(--r-md)' }}>
+                <h3 style={{ fontSize: 12, color: 'var(--ink-2)', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>💬 Perguntas a fazer ao médico</h3>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>
                   {analysis.questions_for_doctor.map((q: string, i: number) => <li key={i}>{q}</li>)}
                 </ul>
               </div>
@@ -156,23 +156,23 @@ export default function LabPage() {
 
             {/* Sugestões de estilo de vida */}
             {analysis.lifestyle_suggestions && analysis.lifestyle_suggestions.length > 0 && (
-              <div style={{ marginBottom: 12, padding: 12, background: '#f0fdf5', borderRadius: 8 }}>
-                <h3 style={{ fontSize: 12, color: '#065f46', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>🌿 Sugestões de estilo de vida</h3>
-                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: '#065f46', lineHeight: 1.6 }}>
+              <div style={{ marginBottom: 12, padding: 12, background: 'var(--green-light)', borderRadius: 'var(--r-md)' }}>
+                <h3 style={{ fontSize: 12, color: 'var(--green)', margin: '0 0 6px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.5 }}>🌿 Sugestões de estilo de vida</h3>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: 'var(--green)', lineHeight: 1.6 }}>
                   {analysis.lifestyle_suggestions.map((s: string, i: number) => <li key={i}>{s}</li>)}
                 </ul>
               </div>
             )}
 
             {analysis.when_to_repeat && (
-              <div style={{ padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 13, color: '#374151' }}>
+              <div style={{ padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--ink-3)' }}>
                 <b>⏰ Repetir análise:</b> {analysis.when_to_repeat}
               </div>
             )}
 
             {/* Fallback se o JSON tiver outra forma */}
             {!analysis.values && !analysis.summary && !analysis.patient_summary && (
-              <pre style={{ padding: 10, background: '#f9fafb', borderRadius: 8, fontSize: 12, overflow: 'auto', maxHeight: 400, whiteSpace: 'pre-wrap' }}>{JSON.stringify(analysis, null, 2)}</pre>
+              <pre style={{ padding: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', fontSize: 12, overflow: 'auto', maxHeight: 400, whiteSpace: 'pre-wrap' }}>{JSON.stringify(analysis, null, 2)}</pre>
             )}
           </div>
         )}
@@ -190,22 +190,22 @@ export default function LabPage() {
         </div>
 
         {filtered.length === 0 ? (
-          <p style={{ color: '#6b7280', fontSize: 14 }}>Ainda não há parâmetros disponíveis.</p>
+          <p style={{ color: 'var(--ink-4)', fontSize: 14 }}>Ainda não há parâmetros disponíveis.</p>
         ) : (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 8 }}>
             {filtered.map(r => (
-              <details key={r.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 10, padding: 12 }}>
+              <details key={r.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: 12 }}>
                 <summary style={{ cursor: 'pointer', listStyle: 'none' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                     <span style={{ fontWeight: 700, fontSize: 14 }}>{r.parameter}</span>
-                    <span style={{ fontSize: 11, color: '#6b7280' }}>{r.category}</span>
+                    <span style={{ fontSize: 11, color: 'var(--ink-4)' }}>{r.category}</span>
                   </div>
-                  <div style={{ fontSize: 13, color: '#374151', marginTop: 4 }}>
+                  <div style={{ fontSize: 13, color: 'var(--ink-3)', marginTop: 4 }}>
                     {r.ref_low}–{r.ref_high} {r.unit}
                     {r.sex && r.sex !== 'any' && ` · ${r.sex === 'M' ? '♂' : '♀'}`}
                   </div>
                 </summary>
-                <div style={{ marginTop: 10, fontSize: 13, color: '#374151', lineHeight: 1.5 }}>
+                <div style={{ marginTop: 10, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.5 }}>
                   {r.clinical_note && <p style={{ margin: '0 0 6px' }}>{r.clinical_note}</p>}
                   {r.abnormal_low_meaning && <p style={{ margin: '6px 0' }}><b>↓ Baixo:</b> {r.abnormal_low_meaning}</p>}
                   {r.abnormal_high_meaning && <p style={{ margin: '6px 0' }}><b>↑ Alto:</b> {r.abnormal_high_meaning}</p>}
@@ -219,8 +219,8 @@ export default function LabPage() {
   )
 }
 
-const input: React.CSSProperties = { padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: 8, fontSize: 14, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
+const input: React.CSSProperties = { padding: '8px 12px', border: '1px solid var(--border-2)', borderRadius: 'var(--r-md)', fontSize: 14, fontFamily: 'inherit', background: 'white', boxSizing: 'border-box' }
 function btn(kind: 'primary' | 'ghost'): React.CSSProperties {
-  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 8, cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 14 }
-  return { padding: '8px 14px', border: '1px solid #e5e7eb', borderRadius: 8, cursor: 'pointer', background: 'white', color: '#374151', fontWeight: 600, fontSize: 14 }
+  if (kind === 'primary') return { padding: '8px 14px', border: 'none', borderRadius: 'var(--r-md)', cursor: 'pointer', background: ACCENT, color: 'white', fontWeight: 600, fontSize: 14 }
+  return { padding: '8px 14px', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', cursor: 'pointer', background: 'white', color: 'var(--ink-3)', fontWeight: 600, fontSize: 14 }
 }

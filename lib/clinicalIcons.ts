@@ -11,6 +11,16 @@ const BY_HREF: Record<string, string> = {
   '/residentes': 'users',
   '/mar': 'pill',
   '/o-dia': 'clock',
+  // ── As rotas novas (2026-10-07) ────────────────────────────────────────
+  // Sem entrada aqui, `iconForHref` devolve 'grid' — e quatro ferramentas
+  // diferentes no menu ficavam com o mesmo quadradinho. Um ícone repetido
+  // é pior do que nenhum: ensina a não olhar para a coluna da esquerda.
+  '/passagem': 'refresh',
+  '/casa': 'building',
+  '/inqueritos': 'chat',
+  '/inscricoes': 'clipboard',
+  '/calendario-do-ano': 'calendar',
+  '/estatisticas': 'chart',
   '/care-log': 'note',
   '/activities': 'target',
   '/family': 'family',
@@ -18,11 +28,11 @@ const BY_HREF: Record<string, string> = {
   '/assessments': 'clipboard',
   '/equipa': 'calendar',
   '/painel-dono': 'building',
-  '/radar': 'clipboard',
+  '/radar': 'search',
   '/guardiao': 'shield',
-  '/carga': 'scale',
+  '/carga': 'layers',
   '/autonomia': 'route',
-  '/historico': 'clipboard',
+  '/historico': 'book',
   '/documentos': 'note',
   '/interactions': 'search',
   '/calculos': 'calculator',

@@ -40,7 +40,7 @@ import { cartaSocial, anosDisponiveis, totalEmFalta } from '@/lib/cartaSocial'
 import { leituraPartilhada } from '@/lib/leituraPartilhada'
 import {
   SECOES, ultimosMeses, indicadores, comparar, variacaoEmPalavras, factosParaIA,
-  type Indicador, type Dados, type Mes,
+  type Indicador as Ind, type Dados, type Mes,
 } from '@/lib/estatisticas'
 
 type Organizado = {
@@ -50,6 +50,12 @@ type Organizado = {
   erro?: string
   semDados?: string
 }
+
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, CAIXA,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 export default function EstatisticasPage() {
   const { user, supabase } = useAuth() as any
@@ -68,7 +74,10 @@ export default function EstatisticasPage() {
   // ano fechado, e quem abre isto em março quer o de 2026, não os dois meses e
   // meio que já correram de 2027.
   const [anoCarta, setAnoCarta] = useState(() => new Date().getFullYear() - 1)
-  const [cartaAberta, setCartaAberta] = useState(false)
+  /* A Carta Social era um acordeao no meio da pagina — 70px de cabecalho
+     todos os dias por uma coisa que se faz uma vez por ano. Passa a vista. */
+  const [vista, setVista] = useState<'numeros' | 'carta'>('numeros')
+  const largo = useLargo()
 
   const meses = useMemo(() => ultimosMeses(12), [])
   const desde = meses[0].iso + '-01'
@@ -225,214 +234,226 @@ export default function EstatisticasPage() {
   }
   if (!scope.isManager) {
     return (
-      <div style={{ maxWidth: 560, margin: '80px auto', padding: '0 20px', textAlign: 'center' }}>
-        <p style={{ fontSize: 15, color: 'var(--ink-4)', lineHeight: 1.6 }}>
-          As estatísticas da casa são só para quem a dirige.
-        </p>
-      </div>
+      <Mesa>
+        <Painel>
+          <Vazio titulo="As estatísticas da casa são só para quem a dirige."
+            oQueFazer="São números sobre a casa inteira — ocupação, demora média, incidentes — e não sobre o trabalho de ninguém em particular. Quem gere a casa pode dar-lhe acesso em Equipa → Acessos." />
+        </Painel>
+      </Mesa>
     )
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Duas vistas, porque são dois trabalhos diferentes:
+
+       OS NÚMEROS     doze meses, vinte e três indicadores — vê-se todos os dias
+       CARTA SOCIAL   os quadros da Segurança Social — uma vez por ano
+
+     Estavam na mesma página, com a Carta Social num acordeão a meio: fechada
+     roubava 70px todos os dias, aberta empurrava os indicadores para fora do
+     ecrã. Separadas, cada uma tem o ecrã todo quando é a vez dela.
+     ══════════════════════════════════════════════════════════════════════════ */
   return (
-    <div style={{ background: 'var(--bg-2)', minHeight: '100vh' }}>
-      <div style={{
-        maxWidth: 1180, margin: '0 auto',
-        padding: 'var(--space-10) clamp(14px,2.5vw,24px) var(--space-16)',
-      }}>
-        <header style={{ display: 'flex', alignItems: 'flex-end', gap: 14, flexWrap: 'wrap', marginBottom: 20 }}>
-          <div style={{ flex: 1, minWidth: 250 }}>
-            <div style={{
-              fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.2em',
-              textTransform: 'uppercase', color: 'var(--ink-4)', marginBottom: 10,
-            }}>Estatísticas · {meses[0].rotulo} a {meses[meses.length - 1].rotulo}</div>
-            <h1 style={{
-              fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,34px)', fontWeight: 400,
-              margin: 0, letterSpacing: '-0.015em', color: 'var(--ink)',
-            }}>{nomeCasa || 'A casa'}, em números</h1>
-            <p style={{ margin: '7px 0 0', fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 620 }}>
-              Doze meses. Cada número diz como se calcula — e nenhum é estimado: onde
-              não há registos, diz-se o que falta.
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button onClick={imprimir} disabled={!dados} style={botao()}>Imprimir</button>
-            <button onClick={organizar} disabled={aOrganizar || !factos.length}
-              style={{ ...botao(), background: 'var(--ink)', color: 'var(--bg)', border: 'none' }}>
-              {aOrganizar ? 'A organizar…' : 'Organizar com IA'}
-            </button>
-          </div>
-        </header>
+    <Mesa
+      /* Oito secções empilhadas: isto lê-se de cima a baixo, não se trabalha
+         nele. Sem isto, os oito painéis dividiam a altura da janela entre si
+         e cada um ficava com meia linha de número à vista. */
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Em números</span>
 
-        {erro && (
-          <p style={{ fontSize: 13, color: 'var(--ink-4)', marginBottom: 16 }}>{erro}</p>
-        )}
+          <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{nomeCasa || 'A casa'}</span>
 
-        {/* ── A leitura da IA, por cima e nunca em vez dos números ────────── */}
-        {ia && <Leitura ia={ia} cor={bp.accent} />}
+          <Seletor
+            opcoes={[
+              { id: 'numeros', rotulo: 'Os doze meses' },
+              { id: 'carta', rotulo: faltam > 0 ? `Carta Social ${faltam}` : 'Carta Social' },
+            ]}
+            ativa={vista} aoMudar={v => setVista(v as 'numeros' | 'carta')} />
 
-        {/* ── A folha da Carta Social ──────────────────────────────────────
-            Vem ANTES dos indicadores, e fechada. É uma vez por ano e não todos
-            os dias — aberta, roubava o ecrã a quem veio ver como corre o mês.
-            Fechada mas à vista, está lá em dezembro quando for precisa. */}
-        {dados && (
-          <section style={{
-            marginBottom: 22, borderRadius: 'var(--r-lg)',
-            border: `1px solid ${cartaAberta ? bp.accent : 'var(--border)'}`,
-            overflow: 'hidden',
-          }}>
-            <button
-              onClick={() => setCartaAberta(a => !a)}
-              aria-expanded={cartaAberta}
-              style={{
-                display: 'flex', width: '100%', alignItems: 'center', gap: 12,
-                padding: '14px 16px', border: 'none', background: 'transparent',
-                cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit',
-              }}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14.5, fontWeight: 800, color: 'var(--ink)' }}>
-                  Carta Social — reporte anual
-                </div>
-                <div style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 3, lineHeight: 1.45 }}>
-                  Os quadros que a Segurança Social pede uma vez por ano, somados a partir das fichas.
-                </div>
-              </div>
-              {faltam > 0 && !cartaAberta && (
-                <span style={{
-                  flexShrink: 0, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 999,
-                  background: 'var(--badge-amber-bg)', color: 'var(--badge-amber-fg)',
-                  border: '1px solid var(--badge-amber-border)',
-                }}>{faltam} por preencher</span>
-              )}
-              <span aria-hidden style={{ flexShrink: 0, color: 'var(--ink-4)', fontSize: 15 }}>
-                {cartaAberta ? '▲' : '▼'}
-              </span>
-            </button>
+          {vista === 'numeros' ? (
+            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+              {meses[0].rotulo.toUpperCase()} A {meses[meses.length - 1].rotulo.toUpperCase()}
+            </span>
+          ) : (
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+              <span style={ROTULO}>Ano</span>
+              <select value={anoCarta} onChange={e => setAnoCarta(Number(e.target.value))}
+                style={{ ...CAIXA, width: 90 }}>
+                {anos.map(a => <option key={a} value={a}>{a}</option>)}
+              </select>
+            </label>
+          )}
 
-            {cartaAberta && (
-              <div style={{ padding: '0 16px 16px' }}>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-                  <label style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)' }}>
-                    Ano{' '}
-                    <select value={anoCarta} onChange={e => setAnoCarta(Number(e.target.value))}
-                      style={{
-                        marginLeft: 6, padding: '8px 10px', minHeight: 38, borderRadius: 'var(--r-md)',
-                        border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13.5,
-                        background: 'var(--bg)', color: 'var(--ink)',
-                      }}>
-                      {anos.map(a => <option key={a} value={a}>{a}</option>)}
-                    </select>
-                  </label>
-                  <button onClick={imprimirCarta} style={{
-                    minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
-                    border: '1px solid var(--border-2)', background: 'transparent',
-                    fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
-                    color: 'var(--ink-3)', cursor: 'pointer',
-                  }}>Imprimir a folha</button>
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                  {quadros.map(q => (
-                    <div key={q.id}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
-                        <h3 style={{ margin: 0, fontSize: 13.5, fontWeight: 800, color: 'var(--ink)' }}>
-                          {q.titulo}
-                        </h3>
-                        <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{q.porque}</span>
-                      </div>
-
-                      <div style={{
-                        marginTop: 7, borderRadius: 'var(--r-md)',
-                        border: '1px solid var(--border)', overflow: 'hidden',
-                      }}>
-                        {q.linhas.map((l, i) => (
-                          <div key={l.rotulo} style={{
-                            display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
-                            gap: 12, padding: '9px 12px',
-                            borderTop: i === 0 ? 'none' : '1px solid var(--bg-3)',
-                          }}>
-                            <span style={{ fontSize: 13, color: 'var(--ink-2)', minWidth: 0 }}>{l.rotulo}</span>
-                            <span style={{
-                              flexShrink: 0, fontFamily: 'var(--font-mono)', fontSize: 13,
-                              fontWeight: 700, color: 'var(--ink)',
-                            }}>
-                              {l.valor}
-                              {l.pct !== null && l.pct !== undefined && (
-                                <span style={{ color: 'var(--ink-5)', fontWeight: 500 }}>  {l.pct}%</span>
-                              )}
-                            </span>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* A BASE da conta, sempre. Um relatório que não diga
-                          sobre quantas pessoas foi feito não se consegue
-                          defender se alguém perguntar — e alguém pergunta. */}
-                      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
-                        {q.base}.
-                        {q.emFalta > 0 && q.ondeResolver && (
-                          <span style={{ color: 'var(--badge-amber-fg)', fontWeight: 600 }}>
-                            {' '}Faltam {q.emFalta} — {q.ondeResolver}.
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <p style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 14, lineHeight: 1.55 }}>
-                  Os números saem das fichas e das avaliações desta casa, e nenhum é estimado.
-                  Confira-os antes de submeter: o reporte é da instituição, não do Phlox.
-                </p>
-              </div>
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            {vista === 'numeros' ? (
+              <>
+                <Botao onClick={imprimir} disabled={!dados}>IMPRIMIR</Botao>
+                <Botao feitio="principal" onClick={organizar} esperando={aOrganizar}
+                  disabled={!factos.length}>
+                  ORGANIZAR COM IA
+                </Botao>
+              </>
+            ) : (
+              <Botao onClick={imprimirCarta}>IMPRIMIR A FOLHA</Botao>
             )}
-          </section>
-        )}
-
-        {!dados ? (
-          <p style={{ fontSize: 13.5, color: 'var(--ink-4)' }}>A somar os doze meses…</p>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-            {SECOES.map(s => {
-              const daSecao = todos.filter(i => i.secao === s.id)
-              if (!daSecao.length) return null
-              return (
-                <section key={s.id}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, marginBottom: 10 }}>
-                    <h2 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>
-                      {s.rotulo}
-                    </h2>
-                    <span style={{ fontSize: 12, color: 'var(--ink-5)' }}>{s.porque}</span>
-                  </div>
-                  <div className="est-grelha">
-                    {daSecao.map(i => (
-                      <Cartao key={i.id} ind={i} meses={meses} cor={bp.accent} />
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
           </div>
-        )}
-      </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>Cada número diz como se calcula</span>
+          <span style={{ ...MONO, color: 'var(--green)' }}>A melhorar</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>A piorar</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Nenhum número é estimado: onde não há registos, diz-se o que falta
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {erro && <Aviso tom="mau">{erro}</Aviso>}
+
+      {vista === 'carta' ? (
+        /* ══ A CARTA SOCIAL ══════════════════════════════════════════════ */
+        !dados ? (
+          <Painel><ACarregar oQue="A somar as fichas…" /></Painel>
+        ) : (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>
+                  Carta Social {anoCarta} — os quadros que a Segurança Social pede
+                </span>
+                {faltam > 0 && (
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-meta)', color: 'var(--amber)',
+                    fontWeight: 'var(--peso-forte)' as any,
+                  }}>{faltam} POR PREENCHER</span>
+                )}
+              </Cabecalho>
+            }
+            rodape={
+              <span style={MONO}>
+                Os números saem das fichas desta casa, e nenhum é estimado. Confira antes
+                de submeter: o reporte é da instituição, não do Phlox.
+              </span>
+            }
+          >
+            {quadros.map(q => (
+              <div key={q.id}>
+                <div style={{
+                  display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap',
+                  padding: '6px 12px', background: 'var(--bg-2)',
+                  borderTop: '1px solid var(--border-2)', borderBottom: '1px solid var(--border)',
+                  position: 'sticky', top: 0, zIndex: 1,
+                }}>
+                  <span style={ROTULO}>{q.titulo}</span>
+                  <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{q.porque}</span>
+                </div>
+
+                {q.linhas.map(l => (
+                  <div key={l.rotulo} style={{
+                    display: 'flex', alignItems: 'baseline', justifyContent: 'space-between',
+                    gap: 12, padding: '6px 12px', borderBottom: '1px solid var(--border)',
+                  }}>
+                    <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', minWidth: 0 }}>
+                      {l.rotulo}
+                    </span>
+                    <span style={{
+                      ...MONO, flexShrink: 0, fontSize: 'var(--t-dado)',
+                      fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)',
+                    }}>
+                      {l.valor}
+                      {l.pct !== null && l.pct !== undefined && (
+                        <span style={{ color: 'var(--ink-5)', fontWeight: 'var(--peso-normal)' as any }}>
+                          {'  '}{l.pct}%
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                ))}
+
+                {/* A BASE da conta, sempre. Um relatório que não diga sobre
+                    quantas pessoas foi feito não se consegue defender se
+                    alguém perguntar — e alguém pergunta. */}
+                <div style={{
+                  padding: '5px 12px 9px', fontSize: 'var(--t-meta)',
+                  color: 'var(--ink-5)', lineHeight: 1.5,
+                }}>
+                  {q.base}.
+                  {q.emFalta > 0 && q.ondeResolver && (
+                    <span style={{ color: 'var(--amber)', fontWeight: 'var(--peso-corpo)' as any }}>
+                      {' '}Faltam {q.emFalta} — {q.ondeResolver}.
+                    </span>
+                  )}
+                </div>
+              </div>
+            ))}
+          </Painel>
+        )
+      ) : !dados ? (
+        <Painel><ACarregar oQue="A somar os doze meses…" /></Painel>
+      ) : (
+        <>
+          {/* A leitura da IA, por cima e nunca EM VEZ dos números. */}
+          {ia && <Leitura ia={ia} />}
+
+          {SECOES.map(s2 => {
+            const daSecao = todos.filter(i => i.secao === s2.id)
+            if (!daSecao.length) return null
+            return (
+              <Painel key={s2.id}
+                cabeca={
+                  <Cabecalho>
+                    <span style={{ ...ROTULO, flex: 1 }}>{s2.rotulo}</span>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{s2.porque}</span>
+                  </Cabecalho>
+                }
+              >
+                {/* Vinte e três cartões com borda eram vinte e três molduras a
+                    competir com os números lá dentro. Células separadas por
+                    filetes: a grelha é a moldura, e é uma só. */}
+                <div className="est-grelha">
+                  {daSecao.map(i => <Indicador key={i.id} ind={i} meses={meses} />)}
+                </div>
+              </Painel>
+            )
+          })}
+        </>
+      )}
 
       <style>{`
-        .est-grelha { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); gap: 12px; }
-        @media (max-width: 1080px) { .est-grelha { grid-template-columns: repeat(3, minmax(0,1fr)); } }
-        @media (max-width: 800px)  { .est-grelha { grid-template-columns: repeat(2, minmax(0,1fr)); } }
-        @media (max-width: 460px)  { .est-grelha { grid-template-columns: 1fr; } }
+        /* O MESMO corte do resto da aplicação (1040px), e não os três próprios
+           que esta página tinha (1080 / 800 / 460) — com cortes diferentes,
+           quem arrastava a janela via esta página partir-se numa largura em
+           que mais nenhuma partia. */
+        .est-grelha { display: grid; grid-template-columns: repeat(4, minmax(0,1fr)); }
+        .est-grelha > * { border-right: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+        .est-grelha > *:nth-child(4n) { border-right: none; }
+        @media (max-width: 1040px) {
+          .est-grelha { grid-template-columns: repeat(2, minmax(0,1fr)); }
+          .est-grelha > *:nth-child(4n) { border-right: 1px solid var(--border); }
+          .est-grelha > *:nth-child(2n) { border-right: none; }
+        }
+        @media (max-width: 560px) {
+          .est-grelha { grid-template-columns: 1fr; }
+          .est-grelha > * { border-right: none !important; }
+        }
       `}</style>
-    </div>
+    </Mesa>
   )
 }
 
-const botao = (): React.CSSProperties => ({
-  minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)', cursor: 'pointer',
-  fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, whiteSpace: 'nowrap',
-  border: '1px solid var(--border-2)', background: 'transparent', color: 'var(--ink)',
-})
-
-/* ── Um indicador ─────────────────────────────────────────────────────────── */
-function Cartao({ ind, meses, cor }: { ind: Indicador; meses: Mes[]; cor: string }) {
+/* ── Um indicador ──────────────────────────────────────────────────────────
+   Era um `Cartao` com borda e raio próprios. Passa a célula de uma grelha
+   com filetes — e muda de nome, porque «cartão» deixou de ser o que é. */
+function Indicador({ ind, meses }: { ind: Ind; meses: Mes[] }) {
   const [porque, setPorque] = useState(false)
   const c = comparar(ind.serie)
   const variou = variacaoEmPalavras(c, meses)
@@ -441,60 +462,57 @@ function Cartao({ ind, meses, cor }: { ind: Indicador; meses: Mes[]; cor: string
   // sobe fazia as quedas parecerem boas notícias.
   const corDaVariacao = !variou || c.variacao === null || c.variacao === 0 ? 'var(--ink-4)'
     : ind.sentido === 'neutro' ? 'var(--ink-4)'
-    : (c.variacao > 0) === (ind.sentido === 'subir_bom') ? '#16a34a' : '#dc2626'
+    : (c.variacao > 0) === (ind.sentido === 'subir_bom') ? 'var(--green)' : 'var(--red)'
 
   return (
-    <div style={{
-      border: '1px solid var(--border)', borderRadius: 'var(--r-md)', background: 'var(--bg)',
-      padding: '13px 14px', display: 'flex', flexDirection: 'column', gap: 6,
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.1em',
-        textTransform: 'uppercase', color: 'var(--ink-5)', lineHeight: 1.3,
-      }}>{ind.titulo}</div>
+    <div style={{ padding: '10px 12px', display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <div style={{ ...ROTULO, lineHeight: 1.35 }}>{ind.titulo}</div>
 
       {ind.vazio ? (
-        <p style={{ margin: 0, fontSize: 12, color: 'var(--ink-4)', lineHeight: 1.5 }}>
+        <p style={{ margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.5 }}>
           {ind.vazio}
         </p>
       ) : (
         <>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 5, flexWrap: 'wrap' }}>
             <span style={{
-              fontFamily: 'var(--font-mono)', fontSize: 23, fontWeight: 700,
+              ...MONO, fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any,
               lineHeight: 1.1, color: 'var(--ink)',
             }}>{ind.valor}</span>
             {ind.unidade && (
-              <span style={{ fontSize: 11, color: 'var(--ink-5)' }}>{ind.unidade}</span>
+              <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{ind.unidade}</span>
             )}
           </div>
           {variou && (
-            <div style={{ fontSize: 11.5, color: corDaVariacao, fontWeight: 600 }}>{variou}</div>
+            <div style={{
+              ...MONO, fontSize: 'var(--t-meta)', color: corDaVariacao,
+              fontWeight: 'var(--peso-corpo)' as any,
+            }}>{variou}</div>
           )}
-          {ind.serie.some(v => v !== null) && <Faisca serie={ind.serie} cor={cor} />}
+          {ind.serie.some(v => v !== null) && <Faisca serie={ind.serie} />}
         </>
       )}
 
-      {/* «Como se calcula». Um número que ninguém consegue explicar é um número
-          em que ninguém confia — e a primeira vez que alguém não conseguir
-          reproduzir a conta, deixa de acreditar na página inteira. */}
+      {/* «Como se calcula». Um número que ninguém consegue explicar é um
+          número em que ninguém confia — e a primeira vez que alguém não
+          conseguir reproduzir a conta, deixa de acreditar na página inteira. */}
       <button onClick={() => setPorque(p => !p)} style={{
         marginTop: 'auto', paddingTop: 4, background: 'none', border: 'none', padding: 0,
-        cursor: 'pointer', fontFamily: 'inherit', fontSize: 10.5, color: 'var(--ink-5)',
-        textAlign: 'left',
-      }}>{porque ? 'esconder' : 'como se calcula'}</button>
+        cursor: 'pointer', ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.06em',
+        color: 'var(--ink-5)', textAlign: 'left',
+      }}>{porque ? 'ESCONDER' : 'COMO SE CALCULA'}</button>
       {porque && (
-        <p style={{ margin: 0, fontSize: 11, color: 'var(--ink-4)', lineHeight: 1.55 }}>
-          {ind.comoSeCalcula}
-        </p>
+        <p style={{
+          margin: 0, fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.55,
+        }}>{ind.comoSeCalcula}</p>
       )}
     </div>
   )
 }
 
-/** Doze meses em vinte e oito pixels. Sem eixos: é a forma, não a leitura. */
-function Faisca({ serie, cor }: { serie: (number | null)[]; cor: string }) {
-  const vals = serie.map(v => (v === null ? 0 : v))
+/** Doze meses em vinte e seis pixéis. Sem eixos: é a forma, não a leitura. */
+function Faisca({ serie }: { serie: (number | null)[] }) {
+  const vals: number[] = serie.map(v => (v === null ? 0 : v))
   const max = Math.max(1, ...vals)
   const L = 100, A = 26
   const passo = vals.length > 1 ? L / (vals.length - 1) : L
@@ -502,74 +520,95 @@ function Faisca({ serie, cor }: { serie: (number | null)[]; cor: string }) {
   return (
     <svg viewBox={`0 0 ${L} ${A}`} preserveAspectRatio="none"
       style={{ width: '100%', height: A, display: 'block', marginTop: 2 }} aria-hidden>
-      <polyline points={pontos.join(' ')} fill="none" stroke={cor} strokeWidth="1.6"
+      <polyline points={pontos.join(' ')} fill="none" stroke="var(--green)" strokeWidth="1.6"
         strokeLinecap="round" strokeLinejoin="round" vectorEffect="non-scaling-stroke" />
       {/* O último mês marcado: é o que se está a ler. */}
       <circle cx={(vals.length - 1) * passo} cy={A - (vals[vals.length - 1] / max) * (A - 3)}
-        r="2" fill={cor} />
+        r="2" fill="var(--green)" />
     </svg>
   )
 }
 
 /* ── O que a IA organizou ─────────────────────────────────────────────────── */
-function Leitura({ ia, cor }: { ia: Organizado; cor: string }) {
+function Leitura({ ia }: { ia: Organizado }) {
   const nada = !ia.destaques.length && !ia.leitura
   return (
-    <div style={{
-      border: `1px solid ${cor}33`, background: `${cor}08`, borderRadius: 'var(--r-md)',
-      padding: '16px 18px', marginBottom: 22,
-    }}>
-      <div style={{
-        fontFamily: 'var(--font-mono)', fontSize: 9.5, letterSpacing: '0.12em',
-        textTransform: 'uppercase', color: cor, marginBottom: 10,
-      }}>O que merece atenção</div>
+    <Painel
+      cabeca={
+        <Cabecalho>
+          <span style={{ ...ROTULO, flex: 1 }}>O que merece atenção</span>
+          <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+            ORGANIZADO POR IA
+          </span>
+        </Cabecalho>
+      }
+      rodape={
+        <span style={MONO}>
+          A IA só ordena e explica os números calculados em baixo. Não os calcula,
+          e tudo o que escreve é conferido contra eles.
+        </span>
+      }
+    >
+      <div style={{ padding: '12px 14px' }}>
+        {ia.semDados && (
+          <p style={{ margin: 0, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.65 }}>
+            {ia.semDados}
+          </p>
+        )}
+        {ia.erro && (
+          <p style={{ margin: 0, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.65 }}>
+            {ia.erro}
+          </p>
+        )}
 
-      {ia.semDados && (
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.65 }}>{ia.semDados}</p>
-      )}
-      {ia.erro && (
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.65 }}>{ia.erro}</p>
-      )}
+        {!!ia.destaques.length && ia.destaques.map((d, i) => (
+          <div key={i} style={{
+            display: 'flex', gap: 10, alignItems: 'flex-start',
+            padding: '7px 0', borderBottom: '1px solid var(--border)',
+          }}>
+            <span style={{
+              ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)',
+              width: 18, flexShrink: 0, paddingTop: 1,
+            }}>{String(i + 1).padStart(2, '0')}</span>
+            <span style={{ minWidth: 0 }}>
+              <span style={{
+                display: 'block', fontSize: 'var(--t-corpo)',
+                fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)',
+              }}>{d.titulo}</span>
+              <span style={{
+                display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)',
+                marginTop: 2, lineHeight: 1.55,
+              }}>{d.porque}</span>
+            </span>
+          </div>
+        ))}
 
-      {!!ia.destaques.length && (
-        <ol style={{ margin: '0 0 12px', paddingLeft: 20, display: 'flex', flexDirection: 'column', gap: 9 }}>
-          {ia.destaques.map((d, i) => (
-            <li key={i} style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.55 }}>
-              <strong>{d.titulo}</strong>
-              <span style={{ display: 'block', fontSize: 12.5, color: 'var(--ink-4)', marginTop: 2 }}>
-                {d.porque}
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
-      {ia.leitura && (
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.7 }}>{ia.leitura}</p>
-      )}
+        {ia.leitura && (
+          <p style={{
+            margin: '10px 0 0', fontSize: 'var(--t-dado)', color: 'var(--ink-3)',
+            lineHeight: 1.7, maxWidth: '72ch',
+          }}>{ia.leitura}</p>
+        )}
 
-      {nada && !ia.semDados && !ia.erro && (
-        <p style={{ margin: 0, fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.65 }}>
-          Nada a destacar: os números estão estáveis.
-        </p>
-      )}
+        {nada && !ia.semDados && !ia.erro && (
+          <p style={{ margin: 0, fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.65 }}>
+            Nada a destacar: os números estão estáveis.
+          </p>
+        )}
 
-      {/* Dizer que se descartou alguma coisa. Esconder isto era fingir que a
-          IA acerta sempre — e a primeira vez que alguém desse por isso,
-          deixava de confiar em tudo o que ela escreve. */}
-      {!!ia.descartados && (
-        <p style={{ margin: '10px 0 0', fontSize: 11.5, color: '#92400e', lineHeight: 1.55 }}>
-          {ia.descartados === 1
-            ? 'Deitei fora um destaque que citava um número que não lhe dei.'
-            : `Deitei fora ${ia.descartados} destaques que citavam números que não lhes dei.`}
-        </p>
-      )}
-
-      <p style={{
-        margin: '12px 0 0', fontSize: 10.5, color: 'var(--ink-5)', lineHeight: 1.5,
-      }}>
-        A IA só ordena e explica os números calculados em baixo. Não os calcula, e
-        tudo o que escreve é conferido contra eles.
-      </p>
-    </div>
+        {/* Dizer que se descartou alguma coisa. Esconder isto era fingir que a
+            IA acerta sempre — e a primeira vez que alguém desse por isso,
+            deixava de confiar em tudo o que ela escreve. */}
+        {!!ia.descartados && (
+          <p style={{
+            margin: '10px 0 0', fontSize: 'var(--t-meta)', color: 'var(--amber)', lineHeight: 1.55,
+          }}>
+            {ia.descartados === 1
+              ? 'Deitei fora um destaque que citava um número que não lhe dei.'
+              : `Deitei fora ${ia.descartados} destaques que citavam números que não lhes dei.`}
+          </p>
+        )}
+      </div>
+    </Painel>
   )
 }

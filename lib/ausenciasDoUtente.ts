@@ -38,11 +38,11 @@ export interface AusenciaDoUtente extends Periodo {
 }
 
 export const TIPOS: { id: TipoAusenciaUtente; label: string; cor: string }[] = [
-  { id: 'hospital', label: 'No hospital',   cor: '#a1544c' },
-  { id: 'familia',  label: 'Com a família', cor: '#5f7161' },
-  { id: 'ferias',   label: 'De férias',     cor: '#5a6d7c' },
-  { id: 'consulta', label: 'Em consulta',   cor: '#6b6a80' },
-  { id: 'outro',    label: 'Fora',          cor: '#7c6f5a' },
+  { id: 'hospital', label: 'No hospital',   cor: 'var(--red)' },
+  { id: 'familia',  label: 'Com a família', cor: 'var(--green)' },
+  { id: 'ferias',   label: 'De férias',     cor: 'var(--blue)' },
+  { id: 'consulta', label: 'Em consulta',   cor: 'var(--blue)' },
+  { id: 'outro',    label: 'Fora',          cor: 'var(--amber)' },
 ]
 
 export const ROTULO: Record<TipoAusenciaUtente, string> =

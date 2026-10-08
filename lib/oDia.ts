@@ -107,12 +107,12 @@ export const ROTULO_DA_FONTE: Record<Fonte, string> = {
  * quando for mesmo preciso.
  */
 export const COR_DA_FONTE: Record<Fonte, string> = {
-  medicacao: '#5a6d7c',   // azul-ardósia — a que não espera
-  servico:   '#5f7161',   // verde-sálvia — o corpo do dia
-  plano:     '#6b6a80',   // lilás-gasto — o que vem do plano individual
-  atividade: '#7c6f5a',   // areia — a vida da casa
-  apoio:     '#7a5f70',   // ameixa — o que foi pedido
-  reforco:   '#80625f',   // terracota — a alimentação
+  medicacao: 'var(--blue)',   // azul-ardósia — a que não espera
+  servico:   'var(--green)',   // verde-sálvia — o corpo do dia
+  plano:     'var(--blue)',   // lilás-gasto — o que vem do plano individual
+  atividade: 'var(--amber)',   // areia — a vida da casa
+  apoio:     'var(--red)',   // ameixa — o que foi pedido
+  reforco:   'var(--red)',   // terracota — a alimentação
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -583,4 +583,106 @@ export function resumo(tarefas: Tarefa[]): string {
   const pessoas = new Set(tarefas.filter(t => !t.feito && !t.naoPrestado).map(t => t.patientId)).size
   return `${porFazer} ${porFazer === 1 ? 'coisa por fazer' : 'coisas por fazer'}, com ${
     pessoas === 1 ? '1 pessoa' : `${pessoas} pessoas`}.`
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   OS BLOCOS DE TEMPO — para o desenho B (semana 1 do redesenho)
+   ══════════════════════════════════════════════════════════════════════════
+   ── A PERGUNTA QUE ISTO RESPONDE ──────────────────────────────────────────
+   A lista por hora mostra o turno inteiro: quarenta linhas, das quais trinta
+   e cinco não são para agora. Num computador isso lê-se; num telemóvel, de pé
+   e com trinta segundos, é um muro.
+
+   Estes blocos partem o mesmo turno em quatro perguntas:
+
+     JÁ PASSOU   o que tinha hora e ficou para trás — é o único que é urgente
+     AGORA       a meia hora para trás e a hora para a frente
+     A QUALQUER HORA   o que nunca teve hora, e que é a maior parte do dia
+     MAIS TARDE  o resto do turno
+
+   ── PORQUE É QUE «JÁ PASSOU» SÓ CONTA O QUE NÃO FOI FEITO ─────────────────
+   Uma toma das 8h dada às 8h05 passou e está tratada — pô-la num bloco
+   chamado «já passou» é dar um alarme sobre trabalho bem feito. O bloco só
+   existe quando lá dentro há alguma coisa por fazer.
+
+   ── E A JANELA DE «AGORA» ─────────────────────────────────────────────────
+   Trinta minutos para trás e sessenta para a frente. Para trás é pouco de
+   propósito: passados trinta minutos, uma toma deixa de estar «quase na hora»
+   e passa a estar em atraso, e quem a lê tem de a ver nesse estado.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+export type BlocoId = 'passou' | 'agora' | 'semhora' | 'maistarde'
+
+export interface Bloco {
+  id: BlocoId
+  rotulo: string
+  /** O que este bloco é, em palavras de quem trabalha. */
+  nota: string
+  tarefas: Tarefa[]
+  /** Quantas, lá dentro, ainda não estão tratadas. */
+  porFazer: number
+  /** Abre-se sozinho? Só o que é para agora e o que ficou para trás. */
+  aberto: boolean
+  /** A cor que o bloco pede. `mau` só quando há atraso a sério. */
+  tom: 'mau' | 'atencao' | 'neutro'
+}
+
+const MINUTOS_ATRAS = 30
+const MINUTOS_FRENTE = 60
+
+/**
+ * O turno partido em quatro, a partir do relógio.
+ *
+ * @param agora `HH:MM`. Vem de fora para os testes poderem fixar a hora — um
+ *              teste que leia o relógio do sistema passa de manhã e falha à
+ *              noite, e ninguém percebe porquê.
+ */
+export function blocosDoDia(tarefas: Tarefa[], agora: string): Bloco[] {
+  const m = minutosDe(agora)
+  const porFazer = (t: Tarefa) => !t.feito && !t.naoPrestado
+
+  const semhora = tarefas.filter(t => !horaValida(t.hora))
+  const comHora = tarefas.filter(t => horaValida(t.hora))
+
+  // Sem relógio válido, não se inventam blocos de tempo: tudo o que tem hora
+  // vai para «mais tarde», que é a leitura honesta de «ainda não sei quando».
+  const passou = m === null ? [] : comHora.filter(t => (minutosDe(t.hora)! < m - MINUTOS_ATRAS) && porFazer(t))
+  const agoraT = m === null ? [] : comHora.filter(t => {
+    const h = minutosDe(t.hora)!
+    return h >= m - MINUTOS_ATRAS && h <= m + MINUTOS_FRENTE
+  })
+  // O que passou e JÁ está tratado cai aqui, junto com o resto do turno — não
+  // some, mas também não grita.
+  const resto = comHora.filter(t => !passou.includes(t) && !agoraT.includes(t))
+
+  const blocos: Bloco[] = [
+    {
+      id: 'passou', rotulo: 'Ficou para trás',
+      nota: 'Tinha hora marcada e ainda não está tratado.',
+      tarefas: ordenar(passou), porFazer: passou.length,
+      aberto: true, tom: 'mau',
+    },
+    {
+      id: 'agora', rotulo: 'Agora',
+      nota: 'Desta meia hora à próxima.',
+      tarefas: ordenar(agoraT), porFazer: agoraT.filter(porFazer).length,
+      aberto: true, tom: 'atencao',
+    },
+    {
+      id: 'semhora', rotulo: 'A qualquer hora',
+      nota: 'Durante o turno, quando der.',
+      tarefas: ordenar(semhora), porFazer: semhora.filter(porFazer).length,
+      aberto: true, tom: 'neutro',
+    },
+    {
+      id: 'maistarde', rotulo: 'Mais tarde',
+      nota: 'O resto do turno.',
+      tarefas: ordenar(resto), porFazer: resto.filter(porFazer).length,
+      aberto: false, tom: 'neutro',
+    },
+  ]
+
+  // Um bloco vazio não aparece. Um cabeçalho que diz «0» ensina a saltar os
+  // cabeçalhos todos.
+  return blocos.filter(b => b.tarefas.length > 0)
 }

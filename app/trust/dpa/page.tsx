@@ -13,7 +13,7 @@ const SUBPROCESSORS = LEGAL_SUBPROCESSORS.map(s => ({
   name: s.name, purpose: s.purpose, location: s.location, country: s.transfer || s.location,
 }))
 
-const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 8, padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
+const inp: React.CSSProperties = { width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '10px 12px', fontSize: 13.5, fontFamily: 'var(--font-sans)', outline: 'none', boxSizing: 'border-box', background: 'white' }
 const lbl: React.CSSProperties = { fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block' }
 
 export default function DPAGeneratorPage() {
@@ -37,14 +37,14 @@ export default function DPAGeneratorPage() {
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container page-body" style={{ maxWidth: 760 }}>
         <div style={{ marginBottom: 18 }}>
-          <Link href="/trust" style={{ fontSize: 12, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>← Trust Center</Link>
+          <Link href="/trust" style={{ fontSize: 12, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>← Trust Center</Link>
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(26px,3vw,36px)', color: 'var(--ink)', fontWeight: 400, letterSpacing: '-0.02em', margin: '8px 0 6px' }}>Contrato de Subcontratante (DPA)</h1>
           <p style={{ fontSize: 13.5, color: 'var(--ink-4)', margin: 0, lineHeight: 1.6 }}>
             Artigo 28.º do RGPD. Preenche os dados da tua entidade e descarrega o contrato pronto a assinar. As cláusulas standard incluem subprocessadores, medidas técnicas e organizativas, e direitos de auditoria.
           </p>
         </div>
 
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 22 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 22 }}>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>Entidade contratante (Responsável pelo Tratamento)</div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 11 }}>
             <div><span style={lbl}>Designação da entidade</span><input value={form.company} onChange={e => setForm({ ...form, company: e.target.value })} placeholder="Ex: Clínica Saúde, Lda." style={inp} autoFocus /></div>
@@ -59,16 +59,16 @@ export default function DPAGeneratorPage() {
             </div>
           </div>
 
-          <div style={{ marginTop: 18, padding: '14px 16px', background: 'var(--bg-2)', borderRadius: 10, fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
+          <div style={{ marginTop: 18, padding: '14px 16px', background: 'var(--bg-2)', borderRadius: 'var(--r-lg)', fontSize: 12.5, color: 'var(--ink-3)', lineHeight: 1.55 }}>
             <strong style={{ color: 'var(--ink-2)' }}>Subprocessadores atuais</strong> incluídos automaticamente no contrato:<br />
             {SUBPROCESSORS.map(s => s.name).join(' · ')}.
           </div>
 
-          <button onClick={print} disabled={!ready} style={{ width: '100%', marginTop: 18, padding: 13, background: ready ? '#0d6e42' : 'var(--bg-3)', color: ready ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, cursor: ready ? 'pointer' : 'default', fontFamily: 'var(--font-sans)' }}>
+          <button onClick={print} disabled={!ready} style={{ width: '100%', marginTop: 18, padding: 13, background: ready ? 'var(--green)' : 'var(--bg-3)', color: ready ? 'white' : 'var(--ink-5)', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 800, cursor: ready ? 'pointer' : 'default', fontFamily: 'var(--font-sans)' }}>
             Gerar e imprimir contrato
           </button>
 
-          <div style={{ fontSize: 11, color: '#9ca3af', textAlign: 'center', marginTop: 12, lineHeight: 1.55 }}>
+          <div style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center', marginTop: 12, lineHeight: 1.55 }}>
             Documento orientador. Adapta ao contexto específico da tua entidade e valida juridicamente.
           </div>
         </div>
@@ -97,10 +97,10 @@ function buildDPAHTML(f: { company: string; nif: string; address: string; repres
   .subtitle { text-align: center; font-size: 10pt; color: #555; margin-bottom: 8mm; }
   table.parts { width: 100%; border-collapse: collapse; margin: 4mm 0 6mm; }
   table.parts td { vertical-align: top; padding: 2mm 3mm; font-size: 10.5pt; border: 1px solid #bbb; }
-  table.parts td.h { background: #f3f4f6; font-weight: bold; width: 28%; }
+  table.parts td.h { background: var(--bg-3); font-weight: bold; width: 28%; }
   table.sub { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin: 2mm 0 5mm; }
   table.sub th, table.sub td { border: 1px solid #999; padding: 2mm 3mm; text-align: left; }
-  table.sub th { background: #f3f4f6; }
+  table.sub th { background: var(--bg-3); }
   ol { padding-left: 6mm; }
   ol li { margin-bottom: 2mm; }
   .sig { display: flex; gap: 12mm; margin-top: 14mm; }

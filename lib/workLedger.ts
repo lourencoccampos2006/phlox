@@ -28,15 +28,15 @@ export function buildLedger(d: LedgerInput): { title: string; lines: LedgerLine[
   const lines: LedgerLine[] = []
 
   if (d.careRecordsMonth > 0)
-    lines.push({ icon: '📝', value: String(d.careRecordsMonth), label: `registos de cuidados (${d.careDaysMonth} dias documentados)`, tone: 'good' })
+    lines.push({ icon: 'note', value: String(d.careRecordsMonth), label: `registos de cuidados (${d.careDaysMonth} dias documentados)`, tone: 'good' })
   if (d.marGivenMonth > 0)
-    lines.push({ icon: '💊', value: String(d.marGivenMonth), label: d.marAdherence != null ? `tomas registadas · ${d.marAdherence}% das previstas` : 'tomas de medicação registadas', tone: 'good' })
+    lines.push({ icon: 'pill', value: String(d.marGivenMonth), label: d.marAdherence != null ? `tomas registadas · ${d.marAdherence}% das previstas` : 'tomas de medicação registadas', tone: 'good' })
   if (d.vigilFindings > 0)
     lines.push({ icon: '🔎', value: String(d.vigilFindings), label: 'pontos farmacológicos sinalizados para revisão da equipa', tone: 'neutral' })
   if (d.incidentsMonth > 0)
-    lines.push({ icon: '📋', value: `${d.incidentsFollowed}/${d.incidentsMonth}`, label: 'ocorrências documentadas com seguimento', tone: d.incidentsFollowed >= d.incidentsMonth ? 'good' : 'neutral' })
+    lines.push({ icon: 'clipboard', value: `${d.incidentsFollowed}/${d.incidentsMonth}`, label: 'ocorrências documentadas com seguimento', tone: d.incidentsFollowed >= d.incidentsMonth ? 'good' : 'neutral' })
   if (d.assessmentsMonth > 0)
-    lines.push({ icon: '📊', value: String(d.assessmentsMonth), label: 'avaliações (escalas) realizadas', tone: 'good' })
+    lines.push({ icon: 'chart', value: String(d.assessmentsMonth), label: 'avaliações (escalas) realizadas', tone: 'good' })
 
   const note = lines.length === 0
     ? 'Ainda sem registos este mês. À medida que a equipa regista, este resumo enche-se.'

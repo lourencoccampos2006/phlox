@@ -96,9 +96,23 @@ export const AREAS: AreaPermissao[] = [
   { id: 'documentos', grupo: 'casa', label: 'Documentos',
     descricao: 'O cofre de documentos da instituição.',
     niveis: ['ver', 'editar', 'eliminar'] },
+  // ── PORQUE É QUE ESTA ÁREA GANHOU `editar` E `eliminar` (2026-10-06) ──────
+  // Era só `ver` — e fazia sentido enquanto a qualidade eram indicadores
+  // calculados, que ninguém escreve à mão.
+  //
+  // Com os inquéritos de satisfação passou a haver aqui coisas que se CRIAM:
+  // uma campanha, as respostas que se lançam do papel, o fecho do inquérito.
+  // Sem `editar`, o gerador de RLS não emitia política nenhuma de escrita e a
+  // base de dados recusava a criação com «new row violates row-level security
+  // policy» — que foi exatamente o que aconteceu.
+  //
+  // Os papéis não mudam: `so('qualidade')` continua a dar só `ver` à
+  // enfermagem, ao administrativo e ao convidado. Quem passa a poder criar um
+  // inquérito é quem tem TODAS — o dono e a direção técnica —, que é de quem
+  // isto é.
   { id: 'qualidade', grupo: 'casa', label: 'Qualidade',
-    descricao: 'Indicadores do serviço e o que merece atenção.',
-    niveis: ['ver'] },
+    descricao: 'Indicadores do serviço, conformidade e inquéritos de satisfação.',
+    niveis: ['ver', 'editar', 'eliminar'] },
 
   // ── A gestão ─────────────────────────────────────────────────────────────
   { id: 'financeiro', grupo: 'gestao', label: 'Financeiro',

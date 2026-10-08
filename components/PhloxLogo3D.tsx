@@ -35,7 +35,7 @@ declare global {
 }
 
 type Props = {
-  /** Cor das letras. Fundo claro: var(--ink). Fundo escuro: #f7f8f5 + env="dark". */
+  /** Cor das letras. Fundo claro: var(--ink). Fundo escuro: var(--bg-2) + env="dark". */
   color?: string
   /** 'light' (omissão) ou 'dark' — ajusta os reflexos ao fundo. */
   env?: 'light' | 'dark'
@@ -102,7 +102,7 @@ export default function PhloxLogo3D({
     >
       {montado ? (
         <phlox-logo
-          color={color === 'var(--ink)' ? '#16181d' : color}
+          color={color === 'var(--ink)' ? 'var(--ink-2)' : color}
           env={env}
           // Roda sempre e não reage ao toque — ver phlox-logo-element.js.
           sempre-a-rodar=""

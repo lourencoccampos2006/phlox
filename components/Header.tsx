@@ -29,9 +29,9 @@ function DesktopSecondaryNav({ mode, pathname }: { mode: ExperienceMode; pathnam
         const a = isActive(it.href)
         return (
           <Link key={it.href} href={it.href} style={{
-            display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 8,
+            display: 'flex', alignItems: 'center', gap: 7, padding: '6px 12px', borderRadius: 'var(--r-md)',
             textDecoration: 'none', fontSize: 13, fontWeight: a ? 800 : 600,
-            color: a ? t.accent : '#64748b', background: a ? t.accentSoft : 'transparent',
+            color: a ? t.accent : 'var(--ink-4)', background: a ? t.accentSoft : 'transparent',
           }}>
             <Icon name={it.icon} size={16} stroke={a ? 2.3 : 2} />
             {it.label}
@@ -103,12 +103,12 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
     }} onClick={e => { if (e.target === e.currentTarget) onClose() }}>
       <div style={{
         width: 'min(640px, 94vw)', background: 'white',
-        borderRadius: 18, boxShadow: '0 32px 100px rgba(0,0,0,0.22)',
+        borderRadius: 'var(--r-xl)', boxShadow: '0 32px 100px rgba(0,0,0,0.22)',
         overflow: 'hidden',
         animation: 'searchSlideDown 0.18s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid #f1f5f9' }}>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2.2" strokeLinecap="round">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderBottom: '1px solid var(--bg-3)' }}>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--ink-5)" strokeWidth="2.2" strokeLinecap="round">
             <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
           </svg>
           <input
@@ -116,63 +116,63 @@ function SearchBar({ onClose, mode }: { onClose: () => void; mode: ExperienceMod
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Pesquisar ferramentas..."
-            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: '#0f172a', background: 'transparent', fontFamily: 'inherit' }}
+            style={{ flex: 1, border: 'none', outline: 'none', fontSize: 16, color: 'var(--ink)', background: 'transparent', fontFamily: 'inherit' }}
           />
           {query && (
-            <button onClick={() => setQuery('')} style={{ background: '#f1f5f9', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+            <button onClick={() => setQuery('')} style={{ background: 'var(--bg-3)', border: 'none', borderRadius: '50%', width: 22, height: 22, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
             </button>
           )}
-          <kbd style={{ fontSize: 11, color: '#94a3b8', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 5, padding: '2px 7px', fontFamily: 'inherit' }}>Esc</kbd>
+          <kbd style={{ fontSize: 11, color: 'var(--ink-5)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 7px', fontFamily: 'inherit' }}>Esc</kbd>
         </div>
 
         <div style={{ maxHeight: 420, overflowY: 'auto' }}>
           {query.trim() ? (
             filtered.length > 0 ? (
               <div style={{ padding: '8px 0' }}>
-                <div style={{ padding: '6px 18px', fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                <div style={{ padding: '6px 18px', fontSize: 10, fontWeight: 700, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
                   {filtered.length} resultado{filtered.length !== 1 ? 's' : ''}
                 </div>
                 {filtered.map(tool => (
                   <Link key={tool.href} href={tool.href} onClick={onClose} className="srch-item"
                     style={{ display: 'flex', alignItems: 'center', gap: 13, padding: '10px 18px', textDecoration: 'none' }}>
-                    <div style={{ width: 36, height: 36, borderRadius: 9, background: `${tool.categoryColor}14`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>
-                      {tool.icon}
+                    <div style={{ width: 32, height: 32, borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                      <Icon name={tool.icon} size={15} color={tool.categoryColor} />
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: '#0f172a' }}>{tool.label}</div>
-                      <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 1 }}>{tool.desc}</div>
+                      <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{tool.label}</div>
+                      <div style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 1 }}>{tool.desc}</div>
                     </div>
-                    <span style={{ fontSize: 10, fontWeight: 700, color: tool.categoryColor, background: `${tool.categoryColor}14`, padding: '2px 7px', borderRadius: 4, textTransform: 'uppercase' }}>
+                    <span style={{ fontSize: 10, fontWeight: 700, color: tool.categoryColor, background: `${tool.categoryColor}14`, padding: '2px 7px', borderRadius: 'var(--r)', textTransform: 'uppercase' }}>
                       {tool.categoryLabel}
                     </span>
                   </Link>
                 ))}
               </div>
             ) : (
-              <div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 14 }}>
+              <div style={{ padding: '40px 20px', textAlign: 'center', color: 'var(--ink-5)', fontSize: 14 }}>
                 Nenhuma ferramenta encontrada para &quot;{query}&quot;
               </div>
             )
           ) : (
             <div style={{ padding: '16px 18px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12 }}>
                 Ferramentas populares
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 6 }}>
                 {popularTools.map(tool => (
                   <Link key={tool.href} href={tool.href} onClick={onClose} className="srch-pop-item"
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 10, border: '1px solid #f1f5f9', textDecoration: 'none' }}>
-                    <span style={{ fontSize: 18 }}>{tool.icon}</span>
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 12px', borderRadius: 'var(--r-lg)', border: '1px solid var(--bg-3)', textDecoration: 'none' }}>
+                    <Icon name={tool.icon} size={16} color="var(--ink-4)" />
                     <div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: '#0f172a' }}>{tool.label}</div>
-                      <div style={{ fontSize: 11, color: '#94a3b8' }}>{tool.categoryLabel}</div>
+                      <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{tool.label}</div>
+                      <div style={{ fontSize: 11, color: 'var(--ink-5)' }}>{tool.categoryLabel}</div>
                     </div>
                   </Link>
                 ))}
               </div>
-              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid #f8fafc', display: 'flex', justifyContent: 'center' }}>
-                <Link href="/inicio" onClick={onClose} style={{ fontSize: 13, color: '#0d9488', fontWeight: 700, textDecoration: 'none' }}>
+              <div style={{ marginTop: 12, paddingTop: 12, borderTop: '1px solid var(--bg-2)', display: 'flex', justifyContent: 'center' }}>
+                <Link href="/inicio" onClick={onClose} style={{ fontSize: 13, color: 'var(--green-3)', fontWeight: 700, textDecoration: 'none' }}>
                   Voltar ao início →
                 </Link>
               </div>
@@ -224,10 +224,10 @@ function UserMenu({ user, signOut, supabase }: {
   // voltarem a desalinhar do resto do produto.
   const inOrg = !!(user.active_org_id || user.org_id || user.org_role)
   const MODES_LIST = [
-    { id: 'personal'  as ExperienceMode, icon: '👤', labelShort: MODE_META.personal.labelShort, color: MODE_META.personal.color },
-    { id: 'caregiver' as ExperienceMode, icon: '👨‍👩‍👧', labelShort: MODE_META.caregiver.labelShort, color: MODE_META.caregiver.color },
-    ...(inOrg ? [{ id: 'clinical' as ExperienceMode, icon: '🏥', labelShort: MODE_META.clinical.labelShort, color: MODE_META.clinical.color }] : []),
-    { id: 'student'   as ExperienceMode, icon: '🎓', labelShort: MODE_META.student.labelShort, color: MODE_META.student.color },
+    { id: 'personal'  as ExperienceMode, icon: 'user', labelShort: MODE_META.personal.labelShort, color: MODE_META.personal.color },
+    { id: 'caregiver' as ExperienceMode, icon: 'grid', labelShort: MODE_META.caregiver.labelShort, color: MODE_META.caregiver.color },
+    ...(inOrg ? [{ id: 'clinical' as ExperienceMode, icon: 'grid', labelShort: MODE_META.clinical.labelShort, color: MODE_META.clinical.color }] : []),
+    { id: 'student'   as ExperienceMode, icon: 'grid', labelShort: MODE_META.student.labelShort, color: MODE_META.student.color },
   ]
 
   const avatarContent = user.avatar
@@ -247,8 +247,8 @@ function UserMenu({ user, signOut, supabase }: {
         style={{
           display: 'flex', alignItems: 'center', gap: 7,
           padding: '4px 8px 4px 4px',
-          background: '#f1f5f9',
-          border: '1px solid #e2e8f0',
+          background: 'var(--bg-3)',
+          border: '1px solid var(--border)',
           borderRadius: 100, cursor: 'pointer', transition: 'all 0.15s',
         }}>
         <div style={{
@@ -260,13 +260,13 @@ function UserMenu({ user, signOut, supabase }: {
         </div>
         <span className="hdr-user-name" style={{
           fontSize: 13, fontWeight: 600,
-          color: '#374151',
+          color: 'var(--ink-3)',
           maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
           {user.name?.split(' ')[0]}
         </span>
         <svg className="hdr-user-chevron" width="11" height="11" viewBox="0 0 24 24" fill="none"
-          stroke="#9ca3af"
+          stroke="var(--ink-5)"
           strokeWidth="2.5" strokeLinecap="round">
           <path d="M6 9l6 6 6-6"/>
         </svg>
@@ -278,26 +278,26 @@ function UserMenu({ user, signOut, supabase }: {
           <div style={{
             position: 'fixed', right: dropRight, top: 64,
             background: 'white', border: '1px solid rgba(0,0,0,0.08)',
-            borderRadius: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.14)',
+            borderRadius: 'var(--r-xl)', boxShadow: '0 20px 60px rgba(0,0,0,0.14)',
             width: 248, zIndex: 999, overflow: 'hidden',
             animation: 'dropDown2 0.16s cubic-bezier(0.16,1,0.3,1)',
           }}>
             {/* User card */}
-            <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ padding: '14px 16px 12px', borderBottom: '1px solid var(--bg-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', flexShrink: 0, background: color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700, overflow: 'hidden' }}>
                   {avatarContent}
                 </div>
                 <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {user.name}
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 20, background: `${color}15`, fontSize: 10, fontWeight: 700, color }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '2px 8px', borderRadius: 'var(--r-xl)', background: `${color}15`, fontSize: 10, fontWeight: 700, color }}>
                       <span style={{ width: 4, height: 4, borderRadius: '50%', background: color }} />
                       {modeMeta.labelShort}
                     </span>
-                    <span style={{ fontSize: 10, color: '#94a3b8', fontWeight: 500 }}>
+                    <span style={{ fontSize: 10, color: 'var(--ink-5)', fontWeight: 500 }}>
                       {planLabels[user.plan || ''] || 'Grátis'}
                     </span>
                   </div>
@@ -306,22 +306,22 @@ function UserMenu({ user, signOut, supabase }: {
             </div>
 
             {[
-              { href: '/inicio',       label: 'Início',          icon: '🏠' },
+              { href: '/inicio',       label: 'Início',          icon: 'home' },
               // Aprender só faz sentido para estudantes — não polui o menu dos outros.
-              ...(mode === 'student' ? [{ href: '/study', label: 'Estudar', icon: '📚' }] : []),
-              { href: '/guardados',    label: 'Guardados',       icon: '★' },
-              { href: '/calendario',   label: 'Calendário',      icon: '📅' },
-              { href: '/settings',     label: 'Definições',      icon: '⚙️' },
+              ...(mode === 'student' ? [{ href: '/study', label: 'Estudar', icon: 'grid' }] : []),
+              { href: '/guardados',    label: 'Guardados',       icon: 'grid' },
+              { href: '/calendario',   label: 'Calendário',      icon: 'grid' },
+              { href: '/settings',     label: 'Definições',      icon: 'sliders' },
             ].map(item => (
               <Link key={item.href} href={item.href} onClick={() => setOpen(false)} className="um-item"
-                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none' }}>
-                <span style={{ fontSize: 14, width: 18, textAlign: 'center', flexShrink: 0 }}>{item.icon}</span>
+                style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 16px', fontSize: 13, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none' }}>
+                <span style={{ width: 18, display: 'inline-flex', justifyContent: 'center', flexShrink: 0 }}><Icon name={item.icon} size={14} color="var(--ink-4)" /></span>
                 {item.label}
               </Link>
             ))}
 
-            <div style={{ borderTop: '1px solid #f1f5f9', padding: '8px 12px 10px' }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7, paddingLeft: 4 }}>
+            <div style={{ borderTop: '1px solid var(--bg-3)', padding: '8px 12px 10px' }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 7, paddingLeft: 4 }}>
                 Mudar modo
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 5 }}>
@@ -329,15 +329,15 @@ function UserMenu({ user, signOut, supabase }: {
                   const active = mode === m.id
                   return (
                     <button key={m.id} onClick={() => switchMode(m.id)} style={{
-                      padding: '7px 8px', borderRadius: 8,
-                      border: `1px solid ${active ? m.color + '40' : '#f1f5f9'}`,
-                      background: active ? m.color + '10' : '#f8fafc',
+                      padding: '7px 8px', borderRadius: 'var(--r-md)',
+                      border: `1px solid ${active ? m.color + '40' : 'var(--bg-3)'}`,
+                      background: active ? m.color + '10' : 'var(--bg-2)',
                       cursor: active ? 'default' : 'pointer',
                       fontSize: 11, fontWeight: active ? 700 : 500,
-                      color: active ? m.color : '#64748b',
+                      color: active ? m.color : 'var(--ink-4)',
                       fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 5,
                     }}>
-                      <span style={{ fontSize: 13 }}>{m.icon}</span>
+                      <Icon name={m.icon} size={14} color={active ? m.color : 'var(--ink-5)'} />
                       {m.labelShort}
                     </button>
                   )
@@ -347,8 +347,8 @@ function UserMenu({ user, signOut, supabase }: {
 
             <button onClick={() => { signOut(); setOpen(false) }} style={{
               width: '100%', padding: '10px 16px', textAlign: 'left',
-              background: 'none', border: 'none', borderTop: '1px solid #f1f5f9',
-              cursor: 'pointer', fontSize: 13, color: '#ef4444', fontFamily: 'inherit',
+              background: 'none', border: 'none', borderTop: '1px solid var(--bg-3)',
+              cursor: 'pointer', fontSize: 13, color: 'var(--red)', fontFamily: 'inherit',
               display: 'flex', alignItems: 'center', gap: 8,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -390,23 +390,23 @@ function MobileDrawer({ open, onClose, user, signOut }: {
         boxShadow: '-16px 0 48px rgba(0,0,0,0.16)',
         animation: 'slideInRight 0.22s cubic-bezier(0.16,1,0.3,1)',
       }}>
-        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #f1f5f9', flexShrink: 0 }}>
-          <span style={{ fontSize: 15, fontWeight: 700, color: '#0f172a' }}>Menu</span>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: '#f1f5f9', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <div style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--bg-3)', flexShrink: 0 }}>
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>Menu</span>
+          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', background: 'var(--bg-3)', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--ink-4)" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
           </button>
         </div>
 
         <div style={{ flex: 1, overflowY: 'auto' }}>
           {user && (
-            <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid #f1f5f9' }}>
+            <div style={{ padding: '14px 18px 12px', borderBottom: '1px solid var(--bg-3)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <div style={{ width: 38, height: 38, borderRadius: '50%', background: modeMeta.color, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: 15, fontWeight: 700, overflow: 'hidden', flexShrink: 0 }}>
                   {user.avatar ? <img src={user.avatar} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : (user.name?.[0] || 'U').toUpperCase()}
                 </div>
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#0f172a' }}>{user.name}</div>
-                  <div style={{ fontSize: 11, color: '#94a3b8' }}>{user.email}</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{user.name}</div>
+                  <div style={{ fontSize: 11, color: 'var(--ink-5)' }}>{user.email}</div>
                 </div>
               </div>
             </div>
@@ -425,18 +425,18 @@ function MobileDrawer({ open, onClose, user, signOut }: {
             : [{ href: '/pricing', label: 'Preços' }, { href: '/about', label: 'Sobre' }]
           ).map(item => (
             <Link key={item.href} href={item.href} onClick={onClose} className="mob-item"
-              style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: '#0f172a', borderBottom: '1px solid #f8fafc' }}>
+              style={{ display: 'flex', alignItems: 'center', padding: '11px 18px', textDecoration: 'none', fontSize: 14, fontWeight: 500, color: 'var(--ink)', borderBottom: '1px solid var(--bg-2)' }}>
               {item.label}
             </Link>
           ))}
         </div>
 
-        <div style={{ padding: '14px 18px', borderTop: '1px solid #f1f5f9', flexShrink: 0 }}>
+        <div style={{ padding: '14px 18px', borderTop: '1px solid var(--bg-3)', flexShrink: 0 }}>
           {user ? (
             <button onClick={() => { signOut(); onClose() }} style={{
               width: '100%', padding: '11px', background: 'transparent',
-              border: '1px solid #e2e8f0', borderRadius: 10,
-              fontSize: 13, color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
+              border: '1px solid var(--border)', borderRadius: 'var(--r-lg)',
+              fontSize: 13, color: 'var(--red)', cursor: 'pointer', fontFamily: 'inherit', fontWeight: 600,
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
             }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
@@ -445,7 +445,7 @@ function MobileDrawer({ open, onClose, user, signOut }: {
               Terminar sessão
             </button>
           ) : (
-            <Link href="/login" onClick={onClose} style={{ display: 'block', padding: '11px', background: '#0f172a', color: 'white', textDecoration: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800, textAlign: 'center' }}>
+            <Link href="/login" onClick={onClose} style={{ display: 'block', padding: '11px', background: 'var(--ink)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 800, textAlign: 'center' }}>
               Entrar
             </Link>
           )}
@@ -506,8 +506,8 @@ export default function Header() {
           {/* Logo — alinhado com o resto da identidade (gradient verde + serif) */}
           <Link href={user ? '/inicio' : '/'} style={{ display: 'flex', alignItems: 'center', gap: 9, textDecoration: 'none', flexShrink: 0 }}>
             <div style={{
-              width: 28, height: 28, borderRadius: 8,
-              background: 'linear-gradient(135deg, #16a34a 0%, #0d6e42 100%)',
+              width: 28, height: 28, borderRadius: 'var(--r-md)',
+              background: 'linear-gradient(135deg, var(--green) 0%, var(--green) 100%)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               boxShadow: '0 2px 6px -2px rgba(13,110,66,0.35)',
             }}>
@@ -516,7 +516,7 @@ export default function Header() {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src="/flor-64.png" alt="" width={20} height={20} style={{ display: 'block' }} />
             </div>
-            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: '#0b1120', letterSpacing: '-0.015em' }}>
+            <span style={{ fontFamily: 'var(--font-serif)', fontSize: 17, fontWeight: 400, color: 'var(--ink)', letterSpacing: '-0.015em' }}>
               Phlox
             </span>
           </Link>
@@ -524,9 +524,9 @@ export default function Header() {
           {/* Logged-out nav */}
           {!loading && !user && (
             <nav className="hdr-lo-nav" style={{ display: 'flex', alignItems: 'center', gap: 2, marginLeft: 12 }}>
-              <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Preços</Link>
-              <Link href="/blog"        style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Blog</Link>
-              <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: '#374151', textDecoration: 'none', borderRadius: 7 }}>Sobre</Link>
+              <Link href="/pricing"     style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 'var(--r-md)' }}>Preços</Link>
+              <Link href="/blog"        style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 'var(--r-md)' }}>Blog</Link>
+              <Link href="/about"       style={{ padding: '5px 9px', fontSize: 13, fontWeight: 500, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 'var(--r-md)' }}>Sobre</Link>
             </nav>
           )}
 
@@ -541,12 +541,12 @@ export default function Header() {
                 {mode === 'clinical' && (() => {
                   const h = new Date().getHours()
                   const shift = h >= 8 && h < 16 ? 'Manhã' : h >= 16 ? 'Tarde' : 'Noite'
-                  const shiftColor = h >= 8 && h < 16 ? '#b45309' : h >= 16 ? '#6d28d9' : '#1d4ed8'
+                  const shiftColor = h >= 8 && h < 16 ? 'var(--amber)' : h >= 16 ? 'var(--roxo)' : 'var(--ink-2)'
                   const dateStr = new Date().toLocaleDateString('pt-PT', { weekday: 'short', day: 'numeric', month: 'short' })
                   return (
-                    <div className="hdr-clinical-context" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 14px', background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 8 }}>
-                      <span style={{ fontSize: 12, color: '#94a3b8', fontVariantNumeric: 'tabular-nums' }}>{dateStr}</span>
-                      <span style={{ width: 1, height: 14, background: '#e2e8f0', flexShrink: 0 }} />
+                    <div className="hdr-clinical-context" style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '5px 14px', background: 'var(--bg-3)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
+                      <span style={{ fontSize: 12, color: 'var(--ink-5)', fontVariantNumeric: 'tabular-nums' }}>{dateStr}</span>
+                      <span style={{ width: 1, height: 14, background: 'var(--border)', flexShrink: 0 }} />
                       <span style={{ fontSize: 11, fontWeight: 600, color: shiftColor, display: 'flex', alignItems: 'center', gap: 5 }}>
                         <span style={{ width: 6, height: 6, borderRadius: '50%', background: shiftColor, display: 'inline-block' }} />
                         Turno {shift}
@@ -574,25 +574,25 @@ export default function Header() {
                   style={{
                     width: 34, height: 34, display: 'none', flexDirection: 'column',
                     alignItems: 'center', justifyContent: 'center', gap: 4,
-                    background: '#f1f5f9',
-                    border: '1px solid transparent', borderRadius: 7,
+                    background: 'var(--bg-3)',
+                    border: '1px solid transparent', borderRadius: 'var(--r-md)',
                     cursor: 'pointer', flexShrink: 0,
                   }}>
-                  {[16, 11, 16].map((w, i) => <span key={i} style={{ width: w, height: 1.5, background: '#374151', borderRadius: 1, display: 'block' }} />)}
+                  {[16, 11, 16].map((w, i) => <span key={i} style={{ width: w, height: 1.5, background: 'var(--ink-3)', borderRadius: 1, display: 'block' }} />)}
                 </button>
               </>
             )}
 
             {!loading && !user && (
               <>
-                <Link href="/login" className="hdr-lo-entrar" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: '#374151', textDecoration: 'none', borderRadius: 2, border: '1px solid #e2e8f0' }}>Entrar</Link>
-                <Link href="/login" style={{ padding: '8px 16px', fontSize: 13, fontWeight: 700, background: '#16181d', color: 'white', textDecoration: 'none', borderRadius: 2, whiteSpace: 'nowrap' }}>Criar conta</Link>
+                <Link href="/login" className="hdr-lo-entrar" style={{ padding: '7px 13px', fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', textDecoration: 'none', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)' }}>Entrar</Link>
+                <Link href="/login" style={{ padding: '8px 16px', fontSize: 13, fontWeight: 700, background: 'var(--ink-2)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap' }}>Criar conta</Link>
                 {/* Hamburger — só mobile, para aceder a Ferramentas/Preços/Sobre */}
                 <button onClick={() => setDrawerOpen(true)} className="hdr-hamburger" aria-label="Abrir menu"
-                  style={{ width: 36, height: 36, display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: '#f1f5f9', border: '1px solid transparent', borderRadius: 8, cursor: 'pointer', flexShrink: 0 }}>
-                  <span style={{ width: 16, height: 2, background: '#374151', borderRadius: 2 }} />
-                  <span style={{ width: 16, height: 2, background: '#374151', borderRadius: 2 }} />
-                  <span style={{ width: 16, height: 2, background: '#374151', borderRadius: 2 }} />
+                  style={{ width: 36, height: 36, display: 'none', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'var(--bg-3)', border: '1px solid transparent', borderRadius: 'var(--r-md)', cursor: 'pointer', flexShrink: 0 }}>
+                  <span style={{ width: 16, height: 2, background: 'var(--ink-3)', borderRadius: 'var(--r-sm)' }} />
+                  <span style={{ width: 16, height: 2, background: 'var(--ink-3)', borderRadius: 'var(--r-sm)' }} />
+                  <span style={{ width: 16, height: 2, background: 'var(--ink-3)', borderRadius: 'var(--r-sm)' }} />
                 </button>
               </>
             )}
@@ -630,10 +630,10 @@ export default function Header() {
         @keyframes spin           { to { transform:rotate(360deg); } }
         @keyframes pulseRing      { 0% { box-shadow:0 0 0 0 rgba(13,148,136,0.35); } 70% { box-shadow:0 0 0 6px rgba(13,148,136,0); } 100% { box-shadow:0 0 0 0 rgba(13,148,136,0); } }
 
-        .um-item:hover       { background:#f8fafc !important; }
-        .mob-item:hover      { background:#f8fafc !important; }
-        .srch-item:hover     { background:#f8fafc !important; }
-        .srch-pop-item:hover { background:#f8fafc !important; border-color:#e2e8f0 !important; }
+        .um-item:hover       { background:var(--bg-2) !important; }
+        .mob-item:hover      { background:var(--bg-2) !important; }
+        .srch-item:hover     { background:var(--bg-2) !important; }
+        .srch-pop-item:hover { background:var(--bg-2) !important; border-color:var(--border) !important; }
 
         button:focus-visible, a:focus-visible {
           outline: 2px solid #0d9488;

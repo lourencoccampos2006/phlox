@@ -145,6 +145,20 @@ const ficheiros = []
 /* ── Encontrar os selects ─────────────────────────────────────────────────── */
 // `from('tabela')` seguido, no MESMO encadeamento, de `select('...')`.
 const PADRAO = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)([\s\S]{0,250}?)\.select\(\s*(['"])([^'"]*)\3/g
+/* ── E os FILTROS ──────────────────────────────────────────────────────────
+   `from('appointments')…eq('profile_id', x)`.
+
+   Isto nasceu de um achado: a `lib/caregiverSentinel.ts` filtrava a
+   `appointments` por `profile_id`, que essa tabela nao tem — tem `user_id` e
+   `patient_id`. O PostgREST responde 400 ao pedido INTEIRO, e a chamada
+   estava dentro de um `tol()` que engole o erro. Resultado: um 400 em todas
+   as visitas a /familia, durante meses, sem ninguem dar por isso.
+
+   Um filtro numa coluna que nao existe e PIOR do que um select mau: o select
+   devolve vazio e alguem estranha; o filtro rebenta o pedido todo, e o padrao
+   `tol`/`safe` que esta aplicacao usa por toda a parte transforma isso em
+   silencio. */
+const FILTROS = /\.from\(\s*['"`]([a-z_][a-z0-9_]*)['"`]\s*\)([\s\S]{0,400}?)\.(eq|neq|gt|gte|lt|lte|like|ilike|is|in|contains|overlaps|order)\(\s*(['"])([a-z_][a-z0-9_.]*)\4/g
 
 /**
  * Há uma fronteira de instrução entre o `from()` e o `select()`?
@@ -233,10 +247,29 @@ function chavesDe(corpo) {
 }
 
 const achados = []
-let conferidos = 0, selects = 0, escritas = 0
+/**
+ * O codigo sem os comentarios.
+ *
+ * A nota que explica por que motivo uma coluna errada saiu do codigo contem,
+ * quase sempre, a LINHA ERRADA como exemplo. Sem isto, a guarda le o exemplo
+ * e acusa-o — e quem documentou o erro e punido por o ter documentado.
+ * Aconteceu-me no minuto a seguir a acrescentar a verificacao dos filtros: o
+ * comentario que escrevi a explicar o `appointments.profile_id` foi o
+ * primeiro «achado».
+ *
+ * Substitui-se por espacos do mesmo tamanho para os numeros de linha nao
+ * saltarem.
+ */
+function semComentarios(t) {
+  return t
+    .replace(/\/\*[\s\S]*?\*\//g, c => c.replace(/[^\n]/g, ' '))
+    .replace(/(^|[^:/])\/\/[^\n]*/g, (c, p) => p + ' '.repeat(c.length - p.length))
+}
+
+let conferidos = 0, selects = 0, escritas = 0, filtros = 0
 
 for (const f of ficheiros) {
-  const src = fs.readFileSync(f, 'utf8')
+  const src = semComentarios(fs.readFileSync(f, 'utf8'))
 
   for (const m of src.matchAll(ESCRITA)) {
     const [inteiro, tabela, meio, verbo] = m
@@ -271,6 +304,24 @@ for (const f of ficheiros) {
     }
   }
 
+  for (const m of src.matchAll(FILTROS)) {
+    const [, tabela, meio, verbo, , coluna] = m
+    if (!COLUNAS.has(tabela)) continue
+    if (outraInstrucao(meio)) continue
+    // `tabela.coluna` refere-se a uma tabela embutida — nao se confere aqui.
+    if (coluna.includes('.')) continue
+    filtros++
+    conferidos++
+    const doEsquema = COLUNAS.get(tabela)
+    if (!doEsquema.has(coluna)) {
+      const linha = src.slice(0, m.index).split(String.fromCharCode(10)).length
+      const parecidas = [...doEsquema].filter(x =>
+        x.includes(coluna) || coluna.includes(x)
+        || (x.length > 4 && coluna.length > 4 && x.slice(0, 4) === coluna.slice(0, 4)))
+      achados.push({ f, linha, tabela, coluna, verbo: '.' + verbo + '()', parecidas: parecidas.slice(0, 3), espera: prometida(tabela, coluna) })
+    }
+  }
+
   for (const m of src.matchAll(PADRAO)) {
     const [inteiro, tabela, meio, , lista] = m
     if (!COLUNAS.has(tabela)) continue          // tabela de uma migração por correr
@@ -292,7 +343,7 @@ for (const f of ficheiros) {
   }
 }
 
-console.log(`${selects} leitura(s) e ${escritas} escrita(s) com colunas nomeadas — ${conferidos} coluna(s) conferidas em ${ficheiros.length} ficheiro(s).`)
+console.log(`${selects} leitura(s), ${escritas} escrita(s) e ${filtros} filtro(s) com colunas nomeadas — ${conferidos} coluna(s) conferidas em ${ficheiros.length} ficheiro(s).`)
 console.log(`${COLUNAS.size} tabelas no esquema real.\n`)
 
 const aEsperar = achados.filter(a => a.espera)

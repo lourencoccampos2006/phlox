@@ -118,7 +118,7 @@ export default function AusenciasDoUtente({ pid, nome, cor }: {
         )}
       </div>
 
-      {erro && <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+      {erro && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
 
       {/* Está fora AGORA. É a única coisa desta secção que muda o dia de
           trabalho de toda a gente, por isso é a que está em cima e colorida. */}
@@ -141,7 +141,7 @@ export default function AusenciasDoUtente({ pid, nome, cor }: {
           {podeEditar && (
             <button onClick={() => marcarRegresso(atual)} style={{
               flexShrink: 0, minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
-              border: 'none', background: 'var(--badge-amber-fg)', color: '#fff',
+              border: 'none', background: 'var(--badge-amber-fg)', color: 'var(--bg)',
               fontFamily: 'inherit', fontSize: 13, fontWeight: 700, cursor: 'pointer',
             }}>Já voltou</button>
           )}
@@ -232,7 +232,7 @@ function Formulario({ cor, aoFechar, aoGravar }: {
             <button key={t.id} onClick={() => setF(x => ({ ...x, tipo: t.id }))} style={{
               minHeight: 36, padding: '0 12px', borderRadius: 999, cursor: 'pointer',
               border: `1.5px solid ${on ? t.cor : 'var(--border-2)'}`,
-              background: on ? t.cor : 'transparent', color: on ? '#fff' : 'var(--ink-3)',
+              background: on ? t.cor : 'transparent', color: on ? 'var(--bg)' : 'var(--ink-3)',
               fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
             }}>{t.label}</button>
           )
@@ -263,7 +263,7 @@ function Formulario({ cor, aoFechar, aoGravar }: {
       </div>
 
       {!datasOk && (
-        <div style={{ fontSize: 12, color: '#b45309', fontWeight: 600, marginTop: 7 }}>
+        <div style={{ fontSize: 12, color: 'var(--amber)', fontWeight: 600, marginTop: 7 }}>
           A data de regresso não pode ser antes do início.
         </div>
       )}
@@ -271,7 +271,7 @@ function Formulario({ cor, aoFechar, aoGravar }: {
       <div style={{ display: 'flex', gap: 8, marginTop: 11 }}>
         <button onClick={() => aoGravar(f)} disabled={!valido} style={{
           minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
-          background: valido ? cor : 'var(--bg-3)', color: valido ? '#fff' : 'var(--ink-5)',
+          background: valido ? cor : 'var(--bg-3)', color: valido ? 'var(--bg)' : 'var(--ink-5)',
           fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700,
           cursor: valido ? 'pointer' : 'default',
         }}>Registar</button>

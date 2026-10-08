@@ -137,7 +137,7 @@ export default function EtiquetasDoUtente({ pid, cor }: { pid: string; cor: stri
         )}
       </div>
 
-      {erro && <div style={{ marginTop: 8, fontSize: 12.5, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+      {erro && <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
 
       {aEscolher && podeEditar && (
         <div style={{
@@ -163,17 +163,17 @@ export default function EtiquetasDoUtente({ pid, cor }: { pid: string; cor: stri
               onKeyDown={e => { if (e.key === 'Enter') criar() }}
               placeholder="Criar etiqueta nova"
               style={{
-                flex: 1, minWidth: 0, padding: '8px 11px', minHeight: 38, borderRadius: 8,
+                flex: 1, minWidth: 0, padding: '8px 11px', minHeight: 38, borderRadius: 'var(--r-md)',
                 border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 13,
               }} />
             <button onClick={criar} disabled={!nova.trim()} style={{
-              flexShrink: 0, padding: '0 14px', minHeight: 38, borderRadius: 8, border: 'none',
-              background: nova.trim() ? cor : 'var(--bg-3)', color: nova.trim() ? '#fff' : 'var(--ink-5)',
+              flexShrink: 0, padding: '0 14px', minHeight: 38, borderRadius: 'var(--r-md)', border: 'none',
+              background: nova.trim() ? cor : 'var(--bg-3)', color: nova.trim() ? 'var(--bg)' : 'var(--ink-5)',
               fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
               cursor: nova.trim() ? 'pointer' : 'default',
             }}>Criar</button>
             <button onClick={() => { setAEscolher(false); setNova('') }} style={{
-              flexShrink: 0, padding: '0 12px', minHeight: 38, borderRadius: 8,
+              flexShrink: 0, padding: '0 12px', minHeight: 38, borderRadius: 'var(--r-md)',
               border: '1px solid var(--border-2)', background: 'transparent',
               fontFamily: 'inherit', fontSize: 13, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer',
             }}>Fechar</button>

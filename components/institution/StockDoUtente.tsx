@@ -42,7 +42,7 @@ const MONO: React.CSSProperties = {
 const CORES = {
   ok: { bg: 'var(--bg-2)', bd: 'var(--border)', fg: 'var(--ink-4)' },
   a_acabar: { bg: 'var(--badge-amber-bg)', bd: 'var(--badge-amber-border)', fg: 'var(--badge-amber-fg)' },
-  acabou: { bg: '#fff5f5', bd: '#fed7d7', fg: '#c53030' },
+  acabou: { bg: 'var(--badge-red-bg)', bd: 'var(--badge-red-border)', fg: 'var(--red)' },
 }
 
 interface MedLigavel { id: string; name: string; dose: string | null }
@@ -177,7 +177,7 @@ export default function StockDoUtente({ pid, nome, cor }: { pid: string; nome: s
         )}
       </div>
 
-      {erro && <div style={{ marginTop: 10, fontSize: 13, color: '#b91c1c', fontWeight: 600 }}>{erro}</div>}
+      {erro && <div style={{ marginTop: 10, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
 
       {aCriar && <NovoArtigo cor={cor} meds={meds} aoCriar={criar} aoCancelar={() => setACriar(false)} />}
 
@@ -202,7 +202,7 @@ export default function StockDoUtente({ pid, nome, cor }: { pid: string; nome: s
               <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', flexWrap: 'wrap' }}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>
-                    <span aria-hidden style={{ marginRight: 6 }}>{cat.icone}</span>{a.nome}
+                    {a.nome}
                   </div>
                   <div style={{ fontSize: 13, color: c.fg, marginTop: 4, fontWeight: s.aviso === 'ok' ? 500 : 700 }}>
                     {s.frase}
@@ -218,7 +218,7 @@ export default function StockDoUtente({ pid, nome, cor }: { pid: string; nome: s
                   <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
                     <button onClick={() => setAMexer(a)} style={{
                       minHeight: 40, padding: '0 14px', borderRadius: 'var(--r-md)', border: 'none',
-                      background: cor, color: '#fff', fontFamily: 'inherit',
+                      background: cor, color: 'var(--bg)', fontFamily: 'inherit',
                       fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
                     }}>Acertar</button>
                     <button onClick={() => apagar(a)} title="Remover da lista" style={{
@@ -294,13 +294,14 @@ function NovoArtigo({ cor, meds, aoCriar, aoCancelar }: {
         <span style={{ ...MONO, display: 'block', marginBottom: 6 }}>Categoria</span>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           {Object.entries(CATEGORIAS).map(([k, c]) => (
-            <button key={k} onClick={() => setCategoria(k)} style={{
-              padding: '7px 12px', borderRadius: 999, minHeight: 36, cursor: 'pointer',
-              border: `1.5px solid ${categoria === k ? c.cor : 'var(--border-2)'}`,
-              background: categoria === k ? c.cor + '14' : 'transparent',
-              color: categoria === k ? c.cor : 'var(--ink-3)',
-              fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600,
-            }}>{c.icone} {c.label}</button>
+            <button key={k} type="button" onClick={() => setCategoria(k)} style={{
+              padding: '7px 12px', borderRadius: 'var(--r-md)', minHeight: 36, cursor: 'pointer',
+              border: `1px solid ${categoria === k ? 'var(--green)' : 'var(--border-2)'}`,
+              background: categoria === k ? 'var(--green)' : 'transparent',
+              color: categoria === k ? 'var(--sobre-acento)' : 'var(--ink-3)',
+              fontFamily: 'inherit', fontSize: 12.5,
+              fontWeight: categoria === k ? 700 : 500,
+            }}>{c.label}</button>
           ))}
         </div>
       </div>
@@ -358,7 +359,7 @@ function NovoArtigo({ cor, meds, aoCriar, aoCancelar }: {
           disabled={!nome.trim()}
           style={{
             minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
-            background: nome.trim() ? cor : 'var(--bg-3)', color: nome.trim() ? '#fff' : 'var(--ink-5)',
+            background: nome.trim() ? cor : 'var(--bg-3)', color: nome.trim() ? 'var(--bg)' : 'var(--ink-5)',
             fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
             cursor: nome.trim() ? 'pointer' : 'default',
           }}>Acrescentar</button>
@@ -397,12 +398,12 @@ function FolhaAcertar({ art, cor, aoFechar, aoMexer }: {
     <div onClick={aoFechar} style={{ ...estiloFundoModal, alignItems: 'flex-end', padding: 0 }}>
       <div onClick={e => e.stopPropagation()} role="dialog" aria-label={`Acertar ${art.nome}`}
         style={{
-          width: '100%', maxWidth: 460, background: 'var(--bg, #fff)',
+          width: '100%', maxWidth: 460, background: 'var(--bg, var(--bg))',
           borderRadius: '18px 18px 0 0', padding: '20px 18px calc(18px + env(safe-area-inset-bottom))',
           maxHeight: '86vh', overflowY: 'auto',
         }}>
-        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, #111)' }}>{art.nome}</div>
-        <div style={{ fontSize: 13, color: 'var(--ink-4, #6b7280)', marginTop: 3 }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--ink, var(--ink))' }}>{art.nome}</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-4, var(--ink-4))', marginTop: 3 }}>
           Estão registadas {Number(art.quantidade)} {art.unidade || 'unidades'}.
         </div>
 
@@ -412,9 +413,9 @@ function FolhaAcertar({ art, cor, aoFechar, aoMexer }: {
             {OPCOES.map(o => (
               <button key={o.id} onClick={() => setMotivo(o.id)} style={{
                 padding: '8px 13px', borderRadius: 999, minHeight: 38, cursor: 'pointer',
-                border: `1.5px solid ${motivo === o.id ? cor : 'var(--border, #e5e7eb)'}`,
+                border: `1.5px solid ${motivo === o.id ? cor : 'var(--border, var(--border))'}`,
                 background: motivo === o.id ? cor + '14' : 'transparent',
-                color: motivo === o.id ? cor : 'var(--ink-3, #374151)',
+                color: motivo === o.id ? cor : 'var(--ink-3, var(--ink-3))',
                 fontFamily: 'inherit', fontSize: 13, fontWeight: 600,
               }}>{o.label}</button>
             ))}
@@ -429,7 +430,7 @@ function FolhaAcertar({ art, cor, aoFechar, aoMexer }: {
             placeholder="0"
             style={{
               width: '100%', boxSizing: 'border-box', padding: '11px 13px', minHeight: 46,
-              borderRadius: 10, border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: 'var(--r-lg)', border: '1px solid var(--border, var(--border))',
               fontFamily: 'inherit', fontSize: 16, fontWeight: 700,
             }} />
         </label>
@@ -438,30 +439,30 @@ function FolhaAcertar({ art, cor, aoFechar, aoMexer }: {
           placeholder="Nota (opcional)"
           style={{
             width: '100%', boxSizing: 'border-box', marginTop: 10, padding: '10px 12px', minHeight: 42,
-            borderRadius: 10, border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: 'var(--r-lg)', border: '1px solid var(--border, var(--border))',
             fontFamily: 'inherit', fontSize: 14,
           }} />
 
         {n > 0 && (
           <div style={{
-            marginTop: 12, padding: '10px 13px', borderRadius: 10,
-            background: 'var(--bg-2, #f6f6f6)', fontSize: 13.5, color: 'var(--ink-2, #333)', fontWeight: 600,
+            marginTop: 12, padding: '10px 13px', borderRadius: 'var(--r-lg)',
+            background: 'var(--bg-2, var(--bg-3))', fontSize: 13.5, color: 'var(--ink-2, var(--ink-2))', fontWeight: 600,
           }}>
             Fica com {Number(fica.toFixed(2))} {art.unidade || 'unidades'}.
-            {fica < 0 && <span style={{ color: '#c53030' }}> Isso é menos do que zero — confirme.</span>}
+            {fica < 0 && <span style={{ color: 'var(--red)' }}> Isso é menos do que zero — confirme.</span>}
           </div>
         )}
 
         <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
           <button onClick={aoFechar} style={{
-            flex: '0 0 auto', minHeight: 46, padding: '0 18px', borderRadius: 11,
-            border: '1px solid var(--border-2, #d1d5db)', background: 'transparent',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, #374151)', cursor: 'pointer',
+            flex: '0 0 auto', minHeight: 46, padding: '0 18px', borderRadius: 'var(--r-xl)',
+            border: '1px solid var(--border-2, var(--border-2))', background: 'transparent',
+            fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3, var(--ink-3))', cursor: 'pointer',
           }}>Cancelar</button>
           <button onClick={() => aoMexer(delta, motivo, nota)} disabled={!n}
             style={{
-              flex: 1, minHeight: 46, borderRadius: 11, border: 'none',
-              background: n ? cor : 'var(--bg-3, #e5e7eb)', color: n ? '#fff' : 'var(--ink-5, #9ca3af)',
+              flex: 1, minHeight: 46, borderRadius: 'var(--r-xl)', border: 'none',
+              background: n ? cor : 'var(--bg-3, var(--border))', color: n ? 'var(--bg)' : 'var(--ink-5, var(--ink-5))',
               fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: n ? 'pointer' : 'default',
             }}>Guardar</button>
         </div>

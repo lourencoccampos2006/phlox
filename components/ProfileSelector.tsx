@@ -128,7 +128,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
           padding: '8px 12px',
           background: 'white',
           border: '1.5px solid var(--border)',
-          borderRadius: 8,
+          borderRadius: 'var(--r-md)',
           cursor: 'pointer',
           fontSize: 13,
           fontFamily: 'var(--font-sans)',
@@ -142,10 +142,10 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
         {/* Avatar do perfil */}
         <div style={{
           width: 22, height: 22, borderRadius: '50%',
-          background: active?.type === 'patient' ? '#dbeafe' : active?.type === 'family' ? '#e9d5ff' : 'var(--green-light)',
+          background: active?.type === 'patient' ? 'var(--bg-3)' : active?.type === 'family' ? 'var(--roxo-borda)' : 'var(--green-light)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: 10, fontWeight: 700,
-          color: active?.type === 'patient' ? '#2563eb' : active?.type === 'family' ? '#7c3aed' : 'var(--green)',
+          color: active?.type === 'patient' ? 'var(--ink-2)' : active?.type === 'family' ? 'var(--roxo)' : 'var(--green)',
           flexShrink: 0,
         }}>
           {displayName.charAt(0).toUpperCase()}
@@ -167,7 +167,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
         <div style={{
           position: 'absolute', top: 'calc(100% + 6px)', left: 0, zIndex: 100,
           background: 'white', border: '1px solid var(--border)',
-          borderRadius: 10, boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
+          borderRadius: 'var(--r-lg)', boxShadow: '0 4px 24px rgba(0,0,0,0.10)',
           minWidth: 220, overflow: 'hidden',
         }}>
           {/* Cabeçalho */}
@@ -232,9 +232,9 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
                     onClick={() => select(fp)}
                     style={{
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                      padding: '10px 14px', background: isActive ? '#faf5ff' : 'transparent',
+                      padding: '10px 14px', background: isActive ? 'var(--roxo-claro)' : 'transparent',
                       border: 'none', cursor: 'pointer', textAlign: 'left',
-                      borderLeft: `3px solid ${isActive ? '#7c3aed' : 'transparent'}`,
+                      borderLeft: `3px solid ${isActive ? 'var(--roxo)' : 'transparent'}`,
                       transition: 'background 0.1s',
                     }}
                     onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-2)' }}
@@ -242,9 +242,9 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
                   >
                     <div style={{
                       width: 28, height: 28, borderRadius: '50%',
-                      background: '#e9d5ff',
+                      background: 'var(--roxo-borda)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 12, fontWeight: 700, color: '#7c3aed', flexShrink: 0,
+                      fontSize: 12, fontWeight: 700, color: 'var(--roxo)', flexShrink: 0,
                     }}>
                       {p.name.charAt(0).toUpperCase()}
                     </div>
@@ -255,7 +255,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
                       </div>
                     </div>
                     {isActive && (
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto' }}>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--roxo)" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto' }}>
                         <path d="M20 6L9 17l-5-5"/>
                       </svg>
                     )}
@@ -286,18 +286,18 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
                       onClick={() => select(pp)}
                       style={{
                         width: '100%', display: 'flex', alignItems: 'center', gap: 10,
-                        padding: '10px 14px', background: isActive ? '#eff6ff' : 'transparent',
+                        padding: '10px 14px', background: isActive ? 'var(--bg-2)' : 'transparent',
                         border: 'none', cursor: 'pointer', textAlign: 'left',
-                        borderLeft: `3px solid ${isActive ? '#2563eb' : 'transparent'}`,
+                        borderLeft: `3px solid ${isActive ? 'var(--ink-2)' : 'transparent'}`,
                         transition: 'background 0.1s',
                       }}
                       onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'var(--bg-2)' }}
                       onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent' }}
                     >
                       <div style={{
-                        width: 28, height: 28, borderRadius: '50%', background: '#dbeafe',
+                        width: 28, height: 28, borderRadius: '50%', background: 'var(--bg-3)',
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 12, fontWeight: 700, color: '#2563eb', flexShrink: 0,
+                        fontSize: 12, fontWeight: 700, color: 'var(--ink-2)', flexShrink: 0,
                       }}>
                         {p.name.charAt(0).toUpperCase()}
                       </div>
@@ -308,7 +308,7 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
                         </div>
                       </div>
                       {isActive && (
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" strokeWidth="2.5" strokeLinecap="round" style={{ marginLeft: 'auto', flexShrink: 0 }}>
                           <path d="M20 6L9 17l-5-5"/>
                         </svg>
                       )}
@@ -322,10 +322,10 @@ export default function ProfileSelector({ onChange, includePatients = true, pati
           {/* Novo perfil */}
           <div style={{ height: 1, background: 'var(--border)', margin: '4px 0' }} />
           {canPatients && (
-            <a href="/patients" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, color: '#2563eb', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}
-              onMouseEnter={e => { e.currentTarget.style.background = '#eff6ff' }}
+            <a href="/patients" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 14px', fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', textDecoration: 'none', fontFamily: 'var(--font-sans)' }}
+              onMouseEnter={e => { e.currentTarget.style.background = 'var(--bg-2)' }}
               onMouseLeave={e => { e.currentTarget.style.background = 'transparent' }}>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--ink-2)" strokeWidth="2.5" strokeLinecap="round"><path d="M12 5v14M5 12h14"/></svg>
               Gerir {vocab.toLowerCase()}
             </a>
           )}

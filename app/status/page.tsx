@@ -29,7 +29,7 @@ export default function StatusPage() {
   // refresh automático a cada 30s
   useEffect(() => { const id = setInterval(() => setTick(t => t + 1), 30_000); return () => clearInterval(id) }, [])
 
-  const overallColor = !s ? '#9ca3af' : s.status === 'operational' ? '#16a34a' : '#d97706'
+  const overallColor = !s ? 'var(--ink-5)' : s.status === 'operational' ? 'var(--green)' : 'var(--amber)'
   const overallLabel = !s ? 'A verificar…' : s.status === 'operational' ? 'Todos os sistemas operacionais' : 'Operação degradada'
 
   return (
@@ -42,7 +42,7 @@ export default function StatusPage() {
         </div>
 
         {/* Overall banner */}
-        <div style={{ background: 'white', border: `1.5px solid ${overallColor}33`, borderLeft: `4px solid ${overallColor}`, borderRadius: 12, padding: '18px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
+        <div style={{ background: 'white', border: `1.5px solid ${overallColor}33`, borderLeft: `4px solid ${overallColor}`, borderRadius: 'var(--r-xl)', padding: '18px 20px', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 14, flexWrap: 'wrap' }}>
           <div style={{ width: 12, height: 12, borderRadius: '50%', background: overallColor, boxShadow: `0 0 0 4px ${overallColor}22`, flexShrink: 0 }} />
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)' }}>{overallLabel}</div>
@@ -50,26 +50,26 @@ export default function StatusPage() {
               {s ? <>verificado às {new Date(s.timestamp).toLocaleTimeString('pt-PT')} · região {s.region} · resposta {s.duration_ms} ms</> : 'a obter dados…'}
             </div>
           </div>
-          <button onClick={() => setTick(t => t + 1)} style={{ padding: '8px 14px', borderRadius: 8, border: '1px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: '#374151', fontFamily: 'var(--font-sans)' }}>Verificar agora</button>
+          <button onClick={() => setTick(t => t + 1)} style={{ padding: '8px 14px', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', background: 'white', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', fontFamily: 'var(--font-sans)' }}>Verificar agora</button>
         </div>
 
         {/* Components */}
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--bg-2)', fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', letterSpacing: '0.04em', textTransform: 'uppercase' }}>Componentes</div>
-          {loading && !s && [0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 52, margin: '8px 18px', borderRadius: 8 }} />)}
-          {err && <div style={{ padding: '16px 18px', fontSize: 13, color: '#dc2626' }}>{err}</div>}
+          {loading && !s && [0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 52, margin: '8px 18px', borderRadius: 'var(--r-md)' }} />)}
+          {err && <div style={{ padding: '16px 18px', fontSize: 13, color: 'var(--red)' }}>{err}</div>}
           {s?.checks.map(c => (
             <div key={c.name} style={{ padding: '14px 18px', borderBottom: '1px solid var(--bg-2)', display: 'flex', alignItems: 'center', gap: 12 }}>
-              <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.ok ? '#16a34a' : '#dc2626', flexShrink: 0 }} />
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: c.ok ? 'var(--green)' : 'var(--red)', flexShrink: 0 }} />
               <span style={{ flex: 1, fontSize: 14, fontWeight: 600, color: 'var(--ink)' }}>{NAME[c.name] || c.name}</span>
               {c.ms != null && <span style={{ fontSize: 12, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{c.ms} ms</span>}
-              <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? '#16a34a' : '#dc2626' }}>{c.ok ? 'Operacional' : 'Falha'}</span>
+              <span style={{ fontSize: 12, fontWeight: 700, color: c.ok ? 'var(--green)' : 'var(--red)' }}>{c.ok ? 'Operacional' : 'Falha'}</span>
             </div>
           ))}
         </div>
 
         {/* Infrastructure transparency */}
-        <div style={{ marginTop: 22, background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '18px 20px' }}>
+        <div style={{ marginTop: 22, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '18px 20px' }}>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink-3)', letterSpacing: '0.04em', textTransform: 'uppercase', marginBottom: 12 }}>Infraestrutura</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 12 }}>
             {[
@@ -87,8 +87,8 @@ export default function StatusPage() {
         </div>
 
         <div style={{ marginTop: 18, fontSize: 12, color: 'var(--ink-5)', display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-          <Link href="/changelog" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver histórico de alterações →</Link>
-          <Link href="/seguranca" style={{ color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Modelo de segurança →</Link>
+          <Link href="/changelog" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Ver histórico de alterações →</Link>
+          <Link href="/seguranca" style={{ color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Modelo de segurança →</Link>
         </div>
       </div>
     </div>

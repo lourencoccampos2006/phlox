@@ -15,7 +15,7 @@ const SECTIONS: { title: string; intro: string; color: string; guides: { title: 
   {
     title: 'Interações e segurança',
     intro: 'A maior parte dos problemas com medicamentos em casa não vem de um medicamento isolado, mas da combinação de vários — sobretudo em quem toma medicação crónica. Estes guias explicam as combinações que mais importam, porquê, e o que fazer.',
-    color: '#dc2626',
+    color: 'var(--red)',
     guides: [
       { title: 'As 10 interações mais comuns em Portugal', href: '/blog/interacoes-comuns-a-evitar', desc: 'As combinações que causam mais internamentos. Mecanismo, risco e alternativas.' },
       { title: 'Posso tomar ibuprofeno com varfarina?', href: '/blog/ibuprofeno-varfarina', desc: 'A combinação mais perigosa dos domicílios portugueses.' },
@@ -26,7 +26,7 @@ const SECTIONS: { title: string; intro: string; color: string; guides: { title: 
   {
     title: 'Cuidar de quem precisa',
     intro: 'Quem cuida de um pai, mãe ou avó muitas vezes herda uma caixa de medicamentos sem manual. Estes guias dão sistemas simples e seguros para não falhar, trocar nem repetir tomas — e para saber quando vale a pena preocupar-se.',
-    color: '#b45309',
+    color: 'var(--amber)',
     guides: [
       { title: 'Como organizar a medicação de um idoso em casa', href: '/blog/organizar-medicacao-idoso', desc: 'Um sistema simples para nunca falhar uma toma. Caixa semanal, gatilhos e lembretes.' },
       { title: 'Sinais de desidratação em idosos', href: '/blog/sinais-desidratacao-idosos', desc: 'O que vigiar, quanto deve beber e quando é urgente.' },
@@ -36,7 +36,7 @@ const SECTIONS: { title: string; intro: string; color: string; guides: { title: 
   {
     title: 'Doses e situações especiais',
     intro: 'A dose certa depende da pessoa: o peso de uma criança, a função do rim, a gravidez. Estes guias mostram como pensar a dose com segurança e quando não há margem para tentativa e erro.',
-    color: '#0d6e42',
+    color: 'var(--green)',
     guides: [
       { title: 'Dose de paracetamol para crianças (por peso)', href: '/blog/dose-paracetamol-crianca', desc: 'Tabela por peso e idade, e quando ir ao médico com urgência.' },
       { title: 'Antibióticos na gravidez — guia por categoria', href: '/blog/antibioticos-em-gravidez', desc: 'Quais são seguros, quais são proibidos, e quando o benefício supera o risco.' },
@@ -73,7 +73,7 @@ export default function GuiasPage() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 280px), 1fr))', gap: 12 }}>
               {sec.guides.map(g => (
                 <Link key={g.href} href={g.href} className="guia-card" style={{ textDecoration: 'none' }}>
-                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '16px 18px', height: '100%', transition: 'border-color 0.15s, transform 0.12s', borderTop: `3px solid ${sec.color}` }}>
+                  <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px', height: '100%', transition: 'border-color 0.15s, transform 0.12s', borderTop: `3px solid ${sec.color}` }}>
                     <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 7, lineHeight: 1.35 }}>{g.title}</div>
                     <div style={{ fontSize: 12.5, color: 'var(--ink-4)', lineHeight: 1.55 }}>{g.desc}</div>
                     <div style={{ marginTop: 12, fontSize: 12, fontWeight: 700, color: sec.color }}>Ler →</div>
@@ -85,12 +85,12 @@ export default function GuiasPage() {
         ))}
 
         {/* CTA honesto */}
-        <div style={{ background: 'white', border: '1.5px solid var(--green)', borderRadius: 14, padding: '26px 28px', textAlign: 'center', marginTop: 12 }}>
+        <div style={{ background: 'white', border: '1.5px solid var(--green)', borderRadius: 'var(--r-xl)', padding: '26px 28px', textAlign: 'center', marginTop: 12 }}>
           <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 8, letterSpacing: '-0.01em' }}>Tem uma dúvida sobre a sua medicação?</div>
           <p style={{ fontSize: 14, color: 'var(--ink-3)', maxWidth: 520, margin: '0 auto 18px', lineHeight: 1.6 }}>
             O Phlox verifica interações, explica bulas e análises e organiza a medicação de toda a família. Comece grátis, sem instalar nada.
           </p>
-          <Link href="/login" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 8, fontSize: 14, fontWeight: 700 }}>Criar conta grátis →</Link>
+          <Link href="/login" style={{ display: 'inline-block', background: 'var(--green)', color: 'white', textDecoration: 'none', padding: '12px 28px', borderRadius: 'var(--r-md)', fontSize: 14, fontWeight: 700 }}>Criar conta grátis →</Link>
         </div>
 
         <style>{`.guia-card:hover > div { border-color: var(--ink-4); transform: translateY(-2px); }`}</style>

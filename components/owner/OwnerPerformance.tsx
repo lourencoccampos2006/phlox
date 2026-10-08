@@ -39,7 +39,7 @@ function TrendBars({ data, color, fmt }: { data: { key: string; value: number }[
   )
 }
 
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
 
 export default function OwnerPerformance() {
   const { user, supabase } = useAuth() as any
@@ -123,18 +123,18 @@ export default function OwnerPerformance() {
 
   const kpis: { label: string; value: string; sub?: string; color: string; delta?: number }[] = []
   if (isRevenue) {
-    kpis.push({ label: `Receita · ${mLabel(thisM)}`, value: euro(revThis), color: '#0d6e42', delta: revDelta })
-    kpis.push({ label: 'Receita 6 meses', value: euro(revTotal), color: '#0b1120' })
-    kpis.push({ label: 'Ticket médio', value: euro2(avgTicket), sub: `${txTotal} movimentos`, color: '#2563eb' })
+    kpis.push({ label: `Receita · ${mLabel(thisM)}`, value: euro(revThis), color: 'var(--green)', delta: revDelta })
+    kpis.push({ label: 'Receita 6 meses', value: euro(revTotal), color: 'var(--ink)' })
+    kpis.push({ label: 'Ticket médio', value: euro2(avgTicket), sub: `${txTotal} movimentos`, color: 'var(--ink-2)' })
   }
-  if (cfg.hasWalkins) kpis.push({ label: 'Atendimentos 6m', value: String(encounters.length), color: '#7c3aed' })
+  if (cfg.hasWalkins) kpis.push({ label: 'Atendimentos 6m', value: String(encounters.length), color: 'var(--roxo)' })
   if (isLar) {
-    kpis.push({ label: `${cfg.personNounPlural}`, value: String(patients.length), color: '#0b1120' })
-    kpis.push({ label: 'Adesão MAR', value: `${marPct}%`, sub: 'doses administradas', color: marPct >= 90 ? '#16a34a' : '#d97706' })
-    kpis.push({ label: 'Admissões 6m', value: String(admissions6m), color: '#2563eb' })
+    kpis.push({ label: `${cfg.personNounPlural}`, value: String(patients.length), color: 'var(--ink)' })
+    kpis.push({ label: 'Adesão MAR', value: `${marPct}%`, sub: 'doses administradas', color: marPct >= 90 ? 'var(--green)' : 'var(--amber)' })
+    kpis.push({ label: 'Admissões 6m', value: String(admissions6m), color: 'var(--ink-2)' })
   }
-  kpis.push({ label: 'Ocorrências 6m', value: String(incTotal), sub: fallsTotal ? `${fallsTotal} quedas` : undefined, color: incTotal ? '#d97706' : '#16a34a' })
-  kpis.push({ label: 'Equipa ativa', value: `${onShift}/${team.length}`, color: '#0891b2' })
+  kpis.push({ label: 'Ocorrências 6m', value: String(incTotal), sub: fallsTotal ? `${fallsTotal} quedas` : undefined, color: incTotal ? 'var(--amber)' : 'var(--green)' })
+  kpis.push({ label: 'Equipa ativa', value: `${onShift}/${team.length}`, color: 'var(--green)' })
 
   function printReport() {
     printDoc({
@@ -159,7 +159,7 @@ export default function OwnerPerformance() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18, gap: 12, flexWrap: 'wrap' }}>
         <p style={{ fontSize: 13, color: 'var(--ink-4)', margin: 0 }}>Os teus números reais dos últimos 6 meses — {isRevenue ? 'receita, atividade' : 'operação, qualidade'} e tendências.</p>
-        <button onClick={printReport} style={{ padding: '9px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: '#374151' }}>Imprimir relatório</button>
+        <button onClick={printReport} style={{ padding: '9px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--font-sans)', color: 'var(--ink-3)' }}>Imprimir relatório</button>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 10, marginBottom: 16 }}>
@@ -168,7 +168,7 @@ export default function OwnerPerformance() {
             <div style={{ display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap' }}>
               <span style={{ fontFamily: 'var(--font-serif)', fontSize: 24, color: k.color, lineHeight: 1 }}>{loading ? '—' : k.value}</span>
               {k.delta !== undefined && k.delta !== 0 && !loading && (
-                <span style={{ fontSize: 11.5, fontWeight: 700, color: k.delta > 0 ? '#16a34a' : '#dc2626' }}>{k.delta > 0 ? '▲' : '▼'} {Math.abs(k.delta)}%</span>
+                <span style={{ fontSize: 11.5, fontWeight: 700, color: k.delta > 0 ? 'var(--green)' : 'var(--red)' }}>{k.delta > 0 ? '▲' : '▼'} {Math.abs(k.delta)}%</span>
               )}
             </div>
             <div style={{ fontFamily: 'var(--font-mono)', fontSize: 9, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 6 }}>{k.label}</div>
@@ -183,9 +183,9 @@ export default function OwnerPerformance() {
           <div style={{ ...card, gridColumn: '1 / -1' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
               <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Receita por mês</span>
-              <Link href="/faturacao" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Abrir caixa →</Link>
+              <Link href="/faturacao" style={{ fontSize: 11, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Abrir caixa →</Link>
             </div>
-            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={revByMonth} color="#0d6e42" fmt={euro} />}
+            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 'var(--r-md)' }} /> : <TrendBars data={revByMonth} color="var(--green)" fmt={euro} />}
           </div>
         )}
 
@@ -199,7 +199,7 @@ export default function OwnerPerformance() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                       <span style={{ color: 'var(--ink-3)' }}>{KIND_LABEL[k] || k}</span><span style={{ fontWeight: 700, color: 'var(--ink)' }}>{euro(v)}</span>
                     </div>
-                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${(v / mx) * 100}%`, background: '#0d6e42', borderRadius: 3 }} /></div>
+                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${(v / mx) * 100}%`, background: 'var(--green)', borderRadius: 'var(--r-sm)' }} /></div>
                   </div>
                 ))}
               </div>
@@ -217,7 +217,7 @@ export default function OwnerPerformance() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 3 }}>
                       <span style={{ color: 'var(--ink-3)' }}>{METHOD_LABEL[k] || k}</span><span style={{ fontWeight: 700, color: 'var(--ink)' }}>{euro(v)}</span>
                     </div>
-                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 3, overflow: 'hidden' }}><div style={{ height: '100%', width: `${(v / mx) * 100}%`, background: '#2563eb', borderRadius: 3 }} /></div>
+                    <div style={{ height: 6, background: 'var(--bg-3)', borderRadius: 'var(--r-sm)', overflow: 'hidden' }}><div style={{ height: '100%', width: `${(v / mx) * 100}%`, background: 'var(--ink-2)', borderRadius: 'var(--r-sm)' }} /></div>
                   </div>
                 ))}
               </div>
@@ -228,27 +228,27 @@ export default function OwnerPerformance() {
         {cfg.hasWalkins && (
           <div style={card}>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 14 }}>Atendimentos por mês</div>
-            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={encByMonth} color="#7c3aed" />}
+            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 'var(--r-md)' }} /> : <TrendBars data={encByMonth} color="var(--roxo)" />}
           </div>
         )}
 
         {isLar && (
           <div style={card}>
             <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)', marginBottom: 14 }}>Registos de cuidado por mês</div>
-            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={careByMonth} color="#2563eb" />}
+            {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 'var(--r-md)' }} /> : <TrendBars data={careByMonth} color="var(--ink-2)" />}
           </div>
         )}
 
         <div style={{ ...card, gridColumn: isRevenue ? 'auto' : '1 / -1' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
             <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--ink)' }}>Ocorrências por mês</span>
-            <Link href="/incidents" style={{ fontSize: 11, color: '#2563eb', textDecoration: 'none', fontWeight: 600 }}>Ver →</Link>
+            <Link href="/incidents" style={{ fontSize: 11, color: 'var(--ink-2)', textDecoration: 'none', fontWeight: 600 }}>Ver →</Link>
           </div>
-          {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 8 }} /> : <TrendBars data={incByMonth} color="#d97706" />}
+          {loading ? <div className="skeleton" style={{ height: 120, borderRadius: 'var(--r-md)' }} /> : <TrendBars data={incByMonth} color="var(--amber)" />}
         </div>
       </div>
 
-      <div style={{ fontSize: 11.5, color: '#9ca3af', textAlign: 'center', padding: '18px 0', lineHeight: 1.6 }}>
+      <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center', padding: '18px 0', lineHeight: 1.6 }}>
         Indicadores calculados a partir dos teus dados reais. {isRevenue ? 'Receita precisa de vendas/atos registados em Faturação.' : 'Quanto mais registas, mais fiáveis ficam.'}
       </div>
       <style>{`@media (max-width: 760px){ .ind-grid { grid-template-columns: 1fr !important; } }`}</style>

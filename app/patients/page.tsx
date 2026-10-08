@@ -10,6 +10,10 @@
 //  • visual adaptado ao tom (centro de dia/lar = quente; clínica/CSP = sóbrio)
 
 import { useState, useEffect, useCallback, useMemo } from 'react'
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Vazio, ACarregar,
+  Codigo, Bandeira, Botao, Seletor, CAIXA, MONO, ROTULO,
+} from '@/components/ui/mesa'
 import { corDe, filtrarPorEtiquetas, contarPorEtiqueta, type Etiqueta } from '@/lib/etiquetas'
 import { useAuth } from '@/components/AuthContext'
 import Icon from '@/components/Icon'
@@ -18,7 +22,7 @@ import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import ClinicalGate from '@/components/ClinicalGate'
-import { riskScore as calcRiskScore } from '@/lib/riskScore'
+import { riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
@@ -113,9 +117,12 @@ export default function PatientsPage() {
   const noun = cfg.personNoun.toLowerCase()
   const nounPlural = cfg.personNounPlural.toLowerCase()
   const nounCap = cfg.personNounPlural
+  /* O acento era turquesa (var(--green-3)) nos lares e centros de dia e cinzento no
+     resto — uma cor a mais, e a unica da aplicacao que nao estava nos tokens.
+     Desde 2026-10-07 as duas respostas sociais usam o verde da casa. */
   const warm = institution === 'day_care' || institution === 'nursing_home'
-  const accent = warm ? '#0d9488' : '#1d4ed8'
-  const accentSoft = warm ? '#f0fdfa' : '#eff6ff'
+  const accent = warm ? 'var(--green)' : 'var(--ink-2)'
+  const accentSoft = warm ? 'var(--green-light)' : 'var(--bg-2)'
 
   const [patients, setPatients] = useState<Patient[]>([])
   const [medsCount, setMedsCount] = useState<Record<string, number>>({})
@@ -411,181 +418,191 @@ export default function PatientsPage() {
       description="Fichas com medicação, diagnósticos e função renal — partilhadas por toda a equipa. Faz parte do plano Pro e Institucional." />
   }
 
+  /* ══════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════
+     Eram cartões de 320px numa grelha. Num lar de trinta pessoas isso são
+     três ecrãs de rolar, e cada cartão mostrava quatro coisas sobre alguém —
+     muito espaço para pouca informação.
+
+     Passa a ser uma TABELA. Trinta pessoas cabem num ecrã, com mais sobre
+     cada uma do que o cartão mostrava: quarto, idade, etiquetas, medicação,
+     alertas, se já tem registo hoje, e o risco. Os números alinham em coluna,
+     que é o que permite varrer a casa de cima a baixo sem ler.
+     ══════════════════════════════════════════════════════════════════════ */
+  const semRegisto = visible.filter(p => !loggedToday.has(p.id)).length
+
   return (
-    <div style={{ minHeight: '100vh', background: warm ? '#fbfaf8' : '#f8fafc', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 1040, margin: '0 auto', padding: '24px clamp(14px,3vw,28px) 70px' }}>
+    <>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{ ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em', textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
+            {nounCap}
+          </span>
 
-        {/* Cabeçalho */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 14, flexWrap: 'wrap', marginBottom: 18 }}>
-          <div style={{ minWidth: 0 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: accent, fontWeight: 700, marginBottom: 6 }}>{nounCap}</div>
-            <h1 style={{ fontFamily: warm ? 'var(--font-serif)' : 'var(--font-sans)', fontSize: warm ? 'clamp(26px,4vw,34px)' : 'clamp(22px,3vw,28px)', fontWeight: warm ? 500 : 800, color: '#0b1120', margin: 0, letterSpacing: '-0.02em' }}>
-              {loading ? '—' : `${patients.length} ${patients.length === 1 ? noun : nounPlural}`}
-            </h1>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-            <button onClick={() => { setShowImport(true); setImportPreview(null); setImportError('') }}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 15px', background: 'white', color: accent, border: `1.5px solid ${accent}`, borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
-              ↑ Importar
-            </button>
-            <button onClick={() => setShowAdd(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '10px 18px', background: accent, color: 'white', border: 'none', borderRadius: 9, cursor: 'pointer', fontSize: 13, fontWeight: 700, fontFamily: 'inherit' }}>
-              + Novo {noun}
-            </button>
-          </div>
-        </div>
+          <input value={search} onChange={e => setSearch(e.target.value)}
+            placeholder={`Procurar ${noun} ou diagnóstico…`} aria-label="Procurar"
+            style={{ ...CAIXA, width: 260 }} />
 
-        {/* Pesquisa + filtros */}
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
-          <div style={{ position: 'relative', flex: '1 1 240px', minWidth: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" style={{ position: 'absolute', left: 13, top: '50%', transform: 'translateY(-50%)' }}><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${noun} ou diagnóstico…`}
-              style={{ width: '100%', border: '1.5px solid #e2e8f0', borderRadius: 10, padding: '10px 14px 10px 38px', fontSize: 14, fontFamily: 'inherit', outline: 'none', background: 'white', boxSizing: 'border-box' }} />
-          </div>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {([
-              ['all', `Todos`, patients.length],
-              ['alerts', 'Com alertas', counts.alerts],
-              ['poly', 'Polimedicados', counts.poly],
-              ['no_log', 'Sem registo hoje', counts.no_log],
-            ] as [FilterKey, string, number][]).map(([k, label, n]) => (
-              <button key={k} onClick={() => setFilter(k)}
-                style={{ padding: '8px 12px', borderRadius: 999, border: `1.5px solid ${filter === k ? accent : '#e2e8f0'}`, background: filter === k ? accentSoft : 'white', color: filter === k ? accent : '#475569', fontSize: 12.5, fontWeight: filter === k ? 700 : 500, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-                {label}{n > 0 ? ` · ${n}` : ''}
-              </button>
-            ))}
-          </div>
+          <Seletor
+            opcoes={([
+              ['all', `Todos ${patients.length}`],
+              ['alerts', `Alertas ${counts.alerts}`],
+              ['poly', `Polimed. ${counts.poly}`],
+              ['no_log', `Sem registo ${counts.no_log}`],
+            ] as [FilterKey, string][]).map(([id, rotulo]) => ({ id, rotulo }))}
+            ativa={filter} aoMudar={setFilter} />
 
-          {/* ── Filtrar por etiqueta ────────────────────────────────────────
-              So aparece quando a casa tem etiquetas. Uma barra de filtros
-              vazia a perguntar porque e que ninguem a usa nao ajuda ninguem. */}
           {etiquetas.length > 0 && (
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 10 }}>
+            <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
               {etiquetas.map(et => {
                 const on = etiquetasEscolhidas.includes(et.id)
-                const c = corDe(et.cor)
                 const n = contagemEtiquetas.get(et.id) || 0
                 if (!n && !on) return null
                 return (
                   <button key={et.id} title={et.descricao || undefined}
-                    onClick={() => setEtiquetasEscolhidas(p => on ? p.filter(x => x !== et.id) : [...p, et.id])}
+                    onClick={() => setEtiquetasEscolhidas(l => on ? l.filter(x => x !== et.id) : [...l, et.id])}
+                    className="mesa-botao"
                     style={{
-                      padding: '6px 11px', minHeight: 32, borderRadius: 999, cursor: 'pointer',
-                      border: `1.5px solid ${on ? c.solido : c.borda}`,
-                      background: on ? c.fundo : 'transparent',
-                      color: on ? c.texto : '#64748b',
-                      fontFamily: 'inherit', fontSize: 12, fontWeight: on ? 700 : 500,
-                      whiteSpace: 'nowrap',
-                    }}>
-                    <span aria-hidden style={{
-                      display: 'inline-block', width: 7, height: 7, borderRadius: '50%',
-                      background: c.solido, marginRight: 6, verticalAlign: 'middle',
-                    }} />
-                    {et.nome}{n > 0 ? ` · ${n}` : ''}
-                  </button>
+                      ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.06em', padding: '0 7px',
+                      borderRadius: 'var(--r-sm)', cursor: 'pointer',
+                      border: `1px solid ${on ? 'var(--green)' : 'var(--border-2)'}`,
+                      background: on ? 'var(--green)' : 'transparent',
+                      color: on ? 'var(--sobre-acento)' : 'var(--ink-4)',
+                      fontWeight: on ? 700 : 500,
+                    }}>{et.nome}{n ? ` ${n}` : ''}</button>
                 )
               })}
-              {etiquetasEscolhidas.length > 0 && (
-                <button onClick={() => setEtiquetasEscolhidas([])} style={{
-                  padding: '6px 11px', minHeight: 32, borderRadius: 999, cursor: 'pointer',
-                  border: 'none', background: 'transparent', color: '#64748b',
-                  fontFamily: 'inherit', fontSize: 12, fontWeight: 600, textDecoration: 'underline',
-                }}>limpar</button>
-              )}
             </div>
           )}
-        </div>
 
-        {/* Lista */}
+          <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+            <Botao onClick={() => { setShowImport(true); setImportPreview(null); setImportError('') }}>
+              ↑ IMPORTAR
+            </Botao>
+            <Botao feitio="principal" onClick={() => setShowAdd(true)}>+ NOVO {noun.toUpperCase()}</Botao>
+          </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO }}>MED = medicamentos ativos</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>ALERTA = o que merece atenção</span>
+          <span style={{ ...MONO, color: 'var(--green)' }}>✓ = já tem registo hoje</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>— = por registar hoje</span>
+          {semRegisto > 0 && (
+            <span style={{ ...MONO, color: 'var(--amber)', fontWeight: 'var(--peso-forte)' as any }}>
+              {semRegisto} sem registo hoje
+            </span>
+          )}
+          {archived.length > 0 && (
+            <button onClick={() => setShowArchived(s => !s)} style={{
+              marginLeft: 'auto', ...MONO, fontSize: 'var(--t-meta)', background: 'none',
+              border: 'none', cursor: 'pointer', color: 'var(--ink-4)',
+            }}>{showArchived ? '▾' : '▸'} ARQUIVADOS ({archived.length})</button>
+          )}
+        </BarraDeEstado>
+      }
+    >
+      {showArchived && archived.length > 0 && (
+        <Painel cabeca={<Cabecalho><span style={{ ...ROTULO, flex: 1 }}>Arquivados · {archived.length}</span></Cabecalho>}>
+          {archived.map(a => (
+            <div key={a.id} style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              gap: 10, padding: '8px 14px', borderBottom: '1px solid var(--border)',
+            }}>
+              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)' }}>{a.name}</span>
+              <Botao onClick={() => restorePatient(a.id)}>REPOR</Botao>
+            </div>
+          ))}
+        </Painel>
+      )}
+
+      <Painel
+        cabeca={
+          <Cabecalho>
+            <span style={{ ...ROTULO, width: 34 }}>Qt</span>
+            <span style={{ ...ROTULO, flex: 1 }}>{nounCap} · {visible.length}</span>
+            <span style={{ ...ROTULO, width: 44, textAlign: 'right' }}>Idade</span>
+            <span style={{ ...ROTULO, width: 52, textAlign: 'right' }}>Med</span>
+            <span style={{ ...ROTULO, width: 58, textAlign: 'right' }}>Alerta</span>
+            <span style={{ ...ROTULO, width: 52, textAlign: 'right' }}>Hoje</span>
+            <span style={{ ...ROTULO, width: 62, textAlign: 'right' }}>Risco</span>
+            <span style={{ ...ROTULO, width: 150 }}>Sinalizações</span>
+          </Cabecalho>
+        }
+        rodape={
+          <>
+            <span style={MONO}>{visible.length} de {patients.length}</span>
+            {search || filter !== 'all' || etiquetasEscolhidas.length ? (
+              <button onClick={() => { setSearch(''); setFilter('all'); setEtiquetasEscolhidas([]) }}
+                style={{ ...MONO, fontSize: 'var(--t-meta)', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--green)' }}>
+                LIMPAR OS FILTROS
+              </button>
+            ) : null}
+          </>
+        }
+      >
         {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 70, borderRadius: 12 }} />)}</div>
+          <ACarregar oQue="A carregar a casa…" />
         ) : visible.length === 0 ? (
-          <div style={{ background: 'white', border: '2px dashed #e2e8f0', borderRadius: 14, padding: '52px 24px', textAlign: 'center' }}>
-            {search || filter !== 'all' ? (
-              <>
-                <div style={{ fontSize: 14, color: '#64748b', marginBottom: 10 }}>Nenhum {noun} corresponde ao filtro.</div>
-                <button onClick={() => { setSearch(''); setFilter('all') }} style={{ fontSize: 13, color: accent, background: 'none', border: 'none', cursor: 'pointer', fontWeight: 700 }}>Limpar</button>
-              </>
-            ) : (
-              <>
-                <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="users" size={36} color="#cbd5e1" /></div>
-                <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', marginBottom: 8 }}>{cfg.emptyPeopleMsg}</div>
-                <div style={{ fontSize: 13, color: '#64748b', marginBottom: 20 }}>Adicione o primeiro {noun}, ou importe de uma folha (CSV).</div>
-                <button onClick={() => setShowAdd(true)} style={{ background: accent, color: 'white', border: 'none', borderRadius: 9, padding: '11px 22px', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>{cfg.addPersonCta} →</button>
-              </>
-            )}
-          </div>
-        ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(100%, 320px), 1fr))', gap: 12 }}>
-            {visible.map(p => {
-              const mc = medsCount[p.id] || 0, ac = alertCount[p.id] || 0
-              const rs = calcRiskScore({ ...p, alerts: ac, meds_count: mc } as any)
-              const cr = crCl(p)
-              const logged = loggedToday.has(p.id)
-              return (
-                <div key={p.id} className="pt-card" style={{ position: 'relative', background: 'white', border: '1px solid #e9eaec', borderRadius: 14, overflow: 'hidden', transition: 'border-color 0.15s, transform 0.12s' }}>
-                  <Link href={`/patients/${p.id}`} style={{ display: 'block', padding: '16px 18px', textDecoration: 'none' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                      {p.photo_url ? (
-                        <img src={p.photo_url} alt={p.name} style={{ width: 42, height: 42, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                      ) : (
-                        <div style={{ width: 42, height: 42, borderRadius: '50%', background: accentSoft, color: accent, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 700, flexShrink: 0 }}>{p.name.charAt(0).toUpperCase()}</div>
-                      )}
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: '#0b1120', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</div>
-                        <div style={{ fontSize: 12, color: '#94a3b8', fontFamily: 'var(--font-mono)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {[p.age ? `${p.age}a` : null, p.sex, p.room_number ? `Q ${p.room_number}` : null].filter(Boolean).join(' · ') || 'Sem dados'}
-                        </div>
-                      </div>
-                      {rs >= 45 && <span style={{ fontSize: 9, fontFamily: 'var(--font-mono)', fontWeight: 700, color: rs >= 70 ? '#991b1b' : '#854d0e', background: rs >= 70 ? '#fee2e2' : '#fef9c3', border: `1px solid ${rs >= 70 ? '#fecaca' : '#fde68a'}`, borderRadius: 4, padding: '2px 6px', flexShrink: 0 }}>{rs >= 70 ? 'CRÍTICO' : 'ALTO'}</span>}
-                    </div>
-
-                    {/* crachás reais */}
-                    <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', minHeight: 22 }}>
-                      {ac > 0 && <Badge color="#991b1b" bg="#fee2e2" border="#fca5a5">{ac} {ac === 1 ? 'alerta' : 'alertas'}</Badge>}
-                      {mc >= 5 && <Badge color="#854d0e" bg="#fef9c3" border="#fde68a">Polimedicado</Badge>}
-                      {p.allergies && <Badge color="#dc2626" bg="#fee2e2" border="#fca5a5">⚠ Alergia</Badge>}
-                      {cr != null && cr < 60 && <Badge color={cr < 30 ? '#991b1b' : '#b45309'} bg={cr < 30 ? '#fee2e2' : '#fef3c7'} border={cr < 30 ? '#fca5a5' : '#fde68a'}>CrCl {cr}</Badge>}
-                      {mc > 0 && <Badge color="#475569" bg="#f1f5f9" border="#e2e8f0">{mc} med.</Badge>}
-                    </div>
-                    {p.conditions && <div style={{ fontSize: 12.5, color: '#64748b', marginTop: 10, lineHeight: 1.5, overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>{p.conditions}</div>}
-                  </Link>
-
-                  {/* rodapé: registo de hoje + remover */}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '9px 14px', borderTop: '1px solid #f1f5f9' }}>
-                    <span style={{ fontSize: 11.5, fontWeight: 600, color: logged ? '#15803d' : '#94a3b8' }}>
-                      {logged ? '✓ Com registo hoje' : '○ Sem registo hoje'}
-                    </span>
-                    <button onClick={() => archivePatient(p.id, p.name)} title={`Arquivar ${noun}`}
-                      style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#cbd5e1', fontSize: 12, fontWeight: 700 }}
-                      onMouseEnter={e => (e.currentTarget.style.color = '#b45309')} onMouseLeave={e => (e.currentTarget.style.color = '#cbd5e1')}>Arquivar</button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* Arquivados — repor um utente arquivado. Só aparece se houver algum. */}
-        {archived.length > 0 && (
-          <div style={{ marginTop: 22 }}>
-            <button onClick={() => setShowArchived(s => !s)}
-              style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-4)', display: 'flex', alignItems: 'center', gap: 6, padding: 0, fontFamily: 'var(--font-sans)' }}>
-              {showArchived ? '▾' : '▸'} Arquivados ({archived.length})
-            </button>
-            {showArchived && (
-              <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {archived.map(a => (
-                  <div key={a.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, background: '#f9fafb', border: '1px solid var(--border)', borderRadius: 9, padding: '9px 13px' }}>
-                    <span style={{ fontSize: 13, color: 'var(--ink-3)' }}>{a.name}</span>
-                    <button onClick={() => restorePatient(a.id)} style={{ background: 'white', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Repor</button>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+          patients.length > 0 ? (
+            <Vazio titulo={`Nenhum ${noun} corresponde ao filtro.`}
+              acao={<Botao onClick={() => { setSearch(''); setFilter('all'); setEtiquetasEscolhidas([]) }}>LIMPAR</Botao>} />
+          ) : (
+            <Vazio titulo={cfg.emptyPeopleMsg}
+              oQueFazer="Adicione a primeira ficha, ou importe de uma folha de cálculo."
+              acao={<Botao feitio="principal" onClick={() => setShowAdd(true)}>{cfg.addPersonCta.toUpperCase()} →</Botao>} />
+          )
+        ) : visible.map(p => {
+          const mc = medsCount[p.id] || 0, ac = alertCount[p.id] || 0
+          const rs = calcRiskScore({ ...p, alerts: ac, meds_count: mc } as any)
+          const logged = loggedToday.has(p.id)
+          const suas = etiquetasPorPessoa.get(p.id) || []
+          // `riskScore` devolve um numero; o nivel sai do `riskLevel`, que e a
+          // fonte unica dos cortes (70 / 45 / 20).
+          const nivel = riskLevel(rs)
+          const corRisco = nivel === 'critical' || nivel === 'high' ? 'var(--red)'
+            : nivel === 'moderate' ? 'var(--amber)' : 'var(--ink-4)'
+          return (
+            <LinhaTabela key={p.id} href={`/patients/${p.id}`}
+              filete={ac > 0 ? 'var(--red)' : undefined}
+              antes={{
+                largura: 34,
+                conteudo: (
+                  <span style={{
+                    ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
+                    color: p.room_number ? 'var(--ink-3)' : 'var(--ink-5)',
+                  }}>{p.room_number || '—'}</span>
+                ),
+              }}
+              principal={p.name}
+              secundaria={p.conditions || undefined}
+              fim={
+                suas.length || p.allergies ? (
+                  <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 150 }}>
+                    {p.allergies && <Bandeira texto="ALERG" tom="mau" />}
+                    {suas.slice(0, 2).map(e => <Codigo key={e.id} texto={e.nome.slice(0, 6).toUpperCase()} />)}
+                    {suas.length > 2 && (
+                      <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                        +{suas.length - 2}
+                      </span>
+                    )}
+                  </span>
+                ) : undefined
+              }
+              celulas={[
+                { rotulo: 'Idade', valor: p.age != null ? `${p.age}a` : '—', largura: 44, direita: true },
+                { rotulo: 'Med', valor: mc || '—', largura: 52, direita: true, cor: mc >= 5 ? 'var(--amber)' : undefined },
+                { rotulo: 'Alerta', valor: ac || '—', largura: 58, direita: true, forte: !!ac, cor: ac ? 'var(--red)' : 'var(--ink-5)' },
+                { rotulo: 'Hoje', valor: logged ? '✓' : '—', largura: 52, direita: true, cor: logged ? 'var(--green)' : 'var(--ink-5)' },
+                { rotulo: 'Risco', valor: rs, largura: 62, direita: true, forte: true, cor: corRisco },
+              ]} />
+          )
+        })}
+      </Painel>
+    </Mesa>
 
       {/* Modal: novo */}
       {showAdd && (
@@ -598,8 +615,8 @@ export default function PatientsPage() {
             rotulos={{ sala: cfg.roomLabel || 'Sala ou lugar' }}
           />
           <div style={{ display: 'flex', gap: 8, marginTop: 18 }}>
-            <button onClick={addPatient} disabled={!newP.nome?.trim() || adding} style={{ flex: 1, background: accent, color: 'white', border: 'none', borderRadius: 9, padding: '12px', fontSize: 14, fontWeight: 700, cursor: newP.nome?.trim() ? 'pointer' : 'not-allowed', opacity: newP.nome?.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>{adding ? 'A criar…' : 'Criar ficha →'}</button>
-            <button onClick={() => setShowAdd(false)} style={{ padding: '12px 16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 14, cursor: 'pointer', color: '#475569', fontFamily: 'inherit' }}>Cancelar</button>
+            <button onClick={addPatient} disabled={!newP.nome?.trim() || adding} style={{ flex: 1, background: accent, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', padding: '12px', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: newP.nome?.trim() ? 'pointer' : 'not-allowed', opacity: newP.nome?.trim() ? 1 : 0.5, fontFamily: 'inherit' }}>{adding ? 'A criar…' : 'Criar ficha →'}</button>
+            <button onClick={() => setShowAdd(false)} style={{ padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'inherit' }}>Cancelar</button>
           </div>
         </Modal>
       )}
@@ -609,33 +626,36 @@ export default function PatientsPage() {
         <Modal onClose={() => setShowImport(false)} title={`Importar ${nounPlural}`} accent={accent} wide>
           {!importPreview ? (
             <>
-              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `2px dashed ${accent}`, borderRadius: 12, padding: '38px 24px', cursor: 'pointer', background: accentSoft, gap: 10 }}>
-                <span style={{ fontSize: 32 }}>📄</span>
-                <span style={{ fontSize: 14, fontWeight: 700, color: accent }}>Selecionar ficheiro CSV ou Excel</span>
-                <span style={{ fontSize: 12, color: '#64748b' }}>.csv, .xlsx ou .xls · exportado do Excel ou de outro sistema · até 500 {nounPlural}</span>
+              <label style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', border: `2px dashed ${accent}`, borderRadius: 'var(--r-xl)', padding: '38px 24px', cursor: 'pointer', background: accentSoft, gap: 10 }}>
+                <span style={{
+                  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)',
+                  letterSpacing: '.14em', color: 'var(--ink-5)',
+                }}>CSV · XLSX</span>
+                <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: accent }}>Selecionar ficheiro CSV ou Excel</span>
+                <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>.csv, .xlsx ou .xls · exportado do Excel ou de outro sistema · até 500 {nounPlural}</span>
                 <input type="file" accept=".csv,.txt,.xlsx,.xls" onChange={handleCSVFile} style={{ display: 'none' }} />
               </label>
-              {importError && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#dc2626' }}>{importError}</div>}
-              <div style={{ marginTop: 14, padding: '12px 14px', background: '#f8fafc', borderRadius: 8, border: '1px solid #e2e8f0' }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#374151', marginBottom: 6 }}>Primeira linha = cabeçalho. Exemplo:</div>
-                <code style={{ fontSize: 11, color: '#64748b', fontFamily: 'var(--font-mono)', display: 'block', lineHeight: 1.7 }}>Nome, Idade, Sexo, {cfg.roomLabel || 'Sala'}, Diagnósticos, Alergias<br/>Maria Silva, 82, F, 12A, HTA; DM2, Penicilina</code>
+              {importError && <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', color: 'var(--red)' }}>{importError}</div>}
+              <div style={{ marginTop: 14, padding: '12px 14px', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', marginBottom: 6 }}>Primeira linha = cabeçalho. Exemplo:</div>
+                <code style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', display: 'block', lineHeight: 1.7 }}>Nome, Idade, Sexo, {cfg.roomLabel || 'Sala'}, Diagnósticos, Alergias<br/>Maria Silva, 82, F, 12A, HTA; DM2, Penicilina</code>
               </div>
             </>
           ) : (
             <>
-              <div style={{ padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, marginBottom: 14, fontSize: 13, color: '#15803d', fontWeight: 700 }}>
+              <div style={{ padding: '10px 14px', background: 'var(--badge-green-bg)', border: '1px solid var(--badge-green-border)', borderRadius: 'var(--r-md)', marginBottom: 14, fontSize: 'var(--t-dado)', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any }}>
                 {importPreview.rows.length} {importPreview.rows.length === 1 ? noun : nounPlural} · colunas: {Object.keys(importPreview.mapping).join(', ')}
               </div>
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: 8, overflow: 'auto', maxHeight: 260, marginBottom: 14 }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
-                  <thead><tr style={{ background: '#f8fafc' }}>{importPreview.headers.map((h, i) => <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: '#374151', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
-                  <tbody>{importPreview.rows.slice(0, 8).map((row, i) => <tr key={i} style={{ borderTop: '1px solid #f1f5f9' }}>{row.map((c, j) => <td key={j} style={{ padding: '7px 10px', color: '#475569', whiteSpace: 'nowrap', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</td>)}</tr>)}</tbody>
+              <div style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-md)', overflow: 'auto', maxHeight: 260, marginBottom: 14 }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--t-meta)' }}>
+                  <thead><tr style={{ background: 'var(--bg-2)' }}>{importPreview.headers.map((h, i) => <th key={i} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', whiteSpace: 'nowrap' }}>{h}</th>)}</tr></thead>
+                  <tbody>{importPreview.rows.slice(0, 8).map((row, i) => <tr key={i} style={{ borderTop: '1px solid var(--bg-3)' }}>{row.map((c, j) => <td key={j} style={{ padding: '7px 10px', color: 'var(--ink-3)', whiteSpace: 'nowrap', maxWidth: 140, overflow: 'hidden', textOverflow: 'ellipsis' }}>{c}</td>)}</tr>)}</tbody>
                 </table>
               </div>
-              {importLoading && <div style={{ padding: 11, background: accentSoft, borderRadius: 8, marginBottom: 12, fontSize: 13, color: accent, fontWeight: 700 }}>A importar… {importDone}/{importPreview.rows.length}</div>}
+              {importLoading && <div style={{ padding: 11, background: accentSoft, borderRadius: 'var(--r-md)', marginBottom: 12, fontSize: 'var(--t-dado)', color: accent, fontWeight: 'var(--peso-forte)' as any }}>A importar… {importDone}/{importPreview.rows.length}</div>}
               <div style={{ display: 'flex', gap: 8 }}>
-                <button onClick={doImport} disabled={importLoading} style={{ flex: 1, padding: 12, background: importLoading ? '#94a3b8' : accent, color: 'white', border: 'none', borderRadius: 9, fontSize: 14, fontWeight: 700, cursor: importLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{importLoading ? 'A importar…' : `Importar ${importPreview.rows.length} →`}</button>
-                <button onClick={() => { setImportPreview(null); setImportError('') }} disabled={importLoading} style={{ padding: '12px 16px', background: 'white', border: '1px solid #e2e8f0', borderRadius: 9, fontSize: 13, cursor: 'pointer', color: '#475569', fontFamily: 'inherit' }}>Voltar</button>
+                <button onClick={doImport} disabled={importLoading} style={{ flex: 1, padding: 12, background: importLoading ? 'var(--ink-5)' : accent, color: 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: importLoading ? 'not-allowed' : 'pointer', fontFamily: 'inherit' }}>{importLoading ? 'A importar…' : `Importar ${importPreview.rows.length} →`}</button>
+                <button onClick={() => { setImportPreview(null); setImportError('') }} disabled={importLoading} style={{ padding: '12px 16px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 'var(--t-dado)', cursor: 'pointer', color: 'var(--ink-3)', fontFamily: 'inherit' }}>Voltar</button>
               </div>
             </>
           )}
@@ -647,21 +667,21 @@ export default function PatientsPage() {
         .pt-3col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
         @media (max-width: 480px) { .pt-3col { grid-template-columns: 1fr 1fr; } }
       `}</style>
-    </div>
+    </>
   )
 }
 
 function Badge({ children, color, bg, border }: { children: React.ReactNode; color: string; bg: string; border: string }) {
-  return <span style={{ fontSize: 9.5, fontFamily: 'var(--font-mono)', fontWeight: 700, color, background: bg, border: `1px solid ${border}`, borderRadius: 4, padding: '2px 7px', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{children}</span>
+  return <span style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color, background: bg, border: `1px solid ${border}`, borderRadius: 'var(--r)', padding: '2px 7px', letterSpacing: '0.04em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{children}</span>
 }
 
 function Modal({ children, onClose, title, accent, wide }: { children: React.ReactNode; onClose: () => void; title: string; accent: string; wide?: boolean }) {
   return (
     <div onClick={e => { if (e.target === e.currentTarget) onClose() }} style={{ position: 'fixed', inset: 0, background: 'rgba(8,12,24,0.5)', zIndex: 500, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
-      <div style={{ background: 'white', borderRadius: 16, padding: 26, width: '100%', maxWidth: wide ? 620 : 520, maxHeight: '88vh', overflow: 'auto', boxShadow: '0 24px 64px rgba(8,12,24,0.22)' }}>
+      <div style={{ background: 'white', borderRadius: 'var(--r-xl)', padding: 26, width: '100%', maxWidth: wide ? 620 : 520, maxHeight: '88vh', overflow: 'auto', boxShadow: '0 24px 64px rgba(8,12,24,0.22)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
-          <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 700 }}>{title}</div>
-          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', fontSize: 20, lineHeight: 1 }}>×</button>
+          <div style={{ fontSize: 'var(--t-micro)', fontFamily: 'var(--font-mono)', color: accent, letterSpacing: '0.12em', textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any }}>{title}</div>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-destaque)', lineHeight: 1 }}>×</button>
         </div>
         {children}
       </div>

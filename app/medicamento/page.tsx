@@ -24,6 +24,7 @@ import SaveButton from '@/components/SaveButton'
 import { useUsageLimit } from '@/lib/useUsageLimit'
 import UpgradeNudge from '@/components/UpgradeNudge'
 import NaoEDispositivoMedico from '@/components/NaoEDispositivoMedico'
+import Icon from '@/components/Icon'
 
 interface Result {
   identified: string
@@ -63,10 +64,10 @@ function downscale(file: File, maxDim = 1280, q = 0.82): Promise<{ b64: string; 
 }
 
 const RX_META: Record<Result['prescription'], { label: string; color: string; bg: string; border: string; icon: string }> = {
-  'sem receita':                  { label: 'Venda livre (MNSRM)',        color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0', icon: '✓' },
-  'com receita médica':           { label: 'Precisa de receita médica',  color: '#b45309', bg: '#fffbeb', border: '#fde68a', icon: '🩺' },
-  'com receita médica especial':  { label: 'Receita médica especial',    color: '#991b1b', bg: '#fef2f2', border: '#fca5a5', icon: '⚠' },
-  'depende da dose':              { label: 'Depende da dose',            color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe', icon: 'ⓘ' },
+  'sem receita':                  { label: 'Venda livre (MNSRM)',        color: 'var(--green)', bg: 'var(--badge-green-bg)', border: 'var(--green-mid)', icon: '✓' },
+  'com receita médica':           { label: 'Precisa de receita médica',  color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', icon: 'stethoscope' },
+  'com receita médica especial':  { label: 'Receita médica especial',    color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', icon: '⚠' },
+  'depende da dose':              { label: 'Depende da dose',            color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)', icon: 'ⓘ' },
 }
 
 // Página própria outra vez (a fusão em /scan foi desfeita). Mantém pesquisa por
@@ -143,7 +144,7 @@ export default function MedicamentoTool() {
   const interactionsDrugs = result ? [result.active || result.identified || name, ...myMeds].filter(Boolean).join(',') : ''
 
   // Tokens visuais
-  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '16px 18px' }
+  const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '16px 18px' }
   const sectionTitle = (t: string, emoji: string, color: string = 'var(--ink-3)') => (
     <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
       <span style={{ fontSize: 16 }}>{emoji}</span>
@@ -169,11 +170,11 @@ export default function MedicamentoTool() {
         {/* Input — com autocomplete */}
         <div style={{ ...card, marginBottom: 16 }}>
           {/* Foto */}
-          <label style={{ display: 'block', border: `1.5px dashed ${photo ? '#0d9488' : 'var(--border)'}`, borderRadius: 12, padding: photo ? 14 : '22px 16px', textAlign: 'center', cursor: 'pointer', background: photo ? '#f0fdfa' : 'var(--bg-2)', marginBottom: 12, transition: 'all 0.15s' }}>
+          <label style={{ display: 'block', border: `1.5px dashed ${photo ? 'var(--green-3)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)', padding: photo ? 14 : '22px 16px', textAlign: 'center', cursor: 'pointer', background: photo ? 'var(--green-light)' : 'var(--bg-2)', marginBottom: 12, transition: 'all 0.15s' }}>
             <input type="file" accept="image/*" style={{ display: 'none' }}
               onChange={e => { const f = e.target.files?.[0]; if (f) { setPhoto(f); setName(''); setResult(null); setError('') } }} />
             {photo ? (
-              <div style={{ fontSize: 13.5, color: '#0d9488', fontWeight: 700 }}>📷 {photo.name} · tocar para trocar</div>
+              <div style={{ fontSize: 13.5, color: 'var(--green-3)', fontWeight: 700 }}>📷 {photo.name} · tocar para trocar</div>
             ) : (
               <>
                 <div style={{ fontSize: 28, marginBottom: 4 }}>📷</div>
@@ -205,9 +206,9 @@ export default function MedicamentoTool() {
             <button onClick={() => explain()} disabled={loading || (!name.trim() && !photo)}
               style={{
                 padding: '12px 18px',
-                background: (name.trim() || photo) && !loading ? '#0d9488' : 'var(--bg-3)',
+                background: (name.trim() || photo) && !loading ? 'var(--green-3)' : 'var(--bg-3)',
                 color: (name.trim() || photo) && !loading ? 'white' : 'var(--ink-4)',
-                border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 800,
+                border: 'none', borderRadius: 'var(--r-lg)', fontSize: 14, fontWeight: 800,
                 cursor: (name.trim() || photo) && !loading ? 'pointer' : 'default',
                 fontFamily: 'var(--font-sans)', whiteSpace: 'nowrap', flexShrink: 0,
               }}>
@@ -217,7 +218,7 @@ export default function MedicamentoTool() {
 
           {error === 'limit'
             ? <UpgradeNudge used={usage.used} limit={usage.limit} what="consultas de medicamento" plan="pro" />
-            : error && <div style={{ marginTop: 12, padding: '10px 14px', background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 8, fontSize: 13, color: '#991b1b' }}>{error}</div>}
+            : error && <div style={{ marginTop: 12, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--red)' }}>{error}</div>}
           {!usage.unlimited && !result && error !== 'limit' && (
             <div style={{ fontSize: 11.5, color: 'var(--ink-5)', marginTop: 10, textAlign: 'center' }}>
               {usage.remaining} de {usage.limit} consultas grátis hoje
@@ -228,7 +229,7 @@ export default function MedicamentoTool() {
         {/* Loading skeleton */}
         {loading && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[1,2,3].map(i => <div key={i} style={{ height: 80, background: 'white', border: '1px solid var(--border)', borderRadius: 12, opacity: 0.5 }} />)}
+            {[1,2,3].map(i => <div key={i} style={{ height: 80, background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', opacity: 0.5 }} />)}
           </div>
         )}
 
@@ -246,8 +247,8 @@ export default function MedicamentoTool() {
                 </div>
                 {rx && (
                   <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 3 }}>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 800, color: rx.color, background: rx.bg, border: `1.5px solid ${rx.border}`, padding: '5px 11px', borderRadius: 8 }}>
-                      <span>{rx.icon}</span> {rx.label}
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12.5, fontWeight: 800, color: rx.color, background: rx.bg, border: `1.5px solid ${rx.border}`, padding: '5px 11px', borderRadius: 'var(--r-md)' }}>
+                      <span><Icon name={rx.icon} size={16} /></span> {rx.label}
                     </span>
                   </div>
                 )}
@@ -256,14 +257,14 @@ export default function MedicamentoTool() {
                 <div style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.6, marginTop: 6 }}>{result.what_it_is}</div>
               )}
               {result.prescription_note && (
-                <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8, padding: '9px 12px', lineHeight: 1.55 }}>
+                <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--ink-3)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', lineHeight: 1.55 }}>
                   <strong style={{ color: rx?.color }}>Nota:</strong> {result.prescription_note}
                 </div>
               )}
 
               {/* Confiança */}
               {result.confidence !== 'alta' && (
-                <div style={{ marginTop: 10, fontSize: 11.5, color: '#92400e', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 8, padding: '8px 11px', display: 'flex', gap: 7 }}>
+                <div style={{ marginTop: 10, fontSize: 11.5, color: 'var(--amber)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-md)', padding: '8px 11px', display: 'flex', gap: 7 }}>
                   <span>⚠</span>
                   <span><strong>Confiança {result.confidence}</strong>. Confirma com o farmacêutico antes de tomar.</span>
                 </div>
@@ -272,22 +273,22 @@ export default function MedicamentoTool() {
 
             {/* Fallback se confiança baixa */}
             {result.confidence === 'baixa' && (
-              <div style={{ background: '#0f172a', borderRadius: 12, padding: '16px 18px', color: 'white' }}>
+              <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-xl)', padding: '16px 18px', color: 'white' }}>
                 <div style={{ fontSize: 13, fontWeight: 800, marginBottom: 6 }}>Não consegui identificar com certeza</div>
                 <div style={{ fontSize: 12.5, opacity: 0.85, marginBottom: 12, lineHeight: 1.55 }}>
                   {result.fallback_advice || 'A informação acima pode estar incorreta. Em vez disso, tira uma foto à BULA (onde está o texto técnico do medicamento) — o motor de bula tem maior precisão.'}
                 </div>
-                <Link href="/scan" style={{ display: 'inline-block', padding: '9px 16px', background: 'white', color: '#0f172a', textDecoration: 'none', borderRadius: 8, fontSize: 13, fontWeight: 800 }}>📷 Tirar foto à bula no Scan →</Link>
+                <Link href="/scan" style={{ display: 'inline-block', padding: '9px 16px', background: 'white', color: 'var(--ink)', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 800 }}>📷 Tirar foto à bula no Scan →</Link>
               </div>
             )}
 
             {/* Para que serve */}
             {result.what_it_treats?.length > 0 && (
               <div style={card}>
-                {sectionTitle('Para que serve', '🎯', '#0d6e42')}
+                {sectionTitle('Para que serve', '🎯', 'var(--green)')}
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                   {result.what_it_treats.map((t, i) => (
-                    <span key={i} style={{ fontSize: 13, color: '#0d6e42', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8, padding: '5px 11px', fontWeight: 600 }}>{t}</span>
+                    <span key={i} style={{ fontSize: 13, color: 'var(--green)', background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-md)', padding: '5px 11px', fontWeight: 600 }}>{t}</span>
                   ))}
                 </div>
                 {result.symptoms?.length > 0 && (
@@ -301,15 +302,15 @@ export default function MedicamentoTool() {
             {/* Como tomar */}
             {result.how_to_take && (
               <div style={card}>
-                {sectionTitle('Como se costuma tomar', '💊', '#1d4ed8')}
+                {sectionTitle('Como se costuma tomar', '💊', 'var(--ink-2)')}
                 <div style={{ fontSize: 14.5, color: 'var(--ink)', lineHeight: 1.65 }}>{result.how_to_take}</div>
               </div>
             )}
 
             {/* Cuidados */}
             {result.cautions?.length > 0 && (
-              <div style={{ ...card, background: '#fffdf7', borderColor: '#fde68a' }}>
-                {sectionTitle('Cuidados', '⚠️', '#b45309')}
+              <div style={{ ...card, background: 'var(--amber-light)', borderColor: 'var(--badge-amber-border)' }}>
+                {sectionTitle('Cuidados', '⚠️', 'var(--amber)')}
                 <ul style={{ margin: 0, paddingLeft: 22, fontSize: 14, color: 'var(--ink-2)', lineHeight: 1.65 }}>
                   {result.cautions.map((c, i) => <li key={i} style={{ marginBottom: 3 }}>{c}</li>)}
                 </ul>
@@ -318,9 +319,9 @@ export default function MedicamentoTool() {
 
             {/* NÃO tomar se */}
             {result.avoid_if?.length > 0 && (
-              <div style={{ ...card, background: '#fff7f7', borderColor: '#fca5a5' }}>
-                {sectionTitle('NÃO tomes (sem falar com o médico) se', '🚫', '#991b1b')}
-                <ul style={{ margin: 0, paddingLeft: 22, fontSize: 14, color: '#991b1b', lineHeight: 1.65 }}>
+              <div style={{ ...card, background: 'var(--red-light)', borderColor: 'var(--badge-red-border)' }}>
+                {sectionTitle('NÃO tomes (sem falar com o médico) se', '🚫', 'var(--red)')}
+                <ul style={{ margin: 0, paddingLeft: 22, fontSize: 14, color: 'var(--red)', lineHeight: 1.65 }}>
                   {result.avoid_if.map((c, i) => <li key={i} style={{ marginBottom: 3 }}>{c}</li>)}
                 </ul>
               </div>
@@ -336,10 +337,10 @@ export default function MedicamentoTool() {
 
             {/* Bom saber */}
             {result.good_to_know && (
-              <div style={{ ...card, background: '#f0fdfa', borderColor: '#99f6e4' }}>
+              <div style={{ ...card, background: 'var(--green-light)', borderColor: 'var(--green-mid)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 9 }}>
                   <span style={{ fontSize: 18 }}>💡</span>
-                  <div style={{ fontSize: 13.5, color: '#0f766e', lineHeight: 1.6 }}>{result.good_to_know}</div>
+                  <div style={{ fontSize: 13.5, color: 'var(--green-3)', lineHeight: 1.6 }}>{result.good_to_know}</div>
                 </div>
               </div>
             )}
@@ -352,7 +353,7 @@ export default function MedicamentoTool() {
                 preview={result.what_it_is || (result.what_it_treats || []).slice(0, 3).join(', ')}
                 href="/medicamento"
                 data={result}
-                color="#0d9488"
+                color="var(--green-3)"
               />
               <ShareCard
                 title={result.identified || result.queried || 'Medicamento'}
@@ -366,21 +367,21 @@ export default function MedicamentoTool() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
               {/* Handoff: leva o medicamento identificado já preenchido para o
                   verificador de interações (que lê ?drugs=). */}
-              <Link href={`/interactions?drugs=${encodeURIComponent(interactionsDrugs)}`} style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>
+              <Link href={`/interactions?drugs=${encodeURIComponent(interactionsDrugs)}`} style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 700, color: 'var(--ink-2)', textDecoration: 'none' }}>
                 ⚗ {myMeds.length > 0 ? 'Verificar interações com a minha lista' : 'Verificar interações'}
               </Link>
               {user && (
                 alreadyTracked ? (
-                  <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#16a34a', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                  <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'var(--badge-green-bg)', border: '1px solid var(--green-mid)', color: 'var(--green)', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
                     ✓ Já está na tua lista
                   </Link>
                 ) : (
-                  <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: '#0d6e42', color: 'white', borderRadius: 10, fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
+                  <Link href="/mymeds" style={{ flex: '1 1 200px', textAlign: 'center', padding: '12px', background: 'var(--green)', color: 'white', borderRadius: 'var(--r-lg)', fontSize: 13, fontWeight: 700, textDecoration: 'none' }}>
                     + Adicionar à minha lista
                   </Link>
                 )
               )}
-              <Link href="/scan" style={{ flex: '1 1 100%', textAlign: 'center', padding: '11px', background: 'white', border: '1px dashed var(--border)', borderRadius: 10, fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none' }}>
+              <Link href="/scan" style={{ flex: '1 1 100%', textAlign: 'center', padding: '11px', background: 'white', border: '1px dashed var(--border)', borderRadius: 'var(--r-lg)', fontSize: 12.5, fontWeight: 600, color: 'var(--ink-4)', textDecoration: 'none' }}>
                 Não te pareceu certo? Tira foto à bula no Scan →
               </Link>
             </div>

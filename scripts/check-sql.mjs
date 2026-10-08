@@ -81,8 +81,11 @@ const ficheiros = fs.readdirSync('supabase')
 // «✓ todas as migrações por correr» e só olhava para duas.
 //
 // Quando o Fernando correr as migrações, tirar daqui as que já correram.
+// (2026-10-06: o 169 ao 178 já correram. Falta o 179 e o 153 outra vez.)
+// (2026-10-07: mais o 180 — a conformidade passa a ser da casa. Corre ANTES
+//  do 153, que é sempre o último porque regenera as políticas todas.)
 const ORDEM = (process.env.ORDEM
-  || '169,170,171,172,173,174,175,176,177,178,153').split(',').map(Number)
+  || '179,180,153').split(',').map(Number)
 const pendentes = ORDEM
   .map(n => ficheiros.find(f => numero(f) === n))
   .filter(Boolean)
@@ -239,6 +242,26 @@ function sintaxe(bruto) {
   const begins = (sql.match(/\bbegin\b/gi) || []).length
   const ends = (sql.match(/\bend\b/gi) || []).length
   if (begins > ends) problemas.push(`${begins} «begin» para ${ends} «end»`)
+
+  // ── A PERTENÇA DESTA CASA É `org_members` ────────────────────────────────
+  // Escrevi uma política contra `team_members` no sprint178. São duas tabelas
+  // diferentes: `org_members` é quem ENTRA na aplicação (tem `user_id` e
+  // `active`); `team_members` é a lista de PESSOAL da casa, a das escalas, e
+  // pode muito bem não ter o `user_id` de ninguém.
+  //
+  // A consulta não devolvia organização nenhuma, nenhuma política permissiva
+  // deixava passar, e a base de dados recusava a escrita com
+  //     42501 — new row violates row-level security policy
+  //
+  // Não há erro de sintaxe, não há coluna inexistente, e a migração corre
+  // perfeitamente. Só não deixa ninguém escrever. Por isso a única maneira de
+  // apanhar isto é dizê-lo por escrito, aqui.
+  for (const m of sql.matchAll(/from\s+(?:public\.)?team_members\b[^;]{0,140}?user_id\s*=\s*\(?\s*(?:select\s+)?auth\.uid/gi)) {
+    problemas.push('uma política de RLS pergunta a `team_members` quem é o utilizador — '
+      + 'a pertença desta casa é `org_members` (`team_members` é a lista de pessoal, '
+      + 'e pode não ter `user_id`). Com a tabela errada, a escrita é recusada '
+      + 'com 42501 e a migração corre na mesma.')
+  }
 
   return problemas
 }

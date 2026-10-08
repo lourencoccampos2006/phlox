@@ -23,17 +23,22 @@ import {
 } from '@/lib/trendSignals'
 import { loadTrends, SENTINEL_LIVE_TABLES } from '@/lib/sentinel'
 
-const ACCENT = '#0f766e'
-const ACCENT_BG = '#f0fdfa'
+const ACCENT = 'var(--green)'
+const ACCENT_BG = 'var(--green-light)'
 
 interface PatientLite { id: string; name: string; room_number?: string | null }
 
 const LEVEL_STYLE: Record<ResidentTrend['level'], { color: string; bg: string; border: string; label: string }> = {
-  critical: { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5', label: 'A vigiar' },
-  warning: { color: '#d97706', bg: '#fffbeb', border: '#fde68a', label: 'A vigiar' },
-  info: { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', label: 'A completar' },
-  good: { color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', label: 'Estável' },
+  critical: { color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)', label: 'A vigiar' },
+  warning: { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)', label: 'A vigiar' },
+  info: { color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)', label: 'A completar' },
+  good: { color: 'var(--green)', bg: 'var(--badge-green-bg)', border: 'var(--badge-green-border)', label: 'Estável' },
 }
+
+import {
+  LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 export default function TendenciasPage() {
   const { user, supabase } = useAuth() as any
@@ -43,6 +48,7 @@ export default function TendenciasPage() {
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [results, setResults] = useState<ResidentTrend[]>([])
+  const largo = useLargo()
   const [open, setOpen] = useState<Set<string>>(new Set())
   const [filter, setFilter] = useState<'attention' | 'all'>('attention')
 
@@ -96,113 +102,185 @@ export default function TendenciasPage() {
     })
   }
 
+  /* ══════════════════════════════════════════════════════════════════════════
+     O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
+     ══════════════════════════════════════════════════════════════════════════
+     Era um acordeão. Para comparar duas tendências — que é exactamente o que
+     uma reunião de equipa faz — abria-se uma, fechava-se, abria-se a outra, e
+     o que se leu na primeira já não estava no ecrã.
+
+     Passa a mestre/detalhe. O que a página já faz bem fica inteiro: a
+     sparkline mostra a comparação que o motor faz (os últimos 7 dias cheios,
+     os 14 anteriores esbatidos), e um dia sem registo é uma barra cinzenta
+     mínima — não é «zero», é «não sabemos».
+     ══════════════════════════════════════════════════════════════════════════ */
+  const aberta = shown.find(r => open.has(r.patientId)) || null
+
   return (
-    <div style={{ minHeight: '100vh', background: '#fbfaf8', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px clamp(14px,4vw,28px) 70px' }}>
+    <Mesa
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Tendências</span>
 
-        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.16em', textTransform: 'uppercase', color: ACCENT, fontWeight: 700, marginBottom: 6 }}>
-          {cfg.unitNoun} · Tendências
-        </div>
-        <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(24px,4vw,32px)', fontWeight: 500, color: '#0b1120', margin: '0 0 6px', letterSpacing: '-0.02em' }}>
-          Tendências ao longo de 2-3 semanas
-        </h1>
-        <p style={{ fontSize: 14.5, color: '#475569', margin: '0 0 14px', lineHeight: 1.55 }}>
-          Humor, alimentação, adesão à medicação, ocorrências e avaliações — por {cfg.personNoun.toLowerCase()}, ao longo do tempo. Uma quebra gradual de várias semanas raramente aparece num único dia.
-        </p>
+          <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>
+            2 A 3 SEMANAS
+          </span>
 
-        <div style={{ background: '#f1f5f9', border: '1px solid #e2e8f0', borderRadius: 10, padding: '10px 14px', fontSize: 12, color: '#475569', lineHeight: 1.5, marginBottom: 18 }}>
-          ⓘ {TREND_DISCLAIMER}
-        </div>
-
-        {/* Resumo + ações */}
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', alignItems: 'center', marginBottom: 14 }}>
-          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '10px 16px' }}>
-            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: needAttention.length ? '#d97706' : '#16a34a' }}>{needAttention.length}</span>
-            <span style={{ fontSize: 12.5, color: '#64748b', marginLeft: 8 }}>{cfg.personNounPlural?.toLowerCase() || 'pessoas'} com tendência a vigiar</span>
-          </div>
-          {stable.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '10px 16px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: '#16a34a' }}>{stable.length}</span>
-              <span style={{ fontSize: 12.5, color: '#64748b', marginLeft: 8 }}>estáve{stable.length === 1 ? 'l' : 'is'}</span>
-            </div>
+          {results.length > 0 && (
+            <Seletor
+              opcoes={[
+                { id: 'attention', rotulo: `A vigiar ${needAttention.length}` },
+                { id: 'all', rotulo: `Todos ${results.length}` },
+              ]}
+              ativa={effectiveFilter} aoMudar={f => setFilter(f as any)} />
           )}
-          {noData.length > 0 && (
-            <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 12, padding: '10px 16px' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 22, fontWeight: 800, color: '#94a3b8' }}>{noData.length}</span>
-              <span style={{ fontSize: 12.5, color: '#64748b', marginLeft: 8 }}>sem dados suficientes ainda</span>
-            </div>
+
+          {!loading && (
+            <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
+              <span style={{
+                ...MONO, fontSize: 'var(--t-meta)',
+                color: needAttention.length ? 'var(--amber)' : 'var(--green)',
+                fontWeight: 'var(--peso-forte)' as any,
+              }}>{needAttention.length} A VIGIAR</span>
+              {stable.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--green)' }}>
+                  {stable.length} ESTÁVE{stable.length === 1 ? 'L' : 'IS'}
+                </span>
+              )}
+              {noData.length > 0 && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                  {noData.length} SEM DADOS SUFICIENTES
+                </span>
+              )}
+            </span>
           )}
+
           {needAttention.length > 0 && (
-            <button onClick={printBriefing} style={{ marginLeft: 'auto', padding: '9px 16px', background: 'white', color: ACCENT, border: `1.5px solid ${ACCENT}55`, borderRadius: 9, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>
-              Imprimir para a equipa
-            </button>
+            <div style={{ marginLeft: 'auto' }}>
+              <Botao onClick={printBriefing}>IMPRIMIR PARA A EQUIPA</Botao>
+            </div>
           )}
-        </div>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>▼▼ a descer depressa</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>▼ a descer</span>
+          <span style={{ ...MONO, color: 'var(--green)' }}>▲ a melhorar</span>
+          <span style={MONO}>Barra cinzenta = dia sem registo, não é zero</span>
+          <span title={TREND_DISCLAIMER} style={{ ...MONO, color: 'var(--ink-5)', marginLeft: 'auto' }}>
+            APOIO AO TRABALHO — NÃO É DIAGNÓSTICO
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && <Aviso tom="mau">{err}</Aviso>}
 
-        {/* Filtro */}
-        {results.length > 0 && (
-          <div style={{ display: 'flex', gap: 6, marginBottom: 16 }}>
-            {(['attention', 'all'] as const).map(f => (
-              <button key={f} onClick={() => setFilter(f)} style={{
-                padding: '7px 14px', borderRadius: 8, fontFamily: 'var(--font-sans)',
-                border: `1.5px solid ${effectiveFilter === f ? ACCENT : '#e2e8f0'}`,
-                background: effectiveFilter === f ? ACCENT_BG : 'white',
-                color: effectiveFilter === f ? ACCENT : '#64748b',
-                fontSize: 12.5, fontWeight: effectiveFilter === f ? 700 : 500, cursor: 'pointer',
-              }}>
-                {f === 'attention' ? `A vigiar (${needAttention.length})` : `Todos (${results.length})`}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>{[0, 1, 2].map(i => <div key={i} className="skeleton" style={{ height: 76, borderRadius: 14 }} />)}</div>
-        ) : err ? (
-          <div style={{ background: '#fef2f2', border: '1px solid #fca5a5', borderRadius: 12, padding: 18, color: '#991b1b', fontSize: 14 }}>{err}</div>
-        ) : results.length === 0 ? (
-          <div style={{ background: 'white', border: '1px solid #e9eaec', borderRadius: 16, padding: '34px 22px', textAlign: 'center' }}>
-            <div style={{ display: 'inline-flex', marginBottom: 12 }}><Icon name="chart" size={36} color="#cbd5e1" /></div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: '#0b1120', marginBottom: 8 }}>Ainda sem {cfg.personNounPlural?.toLowerCase() || 'utentes'}</div>
-            <Link href="/patients" style={{ display: 'inline-block', padding: '12px 24px', background: ACCENT, color: 'white', borderRadius: 10, fontWeight: 700, textDecoration: 'none' }}>Adicionar {cfg.personNoun?.toLowerCase()}</Link>
-          </div>
-        ) : shown.length === 0 ? (
-          <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 16, padding: '28px 22px', textAlign: 'center' }}>
-            <div style={{ fontSize: 30, marginBottom: 8 }}>✓</div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 19, color: '#15803d' }}>Sem tendências a vigiar nas últimas semanas.</div>
-            <div style={{ fontSize: 13, color: '#16a34a', marginTop: 4 }}>Continuem a registar os cuidados — é isso que alimenta esta vista.</div>
-          </div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {shown.map(r => {
+      <div style={{
+        display: 'grid', gap: 10, flex: 1, minHeight: 0, alignItems: 'stretch',
+        gridTemplateColumns: largo && aberta ? 'minmax(320px, 420px) minmax(420px, 1fr)' : '1fr',
+      }}>
+        {(largo || !aberta) && (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, width: 44 }}>Estado</span>
+                <span style={{ ...ROTULO, flex: 1 }}>{cfg.personNounPlural} · o que mudou</span>
+                <span style={{ ...ROTULO, width: 48, textAlign: 'right' }}>Sinais</span>
+              </Cabecalho>
+            }
+            rodape={<span style={MONO}>{shown.length} de {results.length}</span>}
+          >
+            {loading ? (
+              <ACarregar oQue="A olhar para as últimas semanas…" />
+            ) : results.length === 0 ? (
+              <Vazio titulo={`Ainda não há ${cfg.personNounPlural?.toLowerCase() || 'utentes'}.`}
+                oQueFazer="Esta vista faz-se do que a equipa regista ao longo das semanas. Sem fichas não há nada para comparar."
+                acao={<Link href="/patients" style={{ textDecoration: 'none' }}>
+                  <Botao feitio="principal">ADICIONAR {(cfg.personNoun || 'pessoa').toUpperCase()} →</Botao>
+                </Link>} />
+            ) : shown.length === 0 ? (
+              <Vazio titulo="Sem tendências a vigiar nas últimas semanas."
+                oQueFazer="Continuem a registar os cuidados — é isso que alimenta esta vista. Uma quebra gradual de várias semanas raramente aparece num único dia." />
+            ) : shown.map(r => {
               const st = LEVEL_STYLE[r.level]
-              const isOpen = open.has(r.patientId)
               return (
-                <div key={r.patientId} style={{ background: 'white', border: `1px solid ${r.level === 'critical' ? '#fca5a5' : r.level === 'warning' ? '#fde68a' : '#e9eaec'}`, borderRadius: 16, overflow: 'hidden' }}>
-                  <button onClick={() => toggle(r.patientId)} style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 13, padding: '14px 18px', background: 'none', border: 'none', cursor: 'pointer', textAlign: 'left' }}>
-                    <span style={{ width: 38, height: 38, borderRadius: 10, background: st.bg, border: `1.5px solid ${st.border}`, color: st.color, fontWeight: 800, fontSize: 12.5, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, textAlign: 'center', lineHeight: 1.1 }}>
-                      {r.hasEnoughData ? st.label.split(' ')[0] : '—'}
-                    </span>
-                    <span style={{ flex: 1, minWidth: 0 }}>
-                      <span style={{ display: 'block', fontSize: 15.5, fontWeight: 800, color: '#0b1120' }}>{r.name}{cfg.hasBeds && r.room ? ` · ${cfg.roomLabel[0]}${r.room}` : ''}</span>
-                      <span style={{ display: 'block', fontSize: 12.5, color: st.color, marginTop: 1 }}>
-                        {!r.hasEnoughData
-                          ? 'Ainda sem dados suficientes para uma leitura de tendência.'
-                          : r.flags.length
-                            ? `${r.flags.slice(0, 2).map(f => f.title).join(' · ')}${r.flags.length > 2 ? ` · +${r.flags.length - 2}` : ''}`
-                            : 'Sem sinais a vigiar nas últimas semanas.'}
-                      </span>
-                    </span>
-                    <span style={{ fontSize: 18, color: '#94a3b8', transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }}>⌄</span>
-                  </button>
-                  {isOpen && <ResidentDetail r={r} cfg={cfg} />}
-                </div>
+                <LinhaTabela key={r.patientId}
+                  aoTocar={() => toggle(r.patientId)}
+                  ativa={open.has(r.patientId)}
+                  filete={r.level === 'critical' ? 'var(--red)' : r.level === 'warning' ? 'var(--amber)' : undefined}
+                  antes={{
+                    largura: 44,
+                    conteudo: (
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.06em',
+                        textTransform: 'uppercase', fontWeight: 'var(--peso-forte)' as any,
+                        color: r.hasEnoughData ? st.color : 'var(--ink-5)',
+                      }}>{r.hasEnoughData ? st.label.split(' ')[0] : '—'}</span>
+                    ),
+                  }}
+                  principal={
+                    <>
+                      {r.name}
+                      {cfg.hasBeds && r.room && (
+                        <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                          {' '}· {r.room}
+                        </span>
+                      )}
+                    </>
+                  }
+                  secundaria={
+                    !r.hasEnoughData
+                      ? 'Ainda sem dados suficientes para uma leitura de tendência.'
+                      : r.flags.length
+                        ? `${r.flags.slice(0, 2).map(f => f.title).join(' · ')}${r.flags.length > 2 ? ` · +${r.flags.length - 2}` : ''}`
+                        : 'Sem sinais a vigiar nas últimas semanas.'
+                  }
+                  celulas={[
+                    {
+                      rotulo: 'Sinais', largura: 48, direita: true,
+                      valor: r.flags.length || '—', forte: !!r.flags.length,
+                      cor: r.flags.length ? st.color : 'var(--ink-5)',
+                    },
+                  ]} />
               )
             })}
-          </div>
+          </Painel>
         )}
+
+        {aberta ? (
+          <Painel
+            cabeca={
+              <div style={{
+                padding: '10px 14px', borderBottom: '1px solid var(--border)',
+                display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+              }}>
+                <Botao onClick={() => toggle(aberta.patientId)}>← {largo ? 'FECHAR' : 'LISTA'}</Botao>
+                <span style={{ minWidth: 0, flex: 1 }}>
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-destaque)',
+                    fontWeight: 'var(--peso-corpo)' as any,
+                  }}>{aberta.name}</span>
+                  <span style={{ ...MONO, display: 'block', fontSize: 'var(--t-meta)', color: LEVEL_STYLE[aberta.level].color }}>
+                    {aberta.hasEnoughData ? LEVEL_STYLE[aberta.level].label.toUpperCase() : 'SEM DADOS SUFICIENTES'}
+                  </span>
+                </span>
+              </div>
+            }
+          >
+            <ResidentDetail r={aberta} cfg={cfg} />
+          </Painel>
+        ) : largo ? (
+          <Painel>
+            <Vazio titulo={`Escolha um ${cfg.personNoun.toLowerCase()}.`}
+              oQueFazer="Humor, alimentação, adesão à medicação, ocorrências e avaliações ao longo do tempo. Uma quebra gradual de várias semanas raramente aparece num único dia." />
+          </Painel>
+        ) : null}
       </div>
-    </div>
+    </Mesa>
   )
 }
 
@@ -231,18 +309,18 @@ function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof i
   }
 
   return (
-    <div style={{ padding: '0 18px 18px', borderTop: '1px solid #f1f5f9' }}>
+    <div style={{ padding: '0 18px 18px', borderTop: '1px solid var(--bg-3)' }}>
       {r.flags.length > 0 && (
         <div style={{ marginTop: 14 }}>
           {!narrative && !loadingNarrative && (
-            <button onClick={genNarrative} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 8, fontSize: 12, fontWeight: 700, color: '#5b21b6', cursor: 'pointer' }}>
+            <button onClick={genNarrative} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 13px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', cursor: 'pointer' }}>
               ✨ Resumo em palavras (IA)
             </button>
           )}
-          {loadingNarrative && <div style={{ fontSize: 12.5, color: '#7c3aed' }}>A escrever…</div>}
-          {narrativeErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{narrativeErr}</div>}
+          {loadingNarrative && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>A escrever…</div>}
+          {narrativeErr && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)' }}>{narrativeErr}</div>}
           {narrative && (
-            <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '11px 14px', fontSize: 13, color: '#4c1d95', lineHeight: 1.6 }}>
+            <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 14px', fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6 }}>
               {narrative}
             </div>
           )}
@@ -250,20 +328,20 @@ function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof i
       )}
       {r.flags.length > 0 && (
         <div style={{ marginTop: 14, marginBottom: 4 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Sinais encontrados</div>
+          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Sinais encontrados</div>
           {r.flags.map((f, i) => {
-            const c = f.severity === 'critical' ? { color: '#dc2626', bg: '#fef2f2', border: '#fca5a5' } : f.severity === 'warning' ? { color: '#d97706', bg: '#fffbeb', border: '#fde68a' } : { color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe' }
+            const c = f.severity === 'critical' ? { color: 'var(--red)', bg: 'var(--badge-red-bg)', border: 'var(--badge-red-border)' } : f.severity === 'warning' ? { color: 'var(--amber)', bg: 'var(--badge-amber-bg)', border: 'var(--badge-amber-border)' } : { color: 'var(--ink-2)', bg: 'var(--bg-2)', border: 'var(--border)' }
             return (
-              <div key={i} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 10, padding: '10px 13px', marginBottom: 7 }}>
-                <div style={{ fontSize: 13.5, fontWeight: 700, color: c.color }}>{f.title}</div>
-                <div style={{ fontSize: 12.5, color: '#475569', lineHeight: 1.5, marginTop: 2 }}>{f.detail}</div>
+              <div key={i} style={{ background: c.bg, border: `1px solid ${c.border}`, borderRadius: 'var(--r-lg)', padding: '10px 13px', marginBottom: 7 }}>
+                <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: c.color }}>{f.title}</div>
+                <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', lineHeight: 1.5, marginTop: 2 }}>{f.detail}</div>
               </div>
             )
           })}
         </div>
       )}
 
-      <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 8px' }}>
+      <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 8px' }}>
         Registo diário · últimos {r.metrics[0]?.points.length || 21} dias
       </div>
       <div className="trend-metrics" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 10 }}>
@@ -271,23 +349,23 @@ function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof i
       </div>
 
       {(r.incidents.recentCount > 0 || r.incidents.baselineCount > 0) && (
-        <div style={{ marginTop: 14, background: r.incidents.rising ? '#fffbeb' : '#f8fafc', border: `1px solid ${r.incidents.rising ? '#fde68a' : '#e2e8f0'}`, borderRadius: 10, padding: '10px 13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-          <span style={{ fontSize: 12.5, color: '#374151' }}>Ocorrências: <b>{r.incidents.recentCount}</b> nos últimos 14 dias · {r.incidents.baselineCount} nos 14 anteriores</span>
-          {r.incidents.rising && <span style={{ fontSize: 11, fontWeight: 700, color: '#d97706' }}>▲ a repetir-se</span>}
+        <div style={{ marginTop: 14, background: r.incidents.rising ? 'var(--badge-amber-bg)' : 'var(--bg-2)', border: `1px solid ${r.incidents.rising ? 'var(--badge-amber-border)' : 'var(--border)'}`, borderRadius: 'var(--r-lg)', padding: '10px 13px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>Ocorrências: <b>{r.incidents.recentCount}</b> nos últimos 14 dias · {r.incidents.baselineCount} nos 14 anteriores</span>
+          {r.incidents.rising && <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--amber)' }}>▲ a repetir-se</span>}
         </div>
       )}
 
       {r.assessments.length > 0 && (
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 11, fontWeight: 800, color: '#475569', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Avaliações</div>
+          <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 8 }}>Avaliações</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {r.assessments.map(a => {
-              const color = a.direction === 'agravou' ? (a.concerning ? '#dc2626' : '#d97706') : a.direction === 'melhorou' ? '#16a34a' : '#64748b'
+              const color = a.direction === 'agravou' ? (a.concerning ? 'var(--red)' : 'var(--amber)') : a.direction === 'melhorou' ? 'var(--green)' : 'var(--ink-4)'
               const arrow = a.direction === 'agravou' ? '▼' : a.direction === 'melhorou' ? '▲' : a.direction === 'sem alteração' ? '→' : ''
               return (
-                <div key={a.scale} style={{ border: '1px solid #e2e8f0', borderRadius: 9, padding: '7px 12px', background: '#fff' }}>
-                  <div style={{ fontSize: 11.5, fontWeight: 700, color: '#0b1120' }}>{a.label}</div>
-                  <div style={{ fontSize: 11.5, color, marginTop: 2 }}>
+                <div key={a.scale} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '7px 12px', background: 'var(--bg)' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{a.label}</div>
+                  <div style={{ fontSize: 'var(--t-meta)', color, marginTop: 2 }}>
                     {a.previousScore != null ? `${a.previousScore} → ${a.latestScore} pts ${arrow}` : `${a.latestScore} pts (1ª avaliação)`}
                   </div>
                 </div>
@@ -298,8 +376,8 @@ function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof i
       )}
 
       <div style={{ display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' }}>
-        <Link href={`/patients/${r.patientId}`} style={{ fontSize: 12.5, fontWeight: 700, color: 'white', background: ACCENT, borderRadius: 9, padding: '8px 14px', textDecoration: 'none' }}>Abrir ficha</Link>
-        <Link href={`/care-log?patient=${r.patientId}`} style={{ fontSize: 12.5, fontWeight: 700, color: ACCENT, background: 'white', border: `1.5px solid ${ACCENT}`, borderRadius: 9, padding: '8px 14px', textDecoration: 'none' }}>Registar o dia</Link>
+        <Link href={`/patients/${r.patientId}`} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'white', background: ACCENT, borderRadius: 'var(--r-lg)', padding: '8px 14px', textDecoration: 'none' }}>Abrir ficha</Link>
+        <Link href={`/care-log?patient=${r.patientId}`} style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: ACCENT, background: 'white', border: `1.5px solid ${ACCENT}`, borderRadius: 'var(--r-lg)', padding: '8px 14px', textDecoration: 'none' }}>Registar o dia</Link>
       </div>
 
       <style>{`@media(max-width:640px){.trend-metrics{grid-template-columns:1fr!important}}`}</style>
@@ -309,22 +387,22 @@ function ResidentDetail({ r, cfg }: { r: ResidentTrend; cfg: ReturnType<typeof i
 
 function MetricBlock({ m }: { m: MetricTrend }) {
   const chip = !m.reliable
-    ? { label: 'dados insuficientes', color: '#94a3b8', bg: '#f8fafc' }
+    ? { label: 'dados insuficientes', color: 'var(--ink-5)', bg: 'var(--bg-2)' }
     : m.declining
-      ? { label: m.severity === 'critical' ? '▼▼ a descer' : '▼ a descer', color: m.severity === 'critical' ? '#dc2626' : '#d97706', bg: m.severity === 'critical' ? '#fef2f2' : '#fffbeb' }
+      ? { label: m.severity === 'critical' ? '▼▼ a descer' : '▼ a descer', color: m.severity === 'critical' ? 'var(--red)' : 'var(--amber)', bg: m.severity === 'critical' ? 'var(--badge-red-bg)' : 'var(--badge-amber-bg)' }
       : (m.delta != null && m.delta > 0.001)
-        ? { label: '▲ a melhorar', color: '#16a34a', bg: '#f0fdf4' }
-        : { label: '→ estável', color: '#64748b', bg: '#f8fafc' }
+        ? { label: '▲ a melhorar', color: 'var(--green)', bg: 'var(--badge-green-bg)' }
+        : { label: '→ estável', color: 'var(--ink-4)', bg: 'var(--bg-2)' }
   const fmt = (v: number | null) => v == null ? '—' : m.unit === '%' ? `${Math.round(v)}%` : `${v.toFixed(1)}${m.unit}`
   return (
-    <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: 10, padding: '11px 12px' }}>
+    <div style={{ background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '11px 12px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 6, marginBottom: 8, flexWrap: 'wrap' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: '#0b1120' }}>{m.label}</span>
-        <span style={{ fontSize: 10, fontWeight: 700, color: chip.color, background: chip.bg, padding: '2px 7px', borderRadius: 6, whiteSpace: 'nowrap' }}>{chip.label}</span>
+        <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{m.label}</span>
+        <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: chip.color, background: chip.bg, padding: '2px 7px', borderRadius: 'var(--r)', whiteSpace: 'nowrap' }}>{chip.label}</span>
       </div>
       <Spark points={m.points} scaleMax={m.scaleMax} color={ACCENT} />
-      <div style={{ fontSize: 10.5, color: '#64748b', marginTop: 7, lineHeight: 1.5 }}>
-        últimos 7d: <b style={{ color: '#0b1120' }}>{fmt(m.recentAvg)}</b><br />2 sem. antes: {fmt(m.baselineAvg)}
+      <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-4)', marginTop: 7, lineHeight: 1.5 }}>
+        últimos 7d: <b style={{ color: 'var(--ink)' }}>{fmt(m.recentAvg)}</b><br />2 sem. antes: {fmt(m.baselineAvg)}
       </div>
     </div>
   )
@@ -342,7 +420,7 @@ function Spark({ points, scaleMax, color }: { points: SparkPoint[]; scaleMax: nu
       {points.map((p, i) => {
         const isRecent = i >= points.length - 7
         const h = p.value == null ? 3 : Math.max(3, Math.round((Math.min(p.value, scaleMax) / scaleMax) * H))
-        const bg = p.value == null ? '#e2e8f0' : (isRecent ? color : color + '4a')
+        const bg = p.value == null ? 'var(--border)' : (isRecent ? color : color + '4a')
         const label = p.value == null ? 'sem registo' : (scaleMax <= 5 ? p.value.toFixed(1) : `${Math.round(p.value)}%`)
         return <div key={p.date} title={`${p.date}: ${label}`} style={{ width: 5, height: h, background: bg, borderRadius: '2px 2px 0 0', flexShrink: 0 }} />
       })}

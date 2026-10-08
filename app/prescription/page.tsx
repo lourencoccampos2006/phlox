@@ -146,10 +146,10 @@ Omeprazol 20mg
             </div>
 
             {/* Photo upload */}
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '14px', marginBottom: 10 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px', marginBottom: 10 }}>
               <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 10 }}>Foto da receita</div>
               <div onClick={() => fileRef.current?.click()}
-                style={{ border: '2px dashed var(--border-2)', borderRadius: 6, padding: '20px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-2)' }}>
+                style={{ border: '2px dashed var(--border-2)', borderRadius: 'var(--r)', padding: '20px', textAlign: 'center', cursor: 'pointer', background: 'var(--bg-2)' }}>
                 <div style={{ fontSize: 24, marginBottom: 6 }}>📷</div>
                 <div style={{ fontSize: 13, color: 'var(--ink-3)', fontWeight: 500 }}>Tirar/seleccionar foto</div>
                 <div style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginTop: 3 }}>JPG, PNG — receita ou caixa do medicamento</div>
@@ -164,12 +164,12 @@ Omeprazol 20mg
               <div style={{ flex: 1, height: 1, background: 'var(--border)' }} />
             </div>
 
-            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 8, padding: '14px', marginBottom: 12 }}>
+            <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: '14px', marginBottom: 12 }}>
               <label style={{ display: 'block', fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 8 }}>Texto da receita</label>
               <textarea value={text} onChange={e => setText(e.target.value)}
                 placeholder={'Cola aqui o que está na receita...\n\nEx: Amoxicilina 875mg, 1 comp 12/12h...'}
                 rows={6}
-                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 6, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', lineHeight: 1.6 }} />
+                style={{ width: '100%', border: '1.5px solid var(--border)', borderRadius: 'var(--r)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'none', lineHeight: 1.6 }} />
               <button onClick={() => setText(EXAMPLE)}
                 style={{ background: 'none', border: 'none', fontSize: 11, color: 'var(--green-2)', cursor: 'pointer', fontFamily: 'var(--font-mono)', padding: '6px 0 0' }}>
                 Ver exemplo →
@@ -177,11 +177,11 @@ Omeprazol 20mg
             </div>
 
             <button onClick={explain} disabled={!text.trim() || loading}
-              style={{ width: '100%', background: text.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: text.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 8, padding: '13px', fontSize: 14, fontWeight: 600, cursor: text.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
+              style={{ width: '100%', background: text.trim() && !loading ? 'var(--green)' : 'var(--bg-3)', color: text.trim() && !loading ? 'white' : 'var(--ink-4)', border: 'none', borderRadius: 'var(--r-md)', padding: '13px', fontSize: 14, fontWeight: 600, cursor: text.trim() && !loading ? 'pointer' : 'not-allowed', fontFamily: 'var(--font-sans)', letterSpacing: '-0.01em' }}>
               {loading ? 'A explicar...' : 'Explicar receita →'}
             </button>
 
-            <div style={{ marginTop: 16, padding: '14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 8 }}>
+            <div style={{ marginTop: 16, padding: '14px', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)' }}>
               <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.08em', marginBottom: 8, textTransform: 'uppercase' }}>O que explicamos</div>
               {['Para que serve cada medicamento', 'Como e quando tomar exactamente', 'Efeitos adversos a vigiar', 'Perguntas para o farmacêutico', 'O que NÃO fazer'].map(item => (
                 <div key={item} style={{ fontSize: 12, color: 'var(--ink-3)', padding: '4px 0', borderBottom: '1px solid var(--border)', display: 'flex', gap: 6 }}>
@@ -195,14 +195,14 @@ Omeprazol 20mg
           <div>
             {loading && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                {[80, 120, 80, 60].map((h, i) => <div key={i} className="skeleton" style={{ height: h, borderRadius: 8 }} />)}
+                {[80, 120, 80, 60].map((h, i) => <div key={i} className="skeleton" style={{ height: h, borderRadius: 'var(--r-md)' }} />)}
               </div>
             )}
 
-            {error && <div style={{ background: '#fff5f5', border: '1px solid #fecaca', borderRadius: 8, padding: '20px' }}><p style={{ fontSize: 14, color: '#742a2a', margin: 0 }}>{error}</p></div>}
+            {error && <div style={{ background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', padding: '20px' }}><p style={{ fontSize: 14, color: 'var(--badge-red-fg)', margin: 0 }}>{error}</p></div>}
 
             {!result && !loading && !error && (
-              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 10, padding: '60px 24px', textAlign: 'center' }}>
+              <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '60px 24px', textAlign: 'center' }}>
                 <div style={{ fontSize: 40, marginBottom: 16 }}>📄</div>
                 <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink-2)', marginBottom: 10, letterSpacing: '-0.01em' }}>A tua receita, explicada</div>
                 <p style={{ fontSize: 14, color: 'var(--ink-4)', lineHeight: 1.7, maxWidth: 320, margin: '0 auto' }}>
@@ -227,16 +227,16 @@ Omeprazol 20mg
                       </div>
                     </div>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
-                      <div style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '10px 12px' }}>
+                      <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
                         <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Para que serve</div>
                         <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{med.for_what}</div>
                       </div>
-                      <div style={{ background: 'var(--bg-2)', borderRadius: 6, padding: '10px 12px' }}>
+                      <div style={{ background: 'var(--bg-2)', borderRadius: 'var(--r)', padding: '10px 12px' }}>
                         <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Duração</div>
                         <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.5 }}>{med.duration}</div>
                       </div>
                     </div>
-                    <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 6, padding: '10px 14px', marginBottom: 10 }}>
+                    <div style={{ background: 'var(--green-light)', border: '1px solid var(--green-mid)', borderRadius: 'var(--r)', padding: '10px 14px', marginBottom: 10 }}>
                       <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--green-2)', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 4 }}>Como tomar</div>
                       <div style={{ fontSize: 13, color: 'var(--ink-2)', lineHeight: 1.6 }}>{med.how_to_take}</div>
                     </div>

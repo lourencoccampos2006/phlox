@@ -20,9 +20,9 @@ import ProfileHelpBoard from '@/components/ProfileHelpBoard'
 import ProfileAgenda from '@/components/ProfileAgenda'
 import HandoffNotes from '@/components/HandoffNotes'
 
-const ACCENT = '#1d4ed8'
-const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 18 }
-const inputStyle: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' }
+const ACCENT = 'var(--ink-2)'
+const card: React.CSSProperties = { background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }
+const inputStyle: React.CSSProperties = { border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 13, outline: 'none', boxSizing: 'border-box', fontFamily: 'var(--font-sans)' }
 
 interface Shared { profile_id: string; name: string; relation: string | null; role: 'viewer' | 'editor' }
 interface Med { id?: string; name: string; dose?: string; frequency?: string }
@@ -176,7 +176,7 @@ export default function PartilhadoComigoPage() {
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: `linear-gradient(135deg, ${ACCENT}, #1e3a8a)`, padding: '26px 24px 22px' }}>
+      <div style={{ background: `linear-gradient(135deg, ${ACCENT}, var(--badge-blue-fg))`, padding: '26px 24px 22px' }}>
         <div className="page-container">
           <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Partilhado comigo</h1>
           <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 580, lineHeight: 1.5 }}>Perfis de família que outra pessoa te deu acesso a ver — ou a gerir a dois, se ela te deu esse papel — e agenda, pedidos de ajuda e passagens de cuidado que também podes usar.</p>
@@ -188,16 +188,16 @@ export default function PartilhadoComigoPage() {
           <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>Tens um código de convite?</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <input value={code} onChange={e => setCode(e.target.value.toUpperCase())} placeholder="Ex: A1B2C3D4"
-              style={{ flex: 1, minWidth: 0, border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none', boxSizing: 'border-box' }} />
-            <button onClick={redeem} disabled={redeeming} style={{ padding: '9px 18px', background: ACCENT, color: 'white', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: redeeming ? 'wait' : 'pointer' }}>
+              style={{ flex: 1, minWidth: 0, border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-mono)', outline: 'none', boxSizing: 'border-box' }} />
+            <button onClick={redeem} disabled={redeeming} style={{ padding: '9px 18px', background: ACCENT, color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 13, fontWeight: 700, cursor: redeeming ? 'wait' : 'pointer' }}>
               {redeeming ? '…' : 'Resgatar'}
             </button>
           </div>
-          {err && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{err}</div>}
+          {err && <div style={{ fontSize: 12, color: 'var(--red)', marginTop: 8 }}>{err}</div>}
         </div>
 
         {shared === null ? (
-          <div className="skeleton" style={{ height: 100, borderRadius: 12 }} />
+          <div className="skeleton" style={{ height: 100, borderRadius: 'var(--r-xl)' }} />
         ) : shared.length === 0 ? (
           <div style={{ ...card, textAlign: 'center', color: 'var(--ink-4)', fontSize: 13 }}>Ainda ninguém partilhou um perfil contigo.</div>
         ) : (
@@ -212,7 +212,7 @@ export default function PartilhadoComigoPage() {
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--ink)' }}>{s.name}</span>
-                      <span style={{ fontSize: 10, fontWeight: 700, color: editor ? '#0f766e' : '#64748b', background: editor ? '#f0fdfa' : '#f1f5f9', border: `1px solid ${editor ? '#99f6e4' : '#e2e8f0'}`, borderRadius: 5, padding: '2px 7px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: editor ? 'var(--green-3)' : 'var(--ink-4)', background: editor ? 'var(--green-light)' : 'var(--bg-3)', border: `1px solid ${editor ? 'var(--green-mid)' : 'var(--border)'}`, borderRadius: 'var(--r)', padding: '2px 7px', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
                         {editor ? 'Geres a dois' : 'Só vês'}
                       </span>
                     </div>
@@ -229,21 +229,21 @@ export default function PartilhadoComigoPage() {
                         ['agenda', 'Agenda'], ['help', 'Preciso de ajuda'], ['handoff', 'Passagem'],
                       ] as [Tab, string][]).map(([id, label]) => (
                         <button key={id} onClick={() => { setTab(prev => ({ ...prev, [s.profile_id]: id })); setFormErr('') }} style={{
-                          padding: '6px 11px', borderRadius: 7, border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
+                          padding: '6px 11px', borderRadius: 'var(--r-md)', border: 'none', cursor: 'pointer', fontSize: 11.5, fontWeight: 700,
                           background: activeTab === id ? 'var(--ink)' : 'var(--bg-2)', color: activeTab === id ? 'white' : 'var(--ink-4)',
                         }}>{label}</button>
                       ))}
                     </div>
 
                     {!vd ? (
-                      <div className="skeleton" style={{ height: 60, borderRadius: 8 }} />
+                      <div className="skeleton" style={{ height: 60, borderRadius: 'var(--r-md)' }} />
                     ) : (
                       <>
                         {activeTab === 'ver' && (
                           <>
                             <div style={{ fontSize: 12.5, color: 'var(--ink-3)' }}>
                               {vd.profile.age && <span>{vd.profile.age} anos · </span>}
-                              {vd.profile.allergies && <span style={{ color: '#dc2626' }}>⚠ Alergias: {vd.profile.allergies} · </span>}
+                              {vd.profile.allergies && <span style={{ color: 'var(--red)' }}>⚠ Alergias: {vd.profile.allergies} · </span>}
                               {vd.profile.conditions && <span>Condições: {vd.profile.conditions}</span>}
                             </div>
                             <div>
@@ -282,7 +282,7 @@ export default function PartilhadoComigoPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {vd.meds.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>Sem medicação registada.</div>}
                               {vd.meds.map(m => (
-                                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-2)', borderRadius: 7, padding: '8px 10px' }}>
+                                <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 10px' }}>
                                   <span style={{ fontSize: 13, color: 'var(--ink-2)' }}>{m.name}{m.dose ? ` — ${m.dose}` : ''}{m.frequency ? ` (${m.frequency})` : ''}</span>
                                   <button onClick={() => removeMed(s.profile_id, m.id)} style={{ background: 'none', border: 'none', color: 'var(--ink-5)', cursor: 'pointer', fontSize: 16 }}>×</button>
                                 </div>
@@ -293,8 +293,8 @@ export default function PartilhadoComigoPage() {
                               <input value={medForm.dose} onChange={e => setMedForm(f => ({ ...f, dose: e.target.value }))} placeholder="Dose" style={inputStyle} />
                               <input value={medForm.frequency} onChange={e => setMedForm(f => ({ ...f, frequency: e.target.value }))} placeholder="Frequência" style={inputStyle} />
                             </div>
-                            {formErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{formErr}</div>}
-                            <button onClick={() => addMed(s.profile_id)} disabled={saving || !medForm.name.trim()} style={{ padding: '9px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+                            {formErr && <div style={{ fontSize: 12, color: 'var(--red)' }}>{formErr}</div>}
+                            <button onClick={() => addMed(s.profile_id)} disabled={saving || !medForm.name.trim()} style={{ padding: '9px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
                               {saving ? 'A guardar…' : '+ Adicionar medicamento'}
                             </button>
                           </div>
@@ -305,7 +305,7 @@ export default function PartilhadoComigoPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {vd.vitals.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>Sem registos.</div>}
                               {vd.vitals.slice(0, 5).map((v, i) => (
-                                <div key={i} style={{ display: 'flex', gap: 10, fontSize: 12.5, color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 7, padding: '8px 10px' }}>
+                                <div key={i} style={{ display: 'flex', gap: 10, fontSize: 12.5, color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 10px' }}>
                                   <span style={{ color: 'var(--ink-4)', minWidth: 60 }}>{timeAgo(v.recorded_at)}</span>
                                   {v.bp_sys != null && <span>🩸 {v.bp_sys}/{v.bp_dia ?? '—'}</span>}
                                   {v.weight != null && <span>⚖️ {v.weight}kg</span>}
@@ -319,8 +319,8 @@ export default function PartilhadoComigoPage() {
                               <input value={vitalForm.weight} onChange={e => setVitalForm(f => ({ ...f, weight: e.target.value }))} placeholder="Peso kg" inputMode="decimal" style={inputStyle} />
                               <input value={vitalForm.glucose} onChange={e => setVitalForm(f => ({ ...f, glucose: e.target.value }))} placeholder="Glicemia" inputMode="decimal" style={inputStyle} />
                             </div>
-                            {formErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{formErr}</div>}
-                            <button onClick={() => addVital(s.profile_id)} disabled={saving} style={{ padding: '9px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+                            {formErr && <div style={{ fontSize: 12, color: 'var(--red)' }}>{formErr}</div>}
+                            <button onClick={() => addVital(s.profile_id)} disabled={saving} style={{ padding: '9px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
                               {saving ? 'A guardar…' : '+ Registar vitais'}
                             </button>
                           </div>
@@ -331,7 +331,7 @@ export default function PartilhadoComigoPage() {
                             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                               {vd.symptoms.length === 0 && <div style={{ fontSize: 12.5, color: 'var(--ink-4)' }}>Sem registos.</div>}
                               {vd.symptoms.slice(0, 5).map((sm, i) => (
-                                <div key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 7, padding: '8px 10px' }}>
+                                <div key={i} style={{ fontSize: 12.5, color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 10px' }}>
                                   <span style={{ color: 'var(--ink-4)' }}>{timeAgo(sm.at)}: </span>
                                   {sm.symptoms?.length ? sm.symptoms.join(', ') : 'sem sintomas descritos'}{sm.pain != null ? ` · dor ${sm.pain}/10` : ''}
                                 </div>
@@ -342,8 +342,8 @@ export default function PartilhadoComigoPage() {
                               <input value={symptomForm.pain} onChange={e => setSymptomForm(f => ({ ...f, pain: e.target.value.replace(/\D/g, '') }))} placeholder="Dor 0-10" inputMode="numeric" style={inputStyle} />
                               <input value={symptomForm.notes} onChange={e => setSymptomForm(f => ({ ...f, notes: e.target.value }))} placeholder="Notas (opcional)" style={inputStyle} />
                             </div>
-                            {formErr && <div style={{ fontSize: 12, color: '#dc2626' }}>{formErr}</div>}
-                            <button onClick={() => addSymptom(s.profile_id)} disabled={saving} style={{ padding: '9px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
+                            {formErr && <div style={{ fontSize: 12, color: 'var(--red)' }}>{formErr}</div>}
+                            <button onClick={() => addSymptom(s.profile_id)} disabled={saving} style={{ padding: '9px 14px', background: 'var(--ink)', color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: saving ? 'wait' : 'pointer' }}>
                               {saving ? 'A guardar…' : '+ Registar sintoma'}
                             </button>
                           </div>

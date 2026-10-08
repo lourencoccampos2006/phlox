@@ -32,28 +32,28 @@ export default function ShareView({ params }: { params: Promise<{ code: string }
   }, [code])
 
   if (status === 'loading') return <Center>A verificar o código…</Center>
-  if (status === 'expired') return <Center title="Código expirado" desc="Este código já não está válido." color="#dc2626" />
-  if (status === 'maxed') return <Center title="Limite de visualizações atingido" desc="O proprietário pode gerar um novo código." color="#dc2626" />
-  if (status === 'not_found') return <Center title="Código não encontrado" desc="Verifica se digitaste corretamente." color="#dc2626" />
+  if (status === 'expired') return <Center title="Código expirado" desc="Este código já não está válido." color="var(--red)" />
+  if (status === 'maxed') return <Center title="Limite de visualizações atingido" desc="O proprietário pode gerar um novo código." color="var(--red)" />
+  if (status === 'not_found') return <Center title="Código não encontrado" desc="Verifica se digitaste corretamente." color="var(--red)" />
 
   return (
-    <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
       <div className="page-container" style={{ maxWidth: 720, paddingTop: 30, paddingBottom: 30 }}>
-        <div style={{ background: '#0b1120', color: 'white', borderRadius: 12, padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div style={{ background: 'var(--ink)', color: 'white', borderRadius: 'var(--r-xl)', padding: '14px 18px', marginBottom: 16, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
           <div>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Cofre Phlox · Partilha temporária</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', letterSpacing: '0.14em', textTransform: 'uppercase' }}>Cofre Phlox · Partilha temporária</div>
             <div style={{ fontSize: 14, fontWeight: 700, marginTop: 2 }}>Documento(s) partilhado(s) consigo</div>
           </div>
-          <div style={{ fontSize: 11, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{remaining} visualizações restantes</div>
+          <div style={{ fontSize: 11, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{remaining} visualizações restantes</div>
         </div>
 
         {docs.map(d => (
-          <div key={d.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: 12, padding: 18, marginBottom: 12 }}>
-            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>
+          <div key={d.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18, marginBottom: 12 }}>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-5)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 5 }}>
               {d.category}{d.issued_at ? ` · ${new Date(d.issued_at).toLocaleDateString('pt-PT')}` : ''}
             </div>
-            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: '#0b1120', marginBottom: 8 }}>{d.title}</div>
-            {d.notes && <div style={{ fontSize: 13.5, color: '#475569', marginBottom: 10, lineHeight: 1.55 }}>{d.notes}</div>}
+            <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: 'var(--ink)', marginBottom: 8 }}>{d.title}</div>
+            {d.notes && <div style={{ fontSize: 13.5, color: 'var(--ink-3)', marginBottom: 10, lineHeight: 1.55 }}>{d.notes}</div>}
             {/* ── O ficheiro ────────────────────────────────────────────────
                 Duas coisas estavam mal aqui, e as duas fazem a diferença entre
                 partilhar um exame e partilhar o título de um exame:
@@ -67,12 +67,12 @@ export default function ShareView({ params }: { params: Promise<{ code: string }
                    via uma caixa em branco. */}
             <DocumentoPartilhado doc={d} />
             {d.body_text && (
-              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: '#0b1120', lineHeight: 1.65, margin: '10px 0 0', background: '#f8fafc', border: '1px solid #e5e7eb', borderRadius: 8, padding: 12 }}>{d.body_text}</pre>
+              <pre style={{ whiteSpace: 'pre-wrap', fontFamily: 'var(--font-mono)', fontSize: 12.5, color: 'var(--ink)', lineHeight: 1.65, margin: '10px 0 0', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-md)', padding: 12 }}>{d.body_text}</pre>
             )}
           </div>
         ))}
 
-        <div style={{ fontSize: 11.5, color: '#94a3b8', textAlign: 'center', marginTop: 20 }}>
+        <div style={{ fontSize: 11.5, color: 'var(--ink-5)', textAlign: 'center', marginTop: 20 }}>
           Documento partilhado através do Phlox · Esta página expira automaticamente
         </div>
       </div>
@@ -82,10 +82,10 @@ export default function ShareView({ params }: { params: Promise<{ code: string }
 
 function Center({ children, title, desc, color }: { children?: React.ReactNode; title?: string; desc?: string; color?: string }) {
   return (
-    <div style={{ minHeight: '100vh', background: '#fafbfc', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
-      <div style={{ background: 'white', border: `1px solid ${color ? '#fca5a5' : '#e5e7eb'}`, borderRadius: 14, padding: 36, maxWidth: 420, textAlign: 'center' }}>
-        {title && <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: color || '#0b1120', marginBottom: 8 }}>{title}</div>}
-        {desc && <div style={{ fontSize: 13, color: '#475569', lineHeight: 1.55 }}>{desc}</div>}
+    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24 }}>
+      <div style={{ background: 'white', border: `1px solid ${color ? 'var(--badge-red-border)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)', padding: 36, maxWidth: 420, textAlign: 'center' }}>
+        {title && <div style={{ fontFamily: 'var(--font-serif)', fontSize: 22, color: color || 'var(--ink)', marginBottom: 8 }}>{title}</div>}
+        {desc && <div style={{ fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55 }}>{desc}</div>}
         {children}
       </div>
     </div>

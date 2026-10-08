@@ -11,7 +11,7 @@ import { computeHealthAlerts, type HealthAlert } from '@/lib/healthAlerts'
 import { getAlertPrefs } from '@/lib/alertPrefs'
 import type { ModeTheme } from '@/lib/modeTheme'
 
-const LVL_COLOR: Record<string, string> = { high: '#dc2626', medium: '#b45309', low: '#2563eb' }
+const LVL_COLOR: Record<string, string> = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--ink-2)' }
 
 export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
   const { user, supabase } = useAuth() as any
@@ -60,13 +60,13 @@ export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
     return () => { cancel = true }
   }, [user, supabase])
 
-  if (alerts === null) return <div className="skeleton" style={{ height: 90, borderRadius: 10 }} />
+  if (alerts === null) return <div className="skeleton" style={{ height: 90, borderRadius: 'var(--r-lg)' }} />
   if (alerts.length === 0 && trend.length === 0) {
     return <div style={{ fontSize: 13, color: t.inkFaint, padding: '6px 0' }}>Está tudo calmo — sem sinais a assinalar.</div>
   }
 
   const TONE: Record<string, { c: string; bg: string }> = {
-    good: { c: '#15803d', bg: '#f0fdf4' }, warn: { c: '#b45309', bg: '#fffbeb' }, neutral: { c: t.inkSoft, bg: t.surfaceMuted },
+    good: { c: 'var(--green)', bg: 'var(--badge-green-bg)' }, warn: { c: 'var(--amber)', bg: 'var(--badge-amber-bg)' }, neutral: { c: t.inkSoft, bg: t.surfaceMuted },
   }
 
   return (
@@ -85,7 +85,7 @@ export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: alerts.length > 0 ? 10 : 0 }}>
           {trend.map((c, i) => {
             const s = TONE[c.tone]
-            return <span key={i} style={{ fontSize: 12, fontWeight: 700, color: s.c, background: s.bg, borderRadius: 6, padding: '4px 9px' }}>{c.label}</span>
+            return <span key={i} style={{ fontSize: 12, fontWeight: 700, color: s.c, background: s.bg, borderRadius: 'var(--r)', padding: '4px 9px' }}>{c.label}</span>
           })}
         </div>
       )}

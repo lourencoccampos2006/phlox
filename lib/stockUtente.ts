@@ -52,13 +52,17 @@ export interface Movimento {
   feito_por: string | null
 }
 
-export const CATEGORIAS: Record<string, { label: string; icone: string; cor: string }> = {
-  medicamento:   { label: 'Medicamento',    icone: '💊', cor: '#2563eb' },
-  incontinencia: { label: 'Fraldas/Pensos', icone: '🩹', cor: '#db2777' },
-  consumivel:    { label: 'Consumível',     icone: '🧴', cor: '#0d9488' },
-  epi:           { label: 'EPI',            icone: '🧤', cor: '#7c3aed' },
-  limpeza:       { label: 'Limpeza',        icone: '🧹', cor: '#0891b2' },
-  geral:         { label: 'Geral',          icone: '📦', cor: '#64748b' },
+/* CODIGOS, NAO EMOJI NEM CORES (2026-10-07)
+   Eram seis emoji e seis cores, nenhuma delas no globals.css. Os mesmos
+   codigos do stock da casa (lib/.../stock), de proposito: um «INCO» quer
+   dizer fraldas tanto no armazem como na ficha de uma pessoa. */
+export const CATEGORIAS: Record<string, { label: string; codigo: string }> = {
+  medicamento:   { label: 'Medicamento',    codigo: 'MED' },
+  incontinencia: { label: 'Fraldas/Pensos', codigo: 'INCO' },
+  consumivel:    { label: 'Consumível',     codigo: 'CONS' },
+  epi:           { label: 'EPI',            codigo: 'EPI' },
+  limpeza:       { label: 'Limpeza',        codigo: 'LIMP' },
+  geral:         { label: 'Geral',          codigo: 'GER' },
 }
 
 export const MOTIVOS: Record<string, string> = {

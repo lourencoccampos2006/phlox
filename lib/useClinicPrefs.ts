@@ -24,19 +24,19 @@ export type InstitutionType =
   | 'health_center'
 
 export const ROLE_META: Record<ClinicalRole, { label: string; icon: string; color: string }> = {
-  pharmacist:          { label: 'Farmacêutico Clínico',     icon: '🔬', color: '#2563eb' },
-  pharmacist_director: { label: 'Director de Farmácia',     icon: '🏛',  color: '#7c3aed' },
-  nurse:               { label: 'Enfermeiro/a',             icon: '👩‍⚕️', color: '#0d9488' },
-  coordinator:         { label: 'Coordenador/a de Serviço', icon: '📊', color: '#ca8a04' },
-  doctor:              { label: 'Médico/a',                 icon: '🩺', color: '#dc2626' },
-  administrator:       { label: 'Administrador/a',          icon: '🏢', color: '#64748b' },
+  pharmacist:          { label: 'Farmacêutico Clínico',     icon: 'flask', color: 'var(--blue)' },
+  pharmacist_director: { label: 'Director de Farmácia',     icon: '🏛',  color: 'var(--roxo)' },
+  nurse:               { label: 'Enfermeiro/a',             icon: 'stethoscope', color: 'var(--green-3)' },
+  coordinator:         { label: 'Coordenador/a de Serviço', icon: 'chart', color: 'var(--amber)' },
+  doctor:              { label: 'Médico/a',                 icon: 'stethoscope', color: 'var(--red)' },
+  administrator:       { label: 'Administrador/a',          icon: 'building', color: 'var(--blue)' },
 }
 
 export const INST_META: Record<InstitutionType, { label: string; icon: string; shortLabel: string }> = {
-  clinic:             { label: 'Clínica',                   icon: '🏠', shortLabel: 'Clínica' },
-  pharmacy_community: { label: 'Farmácia Comunitária',      icon: '🏪', shortLabel: 'Farm. Com.' },
-  nursing_home:       { label: 'Lar / ERPI',                icon: '🤝', shortLabel: 'Lar/ERPI' },
-  day_care:           { label: 'Centro de Dia',             icon: '☀️', shortLabel: 'C. Dia' },
+  clinic:             { label: 'Clínica',                   icon: 'home', shortLabel: 'Clínica' },
+  pharmacy_community: { label: 'Farmácia Comunitária',      icon: 'store', shortLabel: 'Farm. Com.' },
+  nursing_home:       { label: 'Lar / ERPI',                icon: 'users', shortLabel: 'Lar/ERPI' },
+  day_care:           { label: 'Centro de Dia',             icon: 'clock', shortLabel: 'C. Dia' },
   health_center:      { label: 'Centro de Saúde',           icon: '🌿', shortLabel: 'CSP' },
 }
 

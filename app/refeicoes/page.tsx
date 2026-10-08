@@ -23,6 +23,7 @@ import EscolherPrato from './EscolherPrato'
 import { useOrgName } from '@/lib/useOrgName'
 import { imprimirDia, imprimirSemana, imprimirMes, type LinhaEmenta } from './imprimirEmenta'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
+import { ptDate } from '@/lib/ptTime'
 
 interface Dish { id: string; name: string; category?: string | null; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
 interface NewDish { temp_id: string; name: string; category?: string | null; meal_types: string[] | null; allergens: string[] | null; texture: string | null; diet_tags: string[] | null; cost_tier: string; course?: string | null }
@@ -46,10 +47,10 @@ const CAT_LABEL: Record<string, string> = {
 const COURSE_DE_CAT: Record<string, string> = { sopa: 'sopa', doce: 'sobremesa', fruta: 'sobremesa' }
 
 const chipCat = (on: boolean): React.CSSProperties => ({
-  minHeight: 28, padding: '0 10px', borderRadius: 20,
+  minHeight: 'var(--alvo)', padding: '0 10px', borderRadius: 'var(--r-xl)',
   border: `1px solid ${on ? 'var(--ink)' : 'var(--border-2)'}`,
   background: on ? 'var(--ink)' : 'var(--bg)', color: on ? 'var(--bg)' : 'var(--ink-4)',
-  fontFamily: 'inherit', fontSize: 11.5, fontWeight: 600, cursor: 'pointer',
+  fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-corpo)' as any, cursor: 'pointer',
 })
 
 // Uma refeição tem momentos. Um lanche não leva sopa, e um almoço sem sopa
@@ -70,9 +71,29 @@ const DIET_TAGS = ['Normal', 'Hipossódica', 'Hipoglicídica', 'Hipoproteica', '
 const COST_TIERS: { id: string; label: string }[] = [{ id: 'baixo', label: '€ Baixo' }, { id: 'medio', label: '€€ Médio' }, { id: 'alto', label: '€€€ Alto' }]
 
 function startOfWeek(d: Date) { const x = new Date(d); const day = x.getDay(); x.setDate(x.getDate() - day); x.setHours(0, 0, 0, 0); return x }
-function fmtDate(d: Date) { return d.toISOString().slice(0, 10) }
+/* ACHADO, 2026-10-08, ao ver o verde do «hoje» cair na SEXTA numa quinta-feira.
+   Era `d.toISOString().slice(0, 10)`. As datas da semana nascem à meia-noite
+   LOCAL; em Lisboa no verão isso é 23:00 UTC do dia ANTERIOR, e o
+   `toISOString()` devolvia esse dia anterior. A grelha inteira andava um dia
+   para trás: a ementa de terça gravava-se como segunda, e o «Imprimir dia»
+   mandava para a cozinha o menu do dia errado. */
+function fmtDate(d: Date) { return ptDate(d) }
+
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Campo, CAIXA, CAIXA_TEXTO,
+  MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
 export default function RefeicoesPage() {
+  /* A coluna da esquerda não sai do ecrã quando a grelha rola na horizontal. */
+  const PRESA: React.CSSProperties = { position: 'sticky', left: 0, zIndex: 1 }
+  const hoje = ptDate()
+  const largo = useLargo()
+  /* Três vistas, em vez de duas camadas por cima da ementa. A biblioteca e o
+     reforço abriam SOBRE a ementa — e com as duas abertas, a ementa (que é a
+     razão de a página existir) ficava a 900px de rolar do topo. */
+  const [vista, setVista] = useState<'ementa' | 'biblioteca' | 'reforco'>('ementa')
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
@@ -351,66 +372,94 @@ export default function RefeicoesPage() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-2)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: 'white', borderBottom: '1px solid var(--border)', padding: '20px 20px 16px' }}>
-        <div className="page-container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-          <div>
-            <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,28px)', fontWeight: 400, color: 'var(--ink)', margin: 0 }}>Refeições</h1>
-            <p style={{ fontSize: 13.5, color: 'var(--ink-3)', margin: '4px 0 0' }}>Organiza o cardápio da semana para a cozinha — a IA ajuda, respeitando alergias e dietas.</p>
-          </div>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <button onClick={() => setShowReinforcement(v => !v)} style={{ padding: '9px 16px', background: showReinforcement ? '#db2777' : 'white', color: showReinforcement ? 'white' : '#db2777', border: '1.5px solid #db2777', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-              {showReinforcement ? 'Fechar reforço' : '🩸 Reforço diabético'}
-            </button>
-            {(['dia', 'semana', 'mes'] as const).map(a => (
-              <button key={a} onClick={() => imprimir(a)} disabled={!!aImprimir} title={`Imprimir a ementa d${a === 'mes' ? 'o mês' : a === 'dia' ? 'o dia' : 'a semana'}`}
-                style={{ padding: '7px 12px', borderRadius: 8, border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--ink-3)', fontSize: 12, fontWeight: 600, cursor: aImprimir ? 'wait' : 'pointer', fontFamily: 'inherit' }}>
-                {aImprimir === a ? '…' : a === 'dia' ? 'Imprimir dia' : a === 'semana' ? 'Imprimir semana' : 'Imprimir mês'}
-              </button>
-            ))}
-            <button onClick={() => setShowLibrary(v => !v)} style={{ padding: '9px 16px', background: showLibrary ? 'var(--ink)' : 'white', color: showLibrary ? 'white' : 'var(--ink-3)', border: '1.5px solid var(--ink)', borderRadius: 8, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-              {showLibrary ? 'Fechar biblioteca' : '📖 Biblioteca de pratos'}
-            </button>
-          </div>
-        </div>
-      </div>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Refeições</span>
 
-      <div className="page-container page-body" style={{ maxWidth: 1100, display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {showReinforcement && <DiabeticReinforcementSection />}
+          <Seletor
+            opcoes={[
+              { id: 'ementa', rotulo: 'A ementa' },
+              { id: 'biblioteca', rotulo: `Pratos ${dishes.length}` },
+              { id: 'reforco', rotulo: 'Reforço diabético' },
+            ]}
+            ativa={vista} aoMudar={v => setVista(v as 'ementa' | 'biblioteca' | 'reforco')} />
+
+          {vista === 'ementa' && (
+            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+              <Botao onClick={() => setWeekStart(w => { const n = new Date(w); n.setDate(n.getDate() - 7); return n })}
+                titulo="Semana anterior">←</Botao>
+              <span style={{ ...MONO, fontSize: 'var(--t-dado)', color: 'var(--ink)', fontWeight: 'var(--peso-forte)' as any, whiteSpace: 'nowrap' }}>
+                {weekDates[0].toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}–{weekDates[6].toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}
+              </span>
+              <Botao onClick={() => setWeekStart(w => { const n = new Date(w); n.setDate(n.getDate() + 7); return n })}
+                titulo="Semana seguinte">→</Botao>
+            </span>
+          )}
+
+          {vista === 'ementa' && (
+            <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+              <span style={ROTULO}>Imprimir</span>
+              {(['dia', 'semana', 'mes'] as const).map(a => (
+                <Botao key={a} onClick={() => imprimir(a)} esperando={aImprimir === a}
+                  titulo={`Imprimir a ementa d${a === 'mes' ? 'o mês' : a === 'dia' ? 'o dia' : 'a semana'}`}>
+                  {a === 'dia' ? 'DIA' : a === 'semana' ? 'SEMANA' : 'MÊS'}
+                </Botao>
+              ))}
+            </span>
+          )}
+
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={MONO}>A ementa é o que vai para a cozinha</span>
+          <span style={{ ...MONO, color: 'var(--red)' }}>Alergénio de alguém da casa</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            As texturas e as dietas saem das fichas — não se escrevem aqui outra vez
+          </span>
+        </BarraDeEstado>
+      }
+    >
+        {vista === 'reforco' && <DiabeticReinforcementSection />}
 
         {needsSetup ? (
           <AvisoDeSetup codigo="PHX-J9" oQue="O planeamento de ementas ainda não está disponível nesta conta." />
         ) : <>
-        {showLibrary && (
-          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: 18 }}>
-            <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 12 }}>Biblioteca de pratos ({dishes.length})</div>
+        {vista === 'biblioteca' && (
+          <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+            <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)', marginBottom: 12 }}>Biblioteca de pratos ({dishes.length})</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Nome do prato (ex: Sopa de legumes, Bacalhau à Brás)"
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {MEAL_TYPES.map(m => (
                   <button key={m.id} onClick={() => setNewMealTypes(p => p.includes(m.id) ? p.filter(x => x !== m.id) : [...p, m.id])}
-                    style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newMealTypes.includes(m.id) ? 'var(--ink)' : 'var(--border)'}`, background: newMealTypes.includes(m.id) ? 'var(--ink)' : 'white', color: newMealTypes.includes(m.id) ? 'white' : 'var(--ink-4)' }}>{m.label}</button>
+                    style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${newMealTypes.includes(m.id) ? 'var(--ink)' : 'var(--border)'}`, background: newMealTypes.includes(m.id) ? 'var(--ink)' : 'white', color: newMealTypes.includes(m.id) ? 'white' : 'var(--ink-4)' }}>{m.label}</button>
                 ))}
-                {newMealTypes.length === 0 && <span style={{ fontSize: 11, color: 'var(--ink-5)', alignSelf: 'center' }}>(nenhum = serve para qualquer refeição)</span>}
+                {newMealTypes.length === 0 && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', alignSelf: 'center' }}>(nenhum = serve para qualquer refeição)</span>}
               </div>
               <input value={newAllergens} onChange={e => setNewAllergens(e.target.value)} placeholder="Alergénios, separados por vírgula (ex: glúten, lactose)"
-                style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 'var(--t-dado)', fontFamily: 'var(--font-sans)', outline: 'none' }} />
               <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                <select value={newTexture} onChange={e => setNewTexture(e.target.value)} style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, background: 'white' }}>
+                <select value={newTexture} onChange={e => setNewTexture(e.target.value)} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-dado)', background: 'white' }}>
                   {TEXTURES.map(t => <option key={t} value={t}>{t}</option>)}
                 </select>
-                <select value={newCost} onChange={e => setNewCost(e.target.value)} style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '8px 10px', fontSize: 13, background: 'white' }}>
+                <select value={newCost} onChange={e => setNewCost(e.target.value)} style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 'var(--t-dado)', background: 'white' }}>
                   {COST_TIERS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
                 </select>
               </div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {DIET_TAGS.map(d => (
                   <button key={d} onClick={() => setNewDietTags(p => p.includes(d) ? p.filter(x => x !== d) : [...p, d])}
-                    style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDietTags.includes(d) ? '#0d9488' : 'var(--border)'}`, background: newDietTags.includes(d) ? '#f0fdfa' : 'white', color: newDietTags.includes(d) ? '#0d9488' : 'var(--ink-4)' }}>{d}</button>
+                    style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${newDietTags.includes(d) ? 'var(--green)' : 'var(--border)'}`, background: newDietTags.includes(d) ? 'var(--green-light)' : 'white', color: newDietTags.includes(d) ? 'var(--green)' : 'var(--ink-4)' }}>{d}</button>
                 ))}
               </div>
-              <button onClick={createDish} disabled={savingDish || !newName.trim()} style={{ alignSelf: 'flex-start', padding: '8px 18px', background: savingDish || !newName.trim() ? 'var(--bg-3)' : '#0d9488', color: savingDish || !newName.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: savingDish || !newName.trim() ? 'not-allowed' : 'pointer' }}>
+              <button onClick={createDish} disabled={savingDish || !newName.trim()} style={{ alignSelf: 'flex-start', padding: '8px 18px', background: savingDish || !newName.trim() ? 'var(--bg-3)' : 'var(--green)', color: savingDish || !newName.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: savingDish || !newName.trim() ? 'not-allowed' : 'pointer' }}>
                 {savingDish ? 'A guardar…' : '+ Adicionar à biblioteca'}
               </button>
             </div>
@@ -437,7 +486,7 @@ export default function RefeicoesPage() {
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
                   <input value={buscaLib} onChange={e => setBuscaLib(e.target.value)}
                     placeholder={`Procurar entre ${dishes.length} pratos…`}
-                    style={{ flex: '1 1 190px', border: '1.5px solid var(--border)', borderRadius: 8, padding: '7px 11px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none' }} />
+                    style={{ flex: '1 1 190px', border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '7px 11px', fontSize: 'var(--t-meta)', fontFamily: 'inherit', outline: 'none' }} />
                   <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                     <button onClick={() => setFiltroCat('')} style={chipCat(!filtroCat)}>Tudo</button>
                     {catsExistentes.map(c => (
@@ -450,35 +499,35 @@ export default function RefeicoesPage() {
 
                 {/* Arrumar com IA: classifica os que ficaram por classificar */}
                 {semCategoria > 0 && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 9, padding: '9px 12px', marginBottom: 12 }}>
-                    <span style={{ fontSize: 12.5, color: '#5b21b6', flex: '1 1 200px', lineHeight: 1.45 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '9px 12px', marginBottom: 12 }}>
+                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', flex: '1 1 200px', lineHeight: 1.45 }}>
                       {semCategoria} {semCategoria === 1 ? 'prato ainda não está arrumado' : 'pratos ainda não estão arrumados'} por categoria.
                     </span>
                     <button onClick={arrumarBiblioteca} disabled={aArrumar} style={{
-                      minHeight: 32, padding: '0 12px', borderRadius: 7, border: 'none', background: '#5b21b6',
-                      color: 'white', fontSize: 12, fontWeight: 700, cursor: aArrumar ? 'wait' : 'pointer', fontFamily: 'inherit',
-                    }}>{aArrumar ? 'a arrumar…' : '✨ Arrumar com IA'}</button>
+                      minHeight: 'var(--alvo)', padding: '0 12px', borderRadius: 'var(--r-md)', border: 'none', background: 'var(--ink-2)',
+                      color: 'white', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: aArrumar ? 'wait' : 'pointer', fontFamily: 'inherit',
+                    }}>{aArrumar ? 'A ARRUMAR…' : 'ARRUMAR COM IA'}</button>
                   </div>
                 )}
 
                 {!visiveis.length && (
-                  <div style={{ fontSize: 12.5, color: 'var(--ink-4)', padding: '10px 0' }}>
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', padding: '10px 0' }}>
                     Nada com “{buscaLib}”. Escreve o nome em baixo para acrescentar à biblioteca.
                   </div>
                 )}
 
                 {grupos.map(([cat, lista]) => (
                   <div key={cat} style={{ marginBottom: 14 }}>
-                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 7 }}>
+                    <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--ink-5)', marginBottom: 7 }}>
                       {CAT_LABEL[cat] || cat} · {lista.length}
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {lista.map(d => (
-                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', borderRadius: 8, padding: '8px 12px' }}>
-                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>
-                    {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 10.5, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '1px 7px' }}>⚠ {d.allergens.join(', ')}</span>}
-                    {d.texture && d.texture !== 'Normal' && <span style={{ fontSize: 10.5, color: '#1d4ed8', background: '#eff6ff', borderRadius: 5, padding: '1px 7px' }}>{d.texture}</span>}
-                    <button onClick={() => removeDish(d.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 16 }}>×</button>
+                  <div key={d.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 12px' }}>
+                    <span style={{ flex: 1, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{d.name}</span>
+                    {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--amber)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '1px 7px' }}>⚠ {d.allergens.join(', ')}</span>}
+                    {d.texture && d.texture !== 'Normal' && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 'var(--r)', padding: '1px 7px' }}>{d.texture}</span>}
+                    <button onClick={() => removeDish(d.id)} aria-label="Remover" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--ink-5)', fontSize: 'var(--t-destaque)' }}>×</button>
                   </div>
                 ))}
                     </div>
@@ -490,76 +539,116 @@ export default function RefeicoesPage() {
           </div>
         )}
 
-        {/* Sugestão IA */}
-        <div style={{ background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 12, padding: '14px 16px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12.5, fontWeight: 800, color: '#5b21b6', marginBottom: 8 }}>✨ Sugerir a semana com IA</div>
-          <div style={{ fontSize: 11.5, color: '#6d28d9', marginBottom: 8 }}>
-            Respeita sempre: {needs.allergens.length ? `evita ${needs.allergens.join(', ')}` : 'sem alergias registadas'}
-            {needs.textures.length ? ` · texturas: ${needs.textures.join(', ')}` : ''}
-            {needs.diets.length ? ` · dietas: ${needs.diets.join(', ')}` : ''}
+        {/* A SUGESTÃO DA IA — refeita.
+            Era um cartão com um emoji ✨ e uma frase corrida a dizer o que
+            respeitava. O que ela respeita são restrições da casa, e cada uma
+            tem um nome: saem em códigos, à vista, porque é por elas que se
+            confere a proposta. */}
+        <Painel
+          cabeca={
+            <Cabecalho>
+              <span style={{ flex: 1 }}>Sugerir a semana</span>
+              <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                {needs.allergens.length + needs.textures.length + needs.diets.length} RESTRIÇÕES DA CASA
+              </span>
+            </Cabecalho>
+          }
+        >
+          <div style={{ padding: '10px 12px' }}>
+            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginBottom: 10 }}>
+              {needs.allergens.map(a => <Codigo key={'a' + a} texto={a.toUpperCase()} cor="var(--red)" />)}
+              {needs.textures.map(t => <Codigo key={'t' + t} texto={t.toUpperCase()} cor="var(--amber)" />)}
+              {needs.diets.map(d => <Codigo key={'d' + d} texto={d.toUpperCase()} cor="var(--green)" />)}
+              {!needs.allergens.length && !needs.textures.length && !needs.diets.length && (
+                <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                  NENHUMA ALERGIA, TEXTURA OU DIETA REGISTADA NAS FICHAS
+                </span>
+              )}
+            </div>
+
+            {dishes.length === 0 && (
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 8, lineHeight: 1.5 }}>
+                Ainda não há pratos na biblioteca — a IA propõe pratos novos, realistas, que revê antes de aplicar.
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <input id="refeicoes-instrucoes" value={instructions} onChange={e => setInstructions(e.target.value)}
+                placeholder="Orçamento e outras instruções — ex: semana apertada, menu português, evitar fritos"
+                style={{ ...CAIXA, flex: '1 1 260px' }} />
+              <Botao feitio="principal" onClick={suggestWeek} esperando={suggesting}>SUGERIR A SEMANA</Botao>
+            </div>
           </div>
-          {dishes.length === 0 && (
-            <div style={{ fontSize: 11.5, color: '#6d28d9', marginBottom: 8 }}>Ainda não há pratos na biblioteca — a IA propõe pratos novos, realistas, que revês antes de aplicar.</div>
-          )}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-            <input value={instructions} onChange={e => setInstructions(e.target.value)} placeholder="Orçamento e outras instruções (opcional, ex: semana apertada, menu português, evitar fritos)"
-              style={{ flex: '1 1 260px', border: '1.5px solid #ddd6fe', borderRadius: 8, padding: '8px 11px', fontSize: 12.5, fontFamily: 'inherit', outline: 'none', background: 'white' }} />
-            <button onClick={suggestWeek} disabled={suggesting} style={{ padding: '8px 16px', background: suggesting ? '#e5e7eb' : '#5b21b6', color: suggesting ? '#94a3b8' : 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: suggesting ? 'wait' : 'pointer' }}>
-              {suggesting ? 'A pensar…' : 'Sugerir semana →'}
-            </button>
-          </div>
-          {suggestErr && <div style={{ fontSize: 12, color: '#dc2626', marginTop: 8 }}>{suggestErr}</div>}
+          {suggestErr && <div style={{ padding: '0 12px 10px' }}><Aviso tom="mau">{suggestErr}</Aviso></div>}
           {proposedNewDishes.length > 0 && (
-            <div style={{ marginTop: 12, background: 'white', border: '1px solid #ddd6fe', borderRadius: 10, padding: '10px 12px' }}>
-              <div style={{ fontSize: 11.5, fontWeight: 800, color: '#5b21b6', marginBottom: 6 }}>Pratos novos propostos pela IA ({proposedNewDishes.length}) — revê antes de aplicar</div>
+            <div style={{ margin: '0 12px 12px', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '9px 11px', background: 'var(--bg-2)' }}>
+              <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', marginBottom: 6 }}>Pratos novos propostos pela IA ({proposedNewDishes.length}) — revê antes de aplicar</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
                 {proposedNewDishes.map(d => (
-                  <div key={d.temp_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12.5 }}>
-                    <span style={{ fontWeight: 600, color: 'var(--ink)' }}>{d.name}</span>
-                    {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 10, color: '#b45309', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 5, padding: '1px 6px' }}>⚠ {d.allergens.join(', ')}</span>}
-                    {d.texture && d.texture !== 'Normal' && <span style={{ fontSize: 10, color: '#1d4ed8', background: '#eff6ff', borderRadius: 5, padding: '1px 6px' }}>{d.texture}</span>}
-                    {d.course && <span style={{ fontSize: 10, color: '#5b21b6', background: '#f5f3ff', borderRadius: 5, padding: '1px 6px' }}>{COURSES.find(c => c.id === d.course)?.curto || d.course}</span>}
+                  <div key={d.temp_id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 'var(--t-meta)' }}>
+                    <span style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{d.name}</span>
+                    {d.allergens && d.allergens.length > 0 && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--amber)', background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r)', padding: '1px 6px' }}>⚠ {d.allergens.join(', ')}</span>}
+                    {d.texture && d.texture !== 'Normal' && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 'var(--r)', padding: '1px 6px' }}>{d.texture}</span>}
+                    {d.course && <span style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-2)', background: 'var(--bg-2)', borderRadius: 'var(--r)', padding: '1px 6px' }}>{COURSES.find(c => c.id === d.course)?.curto || d.course}</span>}
                     {/* Guardar SÓ este prato, sem ter de aplicar a semana toda:
                         um bom prato proposto vale por si, mesmo que o resto da
                         ementa se descarte. */}
                     <button onClick={() => guardarPropostoNaBiblioteca(d)} style={{
-                      marginLeft: 'auto', background: 'none', border: '1px solid #ddd6fe', borderRadius: 6,
-                      padding: '3px 9px', fontSize: 11, fontWeight: 700, color: '#5b21b6',
+                      marginLeft: 'auto', background: 'none', border: '1px solid var(--border)', borderRadius: 'var(--r)',
+                      padding: '3px 9px', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)',
                       cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap',
                     }}>+ biblioteca</button>
                   </div>
                 ))}
               </div>
-              <div style={{ fontSize: 10.5, color: '#94a3b8', marginTop: 8 }}>Verifica sempre alergénios antes de confirmar — a IA pode falhar a listá-los.</div>
+              <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 8 }}>Verifica sempre alergénios antes de confirmar — a IA pode falhar a listá-los.</div>
             </div>
           )}
           {proposal && (
-            <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-              <button onClick={applyProposal} disabled={applying} style={{ padding: '8px 16px', background: applying ? '#94a3b8' : '#0d9488', color: 'white', border: 'none', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: applying ? 'wait' : 'pointer' }}>{applying ? 'A aplicar…' : 'Aplicar proposta à grelha'}</button>
-              <button onClick={() => { setProposal(null); setProposedNewDishes([]) }} disabled={applying} style={{ padding: '8px 16px', background: 'white', border: '1.5px solid #ddd6fe', color: '#6d28d9', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Descartar</button>
+            <div style={{ display: 'flex', gap: 8, padding: '0 12px 12px' }}>
+              <Botao feitio="principal" onClick={applyProposal} esperando={applying}>APLICAR À EMENTA</Botao>
+              <Botao onClick={() => { setProposal(null); setProposedNewDishes([]) }} disabled={applying}>DESCARTAR</Botao>
             </div>
           )}
-        </div>
+        </Painel>
 
-        {/* Navegação de semana */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <button onClick={() => setWeekStart(w => { const n = new Date(w); n.setDate(n.getDate() - 7); return n })} style={{ padding: '7px 13px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink-3)' }}>← Semana anterior</button>
-          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>{weekDates[0].toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })} – {weekDates[6].toLocaleDateString('pt-PT', { day: '2-digit', month: 'short' })}</div>
-          <button onClick={() => setWeekStart(w => { const n = new Date(w); n.setDate(n.getDate() + 7); return n })} style={{ padding: '7px 13px', background: 'white', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 12.5, fontWeight: 700, cursor: 'pointer', color: 'var(--ink-3)' }}>Semana seguinte →</button>
-        </div>
+        {/* A navegação da semana subiu para a barra de trabalho: custava uma
+            fila inteira e desaparecia ao rolar. */}
 
         {/* Grelha semanal */}
         {loading ? (
-          <div className="skeleton" style={{ height: 320, borderRadius: 12 }} />
+          <div className="skeleton" style={{ height: 320, borderRadius: 'var(--r-xl)' }} />
         ) : (
+          <Painel
+            cabeca={
+              <Cabecalho>
+                <span style={{ flex: 1 }}>A ementa da semana</span>
+                <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                  {entries.length} DE {MEAL_TYPES.reduce((n, mt) => n + (MOMENTOS[mt.id] || ['prato']).length, 0) * 7} PREENCHIDOS
+                </span>
+              </Cabecalho>
+            }
+          >
+          {/* A grelha rola na horizontal DENTRO do painel, e a coluna das
+              refeições fica presa à esquerda: sete dias não cabem em 1366px,
+              e a coluna que diz «Almoço · Prato» é justamente a que não pode
+              sair do ecrã — sem ela, a célula não quer dizer nada. */}
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', background: 'white', borderRadius: 12, overflow: 'hidden', border: '1px solid var(--border)' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--t-dado)' }}>
               <thead>
                 <tr>
-                  <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', borderBottom: '1px solid var(--border)', minWidth: 110 }}></th>
+                  <th style={{ ...PRESA, padding: '6px 10px', textAlign: 'left', borderBottom: '1px solid var(--border)', minWidth: 104, background: 'var(--bg-2)' }}></th>
                   {weekDates.map((d, i) => (
-                    <th key={i} style={{ padding: '10px 12px', textAlign: 'left', fontSize: 11.5, fontWeight: 700, color: 'var(--ink)', borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', minWidth: 150 }}>
-                      {WEEKDAY_LABELS[d.getDay()]}<div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', fontWeight: 400 }}>{d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}</div>
+                    <th key={i} style={{
+                      padding: '6px 9px', textAlign: 'left', background: 'var(--bg-2)',
+                      borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', minWidth: 132,
+                    }}>
+                      <div style={{ ...ROTULO, color: hoje === fmtDate(d) ? 'var(--green)' : 'var(--ink-3)' }}>
+                        {WEEKDAY_LABELS[d.getDay()]}
+                      </div>
+                      <div style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                        {d.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' })}
+                      </div>
                     </th>
                   ))}
                 </tr>
@@ -567,10 +656,10 @@ export default function RefeicoesPage() {
               <tbody>
                 {MEAL_TYPES.flatMap(mt => (MOMENTOS[mt.id] || ['prato']).map((cs, ci) => (
                   <tr key={`${mt.id}|${cs}`}>
-                    <td style={{ padding: '10px 12px', fontSize: 12.5, borderBottom: '1px solid var(--border)', verticalAlign: 'top', whiteSpace: 'nowrap' }}>
-                      {ci === 0 && <div style={{ fontWeight: 700, color: 'var(--ink-3)' }}>{mt.label}</div>}
+                    <td style={{ ...PRESA, padding: '6px 10px', borderBottom: '1px solid var(--border)', verticalAlign: 'top', whiteSpace: 'nowrap', background: 'var(--bg)' }}>
+                      {ci === 0 && <div style={{ ...ROTULO, color: 'var(--ink-2)' }}>{mt.label}</div>}
                       {(MOMENTOS[mt.id] || []).length > 1 && (
-                        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--ink-4)', marginTop: ci === 0 ? 2 : 0 }}>
+                        <div style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: ci === 0 ? 2 : 0 }}>
                           {COURSES.find(c => c.id === cs)?.curto}
                         </div>
                       )}
@@ -586,15 +675,15 @@ export default function RefeicoesPage() {
                       if (showProposed && cellProposal?.newDishTempId) {
                         const nd = proposedNewDishes.find(x => x.temp_id === cellProposal.newDishTempId)
                         return (
-                          <td key={i} style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: '#faf5ff' }}>
-                            <div style={{ border: '1.5px solid #ddd6fe', borderRadius: 7, padding: '6px 8px', fontSize: 12, color: '#7c3aed', background: 'white' }}>{nd?.name || 'Prato novo'}</div>
-                            <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>prato novo · proposta da IA</div>
+                          <td key={i} style={{ padding: 5, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: 'var(--green-light)' }}>
+                            <div style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '6px 8px', fontSize: 'var(--t-meta)', color: 'var(--ink-3)', background: 'white' }}>{nd?.name || 'Prato novo'}</div>
+                            <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', marginTop: 3 }}>prato novo · proposta da IA</div>
                           </td>
                         )
                       }
                       const proposedDishId = cellProposal?.dishId
                       return (
-                        <td key={i} style={{ padding: 8, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: showProposed ? '#faf5ff' : undefined }}>
+                        <td key={i} style={{ padding: 5, borderBottom: '1px solid var(--border)', borderLeft: '1px solid var(--border)', verticalAlign: 'top', background: showProposed ? 'var(--green-light)' : undefined }}>
                           {/* Seletor com pesquisa: um <select> nativo com cem
                               pratos por ordem alfabética era o que tornava
                               fazer a ementa à mão insuportável. */}
@@ -606,7 +695,7 @@ export default function RefeicoesPage() {
                             compacto
                             aoEscolher={id => assignDish(date, mtId, cs, id)}
                           />
-                          {showProposed && !entry && proposedDishId && <div style={{ fontSize: 9.5, color: '#7c3aed', marginTop: 3 }}>proposta da IA</div>}
+                          {showProposed && !entry && proposedDishId && <div style={{ fontSize: 'var(--t-micro)', color: 'var(--ink-3)', marginTop: 3 }}>proposta da IA</div>}
                         </td>
                       )
                     })}
@@ -615,10 +704,10 @@ export default function RefeicoesPage() {
               </tbody>
             </table>
           </div>
+          </Painel>
         )}
         </>}
-      </div>
-    </div>
+    </Mesa>
   )
 }
 
@@ -648,7 +737,7 @@ function DiabeticReinforcementSection() {
   // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
   const podeEditar = scope.pode('registos', 'editar')
   const toast = useToast()
-  const today = new Date().toISOString().slice(0, 10)
+  const today = ptDate()
 
   const [patients, setPatients] = useState<DiabPatient[]>([])
   const [vitals, setVitals] = useState<Record<string, LatestVital>>({})
@@ -659,7 +748,7 @@ function DiabeticReinforcementSection() {
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
-    const since = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10)
+    const since = ptDate(new Date(Date.now() - 3 * 86400000))
     const [pats, cr, rf] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,conditions,age,room_number')).eq('active', true),
       scope.filter(supabase.from('care_records').select('patient_id,date,vitals')).gte('date', since).order('date', { ascending: false }),
@@ -701,25 +790,25 @@ function DiabeticReinforcementSection() {
   }
 
   return (
-    <div style={{ background: 'white', border: '1px solid #fbcfe8', borderRadius: 14, padding: 18 }}>
-      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, fontWeight: 700, color: '#db2777', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Reforço alimentar · Diabéticos</div>
-      <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: '0 0 14px', lineHeight: 1.5 }}>Identificados a partir das condições registadas em cada ficha. Marque quando o reforço for dado — a glicemia mostrada é a última registada.</p>
+    <div style={{ background: 'white', border: '1px solid var(--green-mid)', borderRadius: 'var(--r-xl)', padding: 18 }}>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--green)', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Reforço alimentar · Diabéticos</div>
+      <p style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', margin: '0 0 14px', lineHeight: 1.5 }}>Identificados a partir das condições registadas em cada ficha. Marque quando o reforço for dado — a glicemia mostrada é a última registada.</p>
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 50, borderRadius: 10 }} />)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 50, borderRadius: 'var(--r-lg)' }} />)}</div>
       ) : patients.length === 0 ? (
-        <div style={{ fontSize: 13, color: 'var(--ink-4)', padding: '10px 0' }}>Nenhum residente diabético identificado a partir das condições registadas em Doentes.</div>
+        <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', padding: '10px 0' }}>Nenhum residente diabético identificado a partir das condições registadas em Doentes.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {patients.map(p => {
             const v = vitals[p.id]
             const reading = v?.glucose != null ? evaluateVital('glucose', v.glucose, { age: p.age, conditions: p.conditions }) : null
             return (
-              <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 10, padding: '10px 12px' }}>
+              <div key={p.id} style={{ border: '1px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, marginBottom: 8 }}>
-                  <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{p.name}{p.room_number ? <span style={{ fontWeight: 500, color: 'var(--ink-4)' }}> · Q.{p.room_number}</span> : ''}</div>
+                  <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.name}{p.room_number ? <span style={{ fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-4)' }}> · Q.{p.room_number}</span> : ''}</div>
                   {reading && (
-                    <div style={{ fontSize: 11.5, fontWeight: 700, color: reading.level === 'normal' ? '#16a34a' : reading.level === 'warning' ? '#d97706' : '#dc2626' }}>
+                    <div style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: reading.level === 'normal' ? 'var(--green)' : reading.level === 'warning' ? 'var(--amber)' : 'var(--red)' }}>
                       Glicemia {v!.glucose} mg/dL{v!.recorded_at && v!.recorded_at !== today ? ` (${v!.recorded_at.slice(8, 10)}/${v!.recorded_at.slice(5, 7)})` : ''} · {reading.label}
                     </div>
                   )}
@@ -728,7 +817,7 @@ function DiabeticReinforcementSection() {
                   {(['manha', 'tarde', 'noite'] as const).map(shift => {
                     const given = !!rows.find(r => r.patient_id === p.id && r.shift === shift)?.given
                     return (
-                      <button key={shift} onClick={() => toggle(p.id, shift)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${given ? '#db2777' : 'var(--border)'}`, background: given ? '#fdf2f8' : 'white', color: given ? '#db2777' : 'var(--ink-4)' }}>
+                      <button key={shift} onClick={() => toggle(p.id, shift)} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', border: `1.5px solid ${given ? 'var(--green)' : 'var(--border)'}`, background: given ? 'var(--green-light)' : 'white', color: given ? 'var(--green)' : 'var(--ink-4)' }}>
                         {given ? '✓' : ''} {SHIFT_LABEL[shift]}
                       </button>
                     )

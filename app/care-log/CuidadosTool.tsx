@@ -115,12 +115,12 @@ export function CuidadosTool() {
     <div style={{ maxWidth: 860, margin: '0 auto', padding: '18px clamp(14px,3vw,28px) 60px', display: 'flex', flexDirection: 'column', gap: 10 }}>
       <p style={{ fontSize: 13, color: 'var(--ink-3)', margin: 0 }}>Tarefas de cuidado recorrentes por pessoa — banho, higiene, mobilização. Risca à medida que fazes.</p>
       <input value={search} onChange={e => setSearch(e.target.value)} placeholder={`Procurar ${cfg.personNoun.toLowerCase()}...`}
-        style={{ border: '1.5px solid var(--border)', borderRadius: 8, padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+        style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '9px 12px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
 
       {loading ? (
-        Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 70, borderRadius: 10 }} />)
+        Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton" style={{ height: 70, borderRadius: 'var(--r-lg)' }} />)
       ) : filtered.length === 0 ? (
-        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: 40, textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
+        <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: 40, textAlign: 'center', color: 'var(--ink-4)', fontSize: 14 }}>
           {cfg.emptyPeopleMsg}
         </div>
       ) : (
@@ -128,13 +128,13 @@ export function CuidadosTool() {
           const todays = todaysFor(p.id)
           const isNew = newFor === p.id
           return (
-            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+            <div key={p.id} style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '12px 16px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>{p.name}</span>
                   {p.room_number && <span style={{ fontSize: 11, color: 'var(--ink-4)', fontFamily: 'var(--font-mono)', marginLeft: 8 }}>{cfg.roomLabel} {p.room_number}</span>}
                 </div>
-                <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{ padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 7, fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
+                <button onClick={() => isNew ? setNewFor(null) : openNew(p.id)} style={{ padding: '6px 12px', background: isNew ? 'var(--bg-3)' : 'var(--ink)', color: isNew ? 'var(--ink-3)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12, fontWeight: 700, cursor: 'pointer' }}>
                   {isNew ? 'Fechar' : '+ Tarefa'}
                 </button>
               </div>
@@ -144,7 +144,7 @@ export function CuidadosTool() {
                   {todays.map(c => {
                     const done = !!logFor(c.id)?.done
                     return (
-                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? '#f0fdf4' : 'var(--bg-2)', borderRadius: 8, padding: '8px 11px' }}>
+                      <div key={c.id} style={{ display: 'flex', alignItems: 'center', gap: 10, background: done ? 'var(--badge-green-bg)' : 'var(--bg-2)', borderRadius: 'var(--r-md)', padding: '8px 11px' }}>
                         <input type="checkbox" checked={done} onChange={() => toggle(c)} style={{ width: 17, height: 17 }} />
                         <span style={{ flex: 1, fontSize: 13.5, color: 'var(--ink)', textDecoration: done ? 'line-through' : 'none', opacity: done ? 0.65 : 1 }}>{c.title}</span>
                         {!c.weekdays && <span style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)' }}>diário</span>}
@@ -158,18 +158,18 @@ export function CuidadosTool() {
               {isNew && (
                 <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <input autoFocus value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Ex: Banho, Higiene oral, Mobilização"
-                    style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
+                    style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 13, fontFamily: 'var(--font-sans)', outline: 'none' }} />
                   <div>
                     <div style={{ fontSize: 10, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 }}>Quando</div>
                     <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                      <button onClick={() => setNewDays(null)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays === null ? 'var(--ink)' : 'var(--border)'}`, background: newDays === null ? 'var(--ink)' : 'white', color: newDays === null ? 'white' : 'var(--ink-4)' }}>Todos os dias</button>
+                      <button onClick={() => setNewDays(null)} style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays === null ? 'var(--ink)' : 'var(--border)'}`, background: newDays === null ? 'var(--ink)' : 'white', color: newDays === null ? 'white' : 'var(--ink-4)' }}>Todos os dias</button>
                       {WEEKDAY_LABELS.map((label, d) => (
-                        <button key={d} onClick={() => toggleDay(d)} style={{ padding: '5px 11px', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays?.includes(d) ? 'var(--ink)' : 'var(--border)'}`, background: newDays?.includes(d) ? 'var(--ink)' : 'white', color: newDays?.includes(d) ? 'white' : 'var(--ink-4)' }}>{label}</button>
+                        <button key={d} onClick={() => toggleDay(d)} style={{ padding: '5px 11px', borderRadius: 'var(--r-md)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer', border: `1.5px solid ${newDays?.includes(d) ? 'var(--ink)' : 'var(--border)'}`, background: newDays?.includes(d) ? 'var(--ink)' : 'white', color: newDays?.includes(d) ? 'white' : 'var(--ink-4)' }}>{label}</button>
                       ))}
                     </div>
                   </div>
-                  {err && <div style={{ fontSize: 12, color: '#dc2626' }}>{err}</div>}
-                  <button onClick={createChecklist} disabled={saving || !newTitle.trim()} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving || !newTitle.trim() ? 'var(--bg-3)' : 'var(--ink)', color: saving || !newTitle.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 7, fontSize: 12.5, fontWeight: 700, cursor: saving || !newTitle.trim() ? 'not-allowed' : 'pointer' }}>
+                  {err && <div style={{ fontSize: 12, color: 'var(--red)' }}>{err}</div>}
+                  <button onClick={createChecklist} disabled={saving || !newTitle.trim()} style={{ alignSelf: 'flex-start', padding: '8px 16px', background: saving || !newTitle.trim() ? 'var(--bg-3)' : 'var(--ink)', color: saving || !newTitle.trim() ? 'var(--ink-4)' : 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 12.5, fontWeight: 700, cursor: saving || !newTitle.trim() ? 'not-allowed' : 'pointer' }}>
                     {saving ? 'A criar…' : 'Criar tarefa recorrente'}
                   </button>
                 </div>

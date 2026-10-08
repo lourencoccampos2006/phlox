@@ -10,16 +10,17 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
+import Icon from '@/components/Icon'
 
 interface Req { id: string; kind: string; content: string; status: string; created_at: string; recorded_by_id?: string }
 
 const KIND_META: Record<string, { label: string; icon: string; c: string }> = {
-  pedido: { label: 'Pedido', icon: '🙋', c: '#1d4ed8' },
-  observacao: { label: 'Observação', icon: '👁', c: '#475569' },
-  queixa: { label: 'Queixa', icon: '⚠', c: '#b45309' },
+  pedido: { label: 'Pedido', icon: 'user', c: 'var(--ink-2)' },
+  observacao: { label: 'Observação', icon: 'search', c: 'var(--ink-3)' },
+  queixa: { label: 'Queixa', icon: '⚠', c: 'var(--amber)' },
 }
 
-export default function ResidentRequests({ patientId, supabase, scope, accent = '#0d9488' }: { patientId: string; supabase: any; scope: any; accent?: string }) {
+export default function ResidentRequests({ patientId, supabase, scope, accent = 'var(--green-3)' }: { patientId: string; supabase: any; scope: any; accent?: string }) {
   const [items, setItems] = useState<Req[]>([])
   const [missing, setMissing] = useState(false)
   const [kind, setKind] = useState('pedido')
@@ -62,31 +63,31 @@ export default function ResidentRequests({ patientId, supabase, scope, accent = 
       {/* Registar */}
       <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
         {Object.entries(KIND_META).map(([k, m]) => (
-          <button key={k} onClick={() => setKind(k)} style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${kind === k ? m.c : '#e5e7eb'}`, background: kind === k ? m.c + '12' : 'white', color: kind === k ? m.c : '#64748b', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>{m.icon} {m.label}</button>
+          <button key={k} onClick={() => setKind(k)} style={{ padding: '6px 12px', borderRadius: 'var(--r-xl)', border: `1.5px solid ${kind === k ? m.c : 'var(--border)'}`, background: kind === k ? m.c + '12' : 'white', color: kind === k ? m.c : 'var(--ink-4)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}><Icon name={m.icon} size={15} />  {m.label}</button>
         ))}
       </div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add() }} placeholder="O que o utente pediu ou disse…" style={{ flex: 1, border: '1.5px solid #e5e7eb', borderRadius: 9, padding: '10px 12px', fontSize: 13.5, outline: 'none' }} />
-        <button onClick={add} disabled={saving || !text.trim()} style={{ padding: '10px 16px', background: saving || !text.trim() ? '#e2e8f0' : accent, color: saving || !text.trim() ? '#94a3b8' : 'white', border: 'none', borderRadius: 9, fontSize: 13.5, fontWeight: 700, cursor: saving || !text.trim() ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>Registar</button>
+        <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') add() }} placeholder="O que o utente pediu ou disse…" style={{ flex: 1, border: '1.5px solid var(--border)', borderRadius: 'var(--r-lg)', padding: '10px 12px', fontSize: 13.5, outline: 'none' }} />
+        <button onClick={add} disabled={saving || !text.trim()} style={{ padding: '10px 16px', background: saving || !text.trim() ? 'var(--border)' : accent, color: saving || !text.trim() ? 'var(--ink-5)' : 'white', border: 'none', borderRadius: 'var(--r-lg)', fontSize: 13.5, fontWeight: 700, cursor: saving || !text.trim() ? 'default' : 'pointer', whiteSpace: 'nowrap' }}>Registar</button>
       </div>
 
       {/* Lista */}
       {open.length === 0 ? (
-        <div style={{ fontSize: 13, color: '#94a3b8' }}>Sem pedidos ou observações em aberto.</div>
+        <div style={{ fontSize: 13, color: 'var(--ink-5)' }}>Sem pedidos ou observações em aberto.</div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           {open.map(it => {
             const m = KIND_META[it.kind] || KIND_META.pedido
             return (
-              <div key={it.id} style={{ background: 'white', border: '1px solid #e5e7eb', borderLeft: `3px solid ${m.c}`, borderRadius: 10, padding: '10px 13px' }}>
+              <div key={it.id} style={{ background: 'white', border: '1px solid var(--border)', borderLeft: `3px solid ${m.c}`, borderRadius: 'var(--r-lg)', padding: '10px 13px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                  <span style={{ fontSize: 11, fontWeight: 700, color: m.c }}>{m.icon} {m.label}{it.status === 'em_curso' ? ' · em curso' : ''}</span>
-                  <span style={{ fontSize: 10.5, color: '#94a3b8', fontFamily: 'var(--font-mono)' }}>{new Date(it.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
+                  <span style={{ fontSize: 11, fontWeight: 700, color: m.c }}><Icon name={m.icon} size={15} />  {m.label}{it.status === 'em_curso' ? ' · em curso' : ''}</span>
+                  <span style={{ fontSize: 10.5, color: 'var(--ink-5)', fontFamily: 'var(--font-mono)' }}>{new Date(it.created_at).toLocaleDateString('pt-PT', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span>
                 </div>
-                <div style={{ fontSize: 13.5, color: '#0b1120', lineHeight: 1.5, marginTop: 3 }}>{it.content}</div>
+                <div style={{ fontSize: 13.5, color: 'var(--ink)', lineHeight: 1.5, marginTop: 3 }}>{it.content}</div>
                 <div style={{ display: 'flex', gap: 10, marginTop: 8 }}>
-                  {it.status === 'aberto' && <button onClick={() => setStatus(it, 'em_curso')} style={{ fontSize: 12, fontWeight: 600, color: '#b45309', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Marcar em curso</button>}
-                  <button onClick={() => setStatus(it, 'resolvido')} style={{ fontSize: 12, fontWeight: 600, color: '#16a34a', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resolver ✓</button>
+                  {it.status === 'aberto' && <button onClick={() => setStatus(it, 'em_curso')} style={{ fontSize: 12, fontWeight: 600, color: 'var(--amber)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Marcar em curso</button>}
+                  <button onClick={() => setStatus(it, 'resolvido')} style={{ fontSize: 12, fontWeight: 600, color: 'var(--green)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Resolver ✓</button>
                 </div>
               </div>
             )

@@ -66,7 +66,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
 // ─── Template base ──────────────────────────────────────────────────────────
 // Editorial, sóbrio, sem gradientes nem ruído. Branco, tipografia, uma cor.
-const ACCENT = '#0d6e42'
+const ACCENT = 'var(--green)'
 
 /** Um link relativo dentro de um email não vai a lado nenhum: o cliente de
  *  correio não tem um "sítio atual" a partir do qual o resolver — o botão
@@ -98,31 +98,31 @@ export function emailLayout(opts: {
 <title>${escapeHtml(heading)}</title></head>
 <body style="margin:0;padding:0;background:#f4f4f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#18181b;">
   ${preheader ? `<div style="display:none;max-height:0;overflow:hidden;opacity:0">${escapeHtml(preheader)}</div>` : ''}
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f5;padding:32px 0">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:var(--bg-3);padding:32px 0">
     <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#ffffff;border:1px solid #e4e4e7;border-radius:8px;overflow:hidden">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:var(--bg);border:1px solid var(--border);border-radius:8px;overflow:hidden">
         <tr><td style="padding:28px 32px 0">
           <div style="font-size:13px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:${ACCENT}">Phlox Clinical</div>
         </td></tr>
         <tr><td style="padding:18px 32px 0">
-          <h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:#18181b">${escapeHtml(heading)}</h1>
+          <h1 style="margin:0;font-size:22px;line-height:1.25;font-weight:700;color:var(--ink-2)">${escapeHtml(heading)}</h1>
         </td></tr>
-        <tr><td style="padding:14px 32px 0;font-size:15px;line-height:1.6;color:#3f3f46">
+        <tr><td style="padding:14px 32px 0;font-size:15px;line-height:1.6;color:var(--ink-3)">
           ${body}
         </td></tr>
         ${cta ? `<tr><td style="padding:24px 32px 0">
-          <a href="${urlAbsoluto(cta.url)}" style="display:inline-block;background:${ACCENT};color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:6px">${escapeHtml(cta.label)}</a>
+          <a href="${urlAbsoluto(cta.url)}" style="display:inline-block;background:${ACCENT};color:var(--bg);text-decoration:none;font-size:14px;font-weight:600;padding:11px 22px;border-radius:6px">${escapeHtml(cta.label)}</a>
         </td></tr>` : ''}
         <tr><td style="padding:28px 32px 28px">
-          <div style="border-top:1px solid #e4e4e7;margin-bottom:14px"></div>
-          <div style="font-size:12px;line-height:1.6;color:#a1a1aa">
+          <div style="border-top:1px solid var(--border);margin-bottom:14px"></div>
+          <div style="font-size:12px;line-height:1.6;color:var(--ink-5)">
             ${footnote ? escapeHtml(footnote) + '<br><br>' : ''}
             Recebeste este email porque tens conta no Phlox Clinical.<br>
             Dúvidas? Responde a este email ou escreve para suporte@phloxclinical.com
           </div>
         </td></tr>
       </table>
-      <div style="max-width:520px;font-size:11px;color:#a1a1aa;padding:14px 8px;text-align:center">
+      <div style="max-width:520px;font-size:11px;color:var(--ink-5);padding:14px 8px;text-align:center">
         Phlox Clinical · Portugal
       </div>
     </td></tr>
@@ -189,9 +189,9 @@ export function planUpgradedEmail(planName: string): { subject: string; html: st
 /** Resumo de vigilância do cuidador — só quando há algo novo a precisar de atenção. */
 export function caregiverWatchEmail(items: { who: string; title: string; detail: string }[]): { subject: string; html: string } {
   const rows = items.slice(0, 8).map(it =>
-    `<tr><td style="padding:10px 0;border-bottom:1px solid #f4f4f5">
-       <div style="font-size:14px;font-weight:700;color:#18181b">${escapeHtml(it.who)} — ${escapeHtml(it.title)}</div>
-       <div style="font-size:13px;color:#52525b;margin-top:2px">${escapeHtml(it.detail)}</div>
+    `<tr><td style="padding:10px 0;border-bottom:1px solid var(--bg-3)">
+       <div style="font-size:14px;font-weight:700;color:var(--ink-2)">${escapeHtml(it.who)} — ${escapeHtml(it.title)}</div>
+       <div style="font-size:13px;color:var(--ink-3);margin-top:2px">${escapeHtml(it.detail)}</div>
      </td></tr>`).join('')
   const n = items.length
   return {
@@ -203,7 +203,7 @@ export function caregiverWatchEmail(items: { who: string; title: string; detail:
       heading: n === 1 ? `${escapeHtml(items[0].who)} precisa de atenção.` : 'A sua família precisa de atenção.',
       body: `<p style="margin:0 0 14px">O Phlox acompanhou os seus familiares e encontrou ${n === 1 ? 'um ponto' : `${n} pontos`} a precisar da sua atenção:</p>
              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table>
-             <p style="margin:14px 0 0;font-size:13px;color:#71717a">O Phlox organiza e avisa, mas não substitui o médico. Em emergência, ligue 112.</p>`,
+             <p style="margin:14px 0 0;font-size:13px;color:var(--ink-4)">O Phlox organiza e avisa, mas não substitui o médico. Em emergência, ligue 112.</p>`,
       cta: { label: 'Ver a minha família', url: 'https://phloxclinical.com/familia' },
     }),
   }
@@ -278,7 +278,7 @@ export function familyDailyEmail(primeiroNome: string, linhas: string[]): { subj
     html: emailLayout({
       heading: `O dia de ${escapeHtml(primeiroNome)}`,
       body: `<p>${linhas.map(escapeHtml).join('</p><p>')}</p>
-        <p style="color:#6b7280;font-size:13px">Escrito a partir do que a equipa registou hoje.</p>`,
+        <p style="color:var(--blue);font-size:13px">Escrito a partir do que a equipa registou hoje.</p>`,
       cta: { label: 'Ver o diário completo', url: '/familia' },
     }),
   }
@@ -317,22 +317,22 @@ export function extratoEmail(opts: {
     linhas, totalDebitos, totalCreditos, saldoFinal, saldoEmPalavras: frase,
   } = opts
 
-  const celula = 'padding:8px 10px;border-bottom:1px solid #e4e4e7;font-size:14px;color:#3f3f46'
+  const celula = 'padding:8px 10px;border-bottom:1px solid var(--border);font-size:14px;color:var(--ink-3)'
   const numero = `${celula};text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums`
 
   const corpoDaTabela = linhas.map(l => `
     <tr>
-      <td style="${celula};white-space:nowrap;color:#71717a;font-size:12px">${escapeHtml(l.data || '')}</td>
+      <td style="${celula};white-space:nowrap;color:var(--ink-4);font-size:12px">${escapeHtml(l.data || '')}</td>
       <td style="${celula}">${escapeHtml(l.descricao)}</td>
       <td style="${numero}">${l.debito ? escapeHtml(l.debito) : ''}</td>
-      <td style="${numero};color:#15803d">${l.credito ? escapeHtml(l.credito) : ''}</td>
+      <td style="${numero};color:var(--green-3)">${l.credito ? escapeHtml(l.credito) : ''}</td>
     </tr>`).join('')
 
   const linhaAnterior = saldoAnterior ? `
     <tr>
       <td style="${celula}"></td>
-      <td style="${celula};color:#71717a">Saldo anterior</td>
-      <td style="${numero};color:#71717a">${escapeHtml(saldoAnterior)}</td>
+      <td style="${celula};color:var(--ink-4)">Saldo anterior</td>
+      <td style="${numero};color:var(--ink-4)">${escapeHtml(saldoAnterior)}</td>
       <td style="${numero}"></td>
     </tr>` : ''
 
@@ -341,29 +341,29 @@ export function extratoEmail(opts: {
 
     <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 16px">
       <tr>
-        <th align="left" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Data</th>
-        <th align="left" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Descrição</th>
-        <th align="right" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Débito</th>
-        <th align="right" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:#a1a1aa;font-weight:700">Crédito</th>
+        <th align="left" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-5);font-weight:700">Data</th>
+        <th align="left" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-5);font-weight:700">Descrição</th>
+        <th align="right" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-5);font-weight:700">Débito</th>
+        <th align="right" style="${celula};font-size:11px;text-transform:uppercase;letter-spacing:0.08em;color:var(--ink-5);font-weight:700">Crédito</th>
       </tr>
       ${linhaAnterior}
       ${corpoDaTabela}
       <tr>
         <td style="${celula};border-bottom:none"></td>
-        <td style="${celula};border-bottom:none;font-weight:700;color:#18181b">Totais</td>
-        <td style="${numero};border-bottom:none;font-weight:700;color:#18181b">${escapeHtml(totalDebitos)}</td>
-        <td style="${numero};border-bottom:none;font-weight:700;color:#15803d">${escapeHtml(totalCreditos)}</td>
+        <td style="${celula};border-bottom:none;font-weight:700;color:var(--ink-2)">Totais</td>
+        <td style="${numero};border-bottom:none;font-weight:700;color:var(--ink-2)">${escapeHtml(totalDebitos)}</td>
+        <td style="${numero};border-bottom:none;font-weight:700;color:var(--green-3)">${escapeHtml(totalCreditos)}</td>
       </tr>
     </table>
 
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:#fafafa;border:1px solid #e4e4e7;border-radius:6px">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;background:var(--bg-2);border:1px solid var(--border);border-radius:6px">
       <tr>
-        <td style="padding:12px 14px;font-size:15px;font-weight:700;color:#18181b">${escapeHtml(frase)}</td>
-        <td align="right" style="padding:12px 14px;font-size:17px;font-weight:700;color:#18181b;white-space:nowrap">${escapeHtml(saldoFinal)}</td>
+        <td style="padding:12px 14px;font-size:15px;font-weight:700;color:var(--ink-2)">${escapeHtml(frase)}</td>
+        <td align="right" style="padding:12px 14px;font-size:17px;font-weight:700;color:var(--ink-2);white-space:nowrap">${escapeHtml(saldoFinal)}</td>
       </tr>
     </table>
 
-    <p style="margin:16px 0 0;color:#6b7280;font-size:13px">
+    <p style="margin:16px 0 0;color:var(--blue);font-size:13px">
       Se alguma linha não lhe parecer certa, responda a este email${nomeCasa ? ` ou fale com ${escapeHtml(nomeCasa)}` : ''}.
     </p>`
 
@@ -403,7 +403,7 @@ export function attentionDigestEmail(nomeCasa: string, itens: { quem: string; po
       heading: 'O que merece atenção hoje',
       body: `<ul>${itens.slice(0, 10).map(i =>
         `<li><strong>${escapeHtml(i.quem)}</strong> — ${escapeHtml(i.porque)}</li>`).join('')}</ul>
-        <p style="color:#6b7280;font-size:13px">Sai do que a equipa registou. Não é um
+        <p style="color:var(--blue);font-size:13px">Sai do que a equipa registou. Não é um
         diagnóstico — a avaliação é sempre de quem cuida.</p>`,
       cta: { label: 'Abrir o que merece atenção', url: '/radar' },
     }),

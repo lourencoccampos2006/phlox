@@ -33,8 +33,8 @@ const MONO: React.CSSProperties = {
 }
 
 const COR: Record<EventoLinha['tipo'], string> = {
-  dose: '#0d9488', vital: '#1d4ed8', sintoma: '#b45309',
-  consulta: '#7c3aed', nota: 'var(--ink-4)',
+  dose: 'var(--green-3)', vital: 'var(--ink-2)', sintoma: 'var(--amber)',
+  consulta: 'var(--roxo)', nota: 'var(--ink-4)',
 }
 const ROTULO: Record<EventoLinha['tipo'], string> = {
   dose: 'Medicação', vital: 'Medição', sintoma: 'Queixa',
@@ -105,7 +105,7 @@ export default function LinhaDoTempo({ eventos, dias = 30, vazioTexto }: {
                 position: 'absolute', left: -20, top: 4,
                 width: vazio ? 4 : 8, height: vazio ? 4 : 8, borderRadius: '50%',
                 marginLeft: vazio ? 2 : 0,
-                background: vazio ? 'var(--bg-4)' : l.eventos.some(e => e.alerta) ? '#b45309' : 'var(--ink-3)',
+                background: vazio ? 'var(--bg-4)' : l.eventos.some(e => e.alerta) ? 'var(--amber)' : 'var(--ink-3)',
               }} />
 
               {vazio ? null : (
@@ -117,7 +117,7 @@ export default function LinhaDoTempo({ eventos, dias = 30, vazioTexto }: {
                         width: 62, letterSpacing: '0.1em',
                       }}>{ROTULO[e.tipo]}</span>
                       <span style={{ minWidth: 0 }}>
-                        <span style={{ fontSize: 13.5, color: e.alerta ? '#78350f' : 'var(--ink-2)', lineHeight: 1.4 }}>{e.texto}</span>
+                        <span style={{ fontSize: 13.5, color: e.alerta ? 'var(--amber)' : 'var(--ink-2)', lineHeight: 1.4 }}>{e.texto}</span>
                         {e.detalhe && (
                           <span style={{ display: 'block', fontSize: 12, color: 'var(--ink-4)', marginTop: 1 }}>{e.detalhe}</span>
                         )}

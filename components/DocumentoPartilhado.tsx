@@ -82,7 +82,7 @@ export default function DocumentoPartilhado({ doc }: { doc: Doc }) {
       <img
         src={doc.ficheiro_url || doc.body_url || undefined}
         alt={doc.title}
-        style={{ maxWidth: '100%', borderRadius: 8, border: '1px solid #e5e7eb', display: 'block' }}
+        style={{ maxWidth: '100%', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', display: 'block' }}
       />
     )
   }
@@ -91,13 +91,13 @@ export default function DocumentoPartilhado({ doc }: { doc: Doc }) {
     if (falhou) {
       return (
         <a href={doc.ficheiro_url || doc.body_url || undefined} target="_blank" rel="noopener"
-          style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: '#0d6e42' }}>
+          style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>
           Abrir o ficheiro →
         </a>
       )
     }
     return (
-      <div style={{ background: '#0b1120', borderRadius: 8, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+      <div style={{ background: 'var(--ink)', borderRadius: 'var(--r-md)', overflow: 'hidden', border: '1px solid var(--border)' }}>
         <VisualizadorPDF dados={bytes} url={urlLocal} nome={doc.file_name || doc.title} />
       </div>
     )
@@ -107,7 +107,7 @@ export default function DocumentoPartilhado({ doc }: { doc: Doc }) {
   return (
     <a href={doc.ficheiro_url || doc.body_url || undefined} download={doc.file_name || doc.title}
       target="_blank" rel="noopener"
-      style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: '#0d6e42' }}>
+      style={{ display: 'inline-block', fontSize: 13, fontWeight: 700, color: 'var(--green)' }}>
       Descarregar {doc.file_name || 'o ficheiro'} →
     </a>
   )

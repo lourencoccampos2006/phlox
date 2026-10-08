@@ -261,7 +261,7 @@ export function abaHoje(b: Base, casa: string, nomePessoa: string, saudacao: str
       a: presentes, b: porChegar, total: Math.max(1, total),
       legenda: [
         { rotulo: 'Presentes', valor: String(presentes), cor: 'var(--accent)' },
-        { rotulo: 'Por chegar', valor: String(porChegar), cor: '#8e939c' },
+        { rotulo: 'Por chegar', valor: String(porChegar), cor: 'var(--ink-5)' },
         { rotulo: 'Ausentes', valor: String(ausentes), cor: 'var(--bg-3)' },
       ],
       vazio: b.presencas.length ? undefined : 'Ainda ninguém marcou presenças hoje.',
@@ -405,7 +405,7 @@ export function abaCuidados(b: Base, c: CruCuidados | null, casa: string): Aba {
       a: comeuTudo, b: comeuMetade, total: Math.max(1, total),
       legenda: [
         { rotulo: 'Comeu tudo', valor: String(comeuTudo), cor: 'var(--accent)' },
-        { rotulo: 'Comeu metade', valor: String(comeuMetade), cor: '#8e939c' },
+        { rotulo: 'Comeu metade', valor: String(comeuMetade), cor: 'var(--ink-5)' },
         { rotulo: 'Comeu pouco', valor: String(comeuPouco), cor: 'var(--bg-4)' },
         { rotulo: 'Sem registo', valor: String(Math.max(0, total - comRefeicao.length)), cor: 'var(--bg-3)' },
       ],

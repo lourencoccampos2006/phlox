@@ -11,7 +11,7 @@ export default function Error({ error, reset }: { error: Error & { digest?: stri
       <div style={{ textAlign: 'center', padding: '40px 20px', maxWidth: 480 }}>
 
         {/* Error indicator */}
-        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: '50%', background: '#fee2e2', border: '1.5px solid #fca5a5', marginBottom: 20 }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 52, height: 52, borderRadius: '50%', background: 'var(--badge-red-bg)', border: '1.5px solid var(--badge-red-border)', marginBottom: 20 }}>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round">
             <circle cx="12" cy="12" r="10"/>
             <line x1="12" y1="8" x2="12" y2="12"/>

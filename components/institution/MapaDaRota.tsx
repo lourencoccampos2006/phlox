@@ -175,7 +175,7 @@ export default function MapaDaRota({ rota, casa, cor, marcar, podeEditar, calcul
       {(otimizar || aCalcular) && comGeo.length >= 2 && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14, flexWrap: 'wrap' }}>
           <button onClick={otimizar} disabled={aCalcular} style={{
-            minHeight: 36, padding: '0 14px', borderRadius: 8,
+            minHeight: 36, padding: '0 14px', borderRadius: 'var(--r-md)',
             border: `1px solid ${calculada?.otimizada ? cor : 'var(--border-2)'}`,
             background: calculada?.otimizada ? cor : 'var(--bg)',
             color: calculada?.otimizada ? 'white' : 'var(--ink-3)',

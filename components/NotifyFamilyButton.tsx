@@ -56,27 +56,27 @@ export default function NotifyFamilyButton({ patientId, defaultBody }: { patient
     setTimeout(() => { setOpen(false); setDone(false); setAlsoText(false) }, 2400)
   }
 
-  if (done) return <div style={{ fontSize: 12, color: '#16a34a', fontWeight: 700 }}>✓ Enviado à família{textNote ? <div style={{ fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>{textNote}</div> : null}</div>
+  if (done) return <div style={{ fontSize: 12, color: 'var(--green)', fontWeight: 700 }}>✓ Enviado à família{textNote ? <div style={{ fontWeight: 500, color: 'var(--ink-3)', marginTop: 2 }}>{textNote}</div> : null}</div>
 
   if (!open) {
     return (
-      <button onClick={() => { setOpen(true); setBody(defaultBody) }} style={{ padding: '6px 12px', background: 'white', border: '1.5px solid #7c3aed', color: '#7c3aed', borderRadius: 7, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
+      <button onClick={() => { setOpen(true); setBody(defaultBody) }} style={{ padding: '6px 12px', background: 'white', border: '1.5px solid var(--roxo)', color: 'var(--roxo)', borderRadius: 'var(--r-md)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>
         Avisar a família
       </button>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: 10, marginTop: 6 }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, background: 'var(--roxo-claro)', border: '1px solid var(--roxo-borda)', borderRadius: 'var(--r-md)', padding: 10, marginTop: 6 }}>
       <textarea value={body} onChange={e => setBody(e.target.value)} rows={3}
-        style={{ border: '1.5px solid var(--border)', borderRadius: 7, padding: '8px 10px', fontSize: 12.5, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical' }} />
+        style={{ border: '1.5px solid var(--border)', borderRadius: 'var(--r-md)', padding: '8px 10px', fontSize: 12.5, fontFamily: 'var(--font-sans)', outline: 'none', resize: 'vertical' }} />
       <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 11.5, color: 'var(--ink-3)', cursor: 'pointer' }}>
         <input type="checkbox" checked={alsoText} onChange={e => setAlsoText(e.target.checked)} /> Enviar também por SMS/WhatsApp
       </label>
-      {err && <div style={{ fontSize: 11.5, color: '#dc2626' }}>{err}</div>}
+      {err && <div style={{ fontSize: 11.5, color: 'var(--red)' }}>{err}</div>}
       <div style={{ display: 'flex', gap: 6 }}>
-        <button onClick={() => setOpen(false)} style={{ flex: 1, padding: '7px', background: 'white', border: '1px solid var(--border)', color: 'var(--ink-3)', borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
-        <button onClick={send} disabled={sending || !body.trim()} style={{ flex: 1, padding: '7px', background: '#7c3aed', color: 'white', border: 'none', borderRadius: 6, fontSize: 11.5, fontWeight: 700, cursor: sending ? 'wait' : 'pointer' }}>
+        <button onClick={() => setOpen(false)} style={{ flex: 1, padding: '7px', background: 'white', border: '1px solid var(--border)', color: 'var(--ink-3)', borderRadius: 'var(--r)', fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Cancelar</button>
+        <button onClick={send} disabled={sending || !body.trim()} style={{ flex: 1, padding: '7px', background: 'var(--roxo)', color: 'white', border: 'none', borderRadius: 'var(--r)', fontSize: 11.5, fontWeight: 700, cursor: sending ? 'wait' : 'pointer' }}>
           {sending ? 'A enviar…' : 'Enviar'}
         </button>
       </div>

@@ -172,7 +172,7 @@ export function ContadoresProvider({ children }: { children: React.ReactNode }) 
 const estiloDistintivo: React.CSSProperties = {
   flexShrink: 0, minWidth: 20, height: 20, padding: '0 6px',
   display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-  borderRadius: 999, color: '#fff',
+  borderRadius: 999, color: 'var(--bg)',
   fontFamily: 'var(--font-mono)',
   fontSize: 11, fontWeight: 700, lineHeight: 1.1,
   letterSpacing: '0.01em',
@@ -191,7 +191,7 @@ export function Distintivo({ href, cor }: { href: string; cor?: string }) {
     <span
       title={c.frase}
       aria-label={c.frase}
-      style={{ ...estiloDistintivo, marginLeft: 'auto', background: cor || '#dc2626' }}>
+      style={{ ...estiloDistintivo, marginLeft: 'auto', background: cor || 'var(--red)' }}>
       {c.n > 99 ? '99+' : c.n}
     </span>
   )
@@ -218,7 +218,7 @@ export function DistintivoDaPasta({ hrefs, cor }: { hrefs: string[]; cor?: strin
     <span
       title={frase}
       aria-label={frase}
-      style={{ ...estiloDistintivo, background: cor || '#dc2626' }}>
+      style={{ ...estiloDistintivo, background: cor || 'var(--red)' }}>
       {total > 99 ? '99+' : total}
     </span>
   )

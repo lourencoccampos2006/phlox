@@ -101,7 +101,7 @@ export default function ListaDePicking({ meds, stock, dias = 7, cor }: {
   const mostrar = aberto ? linhas : linhas.slice(0, 6)
 
   return (
-    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 14, padding: '18px 20px 16px' }}>
+    <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '18px 20px 16px' }}>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         <span style={{ ...MONO, fontSize: 11, letterSpacing: '0.12em', color: 'var(--ink-4)', fontWeight: 700 }}>
           O que é preciso para a semana
@@ -113,8 +113,8 @@ export default function ListaDePicking({ meds, stock, dias = 7, cor }: {
 
       {emFalta.length > 0 && (
         <div style={{
-          marginTop: 12, background: '#fffbeb', border: '1px solid #fde68a',
-          borderRadius: 9, padding: '9px 12px', fontSize: 12.5, color: '#78350f', lineHeight: 1.5,
+          marginTop: 12, background: 'var(--badge-amber-bg)', border: '1px solid var(--badge-amber-border)',
+          borderRadius: 'var(--r-lg)', padding: '9px 12px', fontSize: 12.5, color: 'var(--amber)', lineHeight: 1.5,
         }}>
           <strong>{emFalta.length} {emFalta.length === 1 ? 'medicamento não chega' : 'medicamentos não chegam'} para a semana.</strong>{' '}
           {emFalta.slice(0, 3).map(l => `${l.nome} (faltam ${l.falta})`).join(', ')}
@@ -140,10 +140,10 @@ export default function ListaDePicking({ meds, stock, dias = 7, cor }: {
             <span style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
               <span style={{
                 fontFamily: 'var(--font-mono)', fontSize: 16, fontWeight: 600,
-                color: l.falta > 0 ? '#b45309' : 'var(--ink)',
+                color: l.falta > 0 ? 'var(--amber)' : 'var(--ink)',
               }}>{l.porSemana}</span>
               {l.falta > 0 && (
-                <span style={{ display: 'block', ...MONO, fontSize: 9, color: '#b45309', marginTop: 2 }}>
+                <span style={{ display: 'block', ...MONO, fontSize: 9, color: 'var(--amber)', marginTop: 2 }}>
                   faltam {l.falta}
                 </span>
               )}
@@ -154,7 +154,7 @@ export default function ListaDePicking({ meds, stock, dias = 7, cor }: {
 
       {linhas.length > 6 && (
         <button onClick={() => setAberto(a => !a)} style={{
-          marginTop: 12, minHeight: 36, padding: '0 12px', borderRadius: 8,
+          marginTop: 12, minHeight: 36, padding: '0 12px', borderRadius: 'var(--r-md)',
           border: '1px solid var(--border-2)', background: 'var(--bg)', color: 'var(--ink-3)',
           fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
         }}>{aberto ? 'Ver menos' : `Ver os outros ${linhas.length - 6}`}</button>
