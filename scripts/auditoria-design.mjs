@@ -175,11 +175,32 @@ function semPapel(t) {
     /<style|<html|<!doctype/i.test(m) ? '``' : m)
 }
 
+/* O TERCEIRO SITIO ONDE UMA `var()` NAO RESOLVE: o Satori.
+   ───────────────────────────────────────────────────────────────────────────
+   O `ImageResponse` do `next/og` converte JSX em PNG no servidor. E JSX
+   normal — sem `<style>`, sem `<html>`, nada que as regras acima reconhecam
+   como papel — mas e lido por OUTRO motor, que nao conhece variaveis CSS. Um
+   `var(--green)` nao resolve, cai em `initial`, e o Satori morre a le-lo:
+
+       Error: Unexpected token type: word
+         in CSS rule `background: initial`.
+
+   A 2026-10-12 a varredura de cores trocou os hex do `lib/shareCard.tsx` por
+   tokens e a build do Vercel PAROU — nao num aviso: o `next build` falhou a
+   pre-renderizar a primeira das 425 paginas estaticas, e nao houve deploy.
+
+   Por isso um ficheiro que importa `ImageResponse` fica inteiro de fora: aqui
+   os hex escritos a mao sao a resposta certa, e exigir-lhe tokens seria a
+   guarda a pedir o que parte a aplicacao. */
+const eSatori = t => /from ['"]next\/og['"]|\bImageResponse\b/.test(t)
+
 const migrados = ficheiros.filter(f => /from '@\/components\/ui\//.test(texto.get(f)))
 const faltas = []
 for (const f of migrados) {
   // As próprias peças definem o sistema — nelas os valores são a definição.
   if (f.includes(path.join('components', 'ui'))) continue
+  // E o que o Satori desenha não tem variáveis CSS nenhumas — ver acima.
+  if (eSatori(texto.get(f))) continue
   const s = semPapel(semComentarios(texto.get(f)))
   for (const [nome, re] of CRU) {
     const achados = (s.match(re) || [])

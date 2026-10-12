@@ -1,5 +1,24 @@
 import { ImageResponse } from 'next/og'
 
+// ╔══════════════════════════════════════════════════════════════════════════
+// ║  AS CORES DESTE FICHEIRO SÃO HEX À MÃO, E TÊM DE SER.
+// ╚══════════════════════════════════════════════════════════════════════════
+// Isto é desenhado pelo Satori (`ImageResponse`), que converte JSX em PNG no
+// servidor. O Satori NÃO conhece variáveis CSS: um `var(--green)` não resolve
+// para nada, cai em `initial`, e o Satori morre a tentar lê-lo:
+//
+//     Error: Unexpected token type: word
+//       in CSS rule `background: initial`.
+//
+// Em 2026-10-12 a minha varredura de cores trocou os hex deste ficheiro por
+// tokens e a build do Vercel parou — não num aviso, numa PARAGEM: o
+// `next build` falha a pré-renderizar a primeira das 425 páginas estáticas.
+//
+// A guarda `auditoria-design.mjs` isenta o que está dentro de um `<style>` ou
+// de um `<html>`, por ser papel ou email. Isto é um terceiro sítio com a mesma
+// regra e sem nenhuma dessas marcas: JSX normal, lido por outro motor.
+// Ver `semSatori()` em scripts/auditoria-design.mjs.
+
 // Sistema de cartões de marketing PARTILHÁVEIS (1080x1080, formato de post de
 // Instagram/Facebook). UM design, muitos cartões — para serem visualmente
 // consistentes e profissionais. Cada cartão herda a cor da sua categoria.
@@ -29,7 +48,7 @@ export function renderShareCard(c: ShareCard) {
       <div
         style={{
           width: '100%', height: '100%', display: 'flex', flexDirection: 'column',
-          background: 'var(--badge-blue-fg)', color: 'white', padding: '76px', fontFamily: 'sans-serif',
+          background: '#0b1120', color: 'white', padding: '76px', fontFamily: 'sans-serif',
         }}
       >
         {/* lockup da marca */}
@@ -48,7 +67,7 @@ export function renderShareCard(c: ShareCard) {
         {/* factos numerados */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
           {c.items.map((s, i) => (
-            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 33, color: 'var(--blue-light)', lineHeight: 1.2 }}>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 20, fontSize: 33, color: '#e2e8f0', lineHeight: 1.2 }}>
               <div style={{ minWidth: 44, width: 44, height: 44, borderRadius: 22, background: c.accentSoft, color: c.accentText, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 23, fontWeight: 800 }}>
                 {i + 1}
               </div>
@@ -58,7 +77,7 @@ export function renderShareCard(c: ShareCard) {
         </div>
 
         {/* rodapé */}
-        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 12, fontSize: 25, color: 'var(--blue)' }}>
+        <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', gap: 12, fontSize: 25, color: '#64748b' }}>
           <div style={{ width: 10, height: 10, borderRadius: 5, background: c.accent }} />
           {footer}
         </div>
@@ -75,90 +94,90 @@ export const SHARE_CARDS: Record<string, ShareCard> = {
     kicker: 'Cuidar de idosos',
     title: '5 sinais de desidratação num idoso',
     items: ['Boca e lábios secos', 'Urina escura, pouca', 'Confusão ou sonolência novas', 'Tonturas ao levantar', 'Pele que demora a voltar'],
-    accent: 'var(--green)', accentSoft: 'var(--green-3)', accentText: 'var(--green-mid)',
+    accent: '#22d3ee', accentSoft: '#155e63', accentText: '#67e8f9',
   },
 
   'organizar-medicacao-idoso': {
     kicker: 'Cuidadores',
     title: 'Organizar a medicação de um idoso',
     items: ['Uma caixa semanal com 7 dias', 'Uma lista atualizada de tudo', 'Associar a toma a uma rotina', 'Lembrete no telemóvel', 'Rever com o farmacêutico'],
-    accent: 'var(--amber)', accentSoft: 'var(--badge-amber-fg)', accentText: 'var(--badge-amber-border)',
+    accent: '#fbbf24', accentSoft: '#78350f', accentText: '#fcd34d',
   },
 
   'interacoes-comuns-a-evitar': {
     kicker: 'Interações',
     title: 'Interações perigosas a evitar',
     items: ['Varfarina + ibuprofeno', 'Estatinas + alguns antibióticos', 'Metformina + contraste', 'IECA + anti-inflamatórios', 'Hipericão + a pílula'],
-    accent: 'var(--badge-red-border)', accentSoft: 'var(--badge-red-fg)', accentText: 'var(--badge-red-border)',
+    accent: '#f87171', accentSoft: '#7f1d1d', accentText: '#fca5a5',
   },
 
   'ibuprofeno-varfarina': {
     kicker: 'Interações',
     title: 'Ibuprofeno + Varfarina: porquê o perigo',
     items: ['Aumenta o risco de hemorragia', 'Os dois "afinam" o sangue', 'Pode causar úlcera a sangrar', 'Há analgésicos mais seguros', 'Fala sempre com o farmacêutico'],
-    accent: 'var(--badge-red-border)', accentSoft: 'var(--badge-red-fg)', accentText: 'var(--badge-red-border)',
+    accent: '#f87171', accentSoft: '#7f1d1d', accentText: '#fca5a5',
   },
 
   'dose-paracetamol-crianca': {
     kicker: 'Pediatria',
     title: 'Paracetamol em crianças: o essencial',
     items: ['A dose é pelo PESO, não pela idade', '15 mg por kg, cada 6-8h', 'Nunca passar 4 tomas por dia', 'Usa a seringa que vem na caixa', 'Febre > 3 dias → ao médico'],
-    accent: 'var(--amber)', accentSoft: 'var(--badge-amber-fg)', accentText: 'var(--badge-amber-border)',
+    accent: '#fbbf24', accentSoft: '#78350f', accentText: '#fcd34d',
   },
 
   'metformina-alcool': {
     kicker: 'Diabetes',
     title: 'Metformina e álcool: o que saber',
     items: ['Beber muito aumenta o risco raro de acidose', 'Pode baixar o açúcar demais', 'Um copo ocasional com comida é menos arriscado', 'Nunca em jejum', 'Fala com o teu médico'],
-    accent: 'var(--green)', accentSoft: 'var(--green-3)', accentText: 'var(--green-mid)',
+    accent: '#34d399', accentSoft: '#064e3b', accentText: '#6ee7b7',
   },
 
   'antibioticos-em-gravidez': {
     kicker: 'Gravidez',
     title: 'Antibióticos na gravidez',
     items: ['Penicilinas: geralmente seguras', 'Tetraciclinas: a evitar', 'Nunca te automedicar', 'O risco da infeção também conta', 'Decide sempre com o médico'],
-    accent: 'var(--roxo-meio)', accentSoft: 'var(--roxo-escuro)', accentText: 'var(--roxo-meio)',
+    accent: '#a78bfa', accentSoft: '#4c1d95', accentText: '#c4b5fd',
   },
 
   'hipericao-medicamentos': {
     kicker: 'Suplementos',
     title: 'Hipericão: "natural" não é inofensivo',
     items: ['Reduz o efeito da pílula', 'Mexe com antidepressivos', 'Reduz anticoagulantes', 'Interfere com remédios do coração', 'Avisa sempre o farmacêutico'],
-    accent: 'var(--amber)', accentSoft: 'var(--badge-amber-fg)', accentText: 'var(--badge-amber-border)',
+    accent: '#fbbf24', accentSoft: '#78350f', accentText: '#fcd34d',
   },
 
   'medicamentos-idosos-lista-beers': {
     kicker: 'Geriatria',
     title: 'Medicamentos a vigiar em idosos',
     items: ['Calmantes para dormir (benzodiazepinas)', 'Anti-inflamatórios de uso prolongado', 'Alguns anti-alérgicos antigos', 'Doses altas sem revisão', 'Rever a lista todos os anos'],
-    accent: 'var(--badge-blue-border)', accentSoft: 'var(--badge-blue-fg)', accentText: 'var(--badge-blue-border)',
+    accent: '#60a5fa', accentSoft: '#1e3a8a', accentText: '#93c5fd',
   },
 
   'ajuste-dose-insuficiencia-renal': {
     kicker: 'Renal',
     title: 'Dose e rins: quando ajustar',
     items: ['Rins fracos = fármaco acumula', 'A dose normal pode ser demais', 'Muitos antibióticos precisam de ajuste', 'Hidratação conta muito', 'O médico calcula pela função renal'],
-    accent: 'var(--green)', accentSoft: 'var(--green-3)', accentText: 'var(--green-mid)',
+    accent: '#22d3ee', accentSoft: '#155e63', accentText: '#67e8f9',
   },
 
   'como-ler-receita-medica': {
     kicker: 'Guia prático',
     title: 'Como ler a tua receita médica',
     items: ['3 códigos: receita, dispensa, opção', 'A SMS chega e já tem tudo', 'DCI é o nome do princípio ativo', 'A farmácia sugere sempre o genérico', 'Guarda a SMS até levantar tudo'],
-    accent: 'var(--badge-blue-border)', accentSoft: 'var(--badge-blue-fg)', accentText: 'var(--badge-blue-border)',
+    accent: '#60a5fa', accentSoft: '#1e3a8a', accentText: '#93c5fd',
   },
 
   'medicamentos-sem-receita-cuidados': {
     kicker: 'Segurança',
     title: 'Medicamentos sem receita: o que não misturar',
     items: ['Paracetamol + ibuprofeno: pode, com espaço', 'Antiácido pode cortar o efeito doutros', 'Xarope da tosse tem álcool escondido', 'Sintomas > 3 dias → farmacêutico', 'Lê sempre o folheto'],
-    accent: 'var(--green)', accentSoft: 'var(--green-3)', accentText: 'var(--green-mid)',
+    accent: '#34d399', accentSoft: '#064e3b', accentText: '#6ee7b7',
   },
 
   'como-guardar-medicamentos-casa': {
     kicker: 'Em casa',
     title: 'Guardar medicamentos: o essencial',
     items: ['Nunca na casa de banho', 'Local seco, fresco, ao abrigo da luz', 'Confirma o que precisa de frigorífico', 'Prazo muda depois de aberto', 'Devolve na farmácia (VALORMED)'],
-    accent: 'var(--green)', accentSoft: 'var(--green-3)', accentText: 'var(--green-mid)',
+    accent: '#22d3ee', accentSoft: '#155e63', accentText: '#67e8f9',
   },
 }

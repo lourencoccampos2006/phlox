@@ -6373,3 +6373,18 @@ https://react.dev/link/hydration-mismatch
  GET /api/notifications 200 in 528ms (next.js: 13ms, application-code: 514ms)
  GET /api/family-link 200 in 187ms (next.js: 5ms, application-code: 182ms)
  GET /api/notifications 200 in 465ms (next.js: 6ms, application-code: 459ms)
+ GET /login 200 in 939ms (next.js: 738ms, application-code: 201ms)
+○ Compiling /inicio ...
+ GET /inicio 200 in 4.6s (next.js: 4.4s, application-code: 117ms)
+ GET /api/notifications 200 in 4.7s (next.js: 2.2s, application-code: 2.5s)
+[browser] Detected `scroll-behavior: smooth` on the `<html>` element. To disable smooth scrolling during route transitions, add `data-scroll-behavior="smooth"` to your <html> element. Learn more: https://nextjs.org/docs/messages/missing-data-scroll-behavior
+ GET /api/notifications 200 in 665ms (next.js: 5ms, application-code: 660ms)
+ GET /api/o-dia/progresso?org=005f5627-a5fa-44a1-98be-b2b4a0c91c4b&tipo=day_care 200 in 1001ms (next.js: 334ms, application-code: 667ms)
+ GET /api/o-dia/progresso?org=005f5627-a5fa-44a1-98be-b2b4a0c91c4b&tipo=nursing_home 200 in 1286ms (next.js: 405ms, application-code: 881ms)
+ GET /api/o-dia/progresso?org=005f5627-a5fa-44a1-98be-b2b4a0c91c4b&tipo=nursing_home 200 in 148ms (next.js: 9ms, application-code: 139ms)
+ GET /familia 200 in 2.9s (next.js: 1747ms, application-code: 1130ms)
+ GET /api/notifications 200 in 627ms (next.js: 4ms, application-code: 624ms)
+ GET /api/family-link 200 in 668ms (next.js: 397ms, application-code: 270ms)
+ GET /api/family-link 200 in 177ms (next.js: 3ms, application-code: 174ms)
+ GET /api/family-link 200 in 256ms (next.js: 6ms, application-code: 251ms)
+ GET /api/notifications 200 in 613ms (next.js: 4ms, application-code: 610ms)
