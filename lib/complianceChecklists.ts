@@ -24,29 +24,9 @@ const COMMON: ComplianceGroup[] = [
 ]
 
 const EXTRA: Record<InstitutionType, ComplianceGroup[]> = {
-  pharmacy_community: [
-    { group: 'Farmácia comunitária', items: [
-      { key: 'farm_dt', title: 'Diretor técnico presente', detail: 'Direção técnica assegurada e identificada ao público.', ref: 'INFARMED' },
-      { key: 'farm_psicotropicos', title: 'Registo de psicotrópicos e estupefacientes', detail: 'Livro/registo de movimentos atualizado e conferido.', ref: 'DL 15/93' },
-      { key: 'farm_temperatura', title: 'Controlo de temperatura do frigorífico', detail: 'Registo diário da temperatura de conservação de medicamentos.' },
-      { key: 'farm_prazos', title: 'Verificação de prazos de validade', detail: 'Rotina periódica de remoção de produtos fora de validade.' },
-    ]},
-  ],
-  health_center: [
-    { group: 'Centro de saúde / USF', items: [
-      { key: 'cs_vacinas_cadeia', title: 'Cadeia de frio das vacinas', detail: 'Registo de temperatura dos frigoríficos de vacinas e plano de contingência.' },
-      { key: 'cs_residuos', title: 'Gestão de resíduos hospitalares', detail: 'Separação e recolha de resíduos dos grupos III/IV conforme legislação.', ref: 'DL 102-D/2020' },
-      { key: 'cs_consentimento_menores', title: 'Consentimento de menores', detail: 'Procedimento para consentimento de representantes legais.' },
-    ]},
-  ],
-  clinic: [
-    { group: 'Clínica / consultório', items: [
-      { key: 'cli_ers', title: 'Licenciamento ERS', detail: 'Registo na Entidade Reguladora da Saúde válido e afixado.', ref: 'ERS' },
-      { key: 'cli_seguro', title: 'Seguro de responsabilidade civil', detail: 'Apólice válida para a atividade clínica.' },
-      { key: 'cli_residuos', title: 'Gestão de resíduos clínicos', detail: 'Contrato de recolha de resíduos de grupo III/IV.' },
-      { key: 'cli_recibos', title: 'Recibos e faturação', detail: 'Emissão de fatura-recibo conforme obrigações fiscais.' },
-    ]},
-  ],
+  /* Saíram daqui as entradas de `pharmacy_community`, `clinic` e
+     `health_center`: o produto serve lares e centros de dia. Ver a nota
+     em lib/useClinicPrefs.ts. */
   nursing_home: [
     { group: 'Lar / ERPI', items: [
       { key: 'erpi_licenca', title: 'Licença de funcionamento ERPI', detail: 'Acordo/licença da Segurança Social válida.', ref: 'Segurança Social' },

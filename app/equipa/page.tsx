@@ -23,11 +23,12 @@ import {
   Botao, Seletor, Vazio, ACarregar, Aviso, Campo, Grupo, CAIXA,
   MONO, ROTULO, useLargo,
 } from '@/components/ui/mesa'
+import PerfisDeAcesso from '@/components/team/PerfisDeAcesso'
 
 /* O acento era turquesa (var(--green-3)), a unica cor da aplicacao fora dos tokens.
    Desde 2026-10-07 e o verde da casa, como em todo o resto. */
 const ACCENT = 'var(--green)'
-type PageTab = 'conta' | 'escalas' | 'mural'
+type PageTab = 'conta' | 'perfis' | 'escalas' | 'mural'
 
 // Os papéis que se podem dar a alguém, tirados de lib/permissoes — que é também
 // de onde sai o SQL. Escrever a lista aqui à mão foi o que fez esta página
@@ -366,9 +367,15 @@ export default function EquipaPage() {
 
      No telemóvel empilham, com a equipa primeiro.
      ══════════════════════════════════════════════════════════════════════════ */
-  const abas: PageTab[] = ['conta', 'escalas', 'mural']
+  /* A aba dos perfis só aparece a quem pode dar acessos. Para quem não pode,
+     não é uma aba cinzenta — não existe: uma aba que se vê e não se abre é
+     uma promessa por cumprir. */
+  const abas: PageTab[] = isManager
+    ? ['conta', 'perfis', 'escalas', 'mural']
+    : ['conta', 'escalas', 'mural']
   const ROTULO_ABA: Record<PageTab, string> = {
-    conta: 'Conta e acesso', escalas: 'Escalas e turnos', mural: 'Mural',
+    conta: 'Conta e acesso', perfis: 'Perfis de acesso',
+    escalas: 'Escalas e turnos', mural: 'Mural',
   }
 
   return (
@@ -432,8 +439,23 @@ export default function EquipaPage() {
     >
       {err && <Aviso tom="mau">{err}</Aviso>}
 
-      {/* As escalas e o mural são ecrãs inteiros próprios. */}
-      {tab === 'escalas' && org ? (
+      {/* Os perfis, as escalas e o mural são ecrãs inteiros próprios. */}
+      {tab === 'perfis' && org ? (
+        <PerfisDeAcesso
+          auth={auth}
+          /* Nem o Dono nem a própria conta entram na lista de quem recebe um
+             perfil — a rota recusa os dois, e oferecê-los aqui seria prometer
+             uma coisa que o servidor vai negar. */
+          pessoas={team
+            .filter(m => (PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role) !== 'dono')
+            .filter(m => m.user_id !== user?.id)
+            .map(m => ({
+              user_id: m.user_id,
+              nome: m.name || m.email || 'Sem nome',
+              papel: PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role,
+            }))}
+          aoAplicar={loadAll} />
+      ) : tab === 'escalas' && org ? (
         <Painel><div style={{ padding: 14 }}><EscalasEquipa initialSubTab={escalasSubTab} /></div></Painel>
       ) : tab === 'mural' && org ? (
         <Painel><div style={{ padding: 14 }}><MuralEquipa /></div></Painel>

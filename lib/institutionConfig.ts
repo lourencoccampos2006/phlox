@@ -61,34 +61,13 @@ const CFG: Record<InstitutionType, InstitutionConfig> = {
     hasAppointments: true, hasWalkins: false, hasFamilies: true, hasDispensing: false, hasScreenings: false,
     revenue: 'monthly_fee', currencyFlow: 'Mensalidades e comparticipações',
   },
-  pharmacy_community: {
-    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', personNounIndef: 'um utente', unitNoun: 'Farmácia',
-    noPersonEventLabel: 'Evento da farmácia', appointmentNoun: 'Atendimento', appointmentNounPlural: 'Atendimentos',
-    roomLabel: 'Posto', addPersonCta: 'Adicionar utente', emptyPeopleMsg: 'Ainda não há utentes com ficha.',
-    hasBeds: false, hasShifts: true, hasMAR: false, hasWounds: false, hasWaitingRoom: true,
-    hasAppointments: false, hasWalkins: true, hasFamilies: false, hasDispensing: true, hasScreenings: true,
-    revenue: 'pos_sales', currencyFlow: 'Vendas e dispensa ao balcão',
-  },
-  clinic: {
-    personNoun: 'Doente', personNounPlural: 'Doentes', personShort: 'Doentes', personNounIndef: 'um doente', unitNoun: 'Clínica',
-    noPersonEventLabel: 'Evento da clínica', appointmentNoun: 'Consulta', appointmentNounPlural: 'Consultas',
-    roomLabel: 'Gabinete', addPersonCta: 'Adicionar doente', emptyPeopleMsg: 'Ainda não há doentes registados.',
-    hasBeds: false, hasShifts: false, hasMAR: false, hasWounds: false, hasWaitingRoom: true,
-    hasAppointments: true, hasWalkins: true, hasFamilies: false, hasDispensing: false, hasScreenings: true,
-    revenue: 'fee_for_service', currencyFlow: 'Atos clínicos e recibos',
-  },
-  health_center: {
-    personNoun: 'Utente', personNounPlural: 'Utentes', personShort: 'Utentes', personNounIndef: 'um utente', unitNoun: 'Centro de Saúde / USF',
-    noPersonEventLabel: 'Evento da unidade', appointmentNoun: 'Consulta', appointmentNounPlural: 'Consultas',
-    roomLabel: 'Gabinete', addPersonCta: 'Adicionar utente', emptyPeopleMsg: 'Ainda não há utentes registados.',
-    hasBeds: false, hasShifts: true, hasMAR: false, hasWounds: false, hasWaitingRoom: true,
-    hasAppointments: true, hasWalkins: true, hasFamilies: false, hasDispensing: false, hasScreenings: true,
-    revenue: 'fee_for_service', currencyFlow: 'Atos e taxas moderadoras',
-  },
 }
 
 export function institutionConfig(institution: InstitutionType): InstitutionConfig {
-  return CFG[institution] || CFG.clinic
+  /* O recurso era `CFG.clinic`, que deixou de existir. Um centro de dia é o
+     que esta aplicação assume quando não sabe — é o primeiro cliente real e
+     o mais exigente em vocabulário (utente, não residente). */
+  return CFG[institution] || CFG.day_care
 }
 
 // ─── Turnos ──────────────────────────────────────────────────────────────────

@@ -47,12 +47,20 @@ import { ContadoresProvider, Distintivo, useContadores } from '@/components/inst
  *  segundo menu: quem carregava em "Cuidados" à espera de ver como está a casa
  *  aterrava num formulário de registo. As ferramentas têm o seu lugar (a barra
  *  lateral e as pastas do painel); esta barra é para ver dados. */
-const SEPARADORES: { label: string; aba: string }[] = [
+/* Cada separador precisa de UMA das suas áreas para fazer sentido.
+   A barra lateral e as pastas do painel já se calavam conforme as permissões;
+   estes cinco não — e uma administrativa sem acesso clínico via na mesma o
+   separador «Cuidados», que lhe abria um ecrã vazio. Um separador que não
+   mostra nada é pior do que não existir: faz a pessoa pensar que algo falhou.
+
+   O «Hoje» não tem áreas de propósito: é a página de chegada de quem entra na
+   casa, e tem de existir para toda a gente — mesmo para quem só vê uma coisa. */
+const SEPARADORES: { label: string; aba: string; areas?: string[] }[] = [
   { label: 'Hoje', aba: 'hoje' },
-  { label: 'Cuidados', aba: 'cuidados' },
-  { label: 'Pessoas', aba: 'pessoas' },
-  { label: 'Equipa', aba: 'equipa' },
-  { label: 'Gestão', aba: 'gestao' },
+  { label: 'Cuidados', aba: 'cuidados', areas: ['registos', 'medicacao', 'avaliacoes', 'feridas', 'ocorrencias'] },
+  { label: 'Pessoas', aba: 'pessoas', areas: ['utentes', 'familias', 'atividades'] },
+  { label: 'Equipa', aba: 'equipa', areas: ['equipa'] },
+  { label: 'Gestão', aba: 'gestao', areas: ['financeiro', 'qualidade', 'stock', 'documentos', 'definicoes'] },
 ]
 
 /**
@@ -296,7 +304,7 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
         background: 'var(--bg)', overflowX: 'auto',
         position: 'sticky', top: 58, zIndex: 39, height: 50, boxSizing: 'border-box',
       }}>
-        {SEPARADORES.map(sep => {
+        {SEPARADORES.filter(sep => !sep.areas || sep.areas.some(a => scope.ve(a))).map(sep => {
           const activo = pathname === '/painel' && (searchParams.get('aba') || 'hoje') === sep.aba
           return (
             <Link key={sep.aba} href={sep.aba === 'hoje' ? '/painel' : `/painel?aba=${sep.aba}`} style={{

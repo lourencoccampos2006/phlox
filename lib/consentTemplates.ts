@@ -57,9 +57,9 @@ const FAMILIA: ConsentTemplate = {
 }
 
 const BY_INST: Record<InstitutionType, ConsentTemplate[]> = {
-  pharmacy_community: [RGPD, FARMACEUTICO, IMAGEM],
-  health_center:      [RGPD, PROCEDIMENTO, VACINA, IMAGEM],
-  clinic:             [RGPD, PROCEDIMENTO, IMAGEM],
+  /* Saíram daqui as entradas de `pharmacy_community`, `clinic` e
+     `health_center`: o produto serve lares e centros de dia. Ver a nota
+     em lib/useClinicPrefs.ts. */
   nursing_home:       [RGPD, ERPI, FAMILIA, IMAGEM],
   day_care:           [RGPD, FAMILIA, IMAGEM, FARMACEUTICO],
 }

@@ -29,7 +29,10 @@ async function getUser(req: NextRequest) {
   return user || null
 }
 
-const KINDS = ['day_care', 'nursing_home', 'pharmacy_community', 'clinic', 'health_center']
+/* Dois, e só dois. Deixar os outros três aqui permitia criar uma
+   organização de um tipo para o qual já não há plano de ecrã nenhum — e o
+   `blueprintFor` cairia no recurso sem ninguém perceber porquê. */
+const KINDS = ['day_care', 'nursing_home']
 
 // Adota os dados antigos do dono (org_id null) para a organização — resolve os
 // "utentes fantasma" que apareciam só em algumas ferramentas. Tolerante a tabelas/

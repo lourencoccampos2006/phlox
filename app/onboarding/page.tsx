@@ -61,8 +61,9 @@ const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; 
   ],
 }
 
-// Foco: Lar e Centro de Dia. (Farmácia/Clínica/Centro de Saúde existem no código
-// Hospitalar foram removidos (demasiado ambicioso para já).
+// Lar e Centro de Dia. São os dois tipos que existem — o ecrã já só oferecia
+// estes, e a 2026-10-12 o código por trás deixou de carregar os outros três
+// (farmácia, clínica, centro de saúde). Ver lib/useClinicPrefs.ts.
 const INSTITUTIONS = [
   { id: 'day_care',           label: 'Centro de Dia',        desc: 'Utentes, atividades, o dia, famílias' },
   { id: 'nursing_home',       label: 'Lar / ERPI',           desc: 'Residentes, turnos, MAR' },

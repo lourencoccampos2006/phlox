@@ -42,9 +42,7 @@ interface Ev { kind: string; icon: string; at: string; who: string; patient: str
 // desta instituição faz-se agora na própria secção "Definições" abaixo.
 function ownerLinks(kind: string): [string, string, string][] {
   const common: [string, string, string][] = [['/painel', 'chart', 'Cockpit do dia'], ['/equipa', 'users', 'Equipa']]
-  if (kind === 'pharmacy_community') return [...common, ['/stock', 'package', 'Stock'], ['/faturacao', 'euro', 'Faturação']]
-  if (kind === 'clinic' || kind === 'health_center') return [...common, ['/agenda', 'calendar', 'Agenda'], ['/faturacao', 'euro', 'Faturação']]
-  // day_care / nursing_home
+  // Os dois tipos que existem: centro de dia e lar.
   return [...common, ['/radar', 'clipboard', 'A vigiar'], ['/faturacao', 'euro', 'Mensalidades']]
 }
 

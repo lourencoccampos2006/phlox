@@ -59,16 +59,23 @@ if (!COLUNAS.size) { console.error('Não consegui ler o esquema do PostgREST.');
 // Lê-se o SQL de `supabase/` à procura de `add column if not exists X` e de
 // `create table X (...)`. O que estiver nessas listas e não no esquema real é
 // reportado à parte, como aviso, e não faz a guarda falhar.
+// ── O PREFIXO `public.` ─────────────────────────────────────────────────────
+// As duas expressoes acima aceitam `public.tabela` tambem. Sem isso, uma
+// migracao escrita `alter table public.org_members add column ...` — que e
+// como as mais recentes se escrevem — era INVISIVEL para esta guarda: ela
+// capturava `public` como nome da tabela, nao encontrava o `add column` a
+// seguir, e dava a coluna por inexistente. Apanhei-o a acrescentar o
+// `perfil_acesso_id` no sprint181.
 const POR_CORRER = new Map()   // tabela -> Set de colunas prometidas
 const TABELAS_NOVAS = new Set()
 for (const f of fs.readdirSync('supabase').filter(x => x.endsWith('.sql'))) {
   const sql = fs.readFileSync(path.join('supabase', f), 'utf8')
-  for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) {
+  for (const m of sql.matchAll(/alter\s+table\s+(?:if\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s+add\s+column\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?/gi)) {
     const t = m[1].toLowerCase()
     if (!POR_CORRER.has(t)) POR_CORRER.set(t, new Set())
     POR_CORRER.get(t).add(m[2].toLowerCase())
   }
-  for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?"?([a-z_][a-z0-9_]*)"?\s*\(([\s\S]*?)\n\)/gi)) {
+  for (const m of sql.matchAll(/create\s+table\s+(?:if\s+not\s+exists\s+)?(?:"?public"?\.)?"?([a-z_][a-z0-9_]*)"?\s*\(([\s\S]*?)\n\)/gi)) {
     const t = m[1].toLowerCase()
     TABELAS_NOVAS.add(t)
     if (!POR_CORRER.has(t)) POR_CORRER.set(t, new Set())

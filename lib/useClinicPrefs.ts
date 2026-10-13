@@ -13,15 +13,20 @@ export type ClinicalRole =
   | 'doctor'
   | 'administrator'
 
-// Tipos suportados. Hospital e farmácia hospitalar foram removidos (demasiado
-// ambicioso para agora) — o foco é lar, centro de dia, farmácia comunitária,
-// clínica e centro de saúde.
+// ── DOIS TIPOS. SÓ DOIS. (decisão do Fernando, reafirmada 2026-10-12) ──────
+// O Phlox institucional serve lares (ERPI) e centros de dia. Mais nada.
+//
+// Havia cinco: `clinic`, `pharmacy_community` e `health_center` sobraram de
+// quando o produto ainda tentava servir farmácias e clínicas. Cada um deles
+// trazia um plano de ecrã, um conjunto de ferramentas e um vocabulário
+// próprios — e tudo isso era código que ninguém usava mas que era preciso
+// manter a par do resto a cada mudança.
+//
+// Não é o mesmo que o PLANO `clinic`, que fica: esse é o escalão de conta de
+// quem pertence a uma instituição, e não tem nada que ver com o tipo dela.
 export type InstitutionType =
-  | 'clinic'
-  | 'pharmacy_community'
   | 'nursing_home'
   | 'day_care'
-  | 'health_center'
 
 export const ROLE_META: Record<ClinicalRole, { label: string; icon: string; color: string }> = {
   pharmacist:          { label: 'Farmacêutico Clínico',     icon: 'flask', color: 'var(--blue)' },
@@ -33,11 +38,8 @@ export const ROLE_META: Record<ClinicalRole, { label: string; icon: string; colo
 }
 
 export const INST_META: Record<InstitutionType, { label: string; icon: string; shortLabel: string }> = {
-  clinic:             { label: 'Clínica',                   icon: 'home', shortLabel: 'Clínica' },
-  pharmacy_community: { label: 'Farmácia Comunitária',      icon: 'store', shortLabel: 'Farm. Com.' },
   nursing_home:       { label: 'Lar / ERPI',                icon: 'users', shortLabel: 'Lar/ERPI' },
   day_care:           { label: 'Centro de Dia',             icon: 'clock', shortLabel: 'C. Dia' },
-  health_center:      { label: 'Centro de Saúde',           icon: '🌿', shortLabel: 'CSP' },
 }
 
 // Tipos de instituição OFERECIDOS a novos utilizadores. Por decisão do Fernando,

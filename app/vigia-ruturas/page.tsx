@@ -1,31 +1,61 @@
 'use client'
 
-// /vigia-ruturas — Vigia de Ruturas (Pro). Cruza a tua medicação (e a dos
-// familiares que acompanhas) com a Lista de Notificação Prévia do INFARMED —
-// dados reais, uma tabela Excel publicada oficialmente, não OCR nem scraping
-// ao vivo. Atualizado a cada trimestre (ver lib/shortageIngest.ts).
-// MELHORIA 2026-07-17 (item B11): ganhou uma 2ª secção — Vigia de Recalls,
-// que cruza a mesma medicação com os alertas de qualidade/segurança do
-// INFARMED (recolhas de lote). Dobrado nesta página em vez de criar uma nova
-// por serem a mesma pergunta ("a minha medicação está nas listas oficiais do
-// INFARMED?"). Ver lib/recallIngest.ts para porque o matching é só por título
-// (menciona), nunca por nº de lote (não é um dado estruturado e fiável).
+// /vigia-ruturas — cruza a medicação dos UTENTES com a Lista de Notificação
+// Prévia do INFARMED (uma tabela Excel publicada oficialmente, ingerida em
+// lib/shortageIngest.ts — não OCR, não scraping ao vivo).
+//
+// ── REFEITA 2026-10-12, a pedido do Fernando ───────────────────────────────
+// Lia a `personal_meds`: a medicação de quem tinha a sessão aberta, mais a
+// dos familiares que essa pessoa acompanha. Numa casa, é exactamente a lista
+// que não interessa — ninguém abre isto para saber se o próprio Ozempic está
+// em rutura; abre para saber qual dos utentes vai ficar sem o dele.
+//
+// E a FORMA também mudou. Estava agrupada por pessoa, o que obrigava a
+// percorrer dezoito listas para encontrar as ruturas. Agora agrupa pelo
+// MEDICAMENTO em rutura, com quem o toma por baixo: é essa a pergunta que
+// faz alguém abrir a página, e é essa a encomenda que vai ter de fazer.
+//
+// A 2ª secção — recolhas de lote e alertas de segurança do INFARMED
+// (lib/recallIngest.ts) — fica, pela mesma razão de sempre: é a mesma
+// pergunta («a medicação desta casa está nas listas oficiais?»).
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
+import { useClinicPrefs } from '@/lib/useClinicPrefs'
+import { institutionConfig } from '@/lib/institutionConfig'
+import {
+  Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
+  Botao, Vazio, ACarregar, Aviso, MONO, ROTULO, useLargo,
+} from '@/components/ui/mesa'
 
-const ACCENT = 'var(--green-3)'
-
-interface MatchResult { medication: string; match: 'exato' | 'parcial' | null; matched_name: string | null; source_document: string | null }
-interface Group { label: string; profileId: string | null; results: MatchResult[] }
+interface MatchResult {
+  medication: string
+  match: 'exato' | 'parcial' | null
+  matched_name: string | null
+  source_document: string | null
+  quem?: string | null
+  patient_id?: string | null
+}
 interface RecallMatch { medication: string; url: string; title: string; notice_date: string | null }
-interface RecallGroup { label: string; profileId: string | null; matches: RecallMatch[] }
+
+/** Uma rutura, com todas as pessoas que tomam esse medicamento. */
+interface Rutura {
+  medicamento: string
+  match: 'exato' | 'parcial'
+  naLista: string | null
+  documento: string | null
+  pessoas: { nome: string; id: string | null }[]
+}
 
 export default function VigiaRuturasPage() {
   const { user, supabase } = useAuth() as any
-  const [groups, setGroups] = useState<Group[]>([])
-  const [recallGroups, setRecallGroups] = useState<RecallGroup[]>([])
+  const { institution } = useClinicPrefs()
+  const cfg = institutionConfig(institution)
+  const largo = useLargo()
+
+  const [resultados, setResultados] = useState<MatchResult[]>([])
+  const [recalls, setRecalls] = useState<RecallMatch[]>([])
   const [syncInfo, setSyncInfo] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
@@ -38,113 +68,203 @@ export default function VigiaRuturasPage() {
       const token = sd?.session?.access_token || ''
       const headers = { Authorization: `Bearer ${token}` }
 
-      const { data: familyProfiles } = await supabase.from('family_profiles').select('id, name').eq('user_id', user.id)
+      const r = await fetch('/api/shortage-watch?ambito=utentes', { headers }).then(x => x.json())
+      if (r.error) throw new Error(r.error)
+      setSyncInfo(r.list_status)
+      setResultados(r.results || [])
 
-      const selfRes = await fetch('/api/shortage-watch', { headers }).then(r => r.json())
-      if (selfRes.error) throw new Error(selfRes.error)
-      setSyncInfo(selfRes.list_status)
-
-      const newGroups: Group[] = [{ label: 'A minha medicação', profileId: null, results: selfRes.results || [] }]
-      const selfRecall = await fetch('/api/recall-watch', { headers }).then(r => r.json()).catch(() => null)
-      const newRecallGroups: RecallGroup[] = [{ label: 'A minha medicação', profileId: null, matches: selfRecall?.matches || [] }]
-
-      for (const fp of (familyProfiles || [])) {
-        const r = await fetch(`/api/shortage-watch?profile_id=${fp.id}`, { headers }).then(res => res.json())
-        if (!r.error) newGroups.push({ label: fp.name, profileId: fp.id, results: r.results || [] })
-        const rc = await fetch(`/api/recall-watch?profile_id=${fp.id}`, { headers }).then(res => res.json()).catch(() => null)
-        newRecallGroups.push({ label: fp.name, profileId: fp.id, matches: rc?.matches || [] })
-      }
-
-      setGroups(newGroups)
-      setRecallGroups(newRecallGroups)
-    } catch (e: any) { setErr(e.message || 'Erro ao verificar ruturas.') }
-    finally { setLoading(false) }
+      const rc = await fetch('/api/recall-watch?ambito=utentes', { headers })
+        .then(x => x.json()).catch(() => null)
+      setRecalls(rc?.matches || [])
+    } catch (e: any) {
+      setErr(e.message || 'Não foi possível verificar as ruturas.')
+    } finally { setLoading(false) }
   }, [user, supabase])
 
   useEffect(() => { load() }, [load])
 
+  /* Agrupar pelo MEDICAMENTO, não pela pessoa.
+     O mesmo medicamento em rutura tomado por quatro pessoas é UMA encomenda a
+     resolver, não quatro linhas em quatro listas diferentes. */
+  const ruturas = useMemo<Rutura[]>(() => {
+    const por = new Map<string, Rutura>()
+    for (const r of resultados) {
+      if (!r.match) continue
+      const chave = `${r.match}|${r.medication.toLowerCase()}`
+      if (!por.has(chave)) {
+        por.set(chave, {
+          medicamento: r.medication, match: r.match,
+          naLista: r.matched_name, documento: r.source_document, pessoas: [],
+        })
+      }
+      const g = por.get(chave)!
+      if (r.quem && !g.pessoas.some(p => p.nome === r.quem)) {
+        g.pessoas.push({ nome: r.quem, id: r.patient_id ?? null })
+      }
+    }
+    // As confirmadas primeiro, e dentro de cada grupo as que afetam mais gente.
+    return [...por.values()].sort((a, b) =>
+      (a.match === b.match ? 0 : a.match === 'exato' ? -1 : 1)
+      || b.pessoas.length - a.pessoas.length)
+  }, [resultados])
+
+  const comRutura = ruturas.filter(r => r.match === 'exato')
+  const aConfirmar = ruturas.filter(r => r.match === 'parcial')
+  const pessoasAfetadas = new Set(
+    ruturas.flatMap(r => r.pessoas.map(p => p.nome))).size
+
   if (!user) return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <Link href="/login" style={{ color: ACCENT, fontWeight: 700 }}>Iniciar sessão →</Link>
-    </div>
+    <Mesa altura="documento">
+      <Painel>
+        <Vazio titulo="É preciso ter sessão iniciada."
+          acao={<Link href="/login" style={{ textDecoration: 'none' }}><Botao feitio="principal">INICIAR SESSÃO</Botao></Link>} />
+      </Painel>
+    </Mesa>
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg)', fontFamily: 'var(--font-sans)' }}>
-      <div style={{ background: `linear-gradient(135deg, ${ACCENT}, var(--green-3))`, padding: '26px 24px 22px' }}>
-        <div className="page-container">
-          <div style={{ fontSize: 9, fontFamily: 'var(--font-mono)', color: 'rgba(255,255,255,0.7)', letterSpacing: '0.14em', textTransform: 'uppercase', marginBottom: 6 }}>Pro · Vigia automático</div>
-          <h1 style={{ fontFamily: 'var(--font-serif)', fontSize: 'clamp(22px,3vw,30px)', color: 'white', fontWeight: 400, margin: 0 }}>Vigia de Ruturas</h1>
-          <p style={{ fontSize: 14, color: 'rgba(255,255,255,0.9)', margin: '6px 0 0', maxWidth: 560, lineHeight: 1.5 }}>Cruzamos a tua medicação com a Lista de Notificação Prévia do INFARMED — dados oficiais, não uma estimativa.</p>
-        </div>
-      </div>
+    <Mesa
+      altura="documento"
+      barra={
+        <BarraDeTrabalho>
+          <span style={{
+            ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.14em',
+            textTransform: 'uppercase', color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any,
+          }}>Ruturas</span>
 
-      <div className="page-container page-body" style={{ maxWidth: 720 }}>
-        {err && <div style={{ padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-md)', fontSize: 13, color: 'var(--red)', marginBottom: 16 }}>{err}</div>}
+          {!loading && (
+            <>
+              <span style={{
+                ...MONO, fontWeight: 'var(--peso-forte)' as any,
+                color: comRutura.length ? 'var(--red)' : 'var(--green)',
+              }}>
+                {comRutura.length} {comRutura.length === 1 ? 'EM RUTURA' : 'EM RUTURA'}
+              </span>
+              {aConfirmar.length > 0 && (
+                <span style={{ ...MONO, color: 'var(--amber)' }}>{aConfirmar.length} POR CONFIRMAR</span>
+              )}
+              {pessoasAfetadas > 0 && (
+                <span style={{ ...MONO, color: 'var(--ink-4)' }}>
+                  {pessoasAfetadas} {pessoasAfetadas === 1 ? cfg.personNoun.toUpperCase() : cfg.personNounPlural.toUpperCase()}
+                </span>
+              )}
+            </>
+          )}
 
-        {loading ? (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>{[0, 1].map(i => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 'var(--r-xl)' }} />)}</div>
-        ) : (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            {groups.map(g => (
-              <div key={g.profileId || 'self'}>
-                <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--ink)', marginBottom: 10 }}>{g.label}</div>
-                {g.results.length === 0 ? (
-                  <div style={{ fontSize: 13, color: 'var(--ink-4)' }}>Sem medicação registada.</div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                    {g.results.map((r, i) => (
-                      <div key={i} style={{
-                        background: r.match === 'exato' ? 'var(--badge-amber-bg)' : r.match === 'parcial' ? 'var(--badge-amber-bg)' : 'var(--badge-green-bg)',
-                        border: `1px solid ${r.match === 'exato' ? 'var(--badge-amber-border)' : r.match === 'parcial' ? 'var(--badge-amber-border)' : 'var(--badge-green-border)'}`,
-                        borderRadius: 'var(--r-lg)', padding: '11px 14px', display: 'flex', alignItems: 'center', gap: 10,
-                      }}>
-                        <span style={{ fontSize: 16 }}>{r.match === 'exato' ? '⚠️' : r.match === 'parcial' ? '❓' : '✅'}</span>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--ink)' }}>{r.medication}</div>
-                          {r.match === 'exato' && <div style={{ fontSize: 12, color: 'var(--amber)' }}>Consta na Lista de Notificação Prévia do INFARMED ({r.source_document}) — pode haver dificuldade de abastecimento. Fala com a tua farmácia.</div>}
-                          {r.match === 'parcial' && <div style={{ fontSize: 12, color: 'var(--badge-amber-fg)' }}>Parece corresponder a "{r.matched_name}" na lista do INFARMED — confirma o nome exato na farmácia.</div>}
-                          {!r.match && <div style={{ fontSize: 12, color: 'var(--green)' }}>Sem sinais de rutura na última publicação do INFARMED.</div>}
-                        </div>
-                      </div>
-                    ))}
+          <span style={{ marginLeft: largo ? 'auto' : undefined }}>
+            <Botao onClick={load} esperando={loading}>VERIFICAR AGORA</Botao>
+          </span>
+        </BarraDeTrabalho>
+      }
+      rodape={
+        <BarraDeEstado>
+          <span style={{ ...MONO, color: 'var(--red)' }}>Consta na lista do INFARMED</span>
+          <span style={{ ...MONO, color: 'var(--amber)' }}>Parece corresponder — confirmar</span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            {syncInfo?.last_synced_at
+              ? `Lista de ${new Date(syncInfo.last_synced_at).toLocaleDateString('pt-PT')} · ${syncInfo.source_document || 'INFARMED'}`
+              : 'Lista ainda por sincronizar'}
+          </span>
+          <span style={{ ...MONO, color: 'var(--ink-5)' }}>
+            Confirme sempre na farmácia antes de mudar alguma coisa
+          </span>
+        </BarraDeEstado>
+      }
+    >
+      {err && <Aviso tom="mau">{err}</Aviso>}
+
+      {loading ? (
+        <Painel><ACarregar oQue="A cruzar a medicação da casa com a lista do INFARMED…" /></Painel>
+      ) : ruturas.length === 0 ? (
+        <Painel>
+          <Vazio
+            titulo={resultados.length === 0
+              ? `Ainda não há medicação registada nas fichas d${cfg.personNounPlural.toLowerCase().startsWith('u') ? 'os' : 'os'} ${cfg.personNounPlural.toLowerCase()}.`
+              : 'Nenhum medicamento da casa consta da última lista do INFARMED.'}
+            oQueFazer={resultados.length === 0
+              ? 'Assim que houver medicação nas fichas, esta página passa a cruzá-la com a lista.'
+              : `Foram verificados ${resultados.length} medicamentos. Volte a abrir quando o INFARMED publicar uma lista nova.`} />
+        </Painel>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {ruturas.map((r, i) => (
+            <Painel key={i}>
+              <div style={{
+                padding: '10px 13px',
+                borderLeft: `3px solid ${r.match === 'exato' ? 'var(--red)' : 'var(--amber)'}`,
+              }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap', marginBottom: 5 }}>
+                  <span style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
+                    {r.medicamento}
+                  </span>
+                  <Codigo texto={r.match === 'exato' ? 'EM RUTURA' : 'POR CONFIRMAR'}
+                    cor={r.match === 'exato' ? 'var(--red)' : 'var(--amber)'} />
+                  <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>
+                    {r.pessoas.length} {r.pessoas.length === 1 ? 'PESSOA' : 'PESSOAS'}
+                  </span>
+                </div>
+
+                {r.match === 'parcial' && r.naLista && (
+                  <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 6, lineHeight: 1.5 }}>
+                    Parece corresponder a <b>{r.naLista}</b> na lista. Os nomes não são iguais —
+                    confirme antes de contar com a falta.
+                  </div>
+                )}
+
+                {/* Quem toma. É isto que transforma a lista do INFARMED numa
+                    coisa que se pode fazer: a encomenda tem destinatários. */}
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
+                  {r.pessoas.map(p => p.id ? (
+                    <Link key={p.id} href={`/patients/${p.id}`} style={{ textDecoration: 'none' }}>
+                      <span style={{
+                        ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-2)',
+                        border: '1px solid var(--border)', borderRadius: 'var(--r-sm)',
+                        padding: '2px 7px', display: 'inline-block',
+                      }}>{p.nome}</span>
+                    </Link>
+                  ) : (
+                    <span key={p.nome} style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-4)' }}>{p.nome}</span>
+                  ))}
+                </div>
+
+                {r.documento && (
+                  <div style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 6 }}>
+                    {r.documento}
                   </div>
                 )}
               </div>
-            ))}
+            </Painel>
+          ))}
+        </div>
+      )}
 
-            <div style={{ fontSize: 11, color: 'var(--ink-5)', textAlign: 'center', lineHeight: 1.6, marginTop: 8 }}>
-              {syncInfo?.last_synced_at
-                ? `Lista atualizada em ${new Date(syncInfo.last_synced_at).toLocaleDateString('pt-PT')} · fonte: ${syncInfo.source_document || 'INFARMED'}.`
-                : 'Lista ainda não sincronizada.'}
-              {' '}Esta lista reflete o que o INFARMED publica oficialmente — não substitui confirmar na farmácia.
-            </div>
-
-            {/* Vigia de Recalls (item B11) — recolhas de lote e alertas de
-                segurança, separado das ruturas por serem listas diferentes. */}
-            {recallGroups.some(g => g.matches.length > 0) && (
-              <div style={{ borderTop: '1px solid var(--bg-3)', paddingTop: 18, marginTop: 4 }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color: 'var(--ink)', marginBottom: 4 }}>🚨 Alertas de qualidade/segurança que mencionam a tua medicação</div>
-                <div style={{ fontSize: 12, color: 'var(--ink-4)', marginBottom: 14 }}>Recolhas de lote e alertas de segurança recentes do INFARMED — confirma sempre o nº de lote na notícia oficial, não aqui.</div>
-                {recallGroups.filter(g => g.matches.length > 0).map(g => (
-                  <div key={g.profileId || 'self-recall'} style={{ marginBottom: 14 }}>
-                    <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--ink)', marginBottom: 8 }}>{g.label}</div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                      {g.matches.map((m, i) => (
-                        <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" style={{ display: 'block', background: 'var(--amber-light)', border: '1px solid var(--badge-amber-border)', borderRadius: 'var(--r-lg)', padding: '11px 14px', textDecoration: 'none' }}>
-                          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--badge-red-fg)', marginBottom: 2 }}>{m.medication}</div>
-                          <div style={{ fontSize: 13, color: 'var(--badge-red-fg)', lineHeight: 1.4 }}>{m.title}</div>
-                          {m.notice_date && <div style={{ fontSize: 11, color: 'var(--badge-red-fg)', marginTop: 3 }}>{m.notice_date} · Ver notícia oficial →</div>}
-                        </a>
-                      ))}
+      {/* ── Recolhas de lote e alertas de segurança ─────────────────────── */}
+      {recalls.length > 0 && (
+        <div style={{ marginTop: 14 }}>
+          <Painel cabeca={<Cabecalho>
+            <span style={{ flex: 1 }}>Recolhas e alertas de segurança</span>
+            <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>{recalls.length}</span>
+          </Cabecalho>}>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {recalls.map((m, i) => (
+                <a key={i} href={m.url} target="_blank" rel="noopener noreferrer" style={{
+                  display: 'block', padding: '9px 13px', textDecoration: 'none',
+                  borderTop: i ? '1px solid var(--border)' : 'none',
+                  borderLeft: '3px solid var(--red)',
+                }}>
+                  <div style={{ ...ROTULO, color: 'var(--red)' }}>{m.medication}</div>
+                  <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', lineHeight: 1.45, marginTop: 2 }}>{m.title}</div>
+                  {m.notice_date && (
+                    <div style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 3 }}>
+                      {m.notice_date} · abrir no site do INFARMED
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-    </div>
+                  )}
+                </a>
+              ))}
+            </div>
+          </Painel>
+        </div>
+      )}
+    </Mesa>
   )
 }

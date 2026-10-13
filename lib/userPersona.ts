@@ -4,7 +4,7 @@
 // Mantém o site simples: cada persona vê o que faz sentido, nada mais.
 
 export type ExperienceMode = 'personal' | 'caregiver' | 'student' | 'clinical'
-export type InstitutionType = 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center' | null
+export type InstitutionType = 'nursing_home' | 'day_care' | null
 
 export interface PersonaHero {
   title: string

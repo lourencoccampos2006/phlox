@@ -41,6 +41,7 @@ import { registoEmPalavras } from '@/lib/registoEmPalavras'
 import {
   Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor, useLargo,
 } from '@/components/ui/mesa'
+import FichaDoMedicamento from '@/components/institution/FichaDoMedicamento'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
@@ -117,6 +118,8 @@ type Aba = 'hoje' | 'essencial' | 'plano' | 'historico' | 'registos' | 'document
 
 export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos, pedidos, revisaoMedicacao, children, aoMudar }: Props) {
   const largo = useLargo()
+  /* O medicamento cuja ficha está aberta. Ver FichaDoMedicamento. */
+  const [medAberto, setMedAberto] = useState<any | null>(null)
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
@@ -597,10 +600,22 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
             padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)',
           }}>
             <div style={{ minWidth: 0 }}>
-              <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>
-                <span style={{ fontWeight: 'var(--peso-corpo)' as any }}>{m.name}</span>
+              {/* O nome abre a ficha do medicamento. Quem está a dar a volta à
+                  medicação e não conhece um nome tinha de sair da página para
+                  o procurar — e a maior parte das vezes não procurava. */}
+              <button type="button" onClick={() => setMedAberto(m)}
+                title={`O que é ${m.name}`}
+                style={{
+                  background: 'none', border: 'none', padding: 0, textAlign: 'left',
+                  cursor: 'pointer', fontSize: 'var(--t-corpo)', color: 'var(--ink)',
+                  fontFamily: 'inherit',
+                }}>
+                <span style={{
+                  fontWeight: 'var(--peso-corpo)' as any,
+                  borderBottom: '1px dotted var(--border-2)',
+                }}>{m.name}</span>
                 {m.dose && <span style={{ color: 'var(--ink-4)' }}> {m.dose}</span>}
-              </div>
+              </button>
               <div style={{ ...MONO, fontSize: 'var(--t-micro)', marginTop: 4 }}>
                 {[m.turnos.join(' · ') || m.frequency, m.indication, ONDE[m.take_location] || null].filter(Boolean).join(' · ')}
               </div>
@@ -725,6 +740,20 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           proposito: um modal aberto numa aba e fechado ao mudar para outra e
           uma forma barata de fazer alguem perder o que estava a escrever.
           Ficam fora das abas, e nao dentro de «Hoje», por isso. */}
+      {medAberto && (
+        <FichaDoMedicamento
+          med={medAberto}
+          pessoa={utente.name.split(' ')[0]}
+          aoFechar={() => setMedAberto(null)}
+          auth={async () => {
+            const { data: sd } = await supabase.auth.getSession()
+            return {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${sd?.session?.access_token || ''}`,
+            }
+          }} />
+      )}
+
       {children}
 
     </Mesa>

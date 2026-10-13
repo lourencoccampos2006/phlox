@@ -30,8 +30,7 @@ async function getOrg(slug: string): Promise<OrgPublic | null> {
 }
 
 const KIND_LABEL: Record<string, string> = {
-  day_care: 'Centro de Dia', nursing_home: 'Lar / ERPI', pharmacy_community: 'Farmácia',
-  clinic: 'Clínica', health_center: 'Centro de Saúde',
+  day_care: 'Centro de Dia', nursing_home: 'Lar / ERPI',
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {

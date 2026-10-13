@@ -85,7 +85,7 @@ const ficheiros = fs.readdirSync('supabase')
 // (2026-10-07: mais o 180 — a conformidade passa a ser da casa. Corre ANTES
 //  do 153, que é sempre o último porque regenera as políticas todas.)
 const ORDEM = (process.env.ORDEM
-  || '179,180,153').split(',').map(Number)
+  || '179,180,153,181,182').split(',').map(Number)
 const pendentes = ORDEM
   .map(n => ficheiros.find(f => numero(f) === n))
   .filter(Boolean)
@@ -219,6 +219,31 @@ function referencias(sql) {
 function sintaxe(bruto) {
   const problemas = []
   const semComentarios = bruto.replace(/--[^\n]*/g, '')
+
+  /* ── UM ERRO DE PL/pgSQL QUE JÁ ME CUSTOU UMA MIGRAÇÃO ───────────────────
+     `foreach a, b, c in array ...` não existe. O FOREACH com várias variáveis
+     espera uma LINHA COMPOSTA, e uma matriz de texto não é isso. O Postgres
+     recusa com
+
+         ERROR: 42804: cannot assign non-composite value to a row variable
+
+     Esta guarda simula o ESQUEMA — que tabelas e colunas existirão quando a
+     migração lá chegar — e não a semântica da linguagem. Não vai passar a
+     simulá-la. Mas um erro que já aconteceu e tem uma forma reconhecível é
+     barato de reconhecer outra vez.
+
+     A forma certa é a do sprint153: `for i in 1 .. array_length(m, 1)` com
+     `m[i][1]`, `m[i][2]`. */
+  for (const m of semComentarios.matchAll(/\bforeach\s+([a-z_][\w\s,]*?)\s+in\s+array\b/gi)) {
+    const vars = m[1].split(',').map(x => x.trim()).filter(Boolean)
+    if (vars.length > 1) {
+      problemas.push(
+        `foreach ${vars.join(', ')} in array — o FOREACH com várias variáveis espera `
+        + 'uma linha composta, e uma matriz de texto não é isso. O Postgres recusa com '
+        + '«cannot assign non-composite value to a row variable». Usa '
+        + '`for i in 1 .. array_length(m, 1)` com `m[i][1]`, como o sprint153.')
+    }
+  }
 
   // Os blocos com nome e os `$$` têm de vir aos pares.
   const marcas = [...semComentarios.matchAll(/\$([a-z]*)\$/gi)].map(m => m[1].toLowerCase())

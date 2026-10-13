@@ -15,6 +15,7 @@ import { useOrgScope } from '@/lib/orgScope'
 import { printDoc } from '@/lib/print'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
+import PodeSerDaMedicacao from '@/components/institution/PodeSerDaMedicacao'
 
 interface Patient { id: string; name: string; room_number?: string }
 
@@ -762,6 +763,26 @@ export default function IncidentsPage() {
                   <textarea value={form.description} onChange={e => f('description', e.target.value)} placeholder="Descreve o que aconteceu..." rows={3}
                     style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }} />
                 </div>
+
+                {/* A pergunta que ninguém tem tempo de fazer: isto pode ser da
+                    medicação? Fica aqui, debaixo da descrição, porque é aqui
+                    que a dúvida nasce — e fica como BOTÃO, porque uma caixa
+                    que aparece sozinha a meio de alguém escrever rouba a
+                    atenção ao que interessa, que é registar a ocorrência. */}
+                {aceitaPessoa(form.type) && (
+                  <div style={{ gridColumn: '1/-1' }}>
+                    <PodeSerDaMedicacao
+                      patientId={form.patient_id || null}
+                      descricao={form.description}
+                      auth={async () => {
+                        const { data: sd } = await supabase.auth.getSession()
+                        return {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${sd?.session?.access_token || ''}`,
+                        }
+                      }} />
+                  </div>
+                )}
 
                 <div style={{ gridColumn: '1/-1' }}>
                   <Label>Lesões / Danos</Label>

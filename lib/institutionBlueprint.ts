@@ -279,66 +279,11 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
   // não aponte para páginas que já não existem.
 
   // ── FARMÁCIA COMUNITÁRIA — balcão. Tom sóbrio, ritmo rápido.
-  pharmacy_community: {
-    productName: 'A sua Farmácia',
-    tagline: 'O balcão, o stock e o aconselhamento, sem perder ninguém.',
-    tone: 'sober',
-    accent: 'var(--green-3)', accentSoft: 'var(--green-light)',
-    greetingLead: (n) => `Bom dia${n ? `, ${n}` : ''}.`,
-    cockpit: [
-      { id: 'counter',     size: 'hero', essential: true },
-      { id: 'sales_today', size: 'large', essential: true },
-      { id: 'people_watch', size: 'medium' },
-      { id: 'tasks',       size: 'small' },
-      { id: 'quick_actions', size: 'small', essential: true },
-    ],
-    coreTools: [
-      T.people('Utentes', 'Clientes com ficha e medicação'),
-      T.stock, T.meds_check, T.screenings, T.appts,
-    ],
-    extraTools: [ T.team, T.quality, T.calc, T.reconcile, T.billing ],
-  },
-
-  // ── CLÍNICA — consultas. Tom sóbrio.
-  clinic: {
-    productName: 'A sua Clínica',
-    tagline: 'Doentes, agenda e segurança da medicação, num fluxo limpo.',
-    tone: 'sober',
-    accent: 'var(--blue)', accentSoft: 'var(--blue-light)',
-    greetingLead: (n) => `Bom dia${n ? `, ${n}` : ''}.`,
-    cockpit: [
-      { id: 'appointments', size: 'hero', essential: true },
-      { id: 'people_watch', size: 'large', essential: true },
-      { id: 'tasks',        size: 'medium' },
-      { id: 'incidents',    size: 'small' },
-      { id: 'quick_actions', size: 'small', essential: true },
-    ],
-    coreTools: [
-      T.people('Doentes', 'Fichas e medicação dos doentes'),
-      T.appts, T.meds_check, T.reconcile, T.assessments,
-    ],
-    extraTools: [ T.team, T.quality, T.calc, T.screenings, T.incidents ],
-  },
-
-  // ── CENTRO DE SAÚDE / USF — utentes, CSP. Tom sóbrio.
-  health_center: {
-    productName: 'a sua Unidade',
-    tagline: 'Utentes, rastreios e agenda, com a clínica sempre à mão.',
-    tone: 'sober',
-    accent: 'var(--green-3)', accentSoft: 'var(--green-light)',
-    greetingLead: (n) => `Bom dia${n ? `, ${n}` : ''}.`,
-    cockpit: [
-      { id: 'appointments', size: 'hero', essential: true },
-      { id: 'people_watch', size: 'large', essential: true },
-      { id: 'tasks',        size: 'medium' },
-      { id: 'quick_actions', size: 'small', essential: true },
-    ],
-    coreTools: [
-      T.people('Utentes', 'Fichas e medicação dos utentes'),
-      T.appts, T.screenings, T.meds_check, T.reconcile,
-    ],
-    extraTools: [ T.team, T.quality, T.calc, T.documents ],
-  },
+  /* Havia aqui mais três planos: `pharmacy_community`, `clinic` e
+     `health_center`. Saíram a 2026-10-12 — o produto serve lares e centros de
+     dia, e cada um dos três trazia um plano de ecrã, um conjunto de
+     ferramentas e um vocabulário que ninguém usava mas que era preciso manter
+     a par do resto a cada mudança. */
 
 }
 

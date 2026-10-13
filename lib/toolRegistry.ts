@@ -8,7 +8,7 @@
 // hospital, e vice-versa).
 
 export type ToolMode = 'personal' | 'caregiver' | 'student' | 'clinical'
-export type InstType = 'pharmacy_community' | 'nursing_home' | 'clinic' | 'health_center' | 'day_care'
+export type InstType = 'nursing_home' | 'day_care'
 export type ToolPlan = 'free' | 'free_limited' | 'student' | 'pro'
 
 export interface Tool {
@@ -43,11 +43,12 @@ export const TOOL_CATEGORIES: Record<string, { label: string; color: string }> =
 // Espelham o que cada NAV_BY_INST (em ClinicalLayout) já mostra hoje, para
 // não mudar a experiência ao utilizador atual.
 const NH:  InstType[] = ['nursing_home']
-const PHC: InstType[] = ['pharmacy_community']
-const CLN: InstType[] = ['clinic']
-const HC:  InstType[] = ['health_center']
 const DC:  InstType[] = ['day_care']
-const ALL_INST: InstType[] = ['pharmacy_community', 'nursing_home', 'clinic', 'health_center', 'day_care']
+const ALL_INST: InstType[] = ['nursing_home', 'day_care']
+/* `PHC`, `CLN` e `HC` eram farmácia, clínica e centro de saúde. Saíram com os
+   tipos. As ferramentas que os listavam passam a listar `ALL_INST`: ou servem
+   uma casa, ou não servem ninguém. */
+const PHC = ALL_INST, CLN = ALL_INST, HC = ALL_INST
 
 export const TOOLS: Tool[] = [
   // ══ PESSOAL / CUIDADOR / ESTUDANTE ════════════════════════════════════════
@@ -115,7 +116,7 @@ export const TOOLS: Tool[] = [
   //  dose-crianca, escalas → agora dentro do hub /calculos. Páginas mantidas, fora do menu.)
 
   // Operações & equipa
-  { id: '/stock',        label: 'Stock & consumíveis',           desc: 'Consumo a 1 toque · ruturas · encomendas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care', 'pharmacy_community', 'clinic'], plan: 'pro' },
+  { id: '/stock',        label: 'Stock & consumíveis',           desc: 'Consumo a 1 toque · ruturas · encomendas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/equipa?tab=escalas', label: 'Equipa & escalas',        desc: 'Membros, turnos, competências e tarefas', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   // A aba "cobertura" deixou de existir — as vagas de turno vivem dentro das
   // Escalas (components/team/EscalasEquipa.tsx). O /equipa ainda redireciona o
@@ -124,12 +125,12 @@ export const TOOLS: Tool[] = [
   { id: '/apoio-servicos', label: 'Serviços de apoio',          desc: 'Roupa, transporte e outros pedidos — quem publica, quem trata', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/preparacao-medicacao', label: 'Preparação da medicação', desc: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/apoio-psicossocial', label: 'Apoio psico-social',     desc: 'Notas de acompanhamento e encaminhamento a especialistas — só equipa', category: 'clinical_ops', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
-  { id: '/faturacao',    label: 'Faturação',                     desc: 'Emissão e exportação',             category: 'clinical_ops', modes: ['clinical'], default_inst: ['pharmacy_community', 'clinic'], plan: 'pro' },
+  { id: '/faturacao',    label: 'Faturação',                     desc: 'Emissão e exportação',             category: 'clinical_ops', modes: ['clinical'], default_inst: [], plan: 'pro' },
 
   // Qualidade & farmacovigilância
 
   // Legal & documentos
-  { id: '/documentos',   label: 'Documentos & conformidade',     desc: 'Arquivo · consentimentos · RGPD/normas', category: 'clinical_legal', modes: ['clinical'], default_inst: ['nursing_home', 'clinic', 'pharmacy_community'], plan: 'pro' },
+  { id: '/documentos',   label: 'Documentos & conformidade',     desc: 'Arquivo · consentimentos · RGPD/normas', category: 'clinical_legal', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
 
   // Suprimidos por agora (referências antigas no nav `EXTRA_TOOLS`): mantemos
   // apenas no settings se o utilizador quiser activar manualmente.

@@ -605,27 +605,43 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
 
          Agora são três grupos com rótulo. O «Arquivar» fica sozinho no fim,
          em cinzento, separado por uma linha. */
+      /* ── A FILA TEM DE QUEBRAR, E NÃO QUEBRAVA — corrigido 2026-10-12.
+         Cada grupo era um `inline-flex` sem `flexWrap`: num ecrã de 390px os
+         quatro botões de imprimir não cabiam e saíam pela direita. E o
+         `marginLeft: 'auto'` do «Arquivar» só faz sentido numa linha única —
+         quando a fila quebra, empurra-o para o meio do nada.
+
+         Agora cada grupo é uma coluna com o rótulo por cima, os botões
+         quebram, e o separador do «Arquivar» é uma linha POR CIMA (que
+         funciona em qualquer largura) em vez de uma à esquerda. */
       acoes={<>
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
           <span style={ROTULO}>Ficha</span>
-          <Botao onClick={() => setEditing(true)}>EDITAR</Botao>
+          <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <Botao onClick={() => setEditing(true)}>EDITAR</Botao>
+          </span>
         </span>
 
-        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+        <span style={{ display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0, flex: '1 1 260px' }}>
           <span style={ROTULO}>Imprimir</span>
-          <Botao onClick={printChart} titulo="A ficha clínica completa">FICHA CLÍNICA</Botao>
-          <Botao onClick={printEmergencyCard} titulo="Resumo de uma página para levar às urgências">CARTÃO DE EMERGÊNCIA</Botao>
-          <Botao onClick={printMonthlyReport} esperando={reportBusy} titulo="O mês contado à família">RELATÓRIO DO MÊS</Botao>
-          <Botao onClick={printPatientDossier} esperando={dossierBusy} titulo="Tudo o que ficou registado no mês">DOSSIER MENSAL</Botao>
+          <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            <Botao onClick={printChart} titulo="A ficha clínica completa">FICHA CLÍNICA</Botao>
+            <Botao onClick={printEmergencyCard} titulo="Resumo de uma página para levar às urgências">CARTÃO DE EMERGÊNCIA</Botao>
+            <Botao onClick={printMonthlyReport} esperando={reportBusy} titulo="O mês contado à família">RELATÓRIO DO MÊS</Botao>
+            <Botao onClick={printPatientDossier} esperando={dossierBusy} titulo="Tudo o que ficou registado no mês">DOSSIER MENSAL</Botao>
+          </span>
         </span>
 
         {podeEditar && (
           <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 6,
-            marginLeft: 'auto', paddingLeft: 12, borderLeft: '1px solid var(--border)',
+            display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0,
+            width: '100%', paddingTop: 10, borderTop: '1px solid var(--border)',
           }}>
-            <Botao feitio="calmo" onClick={archiveThisPatient}
-              titulo="Tira a pessoa das listas do dia a dia. A ficha e os registos ficam.">ARQUIVAR</Botao>
+            <span style={ROTULO}>Tirar das listas</span>
+            <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <Botao feitio="calmo" onClick={archiveThisPatient}
+                titulo="Tira a pessoa das listas do dia a dia. A ficha e os registos ficam.">ARQUIVAR</Botao>
+            </span>
           </span>
         )}
       </>}

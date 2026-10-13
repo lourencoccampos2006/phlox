@@ -299,6 +299,22 @@ export const AREA_DA_ROTA: Record<string, string> = {
   '/faturacao': 'financeiro',
   '/painel-dono': 'financeiro',
   '/historico': 'registo_atividade',
+
+  /* ── AS SETE QUE FALTAVAM (2026-10-12) ──────────────────────────────────
+     Sem entrada aqui, o `areaDaRota` devolve null e o menu mostra a
+     ferramenta a toda a gente — por desenho, porque esconder uma ferramenta
+     nova por esquecimento é pior do que mostrá-la a mais. Mas estas sete não
+     eram esquecimento recente: a /faturação estava protegida e a /agenda, que
+     tem as consultas de toda a gente, não. */
+  '/agenda': 'atividades',
+  '/calendario-do-ano': 'atividades',
+  '/inscricoes': 'familias',
+  '/estatisticas': 'qualidade',
+  '/migrar': 'definicoes',
+  '/rastreios': 'avaliacoes',
+  /* A /calculos fica de fora de propósito: são calculadoras de dose e de
+     função renal, sem dados de ninguém lá dentro. Esconder uma calculadora
+     não protege nada e tira uma ferramenta a quem dela precisa. */
 }
 
 /** A área que protege este endereço, ou null quando não há nenhuma. */
