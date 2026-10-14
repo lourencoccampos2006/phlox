@@ -906,7 +906,19 @@ img, svg, video { max-width: 100%; }
    /equipa dois botoes somavam 430px e punham a pagina a rolar de lado a
    390px. Isto resolve-o para todas as paginas de uma vez. */
 .mesa-barra > * { min-width: 0; max-width: 100%; }
-.mesa-barra > div { flex-wrap: wrap; }
+
+/* ── O `:not([role=tablist])` NAO E DETALHE (2026-10-14) ───────────────────
+   Esta regra foi escrita para os grupos de BOTOES, que tem de quebrar de
+   linha. So que apanhava tambem o `Seletor`, que e um `<div role="tablist">`
+   — e um seletor segmentado quebrado de linha nao e um seletor: e uma caixa
+   com bordas a toda a volta e os segmentos partidos a meio, com o ultimo
+   («SEM REGISTO 8») sozinho numa segunda fila dentro da mesma moldura.
+   Parecia um bug de layout, e era esta linha.
+
+   O `Seletor` ja sabe o que fazer quando nao cabe: rola de lado
+   (`overflow-x: auto`), que e o que um telemovel faz bem. So precisava que
+   ninguem lhe mandasse quebrar. */
+.mesa-barra > div:not([role="tablist"]) { flex-wrap: wrap; }
 
 /* A BARRA DE ESTADO DA MESA — uma linha, e cada legenda que nao caiba acaba
    em reticencias em vez de transbordar para fora do painel.
@@ -922,3 +934,79 @@ img, svg, video { max-width: 100%; }
 
 .mesa-botao { min-height: 44px; }
 @media (min-width: 1040px) { .mesa-botao { min-height: 30px; } }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   O TELEMÓVEL NÃO É UM COMPUTADOR ESTREITO
+   ═══════════════════════════════════════════════════════════════════════════
+   ── O QUE O FERNANDO VIU (2026-10-14) ─────────────────────────────────────
+   «Gosto do novo design em computador, mas em mobile é horroroso, tens
+    obrigatoriamente de mudar. É muito mau mesmo!!!»
+
+   Tinha razão, e a causa é a mesma em todas as páginas: a mesa foi desenhada
+   para uma superfície de trabalho larga, e no telemóvel recebia EXACTAMENTE a
+   mesma densidade — os mesmos 18px de intervalo entre grupos da barra, os
+   mesmos 14px de padding, as mesmas margens. Num ecrã de 390px isso faz três
+   coisas, todas más:
+
+     · as barras ganham duas e três linhas, e a moldura passa a ocupar um
+       terço do ecrã antes de haver conteúdo;
+     · os grupos deixam de se distinguir, porque o intervalo entre grupos
+       (18px) e o intervalo dentro de um grupo (6px) ficam ambos a parecer
+       «um bocado de espaço»;
+     · fica tudo a flutuar no meio de nada, que é o aspeto que ele descreve.
+
+   A régua aqui é outra: no computador o espaço serve para SEPARAR; no
+   telemóvel serve para dar alvo ao dedo. O alvo mantém-se (os 44px do
+   `.mesa-botao` não se tocam); o que encolhe é o espaço que não é alvo.
+
+   Fica em CSS e não nos estilos em linha porque uma media query não cabe num
+   `style={{…}}` — e porque assim há UM sítio onde a densidade do telemóvel se
+   muda, em vez de cento e tal ficheiros.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 860px) {
+  /* A barra de trabalho: o intervalo entre grupos cai de 18 para 10, e o
+     padding lateral de 14 para 10. São 8px de cada lado — num ecrã de 390
+     são 4% da largura devolvidos ao conteúdo, em todas as páginas. */
+  .mesa-barra { padding: 7px 10px !important; gap: 10px !important; }
+
+  /* Uma barra de trabalho com três grupos empilha-se em três linhas de 44px.
+     Com os botões todos à altura de dedo isso são 132px de moldura. Aqui os
+     grupos ficam lado a lado e quebram só quando têm mesmo de quebrar. */
+  .mesa-barra > div:not([role="tablist"]) { gap: 6px; }
+
+  /* O painel: o cabeçalho de uma secção não precisa de 14px de cada lado num
+     ecrã onde a linha inteira tem 390. */
+  .mesa-cabecalho { padding: 7px 10px !important; }
+  .mesa-painel-corpo { padding-left: 0 !important; padding-right: 0 !important; }
+
+  /* O chão da mesa. Eram 20px de cada lado só para emoldurar. Agora 10px.
+
+     E o fundo sobe de 48 para 96. Os 48 não chegavam: o botão redondo do
+     copiloto tem 64px e flutua a 24 do fundo — ocupa 88px de canto. Com 48
+     de folga, a última linha de qualquer lista ficava DEBAIXO dele, e na
+     /patients via-se «João Pedro» com o botão por cima do nome. Numa lista de
+     pessoas, a última é tão importante como a primeira. */
+  .mesa-chao { padding-left: 10px !important; padding-right: 10px !important; padding-bottom: 96px !important; }
+
+  /* ── O `margin-left: auto` NÃO SOBREVIVE A UMA QUEBRA DE LINHA ──────────
+     Numa barra larga, empurrar um grupo de botões para a direita separa-o do
+     resto: à esquerda o que se filtra, à direita o que se faz. É bom desenho.
+
+     Quando a barra quebra em três linhas — que é o que acontece a 390px — o
+     grupo fica sozinho numa linha e o `auto` encosta-o à direita, deixando
+     metade da linha em branco à esquerda. Deixa de separar nada e passa a
+     parecer desalinhado, porque é: nenhum outro elemento do ecrã está
+     encostado àquela borda.
+
+     Numa linha só para ele, o sítio é à esquerda, como tudo o resto. */
+  .mesa-barra > [style*="margin-left: auto"],
+  .mesa-barra > [style*="margin-left:auto"] { margin-left: 0 !important; }
+}
+
+/* ── O ECRÃ MESMO PEQUENO (360px e abaixo) ──────────────────────────────────
+   Um iPhone SE e boa parte dos Android que uma equipa de lar traz no bolso.
+   Aqui o que não é alvo de toque encolhe outra vez. */
+@media (max-width: 400px) {
+  .mesa-barra { padding: 6px 8px !important; gap: 8px !important; }
+  .mesa-chao { padding-left: 8px !important; padding-right: 8px !important; }
+}

@@ -177,6 +177,10 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
 
   // Sem o nome do produto: já está no header, e tê-lo nos dois sítios era a
   // duplicação que se via ao abrir a página.
+  /* `/painel` e nada mais: o `startsWith` apanharia um `/painel-dono`, que é
+     outra página e onde estes separadores também não acendem. */
+  const noPainel = pathname === '/painel'
+
   const SidebarInner = (
     <>
       <Link href="/painel" title="Painel"
@@ -298,7 +302,21 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
 
           58 (cabeçalho) + 50 (esta barra) = 108. Os três números têm de
           concordar, e por isso estão aqui juntos. */}
-      <nav className="ish-tabs" style={{
+      {/* ── NO TELEMÓVEL, ESTA BARRA SÓ APARECE ONDE SERVE (2026-10-14) ───
+          Os cinco separadores são as VISTAS DO PAINEL, e só acendem quando se
+          está no /painel. Numa ferramenta — a /patients, o /o-dia, o /mar —
+          são cinco links que nunca respondem, e ocupam 50px de altura.
+
+          Num ecrã de 844px, com o cabeçalho de 58 por cima, isso é 108px de
+          moldura antes de haver conteúdo: um oitavo do ecrã gasto em
+          navegação que ali não diz nada. No computador não custa (há 900px de
+          altura e a barra tem um sítio); no telemóvel custa, e é parte do que
+          faz o ecrã parecer vazio quando se desce à lista.
+
+          Fora do painel, no telemóvel, sai. O ☰ ao lado do logótipo abre a
+          barra lateral inteira, que leva a todo o lado — não se perde caminho
+          nenhum, perde-se uma fila de links apagados. */}
+      <nav className={`ish-tabs${noPainel ? '' : ' ish-tabs-fora'}`} style={{
         display: 'flex', gap: 'var(--space-2)', alignItems: 'center',
         padding: '0 clamp(14px,2.5vw,24px)', borderBottom: '1px solid var(--border)',
         background: 'var(--bg)', overflowX: 'auto',
@@ -357,6 +375,17 @@ export default function InstitutionShell({ children }: { children: React.ReactNo
           .ish-sidebar { display: none; }
           .ish-burger { display: inline-block !important; }
           .ish-data { display: none; }
+
+          /* Ver a nota em cima: fora do painel, estes cinco links nunca
+             acendem — e 50px de altura num telemóvel pagam-se caro. */
+          .ish-tabs-fora { display: none !important; }
+
+          /* O ecrã do telemóvel tem 390px de largura e os separadores somam
+             mais do que isso: a barra rola de lado. Sem esta margem o último
+             («Gestão») ficava cortado a meio da palavra contra a borda, sem
+             nada a dizer que havia mais — que é exactamente o que se via.
+             O espaço a mais no fim mostra que a fila continua. */
+          .ish-tabs { padding-right: 56px; }
         }
       `}</style>
     </div>

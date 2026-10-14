@@ -13,9 +13,13 @@ import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import Icon from '@/components/Icon'
 
-const INST_TYPES: { id: string; label: string; emoji: string }[] = [
-  { id: 'day_care', label: 'Centro de Dia', emoji: 'clock' },
-  { id: 'nursing_home', label: 'Lar / ERPI', emoji: '🏡' },
+/* O campo chamava-se `emoji` e já levava um NOME DE ÍCONE num dos dois
+   ('clock') e um emoji no outro ('🏡') — por isso o lar saía sem ícone e
+   com um emoji a mais, desenhado pelo sistema operativo. O `<Icon>` que os
+   recebe só sabe nomes; o campo passa a chamar-se o que é. */
+const INST_TYPES: { id: string; label: string; icone: string }[] = [
+  { id: 'day_care', label: 'Centro de Dia', icone: 'clock' },
+  { id: 'nursing_home', label: 'Lar / ERPI', icone: 'home' },
 ]
 
 export default function ComecarInstituicaoPage() {
@@ -89,7 +93,7 @@ export default function ComecarInstituicaoPage() {
             {INST_TYPES.map(t => (
               <button key={t.id} onClick={() => setInstType(t.id)} disabled={!!org}
                 style={{ padding: '9px 14px', borderRadius: 'var(--r-lg)', border: `1.5px solid ${instType === t.id ? 'var(--green-3)' : 'var(--border)'}`, background: instType === t.id ? 'var(--green-light)' : 'white', color: instType === t.id ? 'var(--green)' : 'var(--ink-3)', fontSize: 13.5, fontWeight: 700, cursor: org ? 'default' : 'pointer', opacity: org && instType !== t.id ? 0.5 : 1 }}>
-                <Icon name={t.emoji} size={15} />  {t.label}
+                <Icon name={t.icone} size={15} />  {t.label}
               </button>
             ))}
           </div>

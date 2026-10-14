@@ -12,9 +12,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Vazio, ACarregar,
-  Codigo, Bandeira, Botao, Seletor, CAIXA, MONO, ROTULO,
+  Codigo, Bandeira, Botao, Seletor, CAIXA, MONO, ROTULO, useLargo,
 } from '@/components/ui/mesa'
-import { corDe, filtrarPorEtiquetas, contarPorEtiqueta, type Etiqueta } from '@/lib/etiquetas'
+import { corDe, curto, filtrarPorEtiquetas, contarPorEtiqueta, type Etiqueta } from '@/lib/etiquetas'
 import { useAuth } from '@/components/AuthContext'
 import Icon from '@/components/Icon'
 import Link from 'next/link'
@@ -105,6 +105,7 @@ interface Patient {
 type FilterKey = 'all' | 'alerts' | 'poly' | 'no_log'
 
 export default function PatientsPage() {
+  const largo = useLargo()
   const { user, supabase } = useAuth() as any
   const router = useRouter()
   const toast = useToast()
@@ -413,7 +414,7 @@ export default function PatientsPage() {
 
   // ── sem acesso ── (ClinicalGate distingue "instituição por criar" de "sem plano")
   if (!isPro) {
-    return <ClinicalGate emoji="🧑‍🤝‍🧑" accent={accent}
+    return <ClinicalGate icone="users" accent={accent}
       title={`Gestão de ${nounPlural}`}
       description="Fichas com medicação, diagnósticos e função renal — partilhadas por toda a equipa. Faz parte do plano Pro e Institucional." />
   }
@@ -581,9 +582,18 @@ export default function PatientsPage() {
               secundaria={p.conditions || undefined}
               fim={
                 suas.length || p.allergies ? (
-                  <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: 150 }}>
+                  /* O `maxWidth` era 150 fixos. No telemóvel a linha tem 390
+                     e as etiquetas ficam por baixo do nome, onde há espaço —
+                     o tecto só faz sentido na vista larga, onde compete com as
+                     colunas. */
+                  <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap', maxWidth: largo ? 150 : undefined }}>
                     {p.allergies && <Bandeira texto="ALERG" tom="mau" />}
-                    {suas.slice(0, 2).map(e => <Codigo key={e.id} texto={e.nome.slice(0, 6).toUpperCase()} />)}
+                    {/* Era `e.nome.slice(0, 6)`. Uma etiqueta chamada «Risco de
+                        queda» saía «RISCO » — com o espaço e tudo — e ao lado
+                        dos números lia-se como mais uma medida chamada RISCO,
+                        que já existe e quer dizer outra coisa. `curto()` corta
+                        na palavra e o nome inteiro fica no `title`. */}
+                    {suas.slice(0, 2).map(e => <Codigo key={e.id} texto={curto(e.nome)} titulo={e.nome} />)}
                     {suas.length > 2 && (
                       <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
                         +{suas.length - 2}

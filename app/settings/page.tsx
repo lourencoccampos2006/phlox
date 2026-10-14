@@ -16,6 +16,7 @@ import InstallInstructions from '@/components/InstallInstructions'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import EscolherFerramentas from '@/components/EscolherFerramentas'
 import PreferenciasMemoria from '@/components/PreferenciasMemoria'
+import DefinicoesDaCasa from '@/components/settings/DefinicoesDaCasa'
 import {
   Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor,
   Codigo, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
@@ -55,7 +56,17 @@ function SettingsPage() {
   // — esses escolhem as suas ferramentas. No modo clínico, o produto monta-se
   // sozinho a partir do tipo de instituição (blueprint), por isso não há picker.
   // "organizacoes" foi removido (criar org era confuso e inútil).
-  const validTabs = ['profile', 'seguranca', 'account', 'notifications'] as const
+  /* ── «A CASA» ENTRA AQUI (2026-10-14) ──────────────────────────────────
+     «Podias começar a utilizar mais as definições em contas institucionais,
+      passar para lá algumas coisas. Está muito confuso algumas partes.»
+
+     O nome da instituição, a morada, a lotação, a mensalidade, a página
+     pública e a marca viviam dentro da página «Equipa», atrás de um botão, no
+     mesmo painel onde se adiciona um funcionário. Nenhuma dessas coisas é uma
+     pessoa, e quem as procurava não as encontrava.
+
+     Só aparece a quem tem casa — ver `temCasa`. */
+  const validTabs = ['profile', 'casa', 'seguranca', 'account', 'notifications'] as const
   type SettingsTab = typeof validTabs[number]
   const requestedTab = searchParams?.get('tab')
   const initialTab = ((requestedTab && (validTabs as readonly string[]).includes(requestedTab)
@@ -161,6 +172,13 @@ function SettingsPage() {
   // Picker de atalhos fixos — só para modos não-clínicos. No clínico, as
   // ferramentas vêm do blueprint da instituição (não se escolhem). A secção
   const notClinical = expMode !== 'clinical'
+
+  /* TEM CASA? O `experience_mode === 'clinical'` é o sinal de que esta conta
+     pertence a uma instituição — é atribuído por PERTENÇA a uma organização e
+     nunca é auto-selecionável (ver a nota no `MODE_OPTIONS`). O próprio
+     componente das definições da casa volta a confirmar com o servidor e diz
+     que não há casa, se não houver; isto só decide se o separador aparece. */
+  const temCasa = expMode === 'clinical' 
 
   const downloadExport = async (format: 'json' | 'csv') => {
     setExporting(true)
@@ -271,6 +289,12 @@ function SettingsPage() {
         <div className="settings-tabbar-wrap">
           <div className="page-container settings-tabbar" style={{ display: 'flex', borderTop: '1px solid var(--border)', background: 'white', overflowX: 'auto' }}>
             <button onClick={() => setTab('profile')} style={tabStyle('profile')}>Perfil</button>
+            {/* Numa conta pessoal este separador não existe — não há casa
+                nenhuma para configurar, e um separador vazio é pior do que
+                nenhum. */}
+            {temCasa && (
+              <button onClick={() => setTab('casa')} style={tabStyle('casa')}>A casa</button>
+            )}
             <button onClick={() => setTab('seguranca')} style={tabStyle('seguranca')}>Segurança</button>
             <button onClick={() => setTab('notifications')} style={tabStyle('notifications')}>Notificações</button>
             <button onClick={() => setTab('account')} style={tabStyle('account')}>Conta</button>
@@ -431,6 +455,7 @@ function SettingsPage() {
             interruptores que rodavam sem produzir efeito nenhum. Um
             interruptor que nao faz nada e pior do que nao haver interruptor. */}
 
+        {tab === 'casa' && temCasa && <DefinicoesDaCasa />}
         {tab === 'seguranca' && <SecuritySettings />}
 
         {tab === 'notifications' && (

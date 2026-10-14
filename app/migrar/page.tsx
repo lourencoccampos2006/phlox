@@ -1,11 +1,29 @@
 'use client'
 
-// app/migrar/page.tsx — Phlox Migração
-// Importa dados de qualquer sistema existente para o Phlox.
-// Para profissionais e instituições que já usam Sifarma, SClínico,
-// PHC, Excel, ou qualquer outro sistema.
-// O único obstáculo real à adopção institucional é a migração de dados —
-// esta ferramenta elimina esse obstáculo.
+// app/migrar/page.tsx
+// ═══════════════════════════════════════════════════════════════════════════
+// TRAZER UMA CASA DE OUTRO SISTEMA
+// ═══════════════════════════════════════════════════════════════════════════
+//
+// O maior obstáculo à mudança de software numa casa não é o preço nem a
+// formação: são os anos de dados que já lá estão. Ninguém troca de sistema
+// para voltar a escrever sessenta fichas à mão.
+//
+// ── OS SISTEMAS MUDARAM (2026-10-13) ───────────────────────────────────────
+// A lista de origens era Sifarma 2000, SClínico, PHC/WinMED e MySNS. São o
+// software de uma FARMÁCIA, de um centro de saúde, de um consultório e do
+// portal do utente — nenhum deles é o que um lar ou um centro de dia usa, e
+// o Phlox deixou de servir farmácias e clínicas há muito.
+//
+// Quem está do outro lado de uma mudança para o Phlox está em: uma folha de
+// Excel (a maioria, e de longe), um dos sistemas de lar que se vendem cá —
+// Ankira, MySenior, Sioslife, Resilar — ou papel. É essa a lista agora.
+//
+// ── PORQUE É QUE O NOME DO SISTEMA IMPORTA ─────────────────────────────────
+// Não é cortesia. O nome vai no prompt de leitura, e cada sistema exporta com
+// a sua forma: o Ankira dá CSV com cabeçalhos próprios, o MySenior dá um mapa
+// mensal, uma folha feita em casa tem o quarto numa coluna chamada «Qt.».
+// Dizer qual é faz a diferença entre adivinhar e ler.
 
 import { useState, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
@@ -15,8 +33,12 @@ import {
   Botao, Vazio, ACarregar, Aviso, CAIXA, MONO, ROTULO, useLargo,
 } from '@/components/ui/mesa'
 
-type SourceSystem = 'sifarma' | 'sclinico' | 'phc' | 'excel' | 'mysns' | 'word' | 'manual'
-type ImportMode = 'patients' | 'medications' | 'residents' | 'labs'
+type SourceSystem = 'excel' | 'ankira' | 'mysenior' | 'sioslife' | 'resilar'
+  | 'outro_lar' | 'word' | 'manual'
+/* O `residents` saiu: era igual ao `patients` menos o quarto, e ter dois
+   caminhos para a mesma escrita garantiu que um ficou para trás na
+   correção do `org_id`. A rota de importação trata os dois como um. */
+type ImportMode = 'patients' | 'medications' | 'labs'
 
 interface ImportResult {
   success: number
@@ -27,20 +49,23 @@ interface ImportResult {
 }
 
 const SOURCE_SYSTEMS: { id: SourceSystem; label: string; desc: string; formats: string[]; color: string }[] = [
-  { id: 'sifarma', label: 'Sifarma 2000 / Next', desc: 'Sistema de gestão de farmácia — exportação de histórico de dispensação ou lista de doentes', formats: ['.csv', '.xls', '.xlsx', '.txt'], color: 'var(--ink-2)' },
-  { id: 'sclinico', label: 'SClínico', desc: 'Registo clínico dos CSP — exportação de lista de medicação activa ou sumário de saúde', formats: ['.pdf', '.txt', '.xml'], color: 'var(--ink-3)' },
-  { id: 'phc', label: 'PHC / WinMED', desc: 'Sistema clínico de consultórios — exportação de fichas de utente com medicação', formats: ['.csv', '.xls', '.xlsx'], color: 'var(--ink-3)' },
-  { id: 'excel', label: 'Excel / CSV', desc: 'Folha de cálculo com lista de doentes, residentes ou medicação — qualquer formato', formats: ['.xlsx', '.xls', '.csv', '.tsv'], color: 'var(--ink-3)' },
-  { id: 'mysns', label: 'MySNS / Portal do Utente', desc: 'PDF descarregado do portal SNS24 com medicação activa, vacinas ou histórico', formats: ['.pdf'], color: 'var(--red)' },
-  { id: 'word', label: 'Word / PDF / Texto', desc: 'Carta de alta, resumo de internamento, ou qualquer documento clínico com medicação', formats: ['.pdf', '.docx', '.txt'], color: 'var(--amber)' },
-  { id: 'manual', label: 'Introdução manual', desc: 'Cola directamente o texto — lista de medicação, nomes de residentes, ou resultados de análises', formats: ['texto livre'], color: 'var(--ink-3)' },
+  // O Excel está em primeiro porque é onde está a maior parte das casas — e
+  // porque mesmo quem vem de um sistema vem quase sempre por uma exportação
+  // para folha de cálculo.
+  { id: 'excel', label: 'Excel ou CSV', desc: 'A folha de cálculo da casa, ou a exportação de qualquer sistema. Não é preciso arrumá-la primeiro', formats: ['.xlsx', '.xls', '.csv', '.tsv'], color: 'var(--green)' },
+  { id: 'ankira', label: 'Ankira', desc: 'Exportação de utentes, medicação ou registos', formats: ['.csv', '.xlsx', '.pdf'], color: 'var(--ink-3)' },
+  { id: 'mysenior', label: 'MySenior', desc: 'Exportação de fichas de utente ou mapa de medicação', formats: ['.csv', '.xlsx', '.pdf'], color: 'var(--ink-3)' },
+  { id: 'sioslife', label: 'Sioslife', desc: 'Exportação de utentes ou plano de atividades', formats: ['.csv', '.xlsx'], color: 'var(--ink-3)' },
+  { id: 'resilar', label: 'Resilar', desc: 'Exportação de utentes, mensalidades ou medicação', formats: ['.csv', '.xlsx'], color: 'var(--ink-3)' },
+  { id: 'outro_lar', label: 'Outro sistema de lar', desc: 'Qualquer outro software de ERPI, centro de dia ou apoio domiciliário — diz-se o nome mais abaixo', formats: ['.csv', '.xlsx', '.pdf', '.txt'], color: 'var(--ink-3)' },
+  { id: 'word', label: 'Word, PDF ou papel digitalizado', desc: 'O mapa de medicação, a lista de quartos, a ficha de inscrição — como estiverem', formats: ['.pdf', '.docx', '.txt'], color: 'var(--amber)' },
+  { id: 'manual', label: 'Escrever ou colar', desc: 'Cola a lista directamente — nomes, medicação, o que houver', formats: ['texto livre'], color: 'var(--ink-3)' },
 ]
 
 const IMPORT_MODES: { id: ImportMode; label: string; desc: string }[] = [
-  { id: 'patients', label: 'Doentes / Utentes', desc: 'Importar lista de doentes com dados demográficos e condições' },
-  { id: 'medications', label: 'Medicação activa', desc: 'Importar lista de medicamentos prescritos ou dispensados' },
-  { id: 'residents', label: 'Residentes de lar', desc: 'Importar lista de residentes com medicação completa para revisão AI' },
-  { id: 'labs', label: 'Resultados de análises', desc: 'Importar resultados laboratoriais para interpretação e comparação temporal' },
+  { id: 'patients', label: 'Utentes', desc: 'Nomes, datas de nascimento, quarto, condições, alergias — e a medicação e os contactos de família que vierem com eles' },
+  { id: 'medications', label: 'Só medicação', desc: 'Uma lista de medicamentos, sem as pessoas' },
+  { id: 'labs', label: 'Análises', desc: 'Resultados laboratoriais, para comparar ao longo do tempo' },
 ]
 
 export default function MigrarPage() {
@@ -143,7 +168,7 @@ export default function MigrarPage() {
       <Painel>
         <Vazio
           titulo="A migração de dados não está incluída neste plano."
-          oQueFazer="Importa de Sifarma, SClínico, PHC, Excel, MySNS ou de qualquer documento clínico. Disponível no plano Plus ou superior."
+          oQueFazer="Traz os utentes, a medicação e os contactos de Excel, Ankira, MySenior, Sioslife, Resilar ou de qualquer documento. Disponível no plano Plus ou superior."
           acao={<Link href="/pricing" style={{ textDecoration: 'none' }}><Botao feitio="principal">VER PLANOS</Botao></Link>} />
       </Painel>
     </Mesa>
@@ -169,7 +194,7 @@ export default function MigrarPage() {
       }
       rodape={
         <BarraDeEstado>
-          <span style={MONO}>Sifarma · SClínico · PHC · Excel · MySNS · Word · PDF</span>
+          <span style={MONO}>Excel · Ankira · MySenior · Sioslife · Resilar · Word · PDF</span>
           <span style={{ ...MONO, color: 'var(--ink-5)' }}>
             Nada entra na casa antes de o rever — a extração é uma proposta, não um registo
           </span>
@@ -182,7 +207,7 @@ export default function MigrarPage() {
             <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-numero)', color: 'var(--ink)', fontWeight: 'var(--peso-normal)' as any, marginBottom: 10 }}>Importação concluída</h2>
             <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-3)', marginBottom: 24 }}>{result?.success} registos importados com sucesso.</p>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'center', flexWrap: 'wrap' }}>
-              <Link href={mode === 'patients' ? '/patients' : mode === 'residents' ? '/residentes' : mode === 'labs' ? '/registo' : '/mymeds'}
+              <Link href={mode === 'patients' ? '/patients' : mode === 'labs' ? '/registo' : '/mymeds'}
                 style={{ padding: '11px 22px', background: 'var(--green)', color: 'white', textDecoration: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any }}>
                 Ver dados importados →
               </Link>
@@ -253,11 +278,9 @@ export default function MigrarPage() {
                 <textarea value={text} onChange={e => setText(e.target.value)}
                   placeholder={
                     mode === 'medications'
-                      ? 'Cola aqui a lista de medicamentos — pode ser de Sifarma, SClínico, ou simplesmente digitada:\n\nMetformina 1000mg 2x/dia\nAtovastatina 20mg à noite\nRamipril 5mg 1x/dia...'
+                      ? 'Cola aqui a lista — de uma folha de cálculo, do sistema antigo, ou escrita à mão:\n\nMetformina 1000mg 2x/dia\nAtorvastatina 20mg à noite\nRamipril 5mg 1x/dia...'
                       : mode === 'patients'
-                      ? 'Cola aqui a lista de doentes — nome, data nascimento, diagnósticos, NUT...\n\nJoão Silva, 12/03/1955, HTA DM2, SNS 123456789...'
-                      : mode === 'residents'
-                      ? 'Cola a lista de residentes com a sua medicação — pode ser directamente de Excel:\n\nMaria Costa, 84a, Q12A, HTA IC — Furosemida 40mg, Bisoprolol 5mg...'
+                      ? 'Cola a lista dos utentes — pode vir directamente de uma folha de cálculo, com a medicação na mesma linha:\n\nMaria Costa, 84a, Q12A, HTA e IC — Furosemida 40mg, Bisoprolol 5mg\nJoão Silva, 12/03/1955, Q7, DM2, alérgico a penicilina...'
                       : 'Cola aqui os resultados das análises — qualquer formato de laboratório:\n\nHemoglobina: 11.2 g/dL [12-16]\nGlicose: 125 mg/dL [70-110]...'
                   }
                   rows={14}
@@ -300,7 +323,7 @@ export default function MigrarPage() {
                       <div key={i} style={{ padding: '9px 16px', borderBottom: i < Math.min(result.preview.length - 1, 9) ? '1px solid var(--bg-3)' : 'none', fontSize: 'var(--t-meta)', color: 'var(--ink-2)', fontFamily: 'var(--font-mono)' }}>
                         {mode === 'medications'
                           ? `${item.name || '—'} · ${item.dose || ''} · ${item.frequency || ''}`
-                          : mode === 'patients' || mode === 'residents'
+                          : mode === 'patients'
                           ? `${item.name || '—'} · ${item.age ? `${item.age}a` : ''} · ${item.room || item.diagnosis || ''}`
                           : `${item.name || '—'}: ${item.value || '—'} ${item.unit || ''}`}
                       </div>

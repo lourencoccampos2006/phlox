@@ -40,13 +40,18 @@ const CLINICAL_PREFIXES = [
   '/guardados', '/calendario', '/historico',
   '/equipa', '/painel-dono', '/activities',
   '/study', '/estagio',
-  '/refeicoes', '/apoio-servicos', '/tendencias',
+  '/refeicoes', '/apoio-servicos', '/apoio-domiciliario', '/tendencias',
   '/preparacao-medicacao', '/apoio-psicossocial',
   '/o-dia',
   '/passagem',
   '/casa',
   '/inscricoes', '/calendario-do-ano', '/estatisticas',
   '/inqueritos',
+  /* Encontrados pelo check-nav em 2026-10-13, ao ensiná-lo a verificar a
+     MOLDURA e não só a alcançabilidade: estavam os dois na sidebar e abriam
+     sem ela. O /migrar é a importação de outro sistema — perder a navegação a
+     meio de uma importação é perder o caminho de volta no pior momento. */
+  '/migrar', '/vigia-ruturas',
 ]
 
 function ScrollToTop() {

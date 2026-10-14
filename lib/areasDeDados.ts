@@ -279,6 +279,10 @@ export const AREA_DA_ROTA: Record<string, string> = {
   '/refeicoes': 'registos',
   '/ronda-guiada': 'registos',
   '/apoio-servicos': 'registos',
+  /* O apoio domiciliário é um registo do dia como os outros — a volta de hoje
+     é o equivalente, fora de portas, do que o /o-dia é cá dentro. Quem vê os
+     registos vê a volta; quem não vê, não vê as moradas das pessoas. */
+  '/apoio-domiciliario': 'registos',
   '/hidratacao': 'registos',
   '/incidents': 'ocorrencias',
   '/assessments': 'avaliacoes',

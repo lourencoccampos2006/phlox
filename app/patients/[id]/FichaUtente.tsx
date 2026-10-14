@@ -38,10 +38,13 @@ import VacinasDoUtente from '@/components/institution/VacinasDoUtente'
 import AusenciasDoUtente from '@/components/institution/AusenciasDoUtente'
 import { nomeDoPlano } from '@/lib/plano'
 import { registoEmPalavras } from '@/lib/registoEmPalavras'
+import { registar, ACOES } from '@/lib/registo'
 import {
   Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Botao, Seletor, useLargo,
 } from '@/components/ui/mesa'
 import FichaDoMedicamento from '@/components/institution/FichaDoMedicamento'
+import LinhaEditavel from '@/components/institution/LinhaEditavel'
+import MedicacaoEditavel from '@/components/institution/MedicacaoEditavel'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
@@ -116,10 +119,27 @@ type Props = {
 
 type Aba = 'hoje' | 'essencial' | 'plano' | 'historico' | 'registos' | 'documentos'
 
+/* ── O QUE SE MUDA SEM ABRIR O FORMULÁRIO ────────────────────────────────────
+   «A parte de editar e adicionar coisas no perfil do utente, como alergias,
+    diagnósticos, alterações ao plano e etc TEM DE SER MAIS FÁCIL.» (Fernando)
+
+   Ontem foram três campos; faltavam os que identificam a pessoa. Mudar o
+   quarto de alguém — que numa casa acontece todos os meses — obrigava a abrir
+   o formulário de dezoito campos, percorrê-lo e gravar tudo.
+
+   `sensitivities` é o único que não é uma coluna: vive dentro do jsonb da
+   história de vida, e por isso a gravação trata-o à parte. */
+type CampoDaFicha =
+  | 'allergies' | 'conditions' | 'sensitivities'
+  | 'room_number' | 'birth_date' | 'telefone' | 'address' | 'notes'
+
 export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos, pedidos, revisaoMedicacao, children, aoMudar }: Props) {
   const largo = useLargo()
   /* O medicamento cuja ficha está aberta. Ver FichaDoMedicamento. */
   const [medAberto, setMedAberto] = useState<any | null>(null)
+  /* O medicamento que se está a mudar. Ver MedicacaoEditavel: mudar uma dose
+     obrigava a abrir o formulário completo, com quinze campos. */
+  const [medAMudar, setMedAMudar] = useState<string | null>(null)
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
   // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
@@ -319,6 +339,84 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       setTimeout(() => setAvisoFamilia(''), 6000)
     }
     carregar()
+  }
+
+  /* ── MUDAR UM CAMPO SEM ABRIR O FORMULÁRIO ───────────────────────────────
+     Alergias, cuidados e condições mudam a meio de um turno. Até aqui, mudar
+     qualquer um obrigava a abrir o formulário inteiro do utente — dezoito
+     campos — e a gravar tudo. Quem descobre uma alergia nova não faz isso.
+
+     `life_story` é jsonb: escrever `{ sensitivities }` apagava a história de
+     vida, os hábitos e o resto que lá está. Lê-se o que existe e devolve-se o
+     mesmo objeto com um campo mudado.
+
+     Devolve a mensagem de erro, ou null se gravou — é o contrato da
+     LinhaEditavel, que é quem mostra o erro ao lado do campo. */
+  async function gravarCampo(
+    campo: CampoDaFicha, rotulo: string, valor: string | null,
+  ): Promise<string | null> {
+    if (!utente) return 'A ficha ainda não carregou.'
+    if (!podeEditar) return 'Não tem permissão para alterar esta ficha.'
+
+    const naHistoria = campo === 'sensitivities'
+    const antes = naHistoria ? (utente.life_story?.sensitivities ?? null) : (utente[campo] ?? null)
+
+    /* A validação vive aqui e não em cada linha: uma data mal escrita gravada
+       é um erro que só se descobre meses depois, quando a idade sai errada
+       num relatório. A linha editável mostra a frase que isto devolver. */
+    if (valor && campo === 'birth_date' && !/^\d{4}-\d{2}-\d{2}$/.test(valor)) {
+      return 'A data tem de ser no formato AAAA-MM-DD.'
+    }
+    if (valor && campo === 'birth_date' && valor > ptDate()) {
+      return 'Essa data ainda não aconteceu.'
+    }
+
+    const mudanca = naHistoria
+      ? {
+          life_story: {
+            ...(utente.life_story && typeof utente.life_story === 'object' ? utente.life_story : {}),
+            sensitivities: valor,
+          },
+        }
+      /* A IDADE SAI DA DATA, e não se escreve ao lado dela.
+         Havia uma coluna `age` escrita à mão em 149 sítios, e um inteiro que
+         envelhece sozinho fica parado para sempre. Mudando a data, a idade
+         anterior é apagada — senão ficavam as duas, a discordar, e nada diria
+         qual das duas valia. */
+      : campo === 'birth_date'
+        ? { birth_date: valor, age: null }
+        : { [campo]: valor }
+
+    const { error } = await supabase.from('patients').update(mudanca).eq('id', utente.id)
+    if (error) {
+      console.error('[phlox:ficha-utente]', error)
+      return 'Não foi possível gravar. Pode não ter permissão para alterar esta ficha.'
+    }
+
+    registar({ supabase, scope, user }, {
+      ...ACOES.fichaCampo(utente.name, rotulo.toLowerCase(), antes, valor),
+      subjectId: utente.id, subjectName: utente.name, entityId: utente.id,
+    })
+    await carregar()
+    return null
+  }
+
+  /** Muda uma prescrição no sítio. Devolve o erro, ou null se gravou. */
+  async function gravarMedicacao(
+    med: { id: string; name: string }, patch: Record<string, any>, emPalavras: string,
+  ): Promise<string | null> {
+    if (!podeEditar) return 'Não tem permissão para alterar a medicação.'
+    const { error } = await supabase.from('patient_meds').update(patch).eq('id', med.id)
+    if (error) {
+      console.error('[phlox:ficha-medicacao]', error)
+      return 'Não foi possível gravar. Pode não ter permissão para alterar a medicação.'
+    }
+    registar({ supabase, scope, user }, {
+      ...ACOES.medicacaoMudada(utente?.name || 'a pessoa', med.name, emPalavras),
+      subjectId: utente?.id || null, subjectName: utente?.name || null, entityId: med.id,
+    })
+    await carregar()
+    return null
   }
 
   const chegada = presenca?.arrived_at
@@ -553,51 +651,60 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
 
       {pedidos && <Seccao titulo="Pedidos e observações">{pedidos}</Seccao>}
 
-      {/* Nunca esquecer */}
-      {(utente.allergies || utente.life_story?.sensitivities || utente.conditions || ocorrencias.length > 0) && (
-        <Seccao titulo="Nunca esquecer">
-          {utente.allergies && (
-            <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)' }}>
-              <span style={{ ...MONO, color: 'var(--red)' }}>Alergias</span>
-              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{utente.allergies}</span>
-            </div>
-          )}
-          {/* "Cuidados" — no design é a linha do meio, e o exemplo dela é
-              literalmente uma preferência ("Duche, nunca banho de imersão.
-              Trata-se por Dona Fernanda."). É onde as sensibilidades desta
-              pessoa pertencem: a coisa que quem entra ao turno tem de saber
-              antes de lhe tocar. */}
-          {utente.life_story?.sensitivities && (
-            <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)' }}>
-              <span style={{ ...MONO, color: 'var(--amber)' }}>Cuidados</span>
-              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink)' }}>{utente.life_story.sensitivities}</span>
-            </div>
-          )}
-          {utente.conditions && (
-            <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)' }}>
-              <span style={MONO}>Condições</span>
-              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)' }}>{utente.conditions}</span>
-            </div>
-          )}
-          {ocorrencias.length > 0 && (
-            <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0' }}>
-              <span style={{ ...MONO, color: 'var(--amber)' }}>Em aberto</span>
-              <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)' }}>
-                {ocorrencias.map(o => o.description || o.type).join(' · ')}
-              </span>
-            </div>
-          )}
-        </Seccao>
-      )}
+      {/* ── NUNCA ESQUECER ───────────────────────────────────────────────────
+          Era só de leitura, e a secção INTEIRA desaparecia quando os três
+          campos estavam vazios. Numa ficha de utente isso é o pior dos dois
+          mundos: quem chega não sabe se a pessoa não tem alergias ou se
+          ninguém as registou, e quem sabe a resposta não tem onde a escrever
+          sem abrir o formulário todo.
+
+          Agora aparece sempre, cada linha diz POR REGISTAR quando está vazia,
+          e toca-se para escrever. */}
+      <Seccao titulo="Nunca esquecer" extra={podeEditar ? 'tocar numa linha para mudar' : undefined}>
+        <LinhaEditavel
+          rotulo="Alergias" cor="var(--red)" podeEditar={podeEditar}
+          valor={utente.allergies}
+          placeholder="A que é alérgica, e o que acontece. Ex.: penicilina — urticária."
+          aoGuardar={v => gravarCampo('allergies', 'Alergias', v)}
+        />
+        {/* "Cuidados" — no design é a linha do meio, e o exemplo dela é
+            literalmente uma preferência ("Duche, nunca banho de imersão.
+            Trata-se por Dona Fernanda."). É onde as sensibilidades desta
+            pessoa pertencem: a coisa que quem entra ao turno tem de saber
+            antes de lhe tocar. */}
+        <LinhaEditavel
+          rotulo="Cuidados" cor="var(--amber)" podeEditar={podeEditar}
+          valor={utente.life_story?.sensitivities}
+          placeholder="O que quem entra ao turno tem de saber antes de lhe tocar."
+          aoGuardar={v => gravarCampo('sensitivities', 'Cuidados', v)}
+        />
+        <LinhaEditavel
+          rotulo="Condições" podeEditar={podeEditar}
+          valor={utente.conditions}
+          placeholder="Diagnósticos e condições de saúde."
+          aoGuardar={v => gravarCampo('conditions', 'Condições', v)}
+        />
+        {/* As ocorrências em aberto não se escrevem aqui — pertencem a
+            /incidents, e uma caixa de texto a fingir que as muda seria uma
+            mentira. Mostram-se, com o caminho para onde se resolvem. */}
+        {ocorrencias.length > 0 && (
+          <div style={{ display: 'grid', gridTemplateColumns: '96px 1fr', gap: 'var(--space-7)', padding: 'var(--space-7) 0' }}>
+            <span style={{ ...MONO, color: 'var(--amber)' }}>Em aberto</span>
+            <span style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-2)' }}>
+              {ocorrencias.map(o => o.description || o.type).join(' · ')}
+            </span>
+          </div>
+        )}
+      </Seccao>
 
       {/* Medicação */}
       <Seccao titulo="Medicação" extra={medicacao.length ? `${noCentro} aqui${emCasa ? ` · ${emCasa} em casa` : ''}` : undefined}>
         {medicacao.length === 0 ? (
           <p style={{ fontSize: 'var(--t-corpo)', color: 'var(--ink-4)', padding: 'var(--space-9) 0' }}>Sem medicação registada.</p>
         ) : medicacao.map(m => (
-          <div key={m.id} style={{
+          <div key={m.id} style={{ borderBottom: '1px solid var(--bg-2)', padding: 'var(--space-7) 0' }}>
+          <div style={{
             display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-7)',
-            padding: 'var(--space-7) 0', borderBottom: '1px solid var(--bg-2)',
           }}>
             <div style={{ minWidth: 0 }}>
               {/* O nome abre a ficha do medicamento. Quem está a dar a volta à
@@ -620,12 +727,29 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
                 {[m.turnos.join(' · ') || m.frequency, m.indication, ONDE[m.take_location] || null].filter(Boolean).join(' · ')}
               </div>
             </div>
-            <div style={{ flexShrink: 0 }}>
+            <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
               {m.estado === 'dada' && <Etiqueta tom="verde">dada {m.hora}</Etiqueta>}
               {m.estado === 'por-dar' && <Etiqueta tom="ambar">por dar</Etiqueta>}
               {m.estado === 'recusada' && <Etiqueta tom="ambar">recusada</Etiqueta>}
               {m.estado === 'casa' && <Etiqueta tom="cinza">em casa</Etiqueta>}
+              {/* Mudar a dose aqui, e não no formulário de quinze campos.
+                  O nome continua a abrir a ficha do medicamento: são duas
+                  perguntas diferentes — «o que é isto» e «muda isto» — e
+                  juntá-las no mesmo toque obrigava a escolher uma. */}
+              {podeEditar && (
+                <Botao onClick={() => setMedAMudar(medAMudar === m.id ? null : m.id)}
+                  titulo={`Mudar a dose, o horário ou os turnos de ${m.name}`}>
+                  {medAMudar === m.id ? 'FECHAR' : 'MUDAR'}
+                </Botao>
+              )}
             </div>
+          </div>
+
+          {medAMudar === m.id && (
+            <MedicacaoEditavel med={m}
+              aoFechar={() => setMedAMudar(null)}
+              aoGuardar={(patch, frase) => gravarMedicacao(m, patch, frase)} />
+          )}
           </div>
         ))}
         {acoesMedicacao && (
@@ -694,6 +818,52 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           </Seccao>
         )
       })()}
+
+      {/* ── IDENTIFICAÇÃO ────────────────────────────────────────────────────
+          O que identifica a pessoa, editável no sítio como o «Nunca esquecer».
+
+          Mudar o quarto de alguém acontece todos os meses numa casa, e até
+          agora obrigava a abrir o formulário de dezoito campos, percorrê-lo e
+          gravar tudo. O mesmo para um telefone que muda ou uma morada que
+          ninguém chegou a escrever.
+
+          O nome não está aqui de propósito: mudar o nome de um utente não é
+          uma correção de passagem — é uma coisa que se faz com a ficha toda à
+          frente, e continua no «Editar». */}
+      <Seccao titulo="Identificação" extra={podeEditar ? 'tocar numa linha para mudar' : undefined}>
+        <LinhaEditavel
+          rotulo={institution === 'day_care' ? 'Sala' : 'Quarto'} podeEditar={podeEditar}
+          valor={utente.room_number} multilinha={false}
+          placeholder={institution === 'day_care' ? 'Ex.: Sala 2' : 'Ex.: 12A'}
+          aoGuardar={v => gravarCampo('room_number', institution === 'day_care' ? 'Sala' : 'Quarto', v)}
+        />
+        {/* A data e não a idade: a idade é um número que envelhece sozinho e
+            já houve aqui idades escritas à mão que ficaram paradas anos. */}
+        <LinhaEditavel
+          rotulo="Nasceu em" podeEditar={podeEditar}
+          valor={utente.birth_date} multilinha={false}
+          placeholder="AAAA-MM-DD"
+          aoGuardar={v => gravarCampo('birth_date', 'Data de nascimento', v)}
+        />
+        <LinhaEditavel
+          rotulo="Telefone" podeEditar={podeEditar}
+          valor={utente.telefone} multilinha={false}
+          placeholder="O número de quem atende por esta pessoa."
+          aoGuardar={v => gravarCampo('telefone', 'Telefone', v)}
+        />
+        <LinhaEditavel
+          rotulo="Morada" podeEditar={podeEditar}
+          valor={utente.address}
+          placeholder="Onde vive — conta para o apoio domiciliário e para os transportes."
+          aoGuardar={v => gravarCampo('address', 'Morada', v)}
+        />
+        <LinhaEditavel
+          rotulo="Notas" podeEditar={podeEditar}
+          valor={utente.notes}
+          placeholder="O que não cabe nos outros campos."
+          aoGuardar={v => gravarCampo('notes', 'Notas', v)}
+        />
+      </Seccao>
 
       {/* Ações — impressão, edição, arquivo */}
       {acoes && (

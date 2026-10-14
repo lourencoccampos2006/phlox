@@ -545,7 +545,7 @@ export default function MARPage() {
   const sl           = SHIFTS[shift]
 
   if (!isPro) {
-    return <ClinicalGate emoji="💊" accent="var(--ink-2)"
+    return <ClinicalGate icone="pill" accent="var(--ink-2)"
       title="Registo de Administração de Medicação"
       description="Regista cada administração e sinaliza omissões, recusas e alertas de segurança automaticamente." />
   }

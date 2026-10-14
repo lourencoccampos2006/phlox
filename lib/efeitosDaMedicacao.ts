@@ -208,7 +208,7 @@ function comTermosFrescos(f: EfeitosDeMedicamento): EfeitosDeMedicamento {
 }
 
 /** O cliente de serviço — só quem escreve precisa dele. */
-function servico(): SupabaseClient | null {
+export function servico(): SupabaseClient | null {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return null
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -216,7 +216,8 @@ function servico(): SupabaseClient | null {
     { auth: { persistSession: false } })
 }
 
-const semTabela = (e: any) => !!e && /does not exist|schema cache/i.test(e.message || '')
+/** Tabela ou coluna que ainda não existe — o sinal de uma migração por correr. */
+export const semTabela = (e: any) => !!e && /does not exist|schema cache/i.test(e.message || '')
 
 /**
  * Os efeitos de um medicamento, da cache ou do OpenFDA.
@@ -264,7 +265,14 @@ export async function efeitosDe(
  * aberta e escrita só do servidor.
  */
 export async function procurarEGuardar(
-  chave: string, original: string,
+  chave: string,
+  /**
+   * O termo que a pessoa escreveu. NÃO vai para a linha guardada — ver a nota
+   * no `nome_original` mais abaixo. Fica para o registo de diagnóstico, que é
+   * onde serve: saber que alguém escreveu «varfarina 5mg» e a chave saiu
+   * «varfarina» é o que explica uma procura falhada.
+   */
+  original: string,
 ): Promise<EfeitosDeMedicamento | null> {
   const sv = servico()
 
@@ -301,9 +309,37 @@ export async function procurarEGuardar(
   // depois ficava em cache seis meses.
   if (redeEmBaixo && !dados) return null
 
+  /* Uma procura que não encontra nada fica explicada no registo. É assim que
+     se apanha a classe de erro que já aqui houve uma vez: a casa escreve
+     «Varfarina 5mg», a chave sai «varfarina», e o OpenFDA — que indexa pelo
+     INN inglês — não conhece nenhuma das duas. Sem o termo original ao lado
+     da chave, um «não encontrado» é indistinguível de um medicamento que a
+     FDA mesmo não tem. */
+  if (!dados?.found) console.info(`[phlox:efeitos] sem rótulo: "${original}" → ${chave}`)
+
+  /* ── O QUE ALGUÉM ESCREVEU NÃO ENTRA NUMA LINHA DE TODOS ────────────────
+     Estava `nome_original: original.slice(0, 120)` — o texto cru do parâmetro
+     `?nome=`, guardado numa linha indexada pelo nome NORMALIZADO e lida por
+     todas as casas.
+
+     Quer dizer: o primeiro a procurar «varfarina» escrevia o `nome_original`
+     de toda a gente. E como a chave é a forma normalizada, bastava procurar
+     uma variante que normalize para «varfarina» e leve texto arbitrário atrás
+     para esse texto passar a aparecer, em todas as instituições, por cima da
+     ficha da varfarina — com o nome de um medicamento.
+
+     O React escapa-o, por isso não é código a correr. Mas numa aplicação de
+     cuidados, texto estranho a fazer-se passar pelo nome de um medicamento é
+     mau que chegue: ninguém precisa de executar nada para alguém ler a coisa
+     errada ao pé de uma pessoa.
+
+     O que fica guardado passa a ser o nome que a FDA devolveu — ou, não
+     havendo, a própria chave normalizada. Ambos saem de código nosso. O termo
+     que a pessoa escreveu continua a aparecer-lhe no ecrã: a rota devolve-o da
+     procura dela, não da linha partilhada. */
   const linha = {
     nome: chave,
-    nome_original: original.slice(0, 120),
+    nome_original: (dados?.generic_name || dados?.normalized || chave).slice(0, 120),
     encontrado: !!dados?.found,
     efeitos: termosDoRotulo(dados?.adverse_reactions),
     texto_adversos: dados?.adverse_reactions ?? null,

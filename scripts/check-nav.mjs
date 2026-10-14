@@ -64,6 +64,42 @@ for (const t of registry) {
   }
 }
 
+// ── 3. A SEGUNDA PERGUNTA: a ferramenta abre DENTRO da moldura? ──────────────
+//
+// O teste de cima pergunta «consegue-se lá chegar». Não chega. Uma ferramenta
+// pode estar na sidebar do blueprint e, ao abrir, perder a sidebar — porque o
+// `components/ClientLayout.tsx` decide a moldura por uma SEGUNDA lista, a
+// `CLINICAL_PREFIXES`, que não é a mesma coisa e que alguém tem de manter à
+// mão. Quem acrescenta uma ferramenta nova mexe na primeira e esquece-se da
+// segunda; a página abre com a barra do produto pessoal e sem caminho de volta.
+//
+// Já aconteceu ao /radar, e aconteceu outra vez ao /apoio-domiciliario no dia
+// em que nasceu. O guarda media a coisa errada: dizia «alcançável» a uma
+// ferramenta que se abria fora da casa.
+const layout = read('components/ClientLayout.tsx')
+const bloco = /const CLINICAL_PREFIXES = \[([\s\S]*?)\]/.exec(layout)
+if (!bloco) {
+  console.error('\n✗ Não encontrei a CLINICAL_PREFIXES no components/ClientLayout.tsx.')
+  console.error('  Se a lista mudou de nome ou de sítio, este guarda tem de a acompanhar.\n')
+  process.exit(1)
+}
+const prefixos = [...bloco[1].matchAll(/'(\/[a-z0-9-]+)'/g)].map(x => x[1])
+
+/** A mesma regra do ClientLayout: igual, ou debaixo de um prefixo. */
+const dentroDaMoldura = (href) =>
+  prefixos.some(p => href === p || href.startsWith(p + '/'))
+
+// Só as ferramentas do blueprint: são as que PROMETEM a sidebar institucional.
+const semMoldura = [...bpHrefs].filter(h => !dentroDaMoldura(h)).sort()
+
+if (semMoldura.length) {
+  console.error(`\n✗ ${semMoldura.length} ferramenta(s) do blueprint abrem SEM a moldura institucional:`)
+  console.error('  (estão na sidebar, mas a página abre sem ela — sem caminho de volta)\n')
+  semMoldura.forEach(h => console.error('  ' + h))
+  console.error('\n  Acrescenta-as à CLINICAL_PREFIXES em components/ClientLayout.tsx.\n')
+  process.exit(1)
+}
+
 if (offenders.length) {
   console.error(`\n✗ ${offenders.length} ferramenta(s) do registry INACESSÍVEIS no seu modo:`)
   console.error('  (não estão no catálogo /tudo nem na sidebar clínica nem na allowlist)\n')
@@ -72,5 +108,6 @@ if (offenders.length) {
   console.error('  ou ao institutionBlueprint (se clínicas), para ficarem alcançáveis.\n')
   process.exit(1)
 } else {
-  console.log('✓ Todas as ferramentas do registry são alcançáveis no seu modo.')
+  console.log('✓ Todas as ferramentas do registry são alcançáveis no seu modo,')
+  console.log(`  e as ${bpHrefs.size} do blueprint abrem dentro da moldura institucional.`)
 }

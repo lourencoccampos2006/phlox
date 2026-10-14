@@ -86,10 +86,22 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Os rótulos de cada um ────────────────────────────────────────────────
-  const fichas: (EfeitosDeMedicamento | null)[] = await Promise.all(
-    nomes.slice(0, 12).map(n => efeitosDe(supabase, n).catch(() => null)))
+  /* O NOME QUE SE DIZ É O DA CASA, não o do rótulo.
+     A `medicamento_efeitos` é partilhada por todas as instituições e o
+     `nome_original` que lá está guardado é o nome normalizado pela FDA — em
+     inglês, porque é assim que o OpenFDA indexa. Ler daí para escrever a frase
+     fazia esta rota dizer «aparece na lista de efeitos de warfarin» a quem
+     escreveu «Varfarina» na ficha, e numa casa portuguesa isso é pior do que
+     não dizer nada: obriga a adivinhar de que medicamento se está a falar.
+     O nome da casa anda ao lado da ficha e é esse que sai. */
+  const fichas = await Promise.all(nomes.slice(0, 12).map(async n => ({
+    daCasa: n,
+    ficha: await efeitosDe(supabase, n).catch(() => null),
+  })))
 
-  const comRotulo = fichas.filter((f): f is EfeitosDeMedicamento => !!f && f.encontrado && f.efeitos.length > 0)
+  const comRotulo = fichas
+    .filter((x): x is { daCasa: string; ficha: EfeitosDeMedicamento } =>
+      !!x.ficha && x.ficha.encontrado && x.ficha.efeitos.length > 0)
   if (!comRotulo.length) {
     return NextResponse.json({
       estado: 'sem_rotulo',
@@ -102,15 +114,15 @@ export async function POST(req: NextRequest) {
   // ── Passo 1: por termos ──────────────────────────────────────────────────
   const texto = simples(descricao)
   const achados: Achado[] = []
-  for (const f of comRotulo) {
-    const batem = f.efeitos.filter(e => texto.includes(simples(e)))
-    if (batem.length) achados.push({ medicamento: f.nome_original || f.nome, termos: [...new Set(batem)] })
+  for (const { daCasa, ficha } of comRotulo) {
+    const batem = ficha.efeitos.filter(e => texto.includes(simples(e)))
+    if (batem.length) achados.push({ medicamento: daCasa, termos: [...new Set(batem)] })
   }
 
   // ── Passo 2: só se o 1 não encontrou ─────────────────────────────────────
   let porLeitura = false
   if (!achados.length) {
-    const vocabulario = comRotulo.flatMap(f => f.efeitos.map(e => `${e}|${f.nome_original || f.nome}`))
+    const vocabulario = comRotulo.flatMap(({ daCasa, ficha }) => ficha.efeitos.map(e => `${e}|${daCasa}`))
     try {
       const r = await aiJSON<{ termos: string[] }>([
         {
@@ -139,9 +151,9 @@ export async function POST(req: NextRequest) {
       const devolvidos = (r?.termos || []).filter(t => validos.has(String(t).toLowerCase()))
       if (devolvidos.length) {
         porLeitura = true
-        for (const f of comRotulo) {
-          const batem = f.efeitos.filter(e => devolvidos.includes(e))
-          if (batem.length) achados.push({ medicamento: f.nome_original || f.nome, termos: batem })
+        for (const { daCasa, ficha } of comRotulo) {
+          const batem = ficha.efeitos.filter(e => devolvidos.includes(e))
+          if (batem.length) achados.push({ medicamento: daCasa, termos: batem })
         }
       }
     } catch {
@@ -155,7 +167,7 @@ export async function POST(req: NextRequest) {
       estado: 'nada_encontrado',
       frase: `O que está descrito não consta da lista de efeitos conhecidos de nenhum dos `
         + `${comRotulo.length} medicamentos desta pessoa cuja bula foi possível consultar.`,
-      medicamentosLidos: comRotulo.map(f => f.nome_original || f.nome),
+      medicamentosLidos: comRotulo.map(x => x.daCasa),
       aviso: AVISO,
     })
   }
@@ -168,7 +180,7 @@ export async function POST(req: NextRequest) {
     frase: quantos === 1
       ? `O que está descrito aparece na lista de efeitos conhecidos de ${achados[0].medicamento}, que esta pessoa toma.`
       : `O que está descrito aparece na lista de efeitos conhecidos de ${quantos} dos medicamentos que esta pessoa toma.`,
-    medicamentosLidos: comRotulo.map(f => f.nome_original || f.nome),
+    medicamentosLidos: comRotulo.map(x => x.daCasa),
     aviso: AVISO,
   })
 }

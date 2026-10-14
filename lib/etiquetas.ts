@@ -90,3 +90,38 @@ export function contarPorEtiqueta(
   for (const l of ligacoes) conta.set(l.etiqueta_id, (conta.get(l.etiqueta_id) || 0) + 1)
   return conta
 }
+
+/**
+ * O nome de uma etiqueta num espaço de seis letras.
+ *
+ * ── PORQUE É QUE ISTO EXISTE ───────────────────────────────────────────────
+ * A /patients escrevia `etiqueta.nome.slice(0, 6).toUpperCase()`. Uma etiqueta
+ * chamada «Risco de queda» saía `RISCO ` — com o espaço a mais — e, no
+ * telemóvel, aparecia por baixo da linha dos números, onde já existe uma
+ * medida chamada RISCO que quer dizer outra coisa. Duas palavras diferentes
+ * com o mesmo aspeto, numa lista de pessoas.
+ *
+ * Cortar à letra é a forma errada de abreviar. Esta corta à PALAVRA:
+ *
+ *   «Risco de queda»   → RQ      (iniciais, porque nenhuma palavra cabe)
+ *   «Diabetes»         → DIABET
+ *   «Dieta mole»       → DM
+ *   «Oxigénio»         → OXIGÉN
+ *
+ * Uma palavra só que caiba vai inteira; não cabendo, vão as iniciais das
+ * palavras com conteúdo (as de ligação não contam). O nome por extenso vai
+ * sempre no `title` de quem chama — abreviar sem guardar a palavra é perdê-la.
+ */
+export function curto(nome: string | null | undefined): string {
+  const limpo = String(nome || '').trim()
+  if (!limpo) return '—'
+
+  const LIGACAO = new Set(['de', 'da', 'do', 'das', 'dos', 'e', 'a', 'o', 'em', 'com', 'para'])
+  const palavras = limpo.split(/\s+/).filter(p => !LIGACAO.has(p.toLowerCase()))
+
+  if (palavras.length <= 1) return (palavras[0] || limpo).slice(0, 6).toUpperCase()
+
+  // Duas ou mais palavras com conteúdo: as iniciais dizem mais do que a
+  // primeira palavra cortada a meio.
+  return palavras.map(p => p[0]).join('').slice(0, 6).toUpperCase()
+}

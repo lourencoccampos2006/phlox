@@ -127,6 +127,31 @@ function ResultadoDaPergunta({ r }: { r: Resultado }) {
    A PÁGINA
    ══════════════════════════════════════════════════════════════════════════ */
 
+/* ── «NÃO CONSEGUI» NÃO É UM DIAGNÓSTICO ─────────────────────────────────────
+   Esta página tinha quatro `setErro('Não consegui …')` e NENHUM `console.error`.
+   O erro verdadeiro — que o Supabase devolve inteiro, com código e nome da
+   política — era deitado fora à entrada.
+
+   Custou três sessões. A base de dados respondia
+
+       403  new row violates row-level security policy "inqueritos_area_criar"
+
+   que diz exactamente o que está mal, e o que chegava ao ecrã era «não
+   consegui criar o inquérito». Com essa frase o diagnóstico foi, três vezes,
+   «falta correr uma migração» — e estava errado: o que faltava era a função
+   `default_capabilities()` ter a mesma lista que o `lib/permissoes.ts`
+   (ver supabase/sprint184).
+
+   Agora o erro vai inteiro para a consola, e quando é de permissões diz-se
+   isso em vez de «não consegui» — porque são coisas diferentes e levam a
+   pessoa a sítios diferentes. */
+const semPermissao = (e: any) =>
+  e?.code === '42501' || /row-level security|permission denied/i.test(String(e?.message || ''))
+
+const FALTA_PERMISSAO = (oQue: string) =>
+  `A sua conta não tem permissão para ${oQue} inquéritos nesta casa. `
+  + 'Quem gere os acessos pode dar-lhe a área «Qualidade».'
+
 export default function Inqueritos() {
   const { user, supabase } = useAuth() as any
   const scope = useOrgScope()
@@ -158,7 +183,12 @@ export default function Inqueritos() {
       setSemSetup(true); setJaCarregou(true); setCarregando(false); return
     }
     setSemSetup(false)
-    if (e1) { setErro('Não consegui ler os inquéritos.'); setJaCarregou(true); setCarregando(false); return }
+    if (e1) {
+      // Ver a nota em `semPermissao` — a mensagem genérica custou três sessões.
+      console.error('[phlox:inqueritos:ler]', e1)
+      setErro(semPermissao(e1) ? FALTA_PERMISSAO('ver') : 'Não consegui ler os inquéritos.')
+      setJaCarregou(true); setCarregando(false); return
+    }
 
     const lista = (iq || []) as Inquerito[]
     setInqueritos(lista)
@@ -233,7 +263,11 @@ export default function Inqueritos() {
       codigo: Math.random().toString(36).slice(2, 8).toUpperCase(),
     })).select().maybeSingle()
 
-    if (error) { setErro('Não consegui criar o inquérito.'); return }
+    if (error) {
+      console.error('[phlox:inqueritos:criar]', error)
+      setErro(semPermissao(error) ? FALTA_PERMISSAO('criar') : 'Não consegui criar o inquérito.')
+      return
+    }
     setACriar(false)
     setNovo({ publico: 'familias', titulo: '', convidados: '' })
     if (data) { setAberto(data.id); await carregar() }
@@ -242,7 +276,11 @@ export default function Inqueritos() {
   async function fechar(i: Inquerito) {
     const { error } = await supabase.from('inqueritos')
       .update({ fechado_em: hoje }).eq('id', i.id)
-    if (error) { setErro('Não consegui fechar o inquérito.'); return }
+    if (error) {
+      console.error('[phlox:inqueritos:fechar]', error)
+      setErro(semPermissao(error) ? FALTA_PERMISSAO('fechar') : 'Não consegui fechar o inquérito.')
+      return
+    }
     await carregar()
   }
 
@@ -267,7 +305,11 @@ export default function Inqueritos() {
     })
 
     setAGravar(false)
-    if (error) { setErro('Não consegui gravar a resposta.'); return }
+    if (error) {
+      console.error('[phlox:inqueritos:resposta]', error)
+      setErro(semPermissao(error) ? FALTA_PERMISSAO('lançar respostas de') : 'Não consegui gravar a resposta.')
+      return
+    }
     // A folha seguinte abre limpa, sem fechar o formulário: são quarenta.
     setFolha({})
     await carregar()

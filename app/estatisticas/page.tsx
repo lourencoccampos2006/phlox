@@ -228,7 +228,7 @@ export default function EstatisticasPage() {
   if (!user) return null
   const plano = (user?.plan || 'free') as string
   if (plano !== 'pro' && plano !== 'clinic') {
-    return <ClinicalGate emoji="📊" accent={bp.accent}
+    return <ClinicalGate icone="chart" accent={bp.accent}
       title="Estatísticas"
       description="Doze meses da casa em números, com a IA a dizer o que merece atenção. Faz parte do plano Institucional." />
   }

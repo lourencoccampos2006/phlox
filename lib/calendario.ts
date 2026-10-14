@@ -54,6 +54,15 @@ export type Marca = {
    * bissexto) e foi assinalada noutro dia. A interface TEM de o dizer.
    */
   movida?: string
+  /**
+   * A cor que ALGUÉM escolheu para esta marca, já em token CSS.
+   *
+   * Só as marcas à mão a têm — tudo o resto tira a cor da origem, que é o que
+   * faz a legenda significar algo. Era uma pergunta que o formulário fazia e
+   * que nunca chegava ao ecrã: escolhia-se «não pode falhar» em vermelho e a
+   * marca saía azul como todas as outras, porque a vista só lia `corDe(origem)`.
+   */
+  cor?: string
 }
 
 export const ORIGENS: { id: Origem; rotulo: string; cor: string; auto: boolean }[] = [
@@ -69,6 +78,28 @@ export const ORIGENS: { id: Origem; rotulo: string; cor: string; auto: boolean }
   { id: 'feriado',     rotulo: 'Feriados',            cor: 'var(--badge-blue-border)', auto: true },
   { id: 'manual',      rotulo: 'Marcado à mão',       cor: 'var(--badge-blue-fg)', auto: false },
 ]
+
+/**
+ * OITO NOMES DE COR, QUATRO CORES — e de propósito.
+ *
+ * O que está guardado na `calendario_marcas.cor` são nomes ('azul', 'rosa'),
+ * escritos por versões da interface que já ofereceram oito. Três deles estavam
+ * fora do sistema (laranja, amarelo, rosa), e num ano desenhado com pontos de
+ * 5px laranja e amarelo não se distinguem um do outro — pior, afogam o
+ * vermelho, que é o único que TEM de saltar à vista.
+ *
+ * Os nomes ficam, porque estão guardados em linhas que já existem. O que muda
+ * é para onde apontam.
+ */
+export const CORES_GUARDADAS: Record<string, string> = {
+  vermelho: 'var(--red)',                                                  // o que falha ou expira
+  laranja: 'var(--amber)', amarelo: 'var(--amber)', rosa: 'var(--amber)',  // o que pede atenção
+  verde: 'var(--green)',                                                   // o que está tratado
+  cinza: 'var(--ink-4)', azul: 'var(--ink-2)', roxo: 'var(--ink-3)',       // o que só é
+}
+
+/** A cor de uma marca: a que lhe foi escolhida, ou a da origem. */
+export const corDaMarca = (m: Marca) => m.cor || corDe(m.origem)
 
 export const corDe = (o: Origem) => ORIGENS.find(x => x.id === o)?.cor || 'var(--badge-blue-border)'
 export const rotuloDe = (o: Origem) => ORIGENS.find(x => x.id === o)?.rotulo || 'Outro'

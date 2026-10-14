@@ -162,6 +162,11 @@ const T = {
   trends:  { href: '/tendencias', label: 'Tendências', hint: 'Humor, alimentação e adesão ao longo de 2-3 semanas, por pessoa', icon: 'chart' },
   refeicoes: { href: '/refeicoes', label: 'Refeições', hint: 'O que cada pessoa comeu, por refeição — toque rápido', icon: 'meal' },
   apoio:    { href: '/apoio-servicos', label: 'Serviços de apoio', hint: 'Roupa, transporte e outros pedidos', icon: 'shirt' },
+  /* O SAD não é um terceiro tipo de instituição — é um serviço que um lar
+     ou um centro de dia TAMBÉM presta, e na prática a mesma IPSS tem as
+     três valências com a mesma equipa. Por isso entra nas duas listas e
+     não cria um `institution` novo. Ver supabase/sprint183. */
+  domicilio:{ href: '/apoio-domiciliario', label: 'Apoio domiciliário', hint: 'A volta do dia, casa a casa', icon: 'home' },
   // Novos 2026-08-11 — auditoria contra a lista de serviços de um centro de dia real.
   prep:     { href: '/preparacao-medicacao', label: 'Preparação da medicação', hint: 'Grelha semanal de quem preparou o pastilheiro, por pessoa', icon: 'layers' },
   psicossocial: { href: '/apoio-psicossocial', label: 'Apoio psico-social', hint: 'Notas de acompanhamento e encaminhamento a especialistas', icon: 'users' },
@@ -209,13 +214,13 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     // "Gestão & qualidade" (T.staff) já leva a /painel-dono, cuja aba "Qualidade"
     // era antes um item de menu à parte (T.quality) para o mesmo destino — fundidos
     // num só, para não duplicar entradas que vão ter ao mesmo sítio.
-    extraTools: [ T.carga, T.autonomia, T.refeicoes, T.ronda, T.passagem, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.meds_check, T.calc, T.migrar ],
+    extraTools: [ T.carga, T.autonomia, T.refeicoes, T.ronda, T.passagem, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.domicilio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.meds_check, T.calc, T.migrar ],
     // As mesmas ferramentas, arrumadas por assunto. Um centro de dia serve
     // pessoas que dormem em casa: o peso está no dia — refeições, atividades,
     // companhia — e não na enfermagem. A ordem das pastas segue isso.
     toolFolders: [
       { id: 'dia', label: 'O dia', hint: 'O que acontece entre a chegada e a saída',
-        tools: [T.refeicoes, T.ronda, T.passagem, T.activities, T.anoTodo, T.prep, T.apoio] },
+        tools: [T.refeicoes, T.ronda, T.passagem, T.activities, T.anoTodo, T.prep, T.apoio, T.domicilio] },
       { id: 'pessoas', label: 'Pessoas e famílias', hint: 'Acompanhamento de quem cá anda e de quem os espera em casa',
         tools: [T.psicossocial, T.autonomia, T.trends, T.assessments] },
       { id: 'clinico', label: 'Apoio clínico', hint: 'Para quando é preciso ir ao detalhe da medicação',
@@ -223,7 +228,12 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       { id: 'equipa', label: 'Equipa', hint: 'Quem está, quando, e com que carga',
         tools: [T.team, T.carga] },
       { id: 'casa', label: 'A casa', hint: 'Gestão, stock e o que a inspeção pede',
-        tools: [T.staff, T.estatisticas, T.inqueritos, T.inscricoes, T.stock, T.casa, T.ruturas, T.documents, T.historico, T.migrar] },
+        /* O T.billing não estava em lista nenhuma: a /faturacao existia, o
+           contador de mensalidades em atraso existia, e não havia caminho
+           nenhum para lá chegar a partir do painel. Foi o check-contadores
+           que deu por isso — um número que aponta para uma ferramenta que
+           ninguém vê nunca aparece. */
+        tools: [T.staff, T.billing, T.estatisticas, T.inqueritos, T.inscricoes, T.stock, T.casa, T.ruturas, T.documents, T.historico, T.migrar] },
     ],
   },
 
@@ -252,20 +262,21 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     // Guardião só no lar: um centro de dia não tem turno da noite nem serviço
     // ao fim de semana, por isso a ferramenta não se aplica lá.
-    extraTools: [ T.guardiao, T.carga, T.autonomia, T.refeicoes, T.ronda, T.activities, T.trends, T.vigia, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.meds_check, T.calc, T.migrar ],
+    extraTools: [ T.guardiao, T.carga, T.autonomia, T.refeicoes, T.ronda, T.activities, T.trends, T.vigia, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.domicilio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.meds_check, T.calc, T.migrar ],
     // Num lar o peso desloca-se: há enfermagem, há noite, e há um corpo
     // clínico que num centro de dia não existe. A pasta clínica vem à frente.
     toolFolders: [
       { id: 'clinico', label: 'Clínico', hint: 'Medicação, risco e o que precisa de olho de profissional',
         tools: [T.vigia, T.meds_check, T.trends, T.autonomia, T.calc] },
       { id: 'dia', label: 'O dia e a noite', hint: 'Da manhã ao turno da noite',
-        tools: [T.refeicoes, T.ronda, T.guardiao, T.activities, T.anoTodo, T.prep, T.apoio] },
+        tools: [T.refeicoes, T.ronda, T.guardiao, T.activities, T.anoTodo, T.prep, T.apoio, T.domicilio] },
       { id: 'pessoas', label: 'Pessoas e famílias', hint: 'Acompanhamento de quem cá vive',
         tools: [T.psicossocial] },
       { id: 'equipa', label: 'Equipa', hint: 'Quem está, quando, e com que carga',
         tools: [T.team, T.carga] },
       { id: 'casa', label: 'A casa', hint: 'Gestão, stock e o que a inspeção pede',
-        tools: [T.staff, T.estatisticas, T.inqueritos, T.inscricoes, T.stock, T.casa, T.ruturas, T.documents, T.historico, T.migrar] },
+        /* O T.billing: ver a nota no centro de dia, acima. */
+        tools: [T.staff, T.billing, T.estatisticas, T.inqueritos, T.inscricoes, T.stock, T.casa, T.ruturas, T.documents, T.historico, T.migrar] },
     ],
   },
 

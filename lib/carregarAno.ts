@@ -29,7 +29,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { leituraPartilhada } from './leituraPartilhada'
-import { noAno, idadeQueFaz, feriados, type Marca } from './calendario'
+import { noAno, idadeQueFaz, feriados, CORES_GUARDADAS, type Marca } from './calendario'
 
 type Filtro = <T>(q: T) => T
 
@@ -235,6 +235,9 @@ export async function carregarAno(
         return [{
           id: `marca-${r.id}`, data, movida, origem: 'manual' as const,
           titulo: r.titulo, hora: hora(r.hora), quem, quemId: r.patient_id,
+          // A cor que a casa escolheu. Um nome que não conheçamos cai na da
+          // origem, que é o que acontecia a todas elas até agora.
+          cor: CORES_GUARDADAS[String(r.cor || '')] || undefined,
           detalhe: [r.detalhe, fim && fim !== original ? `Até ${fim}.` : null]
             .filter(Boolean).join(' ') || undefined,
         }]

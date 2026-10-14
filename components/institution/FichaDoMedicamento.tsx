@@ -30,6 +30,14 @@ import {
   Folha, Botao, Seletor, Codigo, Vazio, ACarregar, Aviso, MONO, ROTULO,
 } from '@/components/ui/mesa'
 
+interface Explicacao {
+  resumo: string
+  serve: string | null
+  vigiar: string[]
+  cuidados: string[]
+  interacoes: string[]
+}
+
 interface Dados {
   encontrado: boolean
   nome_original: string | null
@@ -39,6 +47,9 @@ interface Dados {
   interacoes: string | null
   fonte: string | null
   efeitos: string[]
+  /** A bula lida, traduzida e arrumada. Null quando não foi possível ler. */
+  explicacao: Explicacao | null
+  origemDaLeitura: string | null
 }
 
 type Aba = 'pessoa' | 'serve' | 'causa' | 'cuidados' | 'interacoes'
@@ -54,6 +65,11 @@ export default function FichaDoMedicamento({ med, pessoa, auth, aoFechar }: {
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
   const [aba, setAba] = useState<Aba>('pessoa')
+  /* O texto do fabricante fica a um toque, não à frente.
+     Fica porque é a fonte e alguém há de o querer confrontar; fica ESCONDIDO
+     porque, à frente, é o bloco de prosa inglesa que fazia a aba inteira ser
+     saltada — que é o problema que a leitura veio resolver. */
+  const [verOriginal, setVerOriginal] = useState(false)
 
   useEffect(() => {
     let vivo = true
@@ -76,12 +92,20 @@ export default function FichaDoMedicamento({ med, pessoa, auth, aoFechar }: {
   /* Uma aba sem conteúdo não aparece. Mostrar «O que pode causar» vazio é
      dizer a quem lê que não há nada a assinalar — e o que há é falta de
      informação, que é outra coisa. */
+  const ex = d?.explicacao || null
+
+  /* Uma aba existe se houver leitura OU texto original. A leitura é o que se
+     mostra; o original é o que a sustenta, e sem um deles a aba não tem o que
+     dizer. */
+  const temAlgo = (lido: unknown, bruto: string | null | undefined) =>
+    (Array.isArray(lido) ? lido.length > 0 : !!lido) || temTexto(bruto)
+
   const abas: { id: Aba; rotulo: string }[] = [
     { id: 'pessoa', rotulo: 'Nesta pessoa' },
-    ...(temTexto(d?.indicacoes) ? [{ id: 'serve' as Aba, rotulo: 'Para que serve' }] : []),
-    ...(temTexto(d?.texto_adversos) ? [{ id: 'causa' as Aba, rotulo: 'O que pode causar' }] : []),
-    ...(temTexto(d?.avisos) ? [{ id: 'cuidados' as Aba, rotulo: 'Cuidados' }] : []),
-    ...(temTexto(d?.interacoes) ? [{ id: 'interacoes' as Aba, rotulo: 'Interações' }] : []),
+    ...(temAlgo(ex?.serve, d?.indicacoes) ? [{ id: 'serve' as Aba, rotulo: 'Para que serve' }] : []),
+    ...(temAlgo(ex?.vigiar, d?.texto_adversos) ? [{ id: 'causa' as Aba, rotulo: 'O que pode causar' }] : []),
+    ...(temAlgo(ex?.cuidados, d?.avisos) ? [{ id: 'cuidados' as Aba, rotulo: 'Cuidados' }] : []),
+    ...(temAlgo(ex?.interacoes, d?.interacoes) ? [{ id: 'interacoes' as Aba, rotulo: 'Interações' }] : []),
   ]
 
   const Paragrafo = ({ texto }: { texto: string | null | undefined }) => (
@@ -89,6 +113,42 @@ export default function FichaDoMedicamento({ med, pessoa, auth, aoFechar }: {
       {texto}
     </p>
   )
+
+  /** Uma lista de coisas lidas da bula. Uma por linha, com um filete. */
+  const Pontos = ({ itens, cor }: { itens: string[]; cor?: string }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 7, marginTop: 10 }}>
+      {itens.map((t, i) => (
+        <div key={i} style={{
+          display: 'flex', gap: 9, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)',
+          lineHeight: 1.55, paddingLeft: 9, borderLeft: `2px solid ${cor || 'var(--border-2)'}`,
+        }}>{t}</div>
+      ))}
+    </div>
+  )
+
+  /* O texto do fabricante, atrás de um toque.
+     É o que sustenta a leitura e tem de poder ver-se — mas em inglês e em
+     prosa regulatória não é o que se põe à frente de quem tem três minutos
+     entre dois quartos. */
+  const Original = ({ texto }: { texto: string | null | undefined }) => {
+    if (!temTexto(texto)) return null
+    return (
+      <div style={{ marginTop: 14, borderTop: '1px solid var(--border)', paddingTop: 10 }}>
+        <button type="button" onClick={() => setVerOriginal(v => !v)}
+          style={{
+            ...ROTULO, background: 'none', border: 'none', padding: 0, cursor: 'pointer',
+            color: 'var(--ink-4)',
+          }}>
+          {verOriginal ? '− ' : '+ '}Texto do fabricante, em inglês
+        </button>
+        {verOriginal && (
+          <p style={{
+            fontSize: 'var(--t-meta)', color: 'var(--ink-4)', lineHeight: 1.6, margin: '8px 0 0',
+          }}>{texto}</p>
+        )}
+      </div>
+    )
+  }
 
   return (
     <Folha titulo={med.name} aoFechar={aoFechar}>
@@ -116,6 +176,16 @@ export default function FichaDoMedicamento({ med, pessoa, auth, aoFechar }: {
               <span style={{ fontSize: 'var(--t-dado)', color: 'var(--ink)' }}>{v}</span>
             </div>
           ))}
+          {/* O RESUMO ENTRA AQUI, E NÃO NUMA ABA SÓ DELE.
+              «O que é isto?» é a pergunta que faz alguém tocar no nome de um
+              medicamento — não vale a pena obrigar a mudar de aba para a
+              responder. Duas frases, por baixo do que está prescrito. */}
+          {ex?.resumo && (
+            <p style={{
+              fontSize: 'var(--t-corpo)', color: 'var(--ink)', lineHeight: 1.6,
+              margin: '12px 0 0', paddingLeft: 9, borderLeft: '2px solid var(--green)',
+            }}>{ex.resumo}</p>
+          )}
           <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 10, lineHeight: 1.5 }}>
             É isto que está prescrito a {pessoa}. O resto das abas é sobre o medicamento,
             não sobre esta pessoa.
@@ -126,18 +196,52 @@ export default function FichaDoMedicamento({ med, pessoa, auth, aoFechar }: {
       {carregando && aba !== 'pessoa' && <ACarregar oQue="A consultar o rótulo…" />}
       {erro && aba !== 'pessoa' && <Aviso tom="mau">{erro}</Aviso>}
 
-      {aba === 'serve' && <Paragrafo texto={d?.indicacoes} />}
-      {aba === 'cuidados' && <Paragrafo texto={d?.avisos} />}
-      {aba === 'interacoes' && <Paragrafo texto={d?.interacoes} />}
+      {/* ── O QUE A BULA DIZ, EM PORTUGUÊS ───────────────────────────────
+          A leitura vem primeiro e o texto do fabricante fica atrás de um
+          toque. A ordem importa: era a prosa inglesa que fazia estas abas
+          serem saltadas, e saltar a aba «o que pode causar» numa ficha de
+          medicação é o custo real disto. */}
+      {aba === 'serve' && (
+        <div>
+          {ex?.serve
+            ? <Paragrafo texto={ex.serve} />
+            : <Paragrafo texto={d?.indicacoes} />}
+          {ex?.serve && <Original texto={d?.indicacoes} />}
+        </div>
+      )}
+
+      {aba === 'cuidados' && (
+        <div>
+          {ex && ex.cuidados.length > 0
+            ? <Pontos itens={ex.cuidados} cor="var(--amber)" />
+            : <Paragrafo texto={d?.avisos} />}
+          {ex && ex.cuidados.length > 0 && <Original texto={d?.avisos} />}
+        </div>
+      )}
+
+      {aba === 'interacoes' && (
+        <div>
+          {ex && ex.interacoes.length > 0
+            ? <Pontos itens={ex.interacoes} cor="var(--red)" />
+            : <Paragrafo texto={d?.interacoes} />}
+          {ex && ex.interacoes.length > 0 && <Original texto={d?.interacoes} />}
+        </div>
+      )}
 
       {aba === 'causa' && (
         <div>
+          {/* Os termos ficam: são o que o cruzamento com as ocorrências
+              procura no texto de quem escreve, e vê-los aqui é o que explica
+              porque é que uma ocorrência ligou a este medicamento. */}
           {(d?.efeitos?.length ?? 0) > 0 && (
             <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 10 }}>
               {(d?.efeitos || []).map(e => <Codigo key={e} texto={e.toUpperCase()} cor="var(--amber)" />)}
             </div>
           )}
-          <Paragrafo texto={d?.texto_adversos} />
+          {ex && ex.vigiar.length > 0
+            ? <Pontos itens={ex.vigiar} cor="var(--amber)" />
+            : <Paragrafo texto={d?.texto_adversos} />}
+          {ex && ex.vigiar.length > 0 && <Original texto={d?.texto_adversos} />}
         </div>
       )}
 
@@ -153,11 +257,18 @@ export default function FichaDoMedicamento({ med, pessoa, auth, aoFechar }: {
       )}
 
       {/* ── De onde vem ─────────────────────────────────────────────────── */}
+      {/* A linha de origem muda com o que está no ecrã. Dizer «não traduzido»
+          por baixo de um texto traduzido seria falso, e numa ficha de
+          medicação a frase que diz de onde vem a informação é a última coisa
+          que pode estar errada. */}
       {d?.encontrado && aba !== 'pessoa' && (
         <div style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)', marginTop: 12, lineHeight: 1.5 }}>
           {d.fonte || 'Rótulo publicado pelo fabricante'}
-          {' — '}texto do fabricante, em inglês, não traduzido. Não substitui a bula da embalagem
-          nem a indicação de quem prescreveu.
+          {' — '}
+          {ex && d.origemDaLeitura
+            ? d.origemDaLeitura
+            : 'texto do fabricante, em inglês, não traduzido. Não substitui a bula da embalagem '
+              + 'nem a indicação de quem prescreveu.'}
         </div>
       )}
 

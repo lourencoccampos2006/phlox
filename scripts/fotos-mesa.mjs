@@ -29,7 +29,7 @@ const FEITAS = [
   '/casa', '/stock', '/agenda', '/documentos', '/assessments',
   '/documentos?tab=auditoria', '/conformidade', '/consentimentos', '/inscricoes', '/estatisticas', '/painel-dono', '/assessments?tab=planos', '/faturacao', '/guardiao', '/autonomia', '/vigia', '/tendencias',
   '/preparacao-medicacao', '/apoio-psicossocial', '/refeicoes', '/ronda-guiada',
-  '/care-plans', '/activities', '/feridas', '/apoio-servicos', '/family', '/migrar', '/interactions', '/calendario-do-ano', '/census',
+  '/care-plans', '/activities', '/feridas', '/apoio-servicos', '/apoio-domiciliario', '/family', '/migrar', '/interactions', '/calendario-do-ano', '/census',
 ]
 
 const pedidas = process.argv.slice(2).filter(a => a.startsWith('/'))

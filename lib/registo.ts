@@ -133,8 +133,54 @@ export const ACOES = {
   registoIgual:     (nome: string) => ({ action: 'cuidado.registo_igual', entity: 'patient', summary: `Registou o dia de ${nome} como igual ao anterior.` }),
   ocorrencia:       (nome: string, tipo: string) => ({ action: 'ocorrencia.registada', entity: 'patient', summary: `Registou uma ocorrência de ${nome}: ${tipo}.` }),
 
+  /* Mudar uma alergia ou uma condição no sítio, sem abrir o formulário.
+     Vai ao livro COM o que estava antes: se alguém apagar uma alergia por
+     engano, a entrada é a única forma de saber o que lá estava escrito. */
+  fichaCampo: (nome: string, campo: string, antes: string | null, depois: string | null) => ({
+    action: 'utente.campo', entity: 'patient',
+    summary: depois
+      ? (antes ? `Mudou ${campo} de ${nome}.` : `Registou ${campo} de ${nome}.`)
+      : `Apagou ${campo} de ${nome}.`,
+    meta: { campo, antes: antes || null, depois: depois || null },
+  }),
+
   // ── Famílias ─────────────────────────────────────────────────────────────
   recadoFamilia:    (nome: string) => ({ action: 'familia.recado', entity: 'patient', summary: `Enviou um recado à família de ${primeiro(nome)}.` }),
+
+  // ── Calendário ───────────────────────────────────────────────────────────
+  /* `onde` é a ferramenta onde a linha ficou — Atividades, Agenda, Visitas,
+     Calendário. Vai no texto de propósito: quem marcou pelo atalho do
+     calendário precisa de saber onde a vai encontrar. */
+  marcouNoCalendario: (onde: string, oQue: string, dia: string) => ({
+    action: 'calendario.marcou', entity: 'calendario',
+    summary: `Marcou "${oQue}" para ${dia.split('-').reverse().join('/')} (${onde}).`,
+    meta: { onde, dia },
+  }),
+
+  /* Uma dose que muda vai ao livro COM o antes e o depois. É a única forma
+     de responder, seis meses depois, a «quem é que mudou isto?» — que é uma
+     pergunta que se faz quando alguma coisa correu mal. */
+  medicacaoMudada: (nome: string, med: string, oQue: string) => ({
+    action: 'medicacao.prescricao_mudada', entity: 'patient',
+    summary: `Mudou ${med} de ${nome} — ${oQue}.`,
+    meta: { medicamento: med, mudanca: oQue },
+  }),
+
+  // ── Apoio domiciliário ───────────────────────────────────────────────────
+  apoioPlano: (nome: string, novo: boolean, quantos: number) => ({
+    action: novo ? 'apoio.plano_criado' : 'apoio.plano_mudado', entity: 'patient',
+    summary: novo
+      ? `Passou ${nome} a receber apoio domiciliário (${quantos} ${quantos === 1 ? 'serviço' : 'serviços'}).`
+      : `Mudou o plano de apoio domiciliário de ${nome}.`,
+  }),
+  /* Uma visita sem resposta tem a sua própria frase. No livro, «foi a casa de
+     X e não estava ninguém» e «foi a casa de X» não podem ler-se igual. */
+  apoioVisita: (nome: string, semResposta: boolean, feitos: number) => ({
+    action: semResposta ? 'apoio.sem_resposta' : 'apoio.visita', entity: 'patient',
+    summary: semResposta
+      ? `Foi a casa de ${primeiro(nome)} e não estava ninguém.`
+      : `Registou a visita a casa de ${primeiro(nome)} (${feitos} ${feitos === 1 ? 'serviço' : 'serviços'}).`,
+  }),
 
   // ── Refeições ────────────────────────────────────────────────────────────
   ementaAplicada:   (n: number) => ({ action: 'ementa.aplicada', entity: 'meal', summary: `Aplicou a ementa da semana (${n} pratos).` }),

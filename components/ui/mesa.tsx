@@ -130,7 +130,7 @@ export function Mesa({ barra, rodape, children, altura = 'janela' }: {
        cinzento entre o último painel e a barra de estado — trocava-se um
        vazio dentro da caixa por um vazio por baixo dela. Assim a mesa cresce
        com o que tem: cheia, é a janela e rola por dentro; curta, é curta. */
-    <div ref={raiz} style={{
+    <div ref={raiz} className="mesa-chao" style={{
       background: 'var(--chao)',
       maxHeight: largo && alturaPx && altura === 'janela' ? alturaPx : undefined,
       padding: largo ? '0 clamp(10px, 1.2vw, 16px) 0' : '0 clamp(12px, 2vw, 20px) 48px',
@@ -244,7 +244,7 @@ export function Painel({ cabeca, rodape, children }: {
       alignSelf: 'start', width: '100%', maxHeight: '100%',
     }}>
       {cabeca && <div style={{ flexShrink: 0 }}>{cabeca}</div>}
-      <div style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>{children}</div>
+      <div className="mesa-painel-corpo" style={{ overflowY: 'auto', flex: 1, minHeight: 0 }}>{children}</div>
       {rodape && (
         <div style={{
           flexShrink: 0, padding: '8px 16px', background: 'var(--bg-2)',
@@ -264,7 +264,7 @@ export function Cabecalho({ children }: { children: ReactNode }) {
   const largo = useLargo()
   if (!largo) return null
   return (
-    <div style={{
+    <div className="mesa-cabecalho" style={{
       display: 'flex', alignItems: 'center', gap: 10,
       padding: '7px 12px', borderBottom: '1px solid var(--border)',
       background: 'var(--bg-2)',
@@ -335,9 +335,26 @@ export function LinhaTabela({
      sobre o botao dentro do botao. */
   const fimDentro = !(href || aoTocar)
 
+  /* O `antes` e um no de JSX e nao um valor — nao da para lhe perguntar se
+     esta vazio. O que da para perguntar e se o TEXTO que ele contem e so um
+     travessao, que e como as paginas escrevem «nao ha». Vale para o
+     `<span>{p.room_number || '—'}</span>` da /patients, que e o caso que isto
+     existe para apanhar. */
+  const antesVazio = (() => {
+    const c: any = antes?.conteudo
+    const t = c?.props?.children
+    return t === '—' || t === null || t === undefined || t === ''
+  })()
+
   const nome = (
     <span style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, flex: largo ? 1 : undefined, width: largo ? undefined : '100%' }}>
-      {antes && (
+      {/* No telemovel, um `antes` vazio nao se desenha. Na /patients o `antes`
+          e o numero do quarto, e numa casa onde ninguem tem quarto preenchido
+          dava uma coluna de travessoes a toda a altura da lista — a primeira
+          coisa que o olho encontra em cada linha, a dizer que nao ha nada.
+          Na vista larga fica: la ha uma coluna, e um travessao alinhado com
+          os numeros das outras linhas diz-se a si proprio. */}
+      {antes && (largo || !antesVazio) && (
         <span style={{ width: largo ? antes.largura : undefined, flexShrink: 0 }}>{antes.conteudo}</span>
       )}
       <span style={{ flex: 1, minWidth: 0 }}>
@@ -356,6 +373,23 @@ export function LinhaTabela({
     </span>
   )
 
+  /* ── NO TELEMOVEL, UMA CELULA VAZIA NAO SE ESCREVE ──────────────────────
+     Na vista larga, uma coluna sem valor mostra «—» e isso esta certo: a
+     coluna existe, esta alinhada com as das outras linhas, e o travessao diz
+     «aqui nao ha nada» num sitio onde a ausencia e comparavel.
+
+     No telemovel nao ha colunas. Cada celula leva o seu rotulo ao lado, e uma
+     celula vazia escreve-se «ALERTA —» — tres centimetros de linha a dizer
+     que nao ha nada para dizer. A /patients tinha quatro por pessoa
+     («MED — ALERTA — HOJE —»), oito pessoas, trinta e dois travessoes num
+     ecra de 390px. O que importa — o nome, a idade, o risco — ficava afogado
+     no que nao importa.
+
+     Aqui a ausencia ja esta dita por a celula nao estar la. */
+  const vazia = (v: ReactNode) => v === null || v === undefined || v === '' || v === '—'
+  const comValor = celulas.filter(c => !c.soLargo && !vazia(c.valor))
+
+
   const conteudo = largo ? (
     <>
       {nome}
@@ -373,9 +407,15 @@ export function LinhaTabela({
   ) : (
     <>
       {nome}
-      {celulas.some(c => !c.soLargo) && (
-        <span style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginTop: 6 }}>
-          {celulas.filter(c => !c.soLargo).map(c => (
+      {/* `order: 1` poe os NUMEROS em ultimo.
+          Com a linha clicavel, o `fim` (as etiquetas, as alergias) e irmao
+          destes dois por via do `display: contents` do link — e vinha depois,
+          o que punha «RQ» sozinho numa terceira linha, por baixo dos numeros,
+          onde se lia como mais uma medida. As etiquetas sao atributos da
+          PESSOA: pertencem junto ao nome. Os numeros medem-se e vao no fim. */}
+      {comValor.length > 0 && (
+        <span style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5, order: 1 }}>
+          {comValor.map(c => (
             <span key={c.rotulo} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
               <span style={{ ...ROTULO, fontSize: 'var(--t-micro)' }}>{c.rotulo}</span>
               <span style={{
@@ -423,7 +463,7 @@ export function LinhaTabela({
             font: 'inherit', color: 'inherit', textAlign: 'left', cursor: 'pointer',
           }}>{conteudoSemFim}</button>
         )}
-        <span style={{ flexShrink: 0, display: 'flex', gap: 6 }}>{fim}</span>
+        <span style={{ flexShrink: 0, display: 'flex', gap: 6, flexWrap: 'wrap' }}>{fim}</span>
       </div>
     )
   }
@@ -443,15 +483,23 @@ export function LinhaTabela({
  * Substitui os emoji, que são o sinal número um de software de brincar — e
  * é como as folhas de serviço de uma casa já estão escritas: MED, CUI, ATV.
  */
-export function Codigo({ texto, cor, apagado }: {
+export function Codigo({ texto, cor, apagado, titulo }: {
   texto: string
   /** A cor própria deste código. Omitida, fica neutro. */
   cor?: string
   apagado?: boolean
+  /**
+   * O que o código quer dizer por extenso.
+   *
+   * Um código de três a seis letras é legível para quem o conhece e opaco
+   * para quem chega hoje. Quem o puser num sítio onde o nome inteiro não cabe
+   * tem aqui onde o guardar — e sem isto, abreviar era perder a palavra.
+   */
+  titulo?: string
 }) {
   const c = apagado ? 'var(--ink-5)' : (cor || 'var(--ink-3)')
   return (
-    <span style={{
+    <span title={titulo} style={{
       ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.09em', fontWeight: 'var(--peso-corpo)' as any,
       padding: '2px 5px', borderRadius: 'var(--r-sm)', whiteSpace: 'nowrap',
       color: c,

@@ -263,7 +263,7 @@ export default function InscricoesPage() {
   // não tem sessão nenhuma. Apanhado no QA, não a ler o código.
   const plano = (user?.plan || 'free') as string
   if (plano !== 'pro' && plano !== 'clinic') {
-    return <ClinicalGate emoji="📋" accent={accent}
+    return <ClinicalGate icone="clipboard" accent={accent}
       title="Inscrições e lista de espera"
       description="Quem está à espera de vaga, com os critérios de prioridade do regulamento da casa a ordenar a lista. Faz parte do plano Institucional." />
   }

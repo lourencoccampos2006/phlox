@@ -17,10 +17,9 @@ import {
   resumoCurto, PAPEL_ANTIGO_PARA_NOVO, PAPEIS_ATRIBUIVEIS,
   normalizarPapel, permissoesDe, pode,
 } from '@/lib/permissoes'
-import { VERDE_DA_CASA } from '@/lib/institutionBlueprint'
 import {
   LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
-  Botao, Seletor, Vazio, ACarregar, Aviso, Campo, Grupo, CAIXA,
+  Botao, Seletor, Vazio, ACarregar, Aviso, Campo, CAIXA,
   MONO, ROTULO, useLargo,
 } from '@/components/ui/mesa'
 import PerfisDeAcesso from '@/components/team/PerfisDeAcesso'
@@ -28,7 +27,19 @@ import PerfisDeAcesso from '@/components/team/PerfisDeAcesso'
 /* O acento era turquesa (var(--green-3)), a unica cor da aplicacao fora dos tokens.
    Desde 2026-10-07 e o verde da casa, como em todo o resto. */
 const ACCENT = 'var(--green)'
-type PageTab = 'conta' | 'perfis' | 'escalas' | 'mural'
+/* ── O «PERFIS DE ACESSO» DEIXOU DE SER UM SEPARADOR (2026-10-14) ─────────
+   «Não quero que coloques mais um menu de "perfis de acesso", isso é
+    claramente algo para adicionar à parte dos acessos e contas.» (Fernando)
+
+   Tinha razão. Um perfil de acesso não é um assunto — é uma forma de dar
+   acessos a várias pessoas de uma vez. Pô-lo num separador próprio obrigava a
+   sair da lista de pessoas para o criar e a voltar para o aplicar, quando as
+   duas coisas são o mesmo trabalho e se fazem olhando para a mesma lista.
+
+   Agora vive dentro de «Conta e acesso», por baixo das pessoas, que é onde a
+   pergunta nasce: estou a olhar para dez pessoas com a mesma função e quero
+   dar-lhes o mesmo. */
+type PageTab = 'conta' | 'escalas' | 'mural'
 
 // Os papéis que se podem dar a alguém, tirados de lib/permissoes — que é também
 // de onde sai o SQL. Escrever a lista aqui à mão foi o que fez esta página
@@ -80,18 +91,6 @@ export default function EquipaPage() {
   const [orgKind, setOrgKind] = useState(institution || 'day_care')
 
   // editar a instituição existente (renomear / mudar tipo)
-  const [editName, setEditName] = useState('')
-  const [editKind, setEditKind] = useState('day_care')
-  const [editAddress, setEditAddress] = useState('')
-  const [editSlug, setEditSlug] = useState('')
-  const [editTagline, setEditTagline] = useState('')
-  const [editPublic, setEditPublic] = useState(false)
-  const [editCapacity, setEditCapacity] = useState('')
-  const [editFee, setEditFee] = useState('')
-  const [editLogoUrl, setEditLogoUrl] = useState('')
-  const [editAccentColor, setEditAccentColor] = useState('')
-  const [savingOrg, setSavingOrg] = useState(false)
-  const [orgSaved, setOrgSaved] = useState(false)
   const [showSettings, setShowSettings] = useState(false)
 
   // adicionar membro
@@ -115,7 +114,6 @@ export default function EquipaPage() {
       const s = await fetch('/api/org/setup', { headers: h }).then(r => r.json())
       setNoKey(!!s.noServiceKey)
       setOrg(s.org || null); setMyRole(s.role || null)
-      if (s.org) { setEditName(s.org.name || ''); setEditKind(s.org.kind || 'day_care'); setEditAddress(s.org.address || ''); setEditSlug(s.org.slug || ''); setEditTagline(s.org.tagline || ''); setEditPublic(!!s.org.public); setEditCapacity(s.org.capacity != null ? String(s.org.capacity) : ''); setEditFee(s.org.monthly_fee != null ? String(s.org.monthly_fee) : ''); setEditLogoUrl(s.org.logo_url || ''); setEditAccentColor(s.org.accent_color || '') }
       if (s.org) {
         const t = await fetch('/api/org/team', { headers: h }).then(r => r.json())
         if (t.error) setErr(t.error)
@@ -142,24 +140,6 @@ export default function EquipaPage() {
     } catch (e: any) { setErr(e.message) } finally { setBusy(false) }
   }
 
-  // Renomear / mudar tipo da instituição EXISTENTE (corrige o caso de uma org
-  // antiga de testes ter ficado com o nome errado).
-  async function saveOrgSettings() {
-    if (!editName.trim()) return
-    setSavingOrg(true); setErr('')
-    try {
-      const r = await fetch('/api/org/setup', { method: 'POST', headers: await auth(), body: JSON.stringify({ name: editName.trim(), kind: editKind, address: editAddress.trim(), slug: editSlug, tagline: editTagline, public: editPublic, capacity: editCapacity, monthlyFee: editFee, logoUrl: editLogoUrl.trim(), accentColor: editAccentColor.trim() }) })
-      const d = await r.json()
-      if (!r.ok) throw new Error(d.error)
-      try { localStorage.setItem('phlox-clinic-institution', editKind) } catch {}
-      // Guardado. Ajustes de esquema do lado do servidor (tipo / página
-      // pública) — só se registam para o dev, o cliente não precisa de saber.
-      if (d.kindConstraintOutdated) console.error('[phlox:org-settings-kind] kindConstraintOutdated')
-      if (d.publicColumnsMissing) console.error('[phlox:org-settings-public] publicColumnsMissing')
-      setOrgSaved(true); setTimeout(() => setOrgSaved(false), 2500)
-      await loadAll()
-    } catch (e: any) { setErr(e.message) } finally { setSavingOrg(false) }
-  }
 
   async function addMember() {
     setBusy(true); setErr(''); setLastLogin(null)
@@ -217,141 +197,6 @@ export default function EquipaPage() {
   const papelNaCasa = normalizarPapel(myRole)
   const isManager = !!papelNaCasa && pode(permissoesDe(papelNaCasa), 'equipa', 'editar')
 
-  /* ── AS DEFINIÇÕES DA CASA ──────────────────────────────────────────────
-     Eram dezoito campos empilhados no mesmo cartão que a lista da equipa, por
-     trás de um «Renomear ▾». Passam a quatro grupos com nome, no painel da
-     direita — e a lista da equipa deixa de ter de rolar por cima deles. */
-  const definicoesDaCasa = (
-    <>
-      <Grupo titulo="A casa">
-        <Campo rotulo="Nome da instituição" para="org-name-edit" obrigatorio>
-          <input id="org-name-edit" value={editName} onChange={e => setEditName(e.target.value)}
-            placeholder="Nome da instituição" style={{ ...CAIXA, width: '100%' }} />
-        </Campo>
-
-        {/* O TIPO já não se muda aqui (2026-09-06). Muda o vocabulário, as
-            ferramentas e os relatórios de toda a casa — passou a ser um acto
-            do dono do Phlox, no /admin. Aqui só se lê. */}
-        <Campo rotulo="Tipo"
-          ajuda="Definido quando a instituição foi criada. Muda o vocabulário, as ferramentas e os relatórios de toda a casa — para mudar, fale connosco.">
-          <span style={{
-            ...MONO, fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
-            display: 'inline-block', padding: '4px 9px', color: 'var(--ink-2)',
-            border: '1px solid var(--border-2)', borderRadius: 'var(--r-sm)',
-            background: 'var(--bg-2)',
-          }}>{INST_META[editKind as keyof typeof INST_META]?.label || editKind}</span>
-        </Campo>
-
-        <Campo rotulo="Morada da instituição" para="org-address"
-          ajuda="É daqui que parte e para aqui volta a rota de transportes. Ao guardar, é convertida em coordenadas automaticamente.">
-          <input id="org-address" value={editAddress} onChange={e => setEditAddress(e.target.value)}
-            placeholder="Rua, número, código postal e localidade" style={{ ...CAIXA, width: '100%' }} />
-        </Campo>
-      </Grupo>
-
-      <Grupo titulo="O negócio">
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-          <Campo rotulo="Lotação (lugares)" para="org-capacity">
-            <input id="org-capacity" value={editCapacity} inputMode="numeric"
-              onChange={e => setEditCapacity(e.target.value.replace(/[^0-9]/g, ''))}
-              placeholder="Ex: 30" style={{ ...CAIXA, width: '100%' }} />
-          </Campo>
-          <Campo rotulo="Mensalidade por utente (€)" para="org-fee">
-            <input id="org-fee" value={editFee} inputMode="decimal"
-              onChange={e => setEditFee(e.target.value.replace(/[^0-9.]/g, ''))}
-              placeholder="Ex: 450" style={{ ...CAIXA, width: '100%' }} />
-          </Campo>
-        </div>
-        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.5 }}>
-          Alimentam o painel administrativo: a taxa de ocupação e a receita prevista
-          saem destes dois números.
-        </div>
-      </Grupo>
-
-      <Grupo titulo="A página pública">
-        <label style={{
-          display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer',
-          fontSize: 'var(--t-dado)', color: 'var(--ink)', marginTop: 10,
-        }}>
-          <input type="checkbox" checked={editPublic} onChange={e => setEditPublic(e.target.checked)} />
-          Tornar a página pública
-        </label>
-        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', margin: '4px 0 0', lineHeight: 1.5 }}>
-          Cria um endereço que pode partilhar com as famílias e nas redes.
-        </div>
-
-        <Campo rotulo="Endereço" para="org-slug">
-          <span style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ ...MONO, fontSize: 'var(--t-meta)', color: 'var(--ink-5)', whiteSpace: 'nowrap' }}>
-              phloxclinical.com/c/
-            </span>
-            <input id="org-slug" value={editSlug}
-              onChange={e => setEditSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-'))}
-              placeholder="centro-sao-jose" style={{ ...CAIXA, flex: 1 }} />
-          </span>
-        </Campo>
-
-        <Campo rotulo="Frase de apresentação" para="org-tagline">
-          <input id="org-tagline" value={editTagline} onChange={e => setEditTagline(e.target.value)}
-            placeholder="Cuidamos de quem mais ama, perto de si." maxLength={160}
-            style={{ ...CAIXA, width: '100%' }} />
-        </Campo>
-
-        {editPublic && editSlug && (
-          <a href={`/c/${editSlug}`} target="_blank" rel="noreferrer" style={{
-            ...MONO, display: 'inline-block', marginTop: 8, fontSize: 'var(--t-meta)',
-            color: 'var(--green)', fontWeight: 'var(--peso-forte)' as any, textDecoration: 'none',
-          }}>VER A PÁGINA →</a>
-        )}
-      </Grupo>
-
-      <Grupo titulo="A marca">
-        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.5 }}>
-          Opcional — personaliza o painel administrativo e a página pública.
-        </div>
-
-        <Campo rotulo="Logótipo (endereço da imagem)" para="org-logo">
-          <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            {editLogoUrl && (
-              <img src={editLogoUrl} alt="" style={{
-                width: 32, height: 32, borderRadius: 'var(--r-sm)', objectFit: 'cover',
-                border: '1px solid var(--border)', flexShrink: 0,
-              }} onError={e => { (e.target as HTMLImageElement).style.visibility = 'hidden' }} />
-            )}
-            <input id="org-logo" value={editLogoUrl} onChange={e => setEditLogoUrl(e.target.value)}
-              placeholder="https://…/logotipo.png" style={{ ...CAIXA, flex: 1 }} />
-          </span>
-        </Campo>
-
-        <Campo rotulo="Cor de marca" para="org-accent">
-          <span style={{ display: 'flex', alignItems: 'center', gap: 9 }}>
-            <input aria-label="Escolher a cor de marca" type="color"
-              value={/^#[0-9a-fA-F]{6}$/.test(editAccentColor) ? editAccentColor : VERDE_DA_CASA}
-              onChange={e => setEditAccentColor(e.target.value)}
-              style={{
-                width: 34, height: 32, borderRadius: 'var(--r-sm)',
-                border: '1px solid var(--border)', padding: 2, cursor: 'pointer', flexShrink: 0,
-              }} />
-            <input id="org-accent" value={editAccentColor} onChange={e => setEditAccentColor(e.target.value)}
-              placeholder={VERDE_DA_CASA} style={{ ...CAIXA, flex: 1 }} />
-          </span>
-        </Campo>
-      </Grupo>
-
-      <div style={{ marginTop: 16, display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-        <Botao feitio="principal" onClick={saveOrgSettings} esperando={savingOrg}
-          disabled={!editName.trim()}>
-          {orgSaved ? 'GUARDADO ✓' : 'GUARDAR ALTERAÇÕES'}
-        </Botao>
-        {org && editName.trim() && editName.trim() !== org.name && (
-          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--amber)' }}>
-            Vai mudar de «{org.name}» para «{editName.trim()}».
-          </span>
-        )}
-      </div>
-    </>
-  )
-
   /* ══════════════════════════════════════════════════════════════════════════
      O ECRÃ — refeito de raiz na linguagem da mesa (2026-10-07)
      ══════════════════════════════════════════════════════════════════════════
@@ -370,11 +215,9 @@ export default function EquipaPage() {
   /* A aba dos perfis só aparece a quem pode dar acessos. Para quem não pode,
      não é uma aba cinzenta — não existe: uma aba que se vê e não se abre é
      uma promessa por cumprir. */
-  const abas: PageTab[] = isManager
-    ? ['conta', 'perfis', 'escalas', 'mural']
-    : ['conta', 'escalas', 'mural']
+  const abas: PageTab[] = ['conta', 'escalas', 'mural']
   const ROTULO_ABA: Record<PageTab, string> = {
-    conta: 'Conta e acesso', perfis: 'Perfis de acesso',
+    conta: 'Conta e acesso',
     escalas: 'Escalas e turnos', mural: 'Mural',
   }
 
@@ -439,23 +282,9 @@ export default function EquipaPage() {
     >
       {err && <Aviso tom="mau">{err}</Aviso>}
 
-      {/* Os perfis, as escalas e o mural são ecrãs inteiros próprios. */}
-      {tab === 'perfis' && org ? (
-        <PerfisDeAcesso
-          auth={auth}
-          /* Nem o Dono nem a própria conta entram na lista de quem recebe um
-             perfil — a rota recusa os dois, e oferecê-los aqui seria prometer
-             uma coisa que o servidor vai negar. */
-          pessoas={team
-            .filter(m => (PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role) !== 'dono')
-            .filter(m => m.user_id !== user?.id)
-            .map(m => ({
-              user_id: m.user_id,
-              nome: m.name || m.email || 'Sem nome',
-              papel: PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role,
-            }))}
-          aoAplicar={loadAll} />
-      ) : tab === 'escalas' && org ? (
+      {/* As escalas e o mural são ecrãs inteiros próprios. Os perfis de acesso
+          já não: vivem dentro de «Conta e acesso» — ver a nota no `PageTab`. */}
+      {tab === 'escalas' && org ? (
         <Painel><div style={{ padding: 14 }}><EscalasEquipa initialSubTab={escalasSubTab} /></div></Painel>
       ) : tab === 'mural' && org ? (
         <Painel><div style={{ padding: 14 }}><MuralEquipa /></div></Painel>
@@ -562,7 +391,25 @@ export default function EquipaPage() {
               }
             >
               {showSettings ? (
-                <div style={{ padding: 14 }}>{definicoesDaCasa}</div>
+                /* ── AS DEFINIÇÕES DA CASA MUDARAM-SE PARA AS DEFINIÇÕES ───
+                   Eram dezoito campos aqui dentro: o nome da instituição, a
+                   morada, a lotação, a mensalidade por utente, o endereço da
+                   página pública, o logótipo e a cor de marca.
+
+                   Nenhuma dessas coisas é uma pessoa, e esta página chama-se
+                   «Equipa». Quem procurava a mensalidade da casa procurava-a
+                   nas Definições, não a encontrava, e concluía que não existia.
+
+                   Ficam em /settings?tab=casa. O botão fica, porque quem
+                   procurava aqui tem de saber para onde foram — um botão que
+                   desaparece ensina menos do que um que aponta. */
+                <div style={{ padding: 14 }}>
+                  <Vazio titulo="As definições da instituição mudaram de sítio."
+                    oQueFazer="O nome, a morada, a lotação, a mensalidade, a página pública e a marca estão agora nas Definições. Esta página fica com quem trabalha na casa."
+                    acao={<Link href="/settings?tab=casa" style={{ textDecoration: 'none' }}>
+                      <Botao feitio="principal">ABRIR AS DEFINIÇÕES DA CASA →</Botao>
+                    </Link>} />
+                </div>
               ) : (
                 <div style={{ padding: 14 }}>
                   {/* Duas maneiras de dar acesso, e a diferença importa: gerar
@@ -682,6 +529,32 @@ export default function EquipaPage() {
                 oQueFazer="Vê a lista toda, com a função de cada um. Para mudar acessos, fale com a Direção Técnica ou com o dono." />
             </Painel>
           ) : null}
+
+          {/* ── OS PERFIS DE ACESSO, POR BAIXO DAS PESSOAS ─────────────────
+              `gridColumn: '1 / -1'` para atravessar as duas colunas: isto não
+              é sobre uma pessoa, é sobre a casa toda — e a meio de uma coluna
+              de 480px lia-se como se fosse mais um painel lateral de alguém.
+
+              Só para quem gere: quem não pode mudar acessos não tem o que
+              fazer com um molde de acessos. */}
+          {isManager && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <PerfisDeAcesso
+                auth={auth}
+                /* Nem o Dono nem a própria conta entram na lista de quem recebe
+                   um perfil — a rota recusa os dois, e oferecê-los aqui seria
+                   prometer uma coisa que o servidor vai negar. */
+                pessoas={team
+                  .filter(m => (PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role) !== 'dono')
+                  .filter(m => m.user_id !== user?.id)
+                  .map(m => ({
+                    user_id: m.user_id,
+                    nome: m.name || m.email || 'Sem nome',
+                    papel: PAPEL_ANTIGO_PARA_NOVO[m.role] || m.role,
+                  }))}
+                aoAplicar={loadAll} />
+            </div>
+          )}
         </div>
       )}
     </Mesa>

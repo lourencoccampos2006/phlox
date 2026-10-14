@@ -52,6 +52,7 @@ import { ptDate } from '@/lib/ptTime'
 import { printDoc } from '@/lib/print'
 import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import AvaliacoesEDependencias from '@/components/institution/AvaliacoesEDependencias'
+import { Botao } from '@/components/ui/mesa'
 import {
   nomeDoPlano, CADENCIAS, POR_CADENCIA, DIAS_DA_SEMANA,
   cadenciaEmPalavras, proximaRevisao, estadoDaRevisao, objetivosSemAcoes,
@@ -59,8 +60,8 @@ import {
 } from '@/lib/plano'
 
 const MONO: React.CSSProperties = {
-  fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
-  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 700,
+  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
+  textTransform: 'uppercase', color: 'var(--ink-4)', fontWeight: 'var(--peso-forte)' as any,
 }
 
 const TURNOS = [
@@ -302,7 +303,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
   if (indisponivel) return null
 
   if (carregando) {
-    return <div style={{ padding: 'var(--space-12)', color: 'var(--ink-4)', fontSize: 14 }}>A carregar o plano…</div>
+    return <div style={{ padding: 'var(--space-12)', color: 'var(--ink-4)', fontSize: 'var(--t-corpo)' }}>A carregar o plano…</div>
   }
 
   // ── Ainda não há plano ────────────────────────────────────────────────────
@@ -317,27 +318,27 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         marginTop: 'var(--space-10)', padding: 'var(--space-12)', borderRadius: 'var(--r-xl)',
         border: '1px dashed var(--border-2)', textAlign: 'center',
       }}>
-        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 8 }}>
+        <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)', marginBottom: 8 }}>
           {/* Comparava com 'PIC', que deixou de ser o nome curto — a condicao
               ficou sempre falsa e um LAR passou a ver «plano de intervencao».
               O tipo de casa e a fonte, nao a sigla. */}
           {nome.split(' ')[0]} ainda não tem {institution === 'nursing_home' ? 'plano de cuidados' : 'plano de intervenção'}
         </div>
-        <p style={{ fontSize: 13.5, color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 460, margin: '0 auto 18px' }}>
+        <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', lineHeight: 1.6, maxWidth: 460, margin: '0 auto 18px' }}>
           É aqui que se escreve o que se quer para esta pessoa e o que se faz para lá chegar.
           É também o documento que a Segurança Social pede numa visita.
         </p>
         {podeEditar ? (
           <button onClick={criarPlano} style={{
-            minHeight: 46, padding: '0 22px', borderRadius: 'var(--r-lg)', border: 'none',
-            background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 15, fontWeight: 700, cursor: 'pointer',
+            minHeight: 'var(--tap-min)', padding: '0 22px', borderRadius: 'var(--r-lg)', border: 'none',
+            background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
           }}>Começar o plano</button>
         ) : (
-          <div style={{ fontSize: 13, color: 'var(--ink-5)' }}>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)' }}>
             Fale com quem gere a casa para o plano ser criado.
           </div>
         )}
-        {erro && <div style={{ marginTop: 12, fontSize: 13, color: 'var(--red)', fontWeight: 600 }}>{erro}</div>}
+        {erro && <div style={{ marginTop: 12, fontSize: 'var(--t-dado)', color: 'var(--red)', fontWeight: 'var(--peso-corpo)' as any }}>{erro}</div>}
       </div>
       </>
     )
@@ -349,7 +350,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         <div style={{
           marginBottom: 12, padding: '10px 13px', borderRadius: 'var(--r-md)',
           background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', color: 'var(--red)',
-          fontSize: 13, fontWeight: 600,
+          fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any,
         }}>{erro}</div>
       )}
 
@@ -361,7 +362,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
       }}>
         <div>
           <span style={MONO}>{nomes.longo}</span>
-          <div style={{ fontSize: 12.5, color: 'var(--ink-4)', marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 4 }}>
             Desde {new Date(plano.inicio).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
             {plano.elaborado_por ? ` · elaborado por ${plano.elaborado_por}` : ''}
           </div>
@@ -369,16 +370,16 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           {revisao && (
             <span style={{
-              fontSize: 12, fontWeight: 700, padding: '5px 11px', borderRadius: 'var(--r-xl)',
+              fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, padding: '5px 11px', borderRadius: 'var(--r-xl)',
               background: revisao.chama ? 'var(--badge-amber-bg)' : 'var(--bg-2)',
               border: `1px solid ${revisao.chama ? 'var(--badge-amber-border)' : 'var(--border)'}`,
               color: revisao.chama ? 'var(--badge-amber-fg)' : 'var(--ink-4)',
             }}>{revisao.frase}</span>
           )}
           <button onClick={imprimir} style={{
-            minHeight: 34, padding: '0 12px', borderRadius: 'var(--r-md)',
+            minHeight: 'var(--tap-min)', padding: '0 12px', borderRadius: 'var(--r-md)',
             border: '1px solid var(--border-2)', background: 'transparent',
-            fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700, color: 'var(--ink-3)', cursor: 'pointer',
+            fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', cursor: 'pointer',
           }}>Imprimir</button>
         </div>
       </div>
@@ -404,7 +405,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         <div style={{
           marginTop: 'var(--space-8)', padding: '11px 14px', borderRadius: 'var(--r-lg)',
           background: 'var(--bg-2)', border: '1px solid var(--border)',
-          fontSize: 13, color: 'var(--ink-3)', lineHeight: 1.55,
+          fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.55,
         }}>
           {semAcoes.length === 1
             ? <>O objetivo <strong>{semAcoes[0].titulo}</strong> ainda não tem nenhuma ação.</>
@@ -416,7 +417,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
       {/* ── Os objetivos ─────────────────────────────────────────────────── */}
       <div style={{ marginTop: 'var(--space-10)' }}>
         {abertos.length === 0 && !aCriarObjetivo && (
-          <div style={{ fontSize: 13.5, color: 'var(--ink-4)', padding: 'var(--space-8) 0' }}>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', padding: 'var(--space-8) 0' }}>
             Ainda não há objetivos. Comece por um: o que é que se quer para {nome.split(' ')[0]} nos próximos meses?
           </div>
         )}
@@ -438,9 +439,9 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
           aCriarObjetivo
             ? <NovoObjetivo cor={cor} aoCriar={criarObjetivo} aoCancelar={() => setACriarObjetivo(false)} />
             : <button onClick={() => setACriarObjetivo(true)} style={{
-                marginTop: 'var(--space-7)', minHeight: 44, padding: '0 18px',
+                marginTop: 'var(--space-7)', minHeight: 'var(--tap-min)', padding: '0 18px',
                 borderRadius: 'var(--r-lg)', border: `1.5px dashed ${cor}`, background: 'transparent',
-                fontFamily: 'inherit', fontSize: 14, fontWeight: 700, color: cor, cursor: 'pointer',
+                fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: cor, cursor: 'pointer',
               }}>+ Novo objetivo</button>
         )}
       </div>
@@ -456,12 +457,12 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
               <div key={o.id} style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                 padding: '9px 12px', borderRadius: 'var(--r-md)', background: 'var(--bg-2)',
-                border: '1px solid var(--border)', fontSize: 13, color: 'var(--ink-4)',
+                border: '1px solid var(--border)', fontSize: 'var(--t-dado)', color: 'var(--ink-4)',
               }}>
-                <span>{o.titulo} <span style={{ fontSize: 11.5 }}>· {o.estado === 'atingido' ? 'atingido' : 'suspenso'}</span></span>
+                <span>{o.titulo} <span style={{ fontSize: 'var(--t-meta)' }}>· {o.estado === 'atingido' ? 'atingido' : 'suspenso'}</span></span>
                 {podeEditar && (
                   <button onClick={() => mudarEstadoObjetivo(o, 'aberto')} style={{
-                    background: 'none', border: 'none', color: cor, fontSize: 12, fontWeight: 700,
+                    background: 'none', border: 'none', color: cor, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
                     cursor: 'pointer', fontFamily: 'inherit', padding: 0,
                   }}>reabrir</button>
                 )}
@@ -480,7 +481,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
           <span style={MONO}>Revisões</span>
           {podeEditar && !aRever && (
             <button onClick={() => setARever(true)} style={{
-              background: 'none', border: 'none', color: cor, fontSize: 12.5, fontWeight: 700,
+              background: 'none', border: 'none', color: cor, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
               cursor: 'pointer', fontFamily: 'inherit', padding: 0,
             }}>+ Registar revisão</button>
           )}
@@ -489,7 +490,7 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
         {aRever && <NovaRevisao cor={cor} aoGuardar={registarRevisao} aoCancelar={() => setARever(false)} />}
 
         {revisoes.length === 0 && !aRever && (
-          <div style={{ fontSize: 13, color: 'var(--ink-4)', paddingTop: 'var(--space-7)', lineHeight: 1.55 }}>
+          <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', paddingTop: 'var(--space-7)', lineHeight: 1.55 }}>
             Ainda não há nenhuma revisão escrita. É o que a inspeção pergunta primeiro — e é
             também a única forma de saber se o plano serviu para alguma coisa.
           </div>
@@ -502,17 +503,17 @@ export default function PlanoIndividual({ pid, nome, cor }: Props) {
               background: 'var(--bg-2)', border: '1px solid var(--border)',
             }}>
               <div style={{ display: 'flex', gap: 9, alignItems: 'baseline', flexWrap: 'wrap', marginBottom: 5 }}>
-                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>
+                <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
                   {new Date(r.data).toLocaleDateString('pt-PT', { day: 'numeric', month: 'long', year: 'numeric' })}
                 </span>
-                {r.autor && <span style={{ fontSize: 11.5, color: 'var(--ink-5)' }}>{r.autor}</span>}
+                {r.autor && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{r.autor}</span>}
                 {r.decisao && (
-                  <span style={{ fontSize: 11, fontWeight: 700, color: cor }}>
+                  <span style={{ fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, color: cor }}>
                     {r.decisao === 'manter' ? 'manter como está' : r.decisao === 'ajustar' ? 'ajustar' : 'fechar o plano'}
                   </span>
                 )}
               </div>
-              <div style={{ fontSize: 13.5, color: 'var(--ink-2)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{r.texto}</div>
+              <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-2)', lineHeight: 1.55, whiteSpace: 'pre-wrap' }}>{r.texto}</div>
             </div>
           ))}
         </div>
@@ -542,7 +543,7 @@ function CaixaDeTexto({ titulo, ajuda, valor, podeEditar, aoGuardar, cor }: {
         <span style={MONO}>{titulo}</span>
         {podeEditar && !aEditar && (
           <button onClick={() => setAEditar(true)} style={{
-            background: 'none', border: 'none', color: cor, fontSize: 12.5, fontWeight: 700,
+            background: 'none', border: 'none', color: cor, fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
             cursor: 'pointer', fontFamily: 'inherit', padding: 0,
           }}>{valor ? 'alterar' : 'escrever'}</button>
         )}
@@ -555,27 +556,27 @@ function CaixaDeTexto({ titulo, ajuda, valor, podeEditar, aoGuardar, cor }: {
             placeholder="Ex.: quer voltar a almoçar na sala grande com as colegas, e a filha pede que não a deixem sair sozinha."
             style={{
               width: '100%', boxSizing: 'border-box', padding: '11px 13px', borderRadius: 'var(--r-lg)',
-              border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 14,
+              border: '1px solid var(--border)', fontFamily: 'inherit', fontSize: 'var(--t-corpo)',
               lineHeight: 1.55, resize: 'vertical', background: 'var(--bg)', color: 'var(--ink)',
             }} />
           <div style={{ display: 'flex', gap: 9, marginTop: 8 }}>
             <button onClick={() => { aoGuardar(texto); setAEditar(false) }} style={{
-              minHeight: 38, padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
-              background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
+              minHeight: 'var(--tap-min)', padding: '0 16px', borderRadius: 'var(--r-md)', border: 'none',
+              background: cor, color: 'var(--bg)', fontFamily: 'inherit', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer',
             }}>Guardar</button>
             <button onClick={() => { setTexto(valor); setAEditar(false) }} style={{
-              minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-md)',
+              minHeight: 'var(--tap-min)', padding: '0 14px', borderRadius: 'var(--r-md)',
               border: '1px solid var(--border-2)', background: 'transparent',
-              fontFamily: 'inherit', fontSize: 13.5, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer',
+              fontFamily: 'inherit', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', cursor: 'pointer',
             }}>Cancelar</button>
           </div>
         </div>
       ) : valor ? (
-        <div style={{ marginTop: 8, fontSize: 14.5, color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+        <div style={{ marginTop: 8, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
           {valor}
         </div>
       ) : (
-        <div style={{ marginTop: 8, fontSize: 13, color: 'var(--ink-5)', lineHeight: 1.55 }}>{ajuda}</div>
+        <div style={{ marginTop: 8, fontSize: 'var(--t-dado)', color: 'var(--ink-5)', lineHeight: 1.55 }}>{ajuda}</div>
       )}
     </section>
   )
@@ -605,21 +606,26 @@ function CartaoObjetivo({
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start' }}>
         <div style={{ minWidth: 0 }}>
           <span style={{
-            ...MONO, fontSize: 9.5, color: cor,
+            ...MONO, fontSize: 'var(--t-micro)', color: cor,
           }}>{area?.label || o.area}</span>
           <div style={{
-            fontFamily: 'var(--font-serif)', fontSize: 18, color: 'var(--ink)',
+            fontFamily: 'var(--font-serif)', fontSize: 'var(--t-destaque)', color: 'var(--ink)',
             lineHeight: 1.35, marginTop: 4, textWrap: 'pretty' as any,
           }}>{o.titulo}</div>
           {o.porque && (
-            <div style={{ fontSize: 13, color: 'var(--ink-4)', marginTop: 5, lineHeight: 1.55 }}>{o.porque}</div>
+            <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-4)', marginTop: 5, lineHeight: 1.55 }}>{o.porque}</div>
           )}
         </div>
         {podeEditar && (
-          <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-            <button onClick={() => mudarEstado('atingido')} title="Marcar como atingido" style={botaoMini}>✓</button>
-            <button onClick={() => mudarEstado('suspenso')} title="Suspender" style={botaoMini}>⏸</button>
-            <button onClick={apagar} title="Remover do plano" style={botaoMini}>×</button>
+          /* Eram três quadrados de 28px com um glifo cada (✓ ⏸ ×) e o
+             significado só no `title`. Num tablet não há `title`: a equipa
+             tinha três botões iguais e sem nome, e um deles apaga um objetivo
+             do plano. Agora dizem o que fazem, e têm os 44px de altura que
+             um dedo precisa. */
+          <div style={{ display: 'flex', gap: 6, flexShrink: 0, flexWrap: 'wrap' }}>
+            <Botao onClick={() => mudarEstado('atingido')} titulo="Fica no plano, marcado como alcançado">ATINGIDO</Botao>
+            <Botao onClick={() => mudarEstado('suspenso')} titulo="Pára, mas fica no plano">SUSPENDER</Botao>
+            <Botao feitio="calmo" onClick={apagar} titulo="Tira este objetivo do plano">REMOVER</Botao>
           </div>
         )}
       </div>
@@ -627,7 +633,7 @@ function CartaoObjetivo({
       {/* As ações */}
       <div style={{ marginTop: 'var(--space-7)', display: 'flex', flexDirection: 'column', gap: 7 }}>
         {ativas.length === 0 && !aCriarAcao && (
-          <div style={{ fontSize: 12.5, color: 'var(--ink-5)', lineHeight: 1.5 }}>
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', lineHeight: 1.5 }}>
             Sem ações. Enquanto não houver nenhuma, este objetivo não produz nada no dia de trabalho.
           </div>
         )}
@@ -637,7 +643,7 @@ function CartaoObjetivo({
         ))}
         {paradas.length > 0 && (
           <details>
-            <summary style={{ fontSize: 11.5, color: 'var(--ink-5)', cursor: 'pointer' }}>
+            <summary style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', cursor: 'pointer' }}>
               {paradas.length === 1 ? '1 ação parada' : `${paradas.length} ações paradas`}
             </summary>
             <div style={{ marginTop: 7, display: 'flex', flexDirection: 'column', gap: 7 }}>
@@ -655,17 +661,11 @@ function CartaoObjetivo({
           ? <NovaAcao cor={cor} aoCriar={criarAcao} aoCancelar={abrirNovaAcao} />
           : <button onClick={abrirNovaAcao} style={{
               marginTop: 'var(--space-6)', background: 'none', border: 'none', color: cor,
-              fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+              fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'inherit', padding: 0,
             }}>+ Acrescentar ação</button>
       )}
     </div>
   )
-}
-
-const botaoMini: React.CSSProperties = {
-  width: 28, height: 28, borderRadius: 'var(--r-sm)', border: '1px solid var(--border-2)',
-  background: 'transparent', color: 'var(--ink-4)', fontSize: 13, cursor: 'pointer',
-  fontFamily: 'inherit', lineHeight: 1, display: 'flex', alignItems: 'center', justifyContent: 'center',
 }
 
 function LinhaAcao({ a, cor, podeEditar, alternar, apagar }: {
@@ -680,20 +680,18 @@ function LinhaAcao({ a, cor, podeEditar, alternar, apagar }: {
       opacity: a.ativa ? 1 : 0.6,
     }}>
       <div style={{ minWidth: 0, flex: 1 }}>
-        <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--ink)', lineHeight: 1.4 }}>{a.o_que}</div>
-        <div style={{ fontSize: 11.5, color: 'var(--ink-4)', marginTop: 3 }}>
+        <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)', lineHeight: 1.4 }}>{a.o_que}</div>
+        <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 3 }}>
           {cadenciaEmPalavras(a)}
           {a.quem ? ` · ${a.quem}` : ''}
           {!POR_CADENCIA.get(a.cadencia)?.noDia ? ' · não entra no dia de trabalho' : ''}
         </div>
-        {a.notas && <div style={{ fontSize: 12, color: 'var(--ink-5)', marginTop: 3, lineHeight: 1.5 }}>{a.notas}</div>}
+        {a.notas && <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 3, lineHeight: 1.5 }}>{a.notas}</div>}
       </div>
       {podeEditar && (
-        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-          <button onClick={alternar} title={a.ativa ? 'Parar esta ação' : 'Retomar'} style={botaoMini}>
-            {a.ativa ? '⏸' : '▶'}
-          </button>
-          <button onClick={apagar} title="Remover" style={botaoMini}>×</button>
+        <div style={{ display: 'flex', gap: 5, flexShrink: 0, flexWrap: 'wrap' }}>
+          <Botao onClick={alternar}>{a.ativa ? 'PARAR' : 'RETOMAR'}</Botao>
+          <Botao feitio="calmo" onClick={apagar} titulo="Tira esta ação do plano">REMOVER</Botao>
         </div>
       )}
     </div>
@@ -717,7 +715,7 @@ function NovoObjetivo({ cor, aoCriar, aoCancelar }: {
         <select value={area} onChange={e => setArea(e.target.value)} style={campo}>
           {AREAS.filter(a => !a.acao).map(a => <option key={a.id} value={a.id}>{a.label}</option>)}
         </select>
-        <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
+        <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
           Decide quem da equipa vê e mexe neste objetivo.
         </span>
       </label>
@@ -743,16 +741,16 @@ function NovoObjetivo({ cor, aoCriar, aoCancelar }: {
           onClick={() => aoCriar(area, titulo, porque)}
           disabled={!titulo.trim()}
           style={{
-            minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
+            minHeight: 'var(--tap-min)', padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
             background: titulo.trim() ? cor : 'var(--bg-3)',
             color: titulo.trim() ? 'var(--bg)' : 'var(--ink-5)',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 700,
+            fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any,
             cursor: titulo.trim() ? 'pointer' : 'default',
           }}>Acrescentar</button>
         <button onClick={aoCancelar} style={{
-          minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)',
+          minHeight: 'var(--tap-min)', padding: '0 16px', borderRadius: 'var(--r-md)',
           border: '1px solid var(--border-2)', background: 'transparent',
-          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', cursor: 'pointer',
         }}>Cancelar</button>
       </div>
     </div>
@@ -790,7 +788,7 @@ function NovaAcao({ cor, aoCriar, aoCancelar }: {
           {CADENCIAS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
         </select>
         {opcao && (
-          <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
+          <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
             {opcao.ajuda}
           </span>
         )}
@@ -807,10 +805,10 @@ function NovaAcao({ cor, aoCriar, aoCancelar }: {
                   onClick={() => setDias(p => on ? p.filter(x => x !== d.n) : [...p, d.n])}
                   title={d.label}
                   style={{
-                    minWidth: 42, minHeight: 36, borderRadius: 'var(--r-md)', cursor: 'pointer',
+                    minWidth: 42, minHeight: 'var(--tap-min)', borderRadius: 'var(--r-md)', cursor: 'pointer',
                     border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
                     background: on ? cor : 'transparent', color: on ? 'var(--bg)' : 'var(--ink-3)',
-                    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 700,
+                    fontFamily: 'inherit', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any,
                   }}>{d.curto}</button>
               )
             })}
@@ -833,7 +831,7 @@ function NovaAcao({ cor, aoCriar, aoCancelar }: {
           value={quem} onChange={e => setQuem(e.target.value)}
           placeholder="Ex.: auxiliar do turno da manhã (opcional)"
           style={campo} />
-        <span style={{ display: 'block', fontSize: 11.5, color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
+        <span style={{ display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-5)', marginTop: 5, lineHeight: 1.45 }}>
           A função, não o nome. As pessoas mudam de turno, e um plano com nomes fica errado sozinho.
         </span>
       </label>
@@ -843,14 +841,14 @@ function NovaAcao({ cor, aoCriar, aoCancelar }: {
           onClick={() => aoCriar({ o_que: oQue, cadencia, dias, turno, quem: quem.trim() || null })}
           disabled={!valido}
           style={{
-            minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
+            minHeight: 'var(--tap-min)', padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
             background: valido ? cor : 'var(--bg-3)', color: valido ? 'var(--bg)' : 'var(--ink-5)',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: valido ? 'pointer' : 'default',
+            fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: valido ? 'pointer' : 'default',
           }}>Acrescentar</button>
         <button onClick={aoCancelar} style={{
-          minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)',
+          minHeight: 'var(--tap-min)', padding: '0 16px', borderRadius: 'var(--r-md)',
           border: '1px solid var(--border-2)', background: 'transparent',
-          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', cursor: 'pointer',
         }}>Cancelar</button>
       </div>
     </div>
@@ -889,10 +887,10 @@ function NovaRevisao({ cor, aoGuardar, aoCancelar }: {
             const on = decisao === d.id
             return (
               <button key={d.id} onClick={() => setDecisao(d.id)} style={{
-                minHeight: 38, padding: '0 14px', borderRadius: 'var(--r-xl)', cursor: 'pointer',
+                minHeight: 'var(--tap-min)', padding: '0 14px', borderRadius: 'var(--r-xl)', cursor: 'pointer',
                 border: `1.5px solid ${on ? cor : 'var(--border-2)'}`,
                 background: on ? cor + '14' : 'transparent', color: on ? cor : 'var(--ink-3)',
-                fontFamily: 'inherit', fontSize: 13, fontWeight: 700,
+                fontFamily: 'inherit', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any,
               }}>{d.label}</button>
             )
           })}
@@ -904,14 +902,14 @@ function NovaRevisao({ cor, aoGuardar, aoCancelar }: {
           onClick={() => aoGuardar(texto, decisao)}
           disabled={!texto.trim()}
           style={{
-            minHeight: 42, padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
+            minHeight: 'var(--tap-min)', padding: '0 18px', borderRadius: 'var(--r-md)', border: 'none',
             background: texto.trim() ? cor : 'var(--bg-3)', color: texto.trim() ? 'var(--bg)' : 'var(--ink-5)',
-            fontFamily: 'inherit', fontSize: 14, fontWeight: 700, cursor: texto.trim() ? 'pointer' : 'default',
+            fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, cursor: texto.trim() ? 'pointer' : 'default',
           }}>Registar revisão</button>
         <button onClick={aoCancelar} style={{
-          minHeight: 42, padding: '0 16px', borderRadius: 'var(--r-md)',
+          minHeight: 'var(--tap-min)', padding: '0 16px', borderRadius: 'var(--r-md)',
           border: '1px solid var(--border-2)', background: 'transparent',
-          fontFamily: 'inherit', fontSize: 14, fontWeight: 600, color: 'var(--ink-3)', cursor: 'pointer',
+          fontFamily: 'inherit', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink-3)', cursor: 'pointer',
         }}>Cancelar</button>
       </div>
     </div>
@@ -921,6 +919,6 @@ function NovaRevisao({ cor, aoGuardar, aoCancelar }: {
 const campo: React.CSSProperties = {
   width: '100%', boxSizing: 'border-box', padding: '10px 12px',
   borderRadius: 'var(--r-md)', border: '1px solid var(--border)',
-  fontFamily: 'inherit', fontSize: 14, minHeight: 42,
+  fontFamily: 'inherit', fontSize: 'var(--t-corpo)', minHeight: 'var(--tap-min)',
   background: 'var(--bg)', color: 'var(--ink)',
 }
