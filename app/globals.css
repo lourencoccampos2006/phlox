@@ -977,7 +977,16 @@ img, svg, video { max-width: 100%; }
   /* O painel: o cabeçalho de uma secção não precisa de 14px de cada lado num
      ecrã onde a linha inteira tem 390. */
   .mesa-cabecalho { padding: 7px 10px !important; }
-  .mesa-painel-corpo { padding-left: 0 !important; padding-right: 0 !important; }
+
+  /* ── O PAINEL DEIXA DE SER UMA CAIXA À VOLTA DE CARTÕES ─────────────────
+     A `LinhaTabela` passou a desenhar-se como cartão no telemóvel (ver a nota
+     em mesa.tsx). Uma caixa com borda e sombra à volta de uma pilha de
+     cartões com borda é duas molduras para a mesma coisa — e num ecrã de
+     390px cada moldura custa 2px de cada lado e um degrau de cinzento a mais.
+     O painel passa a ser só o cabeçalho e o chão por onde os cartões correm. */
+  .mesa-painel { border: none !important; border-radius: 0 !important; background: transparent !important; }
+  .mesa-painel > .mesa-cabecalho { border-radius: var(--r-md) var(--r-md) 0 0; }
+  .mesa-painel-corpo { padding: 7px 0 0 !important; }
 
   /* O chão da mesa. Eram 20px de cada lado só para emoldurar. Agora 10px.
 

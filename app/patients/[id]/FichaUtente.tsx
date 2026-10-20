@@ -490,7 +490,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       {/* O essencial só se monta quando alguém o abre. Ver a nota sobre a bolinha
           no separador, em components/institution/Essencial.tsx. */}
       {aba === 'essencial' && (
-        <Essencial utente={utente} meds={meds} contactos={contactos} cor={cor} />
+        <Essencial utente={utente} meds={meds} contactos={contactos} cor={cor} aoMudar={carregar} />
       )}
 
       {aba === 'plano' && scope.veDetalhe('utentes.plano') && (

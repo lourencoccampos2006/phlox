@@ -113,7 +113,21 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
         <ClinicalCommandPalette />
         <PhloxCopilot />
         <UniversalSearch />
+        {/* ── A BARRA DE BAIXO, TAMBÉM AQUI (2026-10-14) ───────────────────
+            Este ramo nunca a renderizou — e a `BottomNav` ainda por cima
+            devolvia null no modo clínico, por isso eram duas razões para a
+            mesma ausência. Resultado: num telemóvel, quem trabalha numa casa
+            tinha o ☰ no canto e mais nada.
+            A barra só aparece abaixo dos 768px (ver o CSS dela); no
+            computador, onde a barra lateral existe, continua invisível. */}
+        <BottomNav />
+        <div className="has-bottom-nav-espaco" />
         <ScrollToTop />
+        <style>{`
+          @media (max-width: 768px) {
+            .has-bottom-nav-espaco { height: calc(64px + env(safe-area-inset-bottom, 0px)); }
+          }
+        `}</style>
       </>
     )
   }

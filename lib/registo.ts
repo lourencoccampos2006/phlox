@@ -166,6 +166,27 @@ export const ACOES = {
     meta: { medicamento: med, mudanca: oQue },
   }),
 
+  // ── Acompanhamento psicossocial ──────────────────────────────────────────
+  /* O livro regista QUE houve sessão, não o que se disse nela. O conteúdo de
+     uma sessão de psicologia não vai para um registo de atividade que toda a
+     casa lê — e o livro serve para responder a «quem mexeu nisto», não para
+     ser uma segunda cópia da nota. */
+  psiProcesso: (nome: string, novo: boolean) => ({
+    action: novo ? 'psi.processo_criado' : 'psi.processo_revisto', entity: 'patient',
+    summary: novo
+      ? `Abriu o processo psicossocial de ${nome}.`
+      : `Reviu o processo psicossocial de ${nome}.`,
+  }),
+  psiSessao: (nome: string, tipo: string) => ({
+    action: 'psi.sessao', entity: 'patient',
+    summary: `Registou uma sessão (${tipo.toLowerCase()}) com ${primeiro(nome)}.`,
+  }),
+  psiInstrumento: (nome: string, sigla: string, pontos: number, max: number) => ({
+    action: 'psi.instrumento', entity: 'patient',
+    summary: `Aplicou a ${sigla} a ${primeiro(nome)}: ${pontos}/${max}.`,
+    meta: { instrumento: sigla, pontuacao: pontos },
+  }),
+
   // ── Apoio domiciliário ───────────────────────────────────────────────────
   apoioPlano: (nome: string, novo: boolean, quantos: number) => ({
     action: novo ? 'apoio.plano_criado' : 'apoio.plano_mudado', entity: 'patient',

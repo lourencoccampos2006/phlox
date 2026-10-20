@@ -29,7 +29,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { leituraPartilhada } from './leituraPartilhada'
-import { noAno, idadeQueFaz, feriados, CORES_GUARDADAS, type Marca } from './calendario'
+import { noAno, idadeQueFaz, feriados, diasDoAno, CORES_GUARDADAS, type Marca } from './calendario'
 
 type Filtro = <T>(q: T) => T
 
@@ -208,6 +208,78 @@ export async function carregarAno(
           id: `insc-${r.id}`, data: d, origem: 'inscricao' as const,
           titulo: `${r.nome} gostaria de entrar`, quem: r.nome,
         }] : []
+      }),
+    },
+    {
+      /* ── OS TRANSPORTES, QUE FALTAVAM ───────────────────────────────────
+         «O calendário tem de estar ligado com todas as ferramentas: se eu em
+          serviços de apoio marcar uma consulta dia 3 às 14 para a Sr.ª Inês, o
+          calendário tem de marcar isso automaticamente.» (Fernando)
+
+         Tinha razão e era um buraco a sério: a `support_transport_schedules`
+         guarda as idas a consultas, os pedidos pontuais E os circuitos
+         semanais, e o calendário não a lia. Marcava-se uma consulta no
+         /apoio-servicos e ela não existia em mais sítio nenhum — nem no dia,
+         nem no mês, nem no ano.
+
+         ── DUAS FORMAS NA MESMA TABELA ───────────────────────────────────
+         Uma linha com `data` é um acontecimento num dia (a consulta, o pedido
+         pontual). Uma linha com `weekdays` é um circuito que se repete toda a
+         semana — e essa tem de ser EXPANDIDA, senão aparecia uma vez só, no
+         dia em que foi criada.
+
+         Um circuito à terça dá 52 marcas num ano. É muito, e é verdade: é por
+         isso que os transportes são uma origem PRÓPRIA — a legenda do
+         calendário é um filtro, e quem não os quer ver tira-os com um toque.
+         Afogá-los no meio das consultas é que não dava. */
+      nome: 'Transportes', chave: `ano:transportes:${ano}`,
+      // `select('*')`: a `kind`, a `data`, o `destino` e a `route_id` são
+      // colunas acrescentadas depois da tabela nascer, e nomear uma que ainda
+      // não exista faz o PostgREST recusar a consulta INTEIRA — os transportes
+      // desapareciam todos sem uma linha de erro.
+      ler: () => filtro(supabase.from('support_transport_schedules')
+        .select('*').eq('active', true)),
+      paraMarcas: rows => rows.flatMap(r => {
+        const quem = nomeDe.get(r.patient_id)
+        const nome = r.label || r.destino || 'Transporte'
+        const detalhe = [r.destino && r.destino !== r.label ? r.destino : null, r.notes]
+          .filter(Boolean).join(' · ') || undefined
+
+        // ── Um dia marcado ────────────────────────────────────────────────
+        const d = dia(r.data)
+        if (d) {
+          if (d < de || d > ate) return []
+          return [{
+            id: `transp-${r.id}`, data: d, origem: 'transporte' as const,
+            titulo: quem ? `${nome} — ${quem}` : nome,
+            quem, quemId: r.patient_id, hora: hora(r.time), detalhe,
+          }]
+        }
+
+        // ── Ou um circuito que se repete ──────────────────────────────────
+        const dias: number[] = Array.isArray(r.weekdays)
+          ? r.weekdays.filter((n: any) => Number.isInteger(n) && n >= 1 && n <= 7)
+          : []
+        if (!dias.length) return []
+
+        const saida: Marca[] = []
+        // Percorre-se o ano dia a dia. São 365 voltas por circuito — barato, e
+        // sem a aritmética de «a primeira terça depois de 1 de janeiro», que é
+        // onde este tipo de código costuma enganar-se por um dia.
+        for (let i = 0; i < diasDoAno(ano); i++) {
+          const t = new Date(ano, 0, 1 + i)
+          // getDay(): 0=domingo. A aplicação conta 1=segunda … 7=domingo.
+          const n = ((t.getDay() + 6) % 7) + 1
+          if (!dias.includes(n)) continue
+          const iso = `${t.getFullYear()}-${String(t.getMonth() + 1).padStart(2, '0')}-${String(t.getDate()).padStart(2, '0')}`
+          if (iso < de || iso > ate) continue
+          saida.push({
+            id: `transp-${r.id}-${iso}`, data: iso, origem: 'transporte' as const,
+            titulo: quem ? `${nome} — ${quem}` : nome,
+            quem, quemId: r.patient_id, hora: hora(r.time), detalhe,
+          })
+        }
+        return saida
       }),
     },
     {

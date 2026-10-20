@@ -33,6 +33,7 @@ export const SETUP_CODES = {
   'PHX-X6': 'sprint167_modelos_documentos.sql — modelos de documentos que se preenchem com os dados da pessoa, e o registo do que foi emitido',
   'PHX-Y2': 'sprint178_inqueritos.sql — inquéritos de satisfação a utentes, famílias e equipa (as respostas são anónimas por construção)',
   'PHX-Z4': 'sprint181_perfis_de_acesso.sql — perfis de acesso com nome, para aplicar a várias pessoas de uma vez',
+  'PHX-C9': 'sprint186_psicossocial.sql — processo, sessões e escalas do acompanhamento psicossocial (psi_processo, psi_sessoes, psi_instrumentos)',
   'PHX-A7': 'sprint183_apoio_domiciliario.sql — serviço de apoio domiciliário (sad_planos, sad_servicos, sad_visitas)',
   'PHX-R6': 'chave de serviço em falta no ambiente (SUPABASE_SERVICE_ROLE_KEY)',
 } as const

@@ -23,6 +23,22 @@
 // apanha quem ESTÁ A CAIR mas ainda não chegou lá (ex.: ia a todas as
 // atividades, passou a ir a uma) — esse era invisível até agora.
 
+// ── DE «FALEI COM ELE» A UM PROCESSO (2026-10-14) ──────────────────────────
+// «No apoio-psicossocial não pode só ser um botão de "falei com ele", tem de
+//  ter notas sobre a pessoa. (…) O trabalho da psicóloga no centro de dia e
+//  lares deve de ser facilitado com o Phlox, para ter uma ferramenta super
+//  complexa onde consiga meter notas, documentos, análises, pesquisas, etc, e
+//  tudo super organizado.» (Fernando)
+//
+// O que havia eram notas de acompanhamento e encaminhamentos: serve para
+// registar que se falou com alguém, não para ACOMPANHAR alguém. O processo —
+// a avaliação inicial, a rede de apoio, a história, o plano, as sessões com
+// data e duração, e as escalas aplicadas com as respostas guardadas — está em
+// components/institution/ProcessoPsicossocial e em supabase/sprint186.
+//
+// A lista continua a ser esta página, porque a pergunta de quem abre isto
+// continua a ser a mesma: com quem é que eu tenho de falar hoje.
+
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
@@ -32,9 +48,12 @@ import { useToast } from '@/components/Toast'
 import { reportError, MSG } from '@/lib/clientError'
 import Icon from '@/components/Icon'
 import { loadTrends } from '@/lib/sentinel'
+import { ptDate } from '@/lib/ptTime'
 import { psychosocialErosion, type ResidentTrend, type ErosionResult } from '@/lib/trendSignals'
 import { SEVERITY_STYLE } from '@/lib/residentSignals'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
+import ProcessoPsicossocial from '@/components/institution/ProcessoPsicossocial'
+import { quemEstaSozinho, type SinalDeIsolamento } from '@/lib/psicossocial'
 import { registar } from '@/lib/registo'
 import { iniciais, corDaPessoa } from '@/lib/presenca'
 
@@ -105,6 +124,10 @@ export default function ApoioPsicossocialPage() {
   const [soSilencio, setSoSilencio] = useState(false)
   const [search, setSearch] = useState('')
   const [openFor, setOpenFor] = useState<string | null>(null)
+  /* Quem a casa deixou de ver. Calculado, nunca perguntado — ver a nota em
+     lib/psicossocial: ninguém diz que está sozinho. */
+  const [sozinhos, setSozinhos] = useState<SinalDeIsolamento[]>([])
+  const [verSozinhos, setVerSozinhos] = useState(false)
 
   const [newNote, setNewNote] = useState('')
   const [newReferTo, setNewReferTo] = useState('')
@@ -116,7 +139,13 @@ export default function ApoioPsicossocialPage() {
     if (!user) return
     setLoading(true)
     const since14 = new Date(Date.now() - 14 * 86400000).toISOString().slice(0, 10)
-    const [pats, nts, cr, fam, vis] = await Promise.all([
+    const since30 = new Date(Date.now() - 30 * 86400000).toISOString().slice(0, 10)
+    /* `ptDate()` e nao `toISOString`: a hora de Portugal e a que conta num
+       calculo de «ha quantos dias». Com o `toISOString`, entre a meia-noite e
+       a uma da manha o dia saia o anterior e toda a gente parecia um dia mais
+       isolada. */
+    const hojePt = ptDate()
+    const [pats, nts, cr, fam, vis, ativ] = await Promise.all([
       scope.filter(supabase.from('patients').select('id,name,room_number')).eq('active', true).order('name'),
       scope.filter(supabase.from('psychosocial_notes').select('*')).order('date', { ascending: false }),
       scope.filter(supabase.from('care_records').select('patient_id,mood')).gte('date', since14),
@@ -128,6 +157,23 @@ export default function ApoioPsicossocialPage() {
         .order('created_at', { ascending: false }).limit(600)
         .then((r: any) => r, () => ({ data: [] })),
       scope.filter(supabase.from('visit_requests').select('patient_id,requested_date,status'))
+        .then((r: any) => r, () => ({ data: [] })),
+
+      /* ── QUEM NÃO SAI DO QUARTO ──────────────────────────────────────────
+         «Se calhar a parte que os idosos mais sofrem é com problemas derivados
+          de isolamento, tristeza.» (Fernando)
+
+         Faltava a terceira fonte. As visitas e as mensagens dizem quem vem de
+         FORA; as atividades dizem se a pessoa sai do quarto — e há quem não
+         tenha ninguém e participe em tudo, e quem tenha a família toda e não
+         saia da cama. São isolamentos diferentes e tratam-se de maneira
+         diferente.
+
+         Duas leituras porque a `activity_participations` não tem data: a data
+         está na atividade. Primeiro as atividades do último mês, depois quem
+         esteve nelas. */
+      scope.filter(supabase.from('activities').select('id'))
+        .gte('date', since30).lte('date', hojePt)
         .then((r: any) => r, () => ({ data: [] })),
     ])
     if (nts.error && /does not exist|schema cache/i.test(nts.error.message)) { setNeedsSetup(true); setLoading(false); return }
@@ -160,6 +206,27 @@ export default function ApoioPsicossocialPage() {
       if (levels.length >= 4 && levels.reduce((a, b) => a + b, 0) / levels.length <= 2) flags.add(pid)
     })
     setMoodFlags(flags)
+
+    /* ── QUEM ESTÁ SOZINHO ─────────────────────────────────────────────────
+       A segunda leitura das atividades: quem esteve nas do último mês. Só se
+       pede se houver atividades — numa casa que não as registe, a consulta
+       com uma lista vazia de ids devolveria a tabela inteira. */
+    const idsAtiv = (((ativ as any)?.data || []) as any[]).map(a => a.id).filter(Boolean)
+    let participacoes: { patient_id: string }[] = []
+    if (idsAtiv.length) {
+      const r: any = await scope.filter(
+        supabase.from('activity_participations').select('patient_id'))
+        .in('activity_id', idsAtiv).eq('attended', true)
+        .then((x: any) => x, () => ({ data: [] }))
+      participacoes = (r?.data || []) as { patient_id: string }[]
+    }
+    setSozinhos(quemEstaSozinho(
+      ((pats.data || []) as Patient[]).map(x => ({ id: x.id, name: x.name })),
+      (((vis as any)?.data || []) as any[]),
+      (((fam as any)?.data || []) as any[]),
+      participacoes,
+      hojePt,
+    ))
 
     // Índice de erosão — mesma fonte de tendência que o /radar e o /tendencias
     // usam (lib/sentinel loadTrends), aqui lido só na parte psico-social.
@@ -301,6 +368,19 @@ export default function ApoioPsicossocialPage() {
               aoMudar={v => setSoSilencio(v === 'silencio')} />
           )}
 
+          {/* ── QUEM A CASA DEIXOU DE VER ────────────────────────────────
+              O primeiro de todos os contadores, e com o seu próprio botão: é
+              a pergunta que o Fernando pôs («a parte que os idosos mais sofrem
+              é com problemas derivados de isolamento»), e a lista responde-lhe
+              com nomes em vez de com um número. */}
+          {!loading && sozinhos.length > 0 && (
+            <Botao feitio={verSozinhos ? 'principal' : 'contorno'}
+              onClick={() => setVerSozinhos(v => !v)}
+              titulo="Quem não recebe visitas, não recebe mensagens, ou não sai do quarto">
+              {verSozinhos ? 'FECHAR' : `${sozinhos.length} MAIS SOZINHOS`}
+            </Botao>
+          )}
+
           {!loading && (
             <span style={{ display: 'inline-flex', gap: 12, alignItems: 'center' }}>
               {erodingCount > 0 && (
@@ -401,8 +481,15 @@ export default function ApoioPsicossocialPage() {
                   ]}
                   fim={
                     /* Um toque. Se registar um contacto der trabalho, ninguém
-                       regista — e o número de dias deixa de querer dizer nada. */
-                    <Botao feitio="principal"
+                       regista — e o número de dias deixa de querer dizer nada.
+
+                       DEIXOU DE SER O BOTÃO VERDE (2026-10-14). «Não pode só
+                       ser um botão de falei com ele» — e enquanto ele era a
+                       única coisa com cor em cada linha, era isso que a página
+                       dizia que se vinha aqui fazer. O que se vem aqui fazer é
+                       abrir o processo da pessoa; marcar o contacto é o atalho
+                       para quando não há mais nada a registar. */
+                    <Botao
                       onClick={() => registarContacto(p.id, p.name)}
                       esperando={aRegistar === p.id}>
                       FALEI COM ELE
@@ -411,6 +498,53 @@ export default function ApoioPsicossocialPage() {
               )
             })}
           </Painel>
+        )}
+
+        {/* ══ QUEM A CASA DEIXOU DE VER ════════════════════════════════════
+            Não é um diagnóstico e não se parece com um: é uma lista de quem
+            ver, por ordem. As RAZÕES é que se mostram — o peso que as ordena
+            fica escondido de propósito, porque um número ao lado de um nome
+            convida a ser tratado como uma medida, e não é. */}
+        {verSozinhos && (
+          <div style={{ marginBottom: 'var(--space-7)' }}>
+            <Painel cabeca={
+              <Cabecalho>
+                <span style={{ ...ROTULO, flex: 1 }}>Quem a casa deixou de ver</span>
+                <span style={{ ...MONO, fontSize: 'var(--t-micro)', color: 'var(--ink-5)' }}>
+                  {sozinhos.length} DE {patients.length}
+                </span>
+              </Cabecalho>
+            }>
+              <div style={{ padding: 'var(--space-6) var(--space-7)' }}>
+                <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', lineHeight: 1.6, margin: 0 }}>
+                  Isto sai de quem aparece — visitas, mensagens das famílias e
+                  participação nas atividades — e não de perguntar. Ninguém diz
+                  que está sozinho: quem foi criado a não se queixar responde
+                  «não, não senhora». <strong>Não é um diagnóstico</strong>, é uma
+                  lista de quem ver.
+                </p>
+              </div>
+              {sozinhos.map(x => (
+                <button key={x.patientId} type="button"
+                  onClick={() => { setOpenFor(x.patientId); setVerSozinhos(false) }}
+                  style={{
+                    display: 'block', width: '100%', textAlign: 'left', cursor: 'pointer',
+                    background: 'none', fontFamily: 'inherit',
+                    border: 'none', borderTop: '1px solid var(--bg-2)',
+                    padding: 'var(--space-6) var(--space-7)',
+                  }}>
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-corpo)', color: 'var(--ink)',
+                    fontWeight: 'var(--peso-corpo)' as any,
+                  }}>{x.nome}</span>
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-dado)', color: 'var(--ink-3)',
+                    marginTop: 2, lineHeight: 1.5,
+                  }}>{x.razoes.join(' · ')}</span>
+                </button>
+              ))}
+            </Painel>
+          </div>
         )}
 
         {/* ══ O QUE SE SABE DESTA PESSOA ═══════════════════════════════════ */}
@@ -465,6 +599,16 @@ export default function ApoioPsicossocialPage() {
                     um acompanhamento.
                   </p>
                 )}
+
+                {/* ── O PROCESSO ─────────────────────────────────────────────
+                    Entra antes das notas de propósito: o que se lê antes de
+                    escrever a nota de hoje é quem a pessoa é e o que ficou
+                    combinado da última vez. As notas de acompanhamento que já
+                    existiam ficam por baixo, intactas — são o registo de
+                    contacto rápido, e continuam a servir para isso. */}
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-2)' }}>
+                  <ProcessoPsicossocial pid={p.id} nome={p.name} podeEditar={podeEditar} />
+                </div>
 
                 {/* ── A NOTA NOVA ────────────────────────────────────────── */}
                 <div style={{ marginTop: 14, paddingTop: 12, borderTop: '1px solid var(--border-2)' }}>

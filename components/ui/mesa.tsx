@@ -231,7 +231,7 @@ export function Painel({ cabeca, rodape, children }: {
   children: ReactNode
 }) {
   return (
-    <div style={{
+    <div className="mesa-painel" style={{
       background: 'var(--bg)', border: '1px solid var(--border)',
       borderRadius: 'var(--r-md)', overflow: 'hidden',
       display: 'flex', flexDirection: 'column', minHeight: 0,
@@ -317,15 +317,43 @@ export function LinhaTabela({
 }) {
   const largo = useLargo()
 
-  const estilo: CSSProperties = {
-    display: 'flex', alignItems: largo ? 'center' : 'flex-start', gap: 10,
+  /* ── NO TELEMÓVEL ISTO NÃO É UMA LINHA DE TABELA: É UM CARTÃO ───────────
+     «Em telemóvel o design tem de ser completamente novo (…) em mobile
+      continua péssimo.» (Fernando, 2026-10-14)
+
+     Da primeira vez comprimi: menos espaço, menos padding, menos intervalo.
+     Estava errado, e ele disse-o outra vez. Comprimir não é redesenhar —
+     uma linha de tabela comprimida continua a ser uma linha de tabela, e uma
+     tabela num ecrã de 390px não é uma tabela: é uma pilha de texto com
+     hairlines a fingir que são colunas.
+
+     O que um telemóvel faz bem é o cartão: uma coisa de cada vez, com
+     fronteira própria, espaço a sério por dentro e um alvo grande. É o
+     contrário do que fiz da primeira vez — e é por isso que o padding SOBE
+     aqui enquanto desce em todo o resto.
+
+     No computador nada muda: lá a tabela está certa e é o que ele gosta. */
+  const estilo: CSSProperties = largo ? {
+    display: 'flex', alignItems: 'center', gap: 10,
     width: '100%', textAlign: 'left', boxSizing: 'border-box',
-    flexDirection: largo ? 'row' : 'column',
-    padding: largo ? '8px 12px' : '10px 12px',
+    flexDirection: 'row', padding: '8px 12px',
     borderBottom: '1px solid var(--border)',
     borderLeft: `3px solid ${ativa ? 'var(--green)' : filete || 'transparent'}`,
     borderTop: 'none', borderRight: 'none',
     background: ativa ? 'var(--green-light)' : 'transparent',
+    fontFamily: 'inherit', color: 'var(--ink)',
+    cursor: aoTocar || href ? 'pointer' : 'default',
+    textDecoration: 'none',
+  } : {
+    display: 'flex', alignItems: 'flex-start', gap: 8,
+    width: '100%', textAlign: 'left', boxSizing: 'border-box',
+    flexDirection: 'column',
+    padding: '13px 14px',
+    border: '1px solid var(--border)',
+    borderLeft: `3px solid ${ativa ? 'var(--green)' : filete || 'var(--border)'}`,
+    borderRadius: 'var(--r-md)',
+    marginBottom: 7,
+    background: ativa ? 'var(--green-light)' : 'var(--bg)',
     fontFamily: 'inherit', color: 'var(--ink)',
     cursor: aoTocar || href ? 'pointer' : 'default',
     textDecoration: 'none',
@@ -358,8 +386,13 @@ export function LinhaTabela({
         <span style={{ width: largo ? antes.largura : undefined, flexShrink: 0 }}>{antes.conteudo}</span>
       )}
       <span style={{ flex: 1, minWidth: 0 }}>
+        {/* Num cartão, o nome é o título do cartão — e um título a 14,5px
+            lido de pé, com o telemóvel a meio metro, é pequeno. */}
         <span style={{
-          display: 'block', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any,
+          display: 'block',
+          fontSize: largo ? 'var(--t-corpo)' : 'var(--t-destaque)',
+          lineHeight: largo ? undefined : 1.25,
+          fontWeight: 'var(--peso-corpo)' as any,
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>{principal}</span>
         {secundaria && (
@@ -413,14 +446,27 @@ export function LinhaTabela({
           o que punha «RQ» sozinho numa terceira linha, por baixo dos numeros,
           onde se lia como mais uma medida. As etiquetas sao atributos da
           PESSOA: pertencem junto ao nome. Os numeros medem-se e vao no fim. */}
+      {/* ── OS NÚMEROS, EM PROSA ────────────────────────────────────────────
+          Eram pares de MAIÚSCULAS MONO com o valor ao lado:
+          «IDADE 81a   MED 1   RISCO 15». Numa tabela de computador isso é
+          certo — os rótulos estão no cabeçalho e aqui repetem-se em pequeno.
+          Num cartão de telemóvel é uma linha de código a meio de uma ficha de
+          uma pessoa, e lê-se com esforço.
+
+          Agora os rótulos ficam em minúsculas e na letra do texto, e os
+          valores destacam-se por peso e não por tipo de letra. O mono fica
+          onde ganha alguma coisa: nos números que se comparam entre linhas. */}
       {comValor.length > 0 && (
-        <span style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 5, order: 1 }}>
+        <span style={{
+          display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 6, order: 1,
+          fontSize: 'var(--t-dado)', lineHeight: 1.5,
+        }}>
           {comValor.map(c => (
             <span key={c.rotulo} style={{ display: 'inline-flex', alignItems: 'baseline', gap: 4 }}>
-              <span style={{ ...ROTULO, fontSize: 'var(--t-micro)' }}>{c.rotulo}</span>
+              <span style={{ color: 'var(--ink-4)' }}>{c.rotulo.toLowerCase()}</span>
               <span style={{
-                ...MONO, fontSize: 'var(--t-dado)', color: c.cor || 'var(--ink-3)',
-                fontWeight: (c.forte ? 'var(--peso-forte)' : 'var(--peso-normal)') as any,
+                fontFamily: 'var(--font-mono)', color: c.cor || 'var(--ink)',
+                fontWeight: 'var(--peso-forte)' as any,
               }}>{c.valor}</span>
             </span>
           ))}
@@ -626,6 +672,7 @@ export function Seletor<T extends string>({ opcoes, ativa, aoMudar }: {
   ativa: T
   aoMudar: (id: T) => void
 }) {
+  const largo = useLargo()
   return (
     /* `overflow-x: auto` e nao `hidden` (2026-10-07).
        Com `hidden`, quatro separadores a 390px cortavam o ultimo a meio da
@@ -643,9 +690,29 @@ export function Seletor<T extends string>({ opcoes, ativa, aoMudar }: {
         return (
           <button key={o.id} role="tab" aria-selected={on} onClick={() => aoMudar(o.id)}
             className="mesa-botao"
-            style={{
+            /* ── MAIÚSCULAS MONO SÃO PARA O COMPUTADOR ────────────────────
+               «TODOS 8  ALERTAS 0  POLIMED. 0  SEM REGISTO 8» numa barra de
+               computador é um separador denso e legível: a caixa alta e o
+               espaçamento entre letras dizem «isto é um controlo, não é texto».
+
+               A 390px é outra coisa. As maiúsculas ocupam mais ~15% de largura
+               do que as minúsculas, o espaçamento entre letras acrescenta
+               mais, e o resultado foi o que se via: quatro opções em que a
+               quarta saía cortada a meio da palavra contra a borda.
+
+               Em ecrã estreito a mesma informação vai em minúsculas, na letra
+               do texto e sem espaçamento. Cabe mais, lê-se melhor, e continua
+               a ser evidente que é um separador — isso quem o diz é a moldura
+               e o fundo do ativo, não a caixa alta. */
+            style={largo ? {
               ...MONO, fontSize: 'var(--t-meta)', letterSpacing: '.08em', textTransform: 'uppercase',
               padding: '0 12px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
+              background: on ? 'var(--green)' : 'transparent',
+              color: on ? 'var(--sobre-acento)' : 'var(--ink-3)',
+              fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,
+            } : {
+              fontFamily: 'inherit', fontSize: 'var(--t-corpo)', letterSpacing: 0,
+              padding: '0 14px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
               background: on ? 'var(--green)' : 'transparent',
               color: on ? 'var(--sobre-acento)' : 'var(--ink-3)',
               fontWeight: (on ? 'var(--peso-forte)' : 'var(--peso-corpo)') as any,

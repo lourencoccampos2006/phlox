@@ -89,6 +89,22 @@ export interface CampoDaFolha {
   critico?: boolean
   /** Onde se preenche, para quem quiser resolver. */
   onde?: string
+  /**
+   * A coluna de onde este campo veio — e para onde volta quando se muda.
+   *
+   * ── PORQUE É QUE ISTO EXISTE (2026-10-14) ──────────────────────────────
+   * «Aquilo de tocar para mudar no perfil do utente, podias fazer isso para a
+   *  página d'O essencial.» (Fernando)
+   *
+   * O `onde` acima diz a uma PESSOA onde ir preencher («ficha», «plano»). Não
+   * chega para a interface o fazer sozinha: para gravar é preciso saber a
+   * tabela e a coluna. Os campos que são uma coluna directa levam as duas; os
+   * que são calculados (a idade, que sai da data de nascimento; a restrição de
+   * líquidos, que são duas colunas numa frase) não levam nenhuma, e continuam
+   * só de leitura — editar um valor calculado é editar a conta, não o dado.
+   */
+  tabela?: 'patients' | 'care_plans'
+  coluna?: string
 }
 
 export interface SecaoDaFolha {
@@ -179,6 +195,8 @@ const NAO_SE_SABE = new Set([
 interface OpcoesDoCampo {
   critico?: boolean
   onde?: string
+  tabela?: 'patients' | 'care_plans'
+  coluna?: string
   /** «Não há» é uma resposta válida aqui? Sim nas alergias, não na mobilidade. */
   negavel?: boolean
   /** O que imprimir quando está em branco. */
@@ -206,12 +224,14 @@ export function campo(
   if (/^\?+$/.test(bruto)) {
     return {
       rotulo, valor: o.seBranco || 'Não está registado', estado: 'branco',
+      tabela: o.tabela, coluna: o.coluna,
       critico: o.critico, onde: o.onde,
     }
   }
   if (o.negavel && /^[-–—]+$/.test(bruto)) {
     return {
       rotulo, valor: o.seNenhum || 'Não tem', estado: 'nenhum',
+      tabela: o.tabela, coluna: o.coluna,
       critico: o.critico, onde: o.onde,
     }
   }
@@ -229,17 +249,22 @@ export function campo(
       estado: 'branco',
       critico: o.critico,
       onde: o.onde,
+      tabela: o.tabela, coluna: o.coluna,
     }
   }
 
   if (o.negavel && NAO_HA.has(n)) {
     return {
       rotulo, valor: o.seNenhum || 'Não tem', estado: 'nenhum',
+      tabela: o.tabela, coluna: o.coluna,
       critico: o.critico, onde: o.onde,
     }
   }
 
-  return { rotulo, valor: bruto, estado: 'escrito', critico: o.critico, onde: o.onde }
+  return {
+    rotulo, valor: bruto, estado: 'escrito', critico: o.critico, onde: o.onde,
+    tabela: o.tabela, coluna: o.coluna,
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -468,8 +493,26 @@ export interface PlanoDaFolha {
   hygiene?: string | null
   nutrition_plan?: string | null
   skin_care?: string | null
-  fall_prevention?: string | null
-  pressure_ulcer_prevention?: string | null
+  /* ── É UM ARRAY, E ESTAVA DECLARADO COMO TEXTO ────────────────────────
+     A `care_plans.pressure_ulcer_prevention` é `string[]` — está assim no
+     /care-plans, que é quem a escreve. Aqui estava `string | null`, e a 526
+     fazia-lhe `.trim()`.
+
+     Um array VAZIO é truthy: `([] || '').trim()` não cai para a cadeia vazia,
+     chama `.trim()` no array e rebenta com
+
+         TypeError: ((intermediate value) || "").trim is not a function
+
+     — e rebenta a folha INTEIRA, porque o `alertasDaFolha` corre dentro do
+     `montarFolha`. Ou seja: bastava uma casa ter um plano de cuidados gravado
+     para a página d'O essencial dessa pessoa deixar de abrir.
+
+     Não se via porque o TypeScript acreditava na declaração, e as contas de
+     teste não tinham plano nenhum. Apareceu no instante em que a edição no
+     sítio criou o primeiro. */
+  pressure_ulcer_prevention?: string | string[] | null
+  fall_prevention?: string | string[] | null
+  goals?: string | string[] | null
   positioning_schedule?: string | null
   diet_type?: string | null
   diet_texture?: string | null
@@ -491,6 +534,22 @@ export interface PlanoDaFolha {
  * São quatro, e só quatro. Uma lista longa de avisos destes é uma lista que se
  * fecha sem ler.
  */
+/**
+ * Uma coluna em texto, seja ela o que for.
+ *
+ * Metade das colunas do plano de cuidados são `text` e a outra metade `text[]`
+ * — e quem lê daqui não tem como saber qual é qual sem ir ver o esquema. Um
+ * `(x || '').trim()` sobre um array rebenta, e rebenta a folha inteira.
+ *
+ * Aqui um array vem junto por vírgulas, um texto vem aparado, e tudo o resto
+ * vem vazio. Nunca lança.
+ */
+export function comoTexto(v: unknown): string {
+  if (Array.isArray(v)) return v.filter(Boolean).map(x => String(x).trim()).join(', ')
+  if (v == null) return ''
+  return String(v).trim()
+}
+
 export function alertasDaFolha(
   utente: { fall_risk?: string | null; pressure_risk?: string | null; mobility?: string | null },
   plano: PlanoDaFolha | null | undefined,
@@ -498,19 +557,19 @@ export function alertasDaFolha(
   feridas: FeridaDaFolha[],
 ): string[] {
   const a: string[] = []
-  const posicionamento = (plano?.positioning_schedule || '').trim()
-  const prevencao = (plano?.pressure_ulcer_prevention || '').trim()
+  const posicionamento = comoTexto(plano?.positioning_schedule)
+  const prevencao = comoTexto(plano?.pressure_ulcer_prevention)
 
   if (RISCO_ALTO.test(utente.pressure_risk || '') && !posicionamento && !prevencao) {
     a.push('Risco de úlcera de pressão elevado, e não há esquema de posicionamento escrito. '
       + 'Quem entrar de novo não sabe de quantas em quantas horas se muda a pessoa de posição.')
   }
-  if (RISCO_ALTO.test(utente.fall_risk || '') && !(plano?.mobility || utente.mobility || '').trim()) {
+  if (RISCO_ALTO.test(utente.fall_risk || '') && !comoTexto(plano?.mobility || utente.mobility)) {
     a.push('Risco de queda elevado, e a mobilidade não está descrita. '
       + 'Não se sabe se esta pessoa se levanta sozinha.')
   }
   const semTratamento = feridas.filter(f =>
-    f.status !== 'healed' && f.status !== 'cicatrizada' && !(f.dressing || f.treatment || '').trim())
+    f.status !== 'healed' && f.status !== 'cicatrizada' && !comoTexto(f.dressing || f.treatment))
   if (semTratamento.length) {
     a.push(`${semTratamento.length === 1 ? 'Há uma ferida ativa sem' : `Há ${semTratamento.length} feridas ativas sem`} `
       + 'tratamento registado. Quem fizer o penso não sabe o que aplicar.')
@@ -574,28 +633,28 @@ export function montarFolha(d: DadosDaFolha): Folha {
   const idade = anosDesde(u.date_of_birth || u.birth_date) ?? (u.age || null)
   const cabecalho: CampoDaFolha[] = [
     ...(d.temQuartos
-      ? [campo('Quarto', u.room_number, { onde: 'ficha', seBranco: 'Sem quarto atribuído' })]
+      ? [campo('Quarto', u.room_number, { onde: 'ficha', seBranco: 'Sem quarto atribuído', tabela: 'patients', coluna: 'room_number' })]
       : []),
     campo('Idade', idade == null ? null : `${idade} anos`, { onde: 'ficha' }),
-    campo('Sexo', u.sex, { onde: 'ficha' }),
+    campo('Sexo', u.sex, { onde: 'ficha', tabela: 'patients', coluna: 'sex' }),
     campo('Entrada', u.admission_date ? emPortugues(u.admission_date) : null, { onde: 'ficha' }),
-    campo('Nº utente (SNS)', u.sns_number, { onde: 'ficha' }),
+    campo('Nº utente (SNS)', u.sns_number, { onde: 'ficha', tabela: 'patients', coluna: 'sns_number' }),
   ]
 
   /* ── Alergias: a razão de ser desta folha ──────────────────────────────── */
   const alergias = campo('Alergias', u.allergies, {
-    critico: true, negavel: true, onde: 'ficha',
+    critico: true, negavel: true, onde: 'ficha', tabela: 'patients', coluna: 'allergies',
     seBranco: '⚠ NÃO ESTÁ REGISTADO — não quer dizer que não tenha',
     seNenhum: 'Sem alergias conhecidas',
   })
 
   /* ── Saúde ─────────────────────────────────────────────────────────────── */
   const saude: CampoDaFolha[] = [
-    campo('Diagnóstico', u.diagnosis, { onde: 'ficha' }),
-    campo('Problemas de saúde', u.conditions, { onde: 'ficha' }),
-    campo('Estado cognitivo', u.cognitive_status, { onde: 'ficha' }),
+    campo('Diagnóstico', u.diagnosis, { onde: 'ficha', tabela: 'patients', coluna: 'diagnosis' }),
+    campo('Problemas de saúde', u.conditions, { onde: 'ficha', tabela: 'patients', coluna: 'conditions' }),
+    campo('Estado cognitivo', u.cognitive_status, { onde: 'ficha', tabela: 'patients', coluna: 'cognitive_status' }),
     campo('Médico assistente', u.doctor, {
-      critico: true, onde: 'ficha',
+      critico: true, onde: 'ficha', tabela: 'patients', coluna: 'doctor',
       seBranco: '⚠ Não está registado — ninguém a quem ligar sobre a medicação',
     }),
   ]
@@ -606,11 +665,11 @@ export function montarFolha(d: DadosDaFolha): Folha {
   // lib/ocorrencias.ts já conhece.
   const alimentacao: CampoDaFolha[] = [
     campo('Dieta', plano?.diet_type || u.diet, {
-      critico: true, negavel: true, onde: 'plano',
+      critico: true, negavel: true, onde: 'plano', tabela: 'care_plans', coluna: 'diet_type',
       seBranco: '⚠ NÃO ESTÁ REGISTADA', seNenhum: 'Dieta geral, sem restrições',
     }),
     campo('Textura', plano?.diet_texture, {
-      critico: true, negavel: true, onde: 'plano',
+      critico: true, negavel: true, onde: 'plano', tabela: 'care_plans', coluna: 'diet_texture',
       seBranco: '⚠ NÃO ESTÁ REGISTADA — confirmar antes de dar líquidos',
       seNenhum: 'Normal',
     }),
@@ -619,20 +678,20 @@ export function montarFolha(d: DadosDaFolha): Folha {
         ? (plano.fluid_restriction_ml ? `Sim — ${plano.fluid_restriction_ml} ml/dia` : 'Sim')
         : (plano?.fluid_restriction === false ? 'sem' : null),
       { negavel: true, onde: 'plano', seNenhum: 'Não', seBranco: 'Não está registada' }),
-    campo('Plano alimentar', plano?.nutrition_plan, { onde: 'plano' }),
+    campo('Plano alimentar', plano?.nutrition_plan, { onde: 'plano', tabela: 'care_plans', coluna: 'nutrition_plan' }),
   ]
 
   /* ── Mobilidade ────────────────────────────────────────────────────────── */
   const mobilidade: CampoDaFolha[] = [
     campo('Mobilidade e transferências', plano?.mobility || u.mobility, {
-      critico: true, onde: 'plano',
+      critico: true, onde: 'plano', tabela: 'care_plans', coluna: 'mobility',
       seBranco: '⚠ NÃO ESTÁ REGISTADA — confirmar antes de levantar',
     }),
-    campo('Risco de queda', u.fall_risk, { onde: 'ficha' }),
-    campo('Risco de úlcera', u.pressure_risk, { onde: 'ficha' }),
-    campo('Posicionamento', plano?.positioning_schedule, { onde: 'plano' }),
-    campo('Cuidados à pele', plano?.skin_care, { onde: 'plano' }),
-    campo('Higiene', plano?.hygiene, { onde: 'plano' }),
+    campo('Risco de queda', u.fall_risk, { onde: 'ficha', tabela: 'patients', coluna: 'fall_risk' }),
+    campo('Risco de úlcera', u.pressure_risk, { onde: 'ficha', tabela: 'patients', coluna: 'pressure_risk' }),
+    campo('Posicionamento', plano?.positioning_schedule, { onde: 'plano', tabela: 'care_plans', coluna: 'positioning_schedule' }),
+    campo('Cuidados à pele', plano?.skin_care, { onde: 'plano', tabela: 'care_plans', coluna: 'skin_care' }),
+    campo('Higiene', plano?.hygiene, { onde: 'plano', tabela: 'care_plans', coluna: 'hygiene' }),
   ]
 
   /* ── Medicação ─────────────────────────────────────────────────────────── */

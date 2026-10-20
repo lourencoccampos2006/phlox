@@ -85,7 +85,7 @@ const ficheiros = fs.readdirSync('supabase')
 // (2026-10-07: mais o 180 — a conformidade passa a ser da casa. Corre ANTES
 //  do 153, que é sempre o último porque regenera as políticas todas.)
 const ORDEM = (process.env.ORDEM
-  || '179,180,153,181,182,183,184,185').split(',').map(Number)
+  || '179,180,153,181,182,183,184,185,186').split(',').map(Number)
 const pendentes = ORDEM
   .map(n => ficheiros.find(f => numero(f) === n))
   .filter(Boolean)

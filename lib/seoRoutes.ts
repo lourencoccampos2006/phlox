@@ -30,6 +30,12 @@ export const PRIVADAS = [
   '/api/',
   '/auth/',
   '/admin',
+  /* Os inquéritos partilhados. Cada um é um link com um código de seis
+     caracteres, feito para ir num SMS ou num papel afixado na entrada — não
+     para estar num motor de busca. E se um deles aparecesse numa pesquisa,
+     qualquer pessoa podia responder ao inquérito de uma casa que não conhece,
+     o que estraga a média de quem o lançou. */
+  '/i/',
 ]
 
 /**

@@ -38,6 +38,9 @@ import {
   montarFolha, resumoDaFolha,
   type Folha as FolhaDoEssencial, type CampoDaFolha, type SecaoDaFolha,
 } from '@/lib/essencial'
+import { useOrgScope } from '@/lib/orgScope'
+import { registar, ACOES } from '@/lib/registo'
+import LinhaEditavel from '@/components/institution/LinhaEditavel'
 
 const MONO: React.CSSProperties = {
   fontFamily: 'var(--font-mono)', fontSize: 10.5, letterSpacing: '0.14em',
@@ -45,6 +48,13 @@ const MONO: React.CSSProperties = {
 }
 
 /** Um campo em branco não se pinta como os outros — é esse o ponto todo. */
+interface Edicao {
+  podeEditar: boolean
+  /** O que está mesmo na coluna — não o que a folha escreve por cima. */
+  bruto: (c: CampoDaFolha) => string | null
+  guardar: (c: CampoDaFolha, valor: string | null) => Promise<string | null>
+}
+
 function corDoCampo(c: CampoDaFolha): { cor: string; fundo: string | null } {
   if (c.estado !== 'branco') return { cor: 'var(--ink)', fundo: null }
   return c.critico
@@ -52,8 +62,57 @@ function corDoCampo(c: CampoDaFolha): { cor: string; fundo: string | null } {
     : { cor: 'var(--ink-5)', fundo: null }
 }
 
-function Campo({ c }: { c: CampoDaFolha }) {
+/* ── TOCAR PARA MUDAR, TAMBÉM AQUI (2026-10-14) ───────────────────────────
+   «Aquilo de tocar para mudar no perfil do utente, podias fazer isso para a
+    página d'O essencial.» (Fernando)
+
+   E faz mais sentido aqui do que em qualquer outro sítio: esta folha existe
+   para mostrar o que FALTA — o aviso vermelho em cima diz «falta a dieta,
+   falta a mobilidade, falta o médico assistente». Até agora dizia-o e mandava
+   a pessoa para outro ecrã. Quem lê isto está a dois metros de quem sabe a
+   resposta; o sítio de a escrever é aqui.
+
+   ── O QUE NÃO SE EDITA ───────────────────────────────────────────────────
+   Os campos calculados (a idade, que sai da data de nascimento; a restrição de
+   líquidos, que são duas colunas numa frase). Não levam `coluna` e continuam
+   de leitura — editar um valor calculado é editar a conta, não o dado.
+
+   E o VALOR que se edita é o bruto, não o que está no ecrã: a folha escreve
+   «⚠ NÃO ESTÁ REGISTADO» num campo branco, e abrir a caixa com essa frase lá
+   dentro fazia quem gravasse escrever o aviso dentro do campo. */
+function Campo({ c, bruto, podeEditar, aoGuardar }: {
+  c: CampoDaFolha
+  /** O que está mesmo na coluna. Null num campo em branco. */
+  bruto?: string | null
+  podeEditar?: boolean
+  aoGuardar?: (c: CampoDaFolha, valor: string | null) => Promise<string | null>
+}) {
   const { cor, fundo } = corDoCampo(c)
+
+  if (podeEditar && aoGuardar && c.tabela && c.coluna) {
+    return (
+      <div style={{
+        padding: fundo ? '2px 10px' : 0, borderRadius: fundo ? 'var(--r-sm)' : 0,
+        background: fundo || 'transparent',
+      }}>
+        <LinhaEditavel
+          rotulo={c.rotulo}
+          cor={c.estado === 'branco' && c.critico ? 'var(--red)' : undefined}
+          valor={bruto ?? null}
+          podeEditar
+          aoGuardar={v => aoGuardar(c, v)}
+        />
+        {/* O aviso do campo crítico em branco não se perde ao tornar-se
+            editável: é ele que diz porque é que vale a pena escrever já. */}
+        {c.estado === 'branco' && c.critico && (
+          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--red)', paddingBottom: 6 }}>
+            {c.valor}
+          </div>
+        )}
+      </div>
+    )
+  }
+
   return (
     <div style={{
       padding: fundo ? '8px 10px' : '8px 0', borderRadius: fundo ? 'var(--r-sm)' : 0,
@@ -70,7 +129,11 @@ function Campo({ c }: { c: CampoDaFolha }) {
   )
 }
 
-function Secao({ s, cor }: { s: SecaoDaFolha; cor: string }) {
+function Secao({ s, cor, edicao }: {
+  s: SecaoDaFolha; cor: string
+  /** O que torna um campo editável. Omitido, a secção é só de leitura. */
+  edicao?: Edicao
+}) {
   const temLinhas = !!s.linhas?.length
   const temCampos = !!s.campos?.length
   // Uma secção de lista vazia não desaparece: diz que está vazia. «Sem feridas
@@ -89,9 +152,21 @@ function Secao({ s, cor }: { s: SecaoDaFolha; cor: string }) {
       {temCampos && (
         <div style={{
           display: 'grid', gap: 'var(--space-4)', marginTop: 'var(--space-5)',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+          /* 220px chegavam para um rótulo por cima de um valor, que é como
+             isto era. Com as linhas editáveis o rótulo passa para a ESQUERDA
+             do valor, e numa coluna de 220 sobram 120 para o texto — «POR
+             REGISTAR — tocar para escrever» saía em três linhas, e um
+             diagnóstico escrito saía picado.
+             Com edição, colunas mais largas e menos delas. */
+          gridTemplateColumns: edicao?.podeEditar
+            ? 'repeat(auto-fit, minmax(340px, 1fr))'
+            : 'repeat(auto-fit, minmax(220px, 1fr))',
         }}>
-          {(s.campos || []).map(c => <Campo key={c.rotulo} c={c} />)}
+          {(s.campos || []).map(c => (
+            <Campo key={c.rotulo} c={c}
+              bruto={edicao?.bruto(c)} podeEditar={edicao?.podeEditar}
+              aoGuardar={edicao?.guardar} />
+          ))}
         </div>
       )}
 
@@ -128,17 +203,21 @@ function Secao({ s, cor }: { s: SecaoDaFolha; cor: string }) {
   )
 }
 
-export default function Essencial({ utente, meds, contactos, cor }: {
+export default function Essencial({ utente, meds, contactos, cor, aoMudar }: {
   /** A linha de `patients` que a ficha já tem — não se volta a pedir. */
   utente: Record<string, any>
   /** `patient_meds` ativos, lidos com `select('*')` — ver a nota no carregar. */
   meds: any[]
   contactos: any[]
   cor: string
+  /** Avisa a ficha de que a linha do utente mudou, para ela recarregar. */
+  aoMudar?: () => void
 }) {
   const { user, supabase } = useAuth() as any
+  const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const cfg = institutionConfig(institution)
+  const podeEditar = scope.pode('utentes', 'editar')
 
   const [plano, setPlano] = useState<any | null>(null)
   const [avaliacoes, setAvaliacoes] = useState<any[]>([])
@@ -209,6 +288,74 @@ export default function Essencial({ utente, meds, contactos, cor }: {
   }, [pid, user, supabase, cfg.hasWounds])
 
   useEffect(() => { carregar() }, [carregar])
+
+  /* ── O QUE ESTÁ MESMO NA COLUNA ─────────────────────────────────────────
+     A folha escreve por cima: um campo em branco sai «⚠ NÃO ESTÁ REGISTADO» e
+     um negado sai «Sem alergias conhecidas». Abrir a caixa de edição com
+     qualquer uma dessas frases lá dentro fazia quem gravasse escrever o aviso
+     dentro do campo — e a partir daí a folha diria que estava preenchido.
+
+     Por isso lê-se da origem, não do que está no ecrã. */
+  const bruto = useCallback((c: CampoDaFolha): string | null => {
+    if (!c.coluna) return null
+    const origem = c.tabela === 'care_plans' ? plano : utente
+    const v = origem?.[c.coluna]
+    return v == null || v === '' ? null : String(v)
+  }, [plano, utente])
+
+  /** Grava um campo. Devolve a mensagem de erro, ou null se gravou. */
+  const guardarCampo = useCallback(async (
+    c: CampoDaFolha, valor: string | null,
+  ): Promise<string | null> => {
+    if (!podeEditar) return 'Não tem permissão para alterar esta ficha.'
+    if (!c.tabela || !c.coluna) return 'Este campo é calculado — não se escreve aqui.'
+    const antes = bruto(c)
+
+    if (c.tabela === 'patients') {
+      const { error } = await supabase.from('patients')
+        .update({ [c.coluna]: valor }).eq('id', utente.id)
+      if (error) {
+        console.error('[phlox:essencial:gravar]', error)
+        return 'Não foi possível gravar. Pode não ter permissão para alterar esta ficha.'
+      }
+      aoMudar?.()
+    } else {
+      /* O PLANO PODE AINDA NÃO EXISTIR.
+         Quem escreve a dieta de alguém que nunca teve plano de cuidados está a
+         criar o plano — e um `update` sobre zero linhas não dá erro nenhum: dá
+         «gravado» e não grava nada. É a pior falha possível num campo que diz
+         a textura dos líquidos de quem se engasga. */
+      if (plano?.id) {
+        const { error } = await supabase.from('care_plans')
+          .update({ [c.coluna]: valor }).eq('id', plano.id)
+        if (error) {
+          console.error('[phlox:essencial:gravar-plano]', error)
+          return 'Não foi possível gravar no plano de cuidados.'
+        }
+      } else {
+        const { data, error } = await supabase.from('care_plans')
+          .insert(scope.stamp({ patient_id: utente.id, user_id: user?.id, [c.coluna]: valor }))
+          .select('*').single()
+        if (error) {
+          console.error('[phlox:essencial:criar-plano]', error)
+          return 'Não foi possível criar o plano de cuidados.'
+        }
+        setPlano(data)
+      }
+      // O plano é desta folha: recarrega-se aqui, sem incomodar a ficha.
+      await carregar()
+    }
+
+    registar({ supabase, scope, user }, {
+      ...ACOES.fichaCampo(utente.name || 'a pessoa', c.rotulo.toLowerCase(), antes, valor),
+      subjectId: utente.id, subjectName: utente.name, entityId: utente.id,
+    })
+    return null
+  }, [podeEditar, bruto, supabase, utente, plano, scope, user, aoMudar])
+
+  const edicao: Edicao = useMemo(
+    () => ({ podeEditar, bruto, guardar: guardarCampo }),
+    [podeEditar, bruto, guardarCampo])
 
   const folha: FolhaDoEssencial | null = useMemo(() => {
     if (!utente) return null
@@ -336,14 +483,20 @@ export default function Essencial({ utente, meds, contactos, cor }: {
       {/* ── O cabeçalho da folha ─────────────────────────────────────────── */}
       <div style={{
         display: 'grid', gap: 'var(--space-4)', marginTop: 'var(--space-8)',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gridTemplateColumns: edicao.podeEditar
+          ? 'repeat(auto-fit, minmax(300px, 1fr))'
+          : 'repeat(auto-fit, minmax(150px, 1fr))',
         padding: 'var(--space-6)', borderRadius: 'var(--r-md)', background: 'var(--surface-2)',
       }}>
-        {folha.cabecalho.map(c => <Campo key={c.rotulo} c={c} />)}
+        {folha.cabecalho.map(c => (
+          <Campo key={c.rotulo} c={c}
+            bruto={edicao.bruto(c)} podeEditar={edicao.podeEditar}
+            aoGuardar={edicao.guardar} />
+        ))}
       </div>
 
       {/* ── A folha ──────────────────────────────────────────────────────── */}
-      {folha.secoes.map(s => <Secao key={s.id} s={s} cor={cor} />)}
+      {folha.secoes.map(s => <Secao key={s.id} s={s} cor={cor} edicao={edicao} />)}
 
       <div style={{ marginTop: 'var(--space-12)', fontSize: 12.5, color: 'var(--ink-5)', lineHeight: 1.6 }}>
         Folha de {emPortugues(folha.em)}, montada a partir da ficha, do plano de

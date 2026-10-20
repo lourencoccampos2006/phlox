@@ -32,6 +32,7 @@ import { institutionConfig } from '@/lib/institutionConfig'
 import { ptDate } from '@/lib/ptTime'
 import { printDoc } from '@/lib/print'
 import AvisoDeSetup from '@/components/AvisoDeSetup'
+import PartilharInquerito from '@/components/institution/PartilharInquerito'
 import { eFaltaDeSetup } from '@/lib/setupCodes'
 import {
   Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Grupo,
@@ -286,6 +287,9 @@ export default function Inqueritos() {
 
   /* ── Lançar uma resposta ────────────────────────────────────────────────── */
   const [folha, setFolha] = useState<Record<string, number | string | null>>({})
+  /* O inquérito que se está a partilhar. Qualquer pessoa da casa pode
+     partilhar um inquérito aberto — não é uma escrita, é dar o endereço. */
+  const [aPartilhar, setAPartilhar] = useState<Inquerito | null>(null)
   const [aGravar, setAGravar] = useState(false)
 
   async function gravarResposta() {
@@ -392,6 +396,12 @@ export default function Inqueritos() {
                 <Botao onClick={() => printDoc(relatorioParaImprimir(emFoco, analise, cfg.unitNoun))}>
                   IMPRIMIR O RELATÓRIO
                 </Botao>
+              )}
+              {/* PARTILHAR antes de FECHAR, e com destaque: é o que se faz
+                  com um inquérito acabado de criar. O «Fechar» é o fim da
+                  história e fica calmo, onde não se carrega por engano. */}
+              {estaAberto(emFoco) && (
+                <Botao feitio="principal" onClick={() => setAPartilhar(emFoco)}>PARTILHAR</Botao>
               )}
               {podeEditar && estaAberto(emFoco) && (
                 <Botao feitio="calmo" onClick={() => fechar(emFoco)}>FECHAR</Botao>
@@ -675,6 +685,11 @@ export default function Inqueritos() {
         </>
       )}
       </Painel>
+
+      {aPartilhar && (
+        <PartilharInquerito inquerito={aPartilhar} casa={cfg.unitNoun}
+          aoFechar={() => setAPartilhar(null)} />
+      )}
     </Mesa>
   )
 }

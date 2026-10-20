@@ -37,6 +37,8 @@
 export type Origem =
   | 'aniversario' | 'entrada' | 'atividade' | 'visita' | 'consulta'
   | 'prazo' | 'validade' | 'documento' | 'inscricao' | 'feriado' | 'manual'
+  /** Transportes: o circuito que se repete, a ida à consulta, o pedido pontual. */
+  | 'transporte'
 
 export type Marca = {
   id: string
@@ -76,6 +78,7 @@ export const ORIGENS: { id: Origem; rotulo: string; cor: string; auto: boolean }
   { id: 'documento',   rotulo: 'Documentos a caducar',cor: 'var(--amber)', auto: true },
   { id: 'inscricao',   rotulo: 'Entradas previstas',  cor: 'var(--green)', auto: true },
   { id: 'feriado',     rotulo: 'Feriados',            cor: 'var(--badge-blue-border)', auto: true },
+  { id: 'transporte',  rotulo: 'Transportes',         cor: 'var(--ink-3)', auto: true },
   { id: 'manual',      rotulo: 'Marcado à mão',       cor: 'var(--badge-blue-fg)', auto: false },
 ]
 

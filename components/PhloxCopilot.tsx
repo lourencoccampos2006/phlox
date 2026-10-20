@@ -100,7 +100,11 @@ export default function PhloxCopilot() {
   // saber, no mobile, se o botão do Copilot precisa de subir para não ficar
   // em cima da barra de navegação inferior (era a bola "incomodativa": as
   // duas coisas fixas disputavam o mesmo canto inferior direito do ecrã).
-  const hasBottomNav = !!user && (user.experience_mode || 'personal') !== 'clinical'
+  /* O modo clínico passou a TER barra de baixo (2026-10-14) — antes era o
+     único que não tinha, e esta linha excluía-o por isso. Com a exclusão, o
+     botão redondo ficava pousado em cima do «Registo» da barra nova.
+     Agora toda a gente a tem: quem está autenticado desvia o botão. */
+  const hasBottomNav = !!user
     && !(pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding'))
 
   // ── FOCO: agora é uma escolha, não uma imposição ─────────────────────────

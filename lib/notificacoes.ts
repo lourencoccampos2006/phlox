@@ -68,6 +68,11 @@ export const TIPOS_NOTIFICACAO: TipoNotificacao[] = [
   { id: 'meu_turno', ambito: 'instituicao', omissao: true,
     label: 'O que ficou consigo',
     descricao: 'Uma vez por turno, se houver coisas atribuídas a si. Uma notificação com o total — nunca uma por tarefa.' },
+  /* Chega na VÉSPERA, à tarde. A nota do porquê está em lib/avisos.ts: de
+     manhã faltam trinta horas e esquece-se na mesma. */
+  { id: 'vespera', ambito: 'instituicao', omissao: true,
+    label: 'O que há amanhã',
+    descricao: 'Ao fim da tarde, as consultas e os transportes marcados para o dia seguinte — enquanto ainda há com quem combinar o que falta. As atividades ficam no sino, sem notificação.' },
   { id: 'passagem', ambito: 'instituicao', omissao: true,
     label: 'Passagem de turno por ler',
     descricao: 'Quando o turno anterior deixou uma passagem e ninguém marcou que a leu.' },

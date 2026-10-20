@@ -625,8 +625,24 @@ export default function DesenhoD({ d }: { d: DadosDoDia }) {
 
             Fica no FUNDO da janela, como a barra de estado de um programa —
             e e por isso que a mesa tem altura fixa: numa pagina que rola, ela
-            acabava a meio do ecra com espaco vazio por baixo. */}
-        <div style={{
+            acabava a meio do ecra com espaco vazio por baixo.
+
+            ── NO TELEMOVEL SAI (2026-10-14) ──────────────────────────────
+            Uma legenda e uma linha. A 390px esta ocupava TRES — «MED Medicacao
+            CUI Cuidado PLN Plano / REF Reforco alimentar APO Apoio ATV
+            Atividades / ATR = mais de 30 min depois da hora» — e ficava
+            imediatamente por cima da barra de navegacao, que e onde o polegar
+            esta. Tres linhas de glossario no sitio mais valioso do ecra.
+
+            E a razao de ser dela tambem muda: num computador a legenda
+            explica uma COLUNA de codigos que se le de alto a baixo. No
+            telemovel cada codigo esta ja ao lado do que nomeia, na linha da
+            propria pessoa — o MED esta colado as marcas de medicacao daquela
+            pessoa. A legenda explica o que ja esta explicado.
+
+            E a mesma regra da `BarraDeEstado` em components/ui/mesa.tsx, e
+            pela mesma razao. */}
+        {largo && <div style={{
           display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center',
           padding: '6px 14px', background: PAINEL, flexShrink: 0,
           border: `1px solid ${RISCA}`, borderRadius: 4,
@@ -641,7 +657,16 @@ export default function DesenhoD({ d }: { d: DadosDoDia }) {
           {porFazer === 0 && pessoas.length > 0 && (
             <span style={{ ...mono, color: FEITO, fontWeight: 'var(--peso-forte)' as any, marginLeft: 'auto' }}>TURNO TRATADO</span>
           )}
-        </div>
+        </div>}
+
+        {/* «Turno tratado» NAO e legenda: e o fim do trabalho, e a unica coisa
+            daquela barra que vale a pena ver num telemovel. Fica. */}
+        {!largo && porFazer === 0 && pessoas.length > 0 && (
+          <div style={{
+            ...mono, color: FEITO, fontWeight: 'var(--peso-forte)' as any,
+            padding: '10px 14px', textAlign: 'center', flexShrink: 0,
+          }}>TURNO TRATADO</div>
+        )}
       </div>
     </div>
   )

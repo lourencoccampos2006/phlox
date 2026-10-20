@@ -40,6 +40,11 @@ import {
 } from '@/components/ui/mesa'
 
 interface Patient { id: string; name: string; room_number?: string | null; address?: string | null; photo_url?: string | null; lat?: number | null; lon?: number | null }
+/* O `passeio` FICA no tipo, mas sai dos separadores.
+   Há linhas guardadas com `kind: 'passeio'` em casas que já usaram isto, e
+   tirá-lo do tipo fazia-as desaparecer do ecrã sem explicação — e sem forma de
+   as recuperar. O que muda é que já não se CRIAM passeios aqui: ver a nota
+   nas ABAS. */
 type TipoTransporte = 'circuito' | 'consulta' | 'passeio' | 'pontual'
 interface Schedule {
   id: string; patient_id: string; label: string; weekdays: number[] | null
@@ -66,7 +71,18 @@ type Aba = TipoTransporte | 'roupa' | 'servicos'
 const ABAS: { id: Aba; label: string; icon: string; sub: string }[] = [
   { id: 'circuito', label: 'Casa ↔ Centro', icon: 'route',   sub: 'O circuito diário. Uma hora de partida, as chegadas saem calculadas.' },
   { id: 'consulta', label: 'Consultas',     icon: 'clock',   sub: 'Individual, com hora marcada que tem de ser respeitada.' },
-  { id: 'passeio',  label: 'Passeios',      icon: 'users',   sub: 'Grupo, ida e volta. Quem vai é uma lista, não um horário fixo.' },
+  /* ── OS PASSEIOS SAÍRAM DAQUI (2026-10-14) ──────────────────────────────
+     «Em serviços de apoio podes tirar a parte dos passeios, pois são uma
+      atividade, logo devem ser marcados por lá.» (Fernando)
+
+     E tem razão por uma razão que vai além da arrumação: um passeio tem
+     participantes, tem um responsável, conta para o plano de atividades e
+     aparece no relatório da família. Nada disso existe num horário de
+     transporte — aqui um passeio era uma linha com uma hora e um destino, e
+     tudo o que faz dele um passeio ficava por registar.
+
+     O transporte DE um passeio continua a poder marcar-se, como pontual. O
+     passeio marca-se em /activities. */
   { id: 'pontual',  label: 'Pontuais',      icon: 'package', sub: 'Farmácia, compras, levar a casa da família. Uma vez, sem repetição.' },
   { id: 'roupa',    label: 'Roupa',         icon: 'shirt',   sub: 'Tratamento de roupa que se repete.' },
   { id: 'servicos', label: 'Outros',        icon: 'clipboard', sub: 'Fim de semana, noite e pedidos avulsos.' },
@@ -499,7 +515,7 @@ export default function ApoioServicosPage() {
               {isNew && (
                 <div style={{ marginTop: 12, borderTop: '1px solid var(--bg-3)', paddingTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
                   <input autoFocus value={newLabel} onChange={e => setNewLabel(e.target.value)}
-                    placeholder={kind === 'consulta' ? 'Ex: Consulta de oftalmologia' : kind === 'passeio' ? 'Ex: Passeio ao mercado' : 'Ex: Ida à farmácia'}
+                    placeholder={kind === 'consulta' ? 'Ex: Consulta de oftalmologia' : 'Ex: Ida à farmácia'}
                     style={campo} />
                   <input value={newDestino} onChange={e => setNewDestino(e.target.value)}
                     placeholder={kind === 'consulta' ? 'Onde (hospital, centro de saúde…)' : 'Onde'}
@@ -796,7 +812,10 @@ export default function ApoioServicosPage() {
           </>
         )}
 
-        {/* ══ CONSULTAS · PASSEIOS · PONTUAIS ═════════════════════════════ */}
+        {/* ══ CONSULTAS · PONTUAIS ════════════════════════════════════════
+            O 'passeio' fica na condição porque as linhas antigas continuam a
+            existir e têm de se poder ver e fechar — só não há separador para
+            lá chegar de propósito. Ver a nota nas ABAS. */}
         {(aba === 'consulta' || aba === 'passeio' || aba === 'pontual') && (
           <>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' }}>

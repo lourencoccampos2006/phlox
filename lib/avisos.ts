@@ -52,6 +52,8 @@ export type TipoAviso =
   | 'formacao'
   /** «Tem seis coisas suas esta manhã»: o resumo, e o único que interrompe. */
   | 'meu_turno'
+  /** Amanhã há uma consulta, um transporte ou uma atividade marcada. */
+  | 'vespera'
 
 export interface Aviso {
   /** estável — o mesmo aviso dá sempre o mesmo id */
@@ -116,10 +118,20 @@ const ROTULO_DE_TURNO: Record<string, string> = {
   manha: 'manhã', tarde: 'tarde', noite: 'noite',
 }
 
-/** O dia anterior, em texto. Sem fusos: é só aritmética de calendário. */
+/** O dia anterior, em texto. Sem fusos: é só aritmética de calendário.
+ *  O `T12:00:00` não é um detalhe — às 00:00 o `toISOString` devolve o dia
+ *  anterior em qualquer fuso a oeste de Greenwich, e Portugal é um deles no
+ *  inverno. Ao meio-dia há doze horas de folga de cada lado. */
 const ontemDe = (dia: string): string => {
   const d = new Date(dia + 'T12:00:00')
   d.setDate(d.getDate() - 1)
+  return d.toISOString().slice(0, 10)
+}
+
+/** E o dia seguinte, pela mesma aritmética. */
+const amanhaDe = (dia: string): string => {
+  const d = new Date(dia + 'T12:00:00')
+  d.setDate(d.getDate() + 1)
   return d.toISOString().slice(0, 10)
 }
 
@@ -148,7 +160,8 @@ export async function avisosDaInstituicao(
 
   const [utentes, ocorrencias, mensagensFamilia, tomas, mural, stock, presencas, meds,
          preparacoes, avaliacoes, passagens, leiturasPassagem, rondas, atribuicoesRonda,
-         formacoes, membrosDaEquipa] = await Promise.all([
+         formacoes, membrosDaEquipa,
+         consultasAmanha, transportesAmanha, atividadesAmanha] = await Promise.all([
     tol(() => sb.from('patients').select('id, name').eq('org_id', orgId).eq('active', true)),
     tol(() => sb.from('incidents').select('id, date, type, patient_id')
       .eq('org_id', orgId).eq('follow_up_required', true)
@@ -184,6 +197,26 @@ export async function avisosDaInstituicao(
       .select('id, team_member_id, tema, data, valida_ate')
       .eq('org_id', orgId).not('valida_ate', 'is', null)),
     tol(() => sb.from('team_members').select('id, name').eq('org_id', orgId)),
+
+    /* ── O QUE HÁ AMANHÃ ────────────────────────────────────────────────────
+       «Tem de dar notificações com alguma antecedência para relembrar.»
+
+       Uma consulta marcada para amanhã às 14h não serve de nada se ninguém se
+       lembrar dela hoje: há transporte a combinar, há quem tenha de ir, e às
+       vezes há jejum. O aviso sai na VÉSPERA, à tarde — ver a nota lá em
+       baixo sobre a hora.
+
+       `select('*')` nos transportes: a `kind` e a `data` são colunas
+       acrescentadas depois da tabela nascer, e nomear uma que não exista faz
+       o PostgREST recusar a consulta inteira. */
+    tol(() => sb.from('appointments')
+      .select('id, patient_id, title, date, time, location, type, status')
+      .eq('org_id', orgId).eq('date', amanhaDe(hoje))),
+    tol(() => sb.from('support_transport_schedules')
+      .select('*').eq('org_id', orgId).eq('active', true).eq('data', amanhaDe(hoje))),
+    tol(() => sb.from('activities')
+      .select('id, title, date, start_time, location, status')
+      .eq('org_id', orgId).eq('date', amanhaDe(hoje))),
   ])
 
   const nome = new Map<string, string>(utentes.map((p: any) => [p.id, p.name]))
@@ -491,6 +524,77 @@ export async function avisosDaInstituicao(
       hoje, agora, euId: opts.euId, nomes: nome, tipoInstituicao: opts.tipoInstituicao,
     })
     avisos.push(...(minhas.get(opts.euId) || []))
+  }
+
+  /* ── O QUE HÁ AMANHÃ ─────────────────────────────────────────────────────
+     «O calendário tem de dar notificações com alguma antecedência para
+      relembrar.» (Fernando)
+
+     ── PORQUE É QUE SAI À TARDE, E NÃO DE MANHÃ ──────────────────────────
+     Um aviso de manhã sobre amanhã chega trinta horas antes: ouve-se, segue-se
+     o dia, e esquece-se na mesma. À tarde, quem o recebe ainda está no
+     trabalho e ainda tem com quem falar — dá para combinar o transporte,
+     avisar a família, pôr na passagem de turno.
+
+     Entre as 16h e as 21h: antes das 16 ainda é o meio do dia de hoje; depois
+     das 21 já não há a quem dizer nada.
+
+     ── E PORQUE É QUE NÃO SE GRAVA NADA ─────────────────────────────────
+     O aviso É a marcação, vista de outro ângulo. Desmarca-se a consulta e o
+     aviso desaparece no mesmo instante; muda-se a hora e o aviso muda com ela.
+     Uma tabela de lembretes teria de ser limpa por quem desmarca — e nunca é. */
+  const horaAgora = hhmmParaMin(agora)
+  if (horaAgora >= 16 * 60 && horaAgora < 21 * 60) {
+    const amanha = amanhaDe(hoje)
+
+    consultasAmanha.forEach((c: any) => {
+      if (c.status === 'cancelled') return
+      const h = String(c.time || '').slice(0, 5)
+      avisos.push({
+        id: `vespera-consulta-${c.id}`, tipo: 'vespera',
+        titulo: `Amanhã: ${String(c.title || 'consulta').slice(0, 54)}`,
+        corpo: [
+          c.patient_id ? quem(c.patient_id) : null,
+          h ? `às ${h}` : null,
+          c.location,
+        ].filter(Boolean).join(' · ') || 'Está marcada para amanhã.',
+        href: '/agenda', quando: `${amanha}T${h || '09:00'}:00`,
+        urgencia: 'normal', empurrar: true,
+      })
+    })
+
+    transportesAmanha.forEach((t: any) => {
+      const h = String(t.time || '').slice(0, 5)
+      const o = t.label || t.destino || 'Transporte'
+      avisos.push({
+        id: `vespera-transporte-${t.id}`, tipo: 'vespera',
+        titulo: `Amanhã: ${String(o).slice(0, 54)}`,
+        corpo: [
+          t.patient_id ? quem(t.patient_id) : null,
+          h ? `às ${h}` : null,
+          t.destino && t.destino !== o ? t.destino : null,
+        ].filter(Boolean).join(' · ') || 'Há transporte marcado para amanhã.',
+        href: '/apoio-servicos', quando: `${amanha}T${h || '09:00'}:00`,
+        urgencia: 'normal', empurrar: true,
+      })
+    })
+
+    /* As atividades não interrompem ninguém (`empurrar: false`).
+       Numa casa há uma ou duas por dia, todos os dias — uma notificação por
+       cada uma, todas as tardes, é o caminho mais curto para a equipa desligar
+       as notificações. No sino ficam; na mão de ninguém vibram. */
+    atividadesAmanha.forEach((a: any) => {
+      if (a.status === 'cancelled') return
+      const h = String(a.start_time || '').slice(0, 5)
+      avisos.push({
+        id: `vespera-atividade-${a.id}`, tipo: 'vespera',
+        titulo: `Amanhã: ${String(a.title || 'atividade').slice(0, 54)}`,
+        corpo: [h ? `às ${h}` : null, a.location].filter(Boolean).join(' · ')
+          || 'Está no plano de atividades.',
+        href: '/activities', quando: `${amanha}T${h || '10:00'}:00`,
+        urgencia: 'normal', empurrar: false,
+      })
+    })
   }
 
   avisos.sort((a, b) =>

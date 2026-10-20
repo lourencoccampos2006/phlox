@@ -22,9 +22,14 @@ export default function BottomNav() {
 
   if (loading || !user) return null
   const mode: ExperienceMode = user.experience_mode || 'personal'
-  // Modo clínico tem navegação própria (densa) — a barra inferior é para os
-  // modos pessoais/familiares/estudante, o público que se perde.
-  if (mode === 'clinical') return null
+  /* ── O MODO CLÍNICO TAMBÉM PRECISA DELA (2026-10-14) ───────────────────
+     Estava escrito que «modo clínico tem navegação própria (densa)». Tem — a
+     barra lateral. Mas a barra lateral desaparece abaixo dos 860px, e abaixo
+     dos 860px ficava só o ☰: três toques para mudar de ferramenta, o primeiro
+     num ícone de 24px no canto.
+     Quem trabalha numa casa usa o telemóvel de pé, com uma mão, entre dois
+     quartos. É o público que mais precisa de uma barra em baixo, não o que
+     menos. */
   // Não mostrar em páginas de ecrã-inteiro/portais públicos.
   if (pathname.startsWith('/hp') || pathname === '/' || pathname.startsWith('/login') || pathname.startsWith('/onboarding')) return null
 

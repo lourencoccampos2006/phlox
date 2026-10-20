@@ -61,8 +61,14 @@ const STUDENT: ModeTheme = {
 
 const CLINICAL: ModeTheme = {
   mode: 'clinical', ...NEUTRAL,
-  accent: 'var(--blue)', accentSoft: 'var(--blue-light)', accentInk: 'var(--blue)',
-  heroFrom: 'var(--blue)', heroTo: 'var(--blue)',
+  /* ── O VERDE DA CASA, E NÃO AZUL (2026-10-14) ─────────────────────────
+     O azul vinha de quando o modo clínico servia clínicas e hospitais. Hoje
+     serve lares e centros de dia, e toda a interface institucional — a barra
+     lateral, os botões, os separadores — usa o verde da marca. O azul só
+     aparecia onde este tema fosse lido, e a barra de navegação de baixo
+     passou a lê-lo: a aba ativa saía azul no meio de um ecrã verde. */
+  accent: 'var(--green)', accentSoft: 'var(--green-light)', accentInk: 'var(--green)',
+  heroFrom: 'var(--green)', heroTo: 'var(--green)',
 }
 
 const THEMES: Record<ExperienceMode, ModeTheme> = {
