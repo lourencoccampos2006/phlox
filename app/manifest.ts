@@ -26,7 +26,6 @@ export default function manifest(): MetadataRoute.Manifest {
     screenshots: [],
     shortcuts: [
       { name: 'Os meus comprimidos', url: '/mymeds', description: 'A lista, os horários e os lembretes' },
-      { name: 'Dão-se bem?', url: '/interactions', description: 'Ver se é seguro tomá-los juntos' },
       { name: 'Tirar uma dúvida', url: '/ai', description: 'Pergunte em português simples' },
     ],
   }

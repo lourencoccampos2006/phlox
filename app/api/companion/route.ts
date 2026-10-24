@@ -103,7 +103,6 @@ export async function POST(req: NextRequest) {
           id: `int-${key}`, severity: 'urgent', icon: '⚠️',
           title: `${a.name} + ${b.name}`,
           detail: `${why}. Esta combinação merece atenção — fala com o teu farmacêutico ou médico antes de continuares.`,
-          action: { label: 'Ver interações em detalhe', route: '/interactions' },
         })
       }
     }
@@ -193,7 +192,6 @@ export async function POST(req: NextRequest) {
           id: `lab-${key}`, severity: v.status.startsWith('CRITICO') ? 'urgent' : 'info', icon: 'flask',
           title: `${v.name} ${isHigh ? 'acima' : 'abaixo'} do normal`,
           detail: `O teu valor de ${v.name} foi ${v.value}${v.unit ? ' ' + v.unit : ''}${v.reference ? ` (referência ${v.reference})` : ''}. Mostra ao teu médico na próxima consulta.`,
-          action: { label: 'Perceber as minhas análises', route: '/labs' },
         })
       }
     }
@@ -205,7 +203,6 @@ export async function POST(req: NextRequest) {
         id: 'polypharmacy', severity: 'info', icon: 'user',
         title: 'Muitos medicamentos ao mesmo tempo',
         detail: `Tomas ${medsList.length} medicamentos. ${benzo ? `Um deles (${benzo.name}) merece atenção na tua idade. ` : ''}Vale a pena pedir ao médico uma revisão de toda a medicação.`,
-        action: { label: 'Verificar a minha medicação', route: '/interactions' },
       })
     }
 
@@ -239,7 +236,6 @@ export async function POST(req: NextRequest) {
         id: `labcorrel-${norm(c.medication)}-${norm(c.test)}`, severity: 'info', icon: 'layers',
         title: `${c.test} alterado desde que começaste ${c.medication}?`,
         detail: `${c.test} ficou alterado ${c.days_after_start} dia${c.days_after_start === 1 ? '' : 's'} depois de iniciares ${c.medication}. Pode ser coincidência, mas vale a pena mencionar ao médico.`,
-        action: { label: 'Perceber as minhas análises', route: '/labs' },
       })
     })
 

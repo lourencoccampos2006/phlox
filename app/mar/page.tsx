@@ -16,7 +16,19 @@ import { printDoc, type PrintRecord } from '@/lib/print'
 import ClinicalGate from '@/components/ClinicalGate'
 import Icon from '@/components/Icon'
 import Link from 'next/link'
-import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
+/* ── OS ACHADOS CLÍNICOS SAÍRAM DAQUI (2026-10-23) ────────────────────────
+   Esta página mostrava, por utente, o que um motor de 31 regras encontrava na
+   medicação ativa — STOPP/START, carga anticolinérgica, IBP prolongado — com
+   gravidade («CRÍTICO», «MAIOR») e uma ação a tomar.
+
+   É informação destinada a sustentar uma decisão terapêutica sobre uma pessoa
+   identificada: a definição da Regra 11 do Regulamento (UE) 2017/745, que
+   começa na classe IIa e, para software de segurança da medicação, é apontada
+   para classe III. Vender isto sem organismo notificado, ISO 13485 e avaliação
+   clínica não é defensável.
+
+   O que fica é o trabalho: quem toma o quê, quando, e se foi dado. A leitura
+   clínica da medicação é de quem tem competência para a fazer. */
 import { registar, ACOES } from '@/lib/registo'
 
 /* ONDE SE TOMA NAO E UM ESTADO (2026-10-07)
@@ -294,15 +306,6 @@ export default function MARPage() {
   useLiveData({ supabase, table: 'mar_records', userId: user?.id, filterColumn: scope.liveFilterColumn, filterValue: scope.liveFilterValue, enabled: !!user && isPro, onChange: () => setLiveTick(t => t + 1) })
 
   const selectedPatient = patients.find(p => p.id === selectedId) ?? null
-
-  // Co-piloto de unidoses (Módulo 1, 2026-08-16): a par do aviso pontual de
-  // interações/alergia já existente (allergyWarning/interactionWarnings, só
-  // 6 pares fixos), cruza TODA a medicação ativa com o motor de regras real
-  // (lib/decisionEngine, 26 regras — STOPP/START, carga anticolinérgica,
-  // polifarmácia, etc.), a mesma fonte já usada em /stopp-start e /vigia.
-  const regimenFindings: Finding[] = selectedPatient && meds.length
-    ? clinicalFindingsFor(selectedPatient, meds.map(m => ({ name: m.name, started_at: m.started_at })))
-    : []
 
   // printMARSheet via ref para o atalho de teclado usar sempre a versão fresca
   // (o handler é registado uma vez com deps []).
@@ -733,26 +736,6 @@ export default function MARPage() {
                   {selectedPatient.conditions && <Bandeira texto={selectedPatient.conditions} />}
                 </div>
               </div>
-
-              {/* O que o motor de regras encontrou em TODA a medicação ativa. */}
-              {regimenFindings.filter(f => f.severity === 'critical' || f.severity === 'major').map(f => (
-                <div key={f.id} style={{
-                  padding: '8px 16px', borderBottom: '1px solid var(--border)',
-                  background: f.severity === 'critical' ? 'var(--badge-red-bg)' : 'var(--badge-amber-bg)',
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                    <Codigo texto={f.severity === 'critical' ? 'CRÍTICO' : 'MAIOR'}
-                      cor={f.severity === 'critical' ? 'var(--red)' : 'var(--amber)'} />
-                    <span style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any }}>{f.title}</span>
-                    <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)' }}>{f.detail}</span>
-                  </div>
-                  {f.action && (
-                    <div style={{ ...MONO, fontSize: 'var(--t-meta)', marginTop: 3, color: f.severity === 'critical' ? 'var(--red)' : 'var(--amber)' }}>
-                      → {f.action}
-                    </div>
-                  )}
-                </div>
-              ))}
 
               <Cabecalho>
                 <span style={{ ...ROTULO, width: 110 }}>Estado</span>

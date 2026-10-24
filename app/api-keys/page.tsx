@@ -130,7 +130,7 @@ export default function ApiKeysPage() {
             <li><code>GET /api/v1/sales?from=YYYY-MM-DD&amp;to=YYYY-MM-DD</code> · scope <code>sales:read</code></li>
             <li><code>POST /api/v1/sales</code> · scope <code>sales:write</code></li>
           </ul>
-          Rate limit: 60 pedidos por minuto e por chave. Mais detalhes em <Link href="/api-docs" style={{ color: 'var(--ink-2)', fontWeight: 600, textDecoration: 'none' }}>/api-docs</Link>.
+          Rate limit: 60 pedidos por minuto e por chave.
         </div>
 
         {err && <div style={{ marginTop: 14, padding: '10px 14px', background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-lg)', color: 'var(--red)', fontSize: 13 }}>{err}</div>}

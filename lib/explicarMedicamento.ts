@@ -37,7 +37,7 @@
 
 import type { SupabaseClient } from '@supabase/supabase-js'
 import { aiJSON } from '@/lib/ai'
-import { efeitosDe, semTabela, servico } from '@/lib/efeitosDaMedicacao'
+import { efeitosDe, semTabela, servico, type EfeitosDeMedicamento } from '@/lib/efeitosDaMedicacao'
 
 export interface Explicacao {
   /** Uma ou duas frases: o que é, em português de quem não é farmacêutico. */
@@ -85,9 +85,23 @@ const MODELO = 'leitura-v1'
  * «falhou». Quem chama tem de poder dizer as duas coisas.
  */
 export async function explicarMedicamento(
-  supabase: SupabaseClient, nome: string,
+  supabase: SupabaseClient,
+  nome: string,
+  /**
+   * O rótulo, se quem chama já o tiver.
+   *
+   * A `/api/medicamento-ficha` chama o `efeitosDe` para montar a resposta e
+   * chamava-o OUTRA VEZ aqui dentro — duas leituras da mesma linha por cada
+   * toque num nome de medicamento. No plano gratuito do Supabase o que custa é
+   * o NÚMERO de chamadas, não os dados, e esta é uma rota que se abre dezenas
+   * de vezes numa volta à medicação.
+   *
+   * Omitido, procura-se como sempre: quem chamar de outro sítio não tem de
+   * saber disto.
+   */
+  jaLido?: EfeitosDeMedicamento | null,
 ): Promise<{ explicacao: Explicacao | null; deCache: boolean }> {
-  const ficha = await efeitosDe(supabase, nome)
+  const ficha = jaLido ?? await efeitosDe(supabase, nome)
   if (!ficha || !ficha.encontrado) return { explicacao: null, deCache: false }
 
   /* O TEXTO TODO, e não só os efeitos adversos. Ele pediu «todo o texto»: o

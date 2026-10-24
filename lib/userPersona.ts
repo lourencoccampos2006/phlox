@@ -43,7 +43,6 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     ],
     daily: [
       { label: 'Sintomas de hoje', href: '/sintomas', icon: 'droplet' },
-      { label: 'Verificar interações', href: '/interactions', icon: '⚗' },
       { label: 'Phlox Scan', href: '/scan', icon: 'camera' },
       { label: 'Sinais vitais', href: '/vitals', icon: '💓' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
@@ -59,7 +58,6 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     },
     starters: [
       { label: 'Adicionar perfil familiar', href: '/familia', icon: 'family', desc: 'Criar um perfil por pessoa' },
-      { label: 'Verificar interações', href: '/interactions', icon: '⚗', desc: 'Cruzar toda a medicação' },
       { label: 'Cartão de emergência', href: '/passport', icon: 'alert', desc: 'Cada pessoa pode ter o seu' },
     ],
     daily: [
@@ -82,8 +80,6 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
       { label: 'AI Tutor', href: '/tutor', icon: '🧑‍🏫', desc: 'Socrático, força raciocínio' },
     ],
     daily: [
-      { label: 'Casos clínicos', href: '/simulador', icon: 'book' },
-      { label: 'Calculadoras', href: '/calculos', icon: '∑' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },
@@ -103,7 +99,6 @@ const PERSONAS: Record<ExperienceMode, PersonaConfig> = {
     daily: [
       { label: 'Doentes / utentes', href: '/patients', icon: 'users' },
       { label: 'Decision Engine', href: '/assessments?tab=motor-clinico', icon: 'spark' },
-      { label: 'Calculadoras', href: '/calculos', icon: '∑' },
       { label: 'Phlox AI', href: '/ai', icon: '✨' },
     ],
   },

@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Medicamento suspeito e reação são obrigatórios' }, { status: 400 })
   }
 
-  const prompt = `És um especialista em farmacovigilância. Com base nos dados fornecidos, gera uma análise estruturada de reação adversa a medicamento (RAM) conforme CIOMS/WHO-UMC.
+  const prompt = `Preparas a NOTIFICAÇÃO de uma suspeita de reação adversa para ser enviada ao INFARMED. Organizas e redigis o que te deram; não avalias causalidade nem decides nada. Com base nos dados fornecidos, gera o textse estruturada de reação adversa a medicamento (RAM) conforme CIOMS/WHO-UMC.
 
 MEDICAMENTO SUSPEITO: ${body.suspected_drug}
 REAÇÃO: ${body.reaction}

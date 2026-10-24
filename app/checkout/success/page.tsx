@@ -30,11 +30,8 @@ function SuccessContent() {
         <div style={{ background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)', padding: '20px', marginBottom: 24, textAlign: 'left' }}>
           <div style={{ fontSize: 11, fontFamily: 'var(--font-mono)', color: 'var(--ink-4)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12 }}>Começa por aqui</div>
           {(plan === 'pro' ? [
-            { href: '/med-review', label: 'Revisão Clínica de Medicação', desc: 'Análise completa + relatório PDF' },
             { href: '/ai', label: 'Phlox AI', desc: 'Farmacologista clínico virtual' },
           ] : [
-            { href: '/labs', label: 'Interpretação de Análises', desc: 'A ferramenta mais popular' },
-            { href: '/simulador', label: 'Casos Clínicos', desc: 'Raciocínio clínico guiado' },
             { href: '/tutor?mode=exame', label: 'Simulação de exame', desc: 'Prepara-te para os exames' },
           ]).map(({ href, label, desc }) => (
             <Link key={href} href={href}

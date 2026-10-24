@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { CONTROLLER, SUPERVISORY_AUTHORITY, SUBPROCESSORS, LEGAL_UPDATED } from '@/lib/legal'
+import { PRAZOS, DECISOES_AUTOMATIZADAS } from '@/lib/rgpd'
 
 export const metadata: Metadata = {
   title: 'Política de Privacidade',
@@ -9,8 +10,8 @@ export const metadata: Metadata = {
 
 const SECTIONS: { title: string; content: string }[] = [
   {
-    title: 'Quem é o responsável pelo tratamento',
-    content: `A Phlox Clinical (${CONTROLLER.website}) é uma ferramenta de organização e de apoio à decisão na área da saúde, do estudo e dos cuidados. O responsável pelo tratamento dos dados é a entidade que opera a plataforma — ${CONTROLLER.legalEntity}. Para questões de proteção de dados, contacte ${CONTROLLER.privacyEmail}.`,
+    title: 'Quem é o responsável pelo tratamento — e quando não somos nós',
+    content: `Há duas situações, e a diferença entre elas é a coisa mais importante desta página.\n\nNuma CONTA PESSOAL, é a própria pessoa que regista os seus dados e somos nós que decidimos as finalidades do serviço: a ${CONTROLLER.legalEntity} é a responsável pelo tratamento.\n\nNuma INSTITUIÇÃO — um lar, um centro de dia, um serviço de apoio domiciliário — quem decide que dados dos utentes se tratam e para quê é a instituição. Por definição do artigo 4.º/7 do RGPD, é ela a responsável pelo tratamento, e o Phlox é subcontratante (artigo 4.º/8), tratando esses dados por conta dela e apenas segundo as suas instruções documentadas. A relação rege-se pelo artigo 28.º.\n\nNa prática isto quer dizer que, se é utente de uma instituição ou familiar de um utente, os seus pedidos de acesso, retificação ou apagamento devem ser dirigidos a ESSA instituição — não a nós. Se nos chegarem, encaminhamo-los para ela e avisamo-lo.\n\nPara questões de proteção de dados sobre a plataforma, contacte ${CONTROLLER.privacyEmail}.`,
   },
   {
     title: 'Que dados recolhemos',
@@ -18,7 +19,7 @@ const SECTIONS: { title: string; content: string }[] = [
   },
   {
     title: 'Com que finalidade e com que base legal',
-    content: 'Usamos os dados para lhe prestar o serviço (execução do contrato, art. 6.º/1-b), para cumprir obrigações legais (art. 6.º/1-c) e, quando aplicável, com o seu consentimento (art. 6.º/1-a). Os dados de saúde que regista são tratados com base no seu consentimento explícito (art. 9.º/2-a) ou para os fins de prestação de cuidados quando aplicável (art. 9.º/2-h). Os cookies de publicidade só são usados com o seu consentimento.',
+    content: 'Usamos os dados para lhe prestar o serviço (execução do contrato, artigo 6.º/1-b) e para cumprir obrigações legais (artigo 6.º/1-c).\n\nOs dados de saúde registados numa instituição são tratados ao abrigo do artigo 9.º/2-h — tratamento necessário para efeitos de prestação de cuidados de saúde ou de ação social — e não com base em consentimento. A razão é concreta: o consentimento tem de ser livre e tem de poder ser retirado a qualquer momento, e nenhuma das duas coisas é verdadeira aqui. Uma pessoa que vive num lar não escolhe livremente se os seus cuidados são registados, e a instituição não pode deixar de os registar mesmo que lhe peçam — a Portaria n.º 67/2012 obriga-a a manter processo individual, registo de medicação e registo de ocorrências. Apresentar isto como consentimento seria oferecer um direito que não existe.\n\nNuma conta pessoal, os dados de saúde que regista sobre si são tratados com o seu consentimento explícito (artigo 9.º/2-a), que pode retirar a qualquer momento apagando-os ou apagando a conta.\n\nO consentimento continua a ser pedido onde é mesmo livre: fotografias, partilha voluntária de informação com familiares, e comunicações que não são necessárias ao serviço. Nesses casos pode recusar sem perder nada.',
   },
   {
     title: 'Inteligência artificial',
@@ -34,11 +35,13 @@ const SECTIONS: { title: string; content: string }[] = [
   },
   {
     title: 'Os seus direitos (RGPD)',
-    content: `Tem direito de acesso, retificação, apagamento, limitação, portabilidade e oposição ao tratamento dos seus dados, e de retirar o consentimento a qualquer momento. Pode exportar os seus dados a partir das Definições. Para exercer qualquer direito, contacte ${CONTROLLER.privacyEmail}; respondemos no prazo de 30 dias. Tem também o direito de apresentar reclamação à autoridade de controlo: ${SUPERVISORY_AUTHORITY.name} (${SUPERVISORY_AUTHORITY.url}).`,
+    content: `Tem direito de acesso (artigo 15.º), retificação (16.º), apagamento (17.º), limitação (18.º), portabilidade (20.º) e oposição (21.º), e de retirar o consentimento onde foi o consentimento que serviu de base.\n\nNem todos são absolutos: o direito ao apagamento não se aplica quando a conservação é necessária para cumprir uma obrigação legal (artigo 17.º/3-b) — é o caso do processo individual de um utente de lar. Nesse caso dizemos-lho e explicamos qual é a obrigação, em vez de simplesmente recusar.\n\nSe é utente de uma instituição ou familiar, dirija o pedido à instituição: é ela a responsável pelo tratamento. Para a plataforma, escreva para ${CONTROLLER.privacyEmail}. Respondemos no prazo de um mês, prorrogável por mais dois quando o pedido for complexo, caso em que o avisamos dentro do primeiro mês (artigo 12.º/3).\n\nTem também o direito de apresentar reclamação à autoridade de controlo: ${SUPERVISORY_AUTHORITY.name} (${SUPERVISORY_AUTHORITY.url}).`,
   },
   {
-    title: 'Retenção de dados',
-    content: 'Mantemos os dados da sua conta enquanto a conta estiver ativa. Se eliminar a conta, os dados pessoais são apagados no prazo de 30 dias, salvo quando a lei exigir a conservação (por exemplo, dados de faturação). Dados anónimos e agregados podem ser mantidos.',
+    title: 'Durante quanto tempo guardamos',
+    content: 'O princípio é o do artigo 5.º/1-e: guarda-se o tempo necessário, nem mais nem menos. «Para sempre» viola-o tanto quanto apagar cedo de mais.\n\n'
+      + PRAZOS.map(pr => `· ${pr.oQue}: ${pr.quanto}${pr.desde !== '—' ? `, a contar ${pr.desde}` : ''}. ${pr.fundamento}`).join('\n')
+      + '\n\nOnde a lei fixa o prazo, seguimo-lo. Onde não fixa, o prazo acima é uma escolha fundamentada e não uma imposição legal — e a instituição pode definir outro, por escrito, no seu próprio registo de atividades de tratamento.\n\nNuma instituição, apagar uma conta do Phlox não apaga o processo individual de um utente: esse é da casa, e a casa é obrigada a conservá-lo.',
   },
   {
     title: 'Segurança',
@@ -50,7 +53,15 @@ const SECTIONS: { title: string; content: string }[] = [
   },
   {
     title: 'Cookies',
-    content: 'Usamos cookies essenciais ao funcionamento e, com o seu consentimento, cookies de publicidade. Pode gerir a sua escolha a qualquer momento em /cookies.',
+    content: 'Não há publicidade no Phlox, em plano nenhum, e não pomos cookies de publicidade nem de análise de terceiros. Depois de iniciar sessão, guardamos no seu navegador duas entradas estritamente necessárias para o manter com sessão iniciada. Os pormenores estão em /cookies.',
+  },
+  {
+    title: 'Decisões automatizadas e definição de perfis',
+    content: DECISOES_AUTOMATIZADAS.frase,
+  },
+  {
+    title: 'Violações de dados',
+    content: 'Se houver uma quebra de segurança que ponha em risco os seus dados, agimos em três frentes. Numa instituição, avisamos a instituição sem demora injustificada, porque é ela que tem o dever de notificar a CNPD nas 72 horas seguintes (artigos 33.º/1 e 33.º/2). Numa conta pessoal, notificamos nós a CNPD dentro das mesmas 72 horas. E quando a violação for suscetível de implicar um risco elevado para os seus direitos e liberdades, comunicamo-la também a si, diretamente e em linguagem clara (artigo 34.º).',
   },
   {
     title: 'Alterações e contacto',
@@ -81,7 +92,11 @@ export default function PrivacyPage() {
             <h2 style={{ fontFamily: 'var(--font-serif)', fontSize: 20, color: 'var(--ink)', marginBottom: 10, letterSpacing: '-0.01em' }}>
               {title}
             </h2>
-            <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.8, margin: 0 }}>{content}</p>
+            {/* `pre-wrap`: as secções passaram a ter parágrafos e listas, e sem
+                isto saíam todas num bloco único de texto corrido — que numa
+                política de privacidade é a diferença entre poder ser lida e
+                só poder ser alegada. */}
+            <p style={{ fontSize: 15, color: 'var(--ink-3)', lineHeight: 1.8, margin: 0, whiteSpace: 'pre-wrap' }}>{content}</p>
           </div>
         ))}
       </div>

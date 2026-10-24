@@ -23,7 +23,19 @@ import { reportError, MSG } from '@/lib/clientError'
 import ListaDePicking from '@/components/institution/ListaDePicking'
 import { blueprintFor } from '@/lib/institutionBlueprint'
 import Icon from '@/components/Icon'
-import { clinicalFindingsFor, SEVERITY_META, type Finding } from '@/lib/medPrepIntel'
+/* ── OS ACHADOS CLÍNICOS SAÍRAM DAQUI (2026-10-23) ────────────────────────
+   Esta página mostrava, por utente, o que um motor de 31 regras encontrava na
+   medicação ativa — STOPP/START, carga anticolinérgica, IBP prolongado — com
+   gravidade («CRÍTICO», «MAIOR») e uma ação a tomar.
+
+   É informação destinada a sustentar uma decisão terapêutica sobre uma pessoa
+   identificada: a definição da Regra 11 do Regulamento (UE) 2017/745, que
+   começa na classe IIa e, para software de segurança da medicação, é apontada
+   para classe III. Vender isto sem organismo notificado, ISO 13485 e avaliação
+   clínica não é defensável.
+
+   O que fica é o trabalho: quem toma o quê, quando, e se foi dado. A leitura
+   clínica da medicação é de quem tem competência para a fazer. */
 import AvisoDeSetup from '@/components/AvisoDeSetup'
 import { registar, ACOES } from '@/lib/registo'
 
@@ -103,14 +115,6 @@ export default function PreparacaoMedicacaoPage() {
     return SHIFTS.filter(s => used.has(s))
   }
   function logFor(patientId: string, weekday: number, shift: string) { return logs.find(l => l.patient_id === patientId && l.weekday === weekday && l.shift === shift) }
-  // Co-piloto clínico (Módulo 1): cruza a medicação ativa com o motor de
-  // regras (lib/decisionEngine, via lib/medPrepIntel) — nunca um checklist
-  // sem mais nada por trás. Só os achados major/critical aparecem por
-  // omissão (ver renderização); o resto fica disponível ao expandir.
-  function findingsFor(patient: Patient): Finding[] {
-    return clinicalFindingsFor(patient, medsFor(patient.id).map(m => ({ name: m.name, started_at: m.started_at })))
-  }
-
   async function toggle(patientId: string, weekday: number, shift: string) {
     if (!podeEditar) { toast.error('Só leitura', MSG.readonly); return }
     const existing = logFor(patientId, weekday, shift)
@@ -242,8 +246,6 @@ export default function PreparacaoMedicacaoPage() {
             ) : filtered.map(p => {
               const ms = medsFor(p.id)
               const shifts = shiftsFor(p.id)
-              const findings = findingsFor(p)
-              const notable = findings.filter(f => f.severity === 'critical' || f.severity === 'major')
               const packedCount = WEEKDAY_LABELS.reduce(
                 (n, _, wd) => n + shifts.filter(sh => logFor(p.id, wd, sh)?.packed).length, 0)
               const totalCount = WEEKDAY_LABELS.length * shifts.length
@@ -252,7 +254,6 @@ export default function PreparacaoMedicacaoPage() {
                 <LinhaTabela key={p.id}
                   aoTocar={() => setOpen(open === p.id ? null : p.id)}
                   ativa={open === p.id}
-                  filete={notable.length ? 'var(--red)' : undefined}
                   principal={
                     <>
                       {p.name}
@@ -263,9 +264,6 @@ export default function PreparacaoMedicacaoPage() {
                       )}
                     </>
                   }
-                  secundaria={notable.length
-                    ? `${notable.length} alerta${notable.length === 1 ? '' : 's'} a ver antes de preparar`
-                    : undefined}
                   celulas={[
                     { rotulo: 'Meds', valor: ms.length, largura: 48, direita: true },
                     {
@@ -284,7 +282,6 @@ export default function PreparacaoMedicacaoPage() {
           const p = aberta
           const ms = medsFor(p.id)
           const shifts = shiftsFor(p.id)
-          const findings = findingsFor(p)
           return (
             <Painel
               cabeca={
@@ -306,44 +303,6 @@ export default function PreparacaoMedicacaoPage() {
               }
             >
               <div style={{ padding: '0 14px 14px' }}>
-                {/* Os achados clínicos. Vêm ANTES da grelha, de propósito:
-                    quem vai preparar tem de os ver antes de pôr no pastilheiro. */}
-                {findings.length > 0 && (
-                  <div style={{ marginTop: 12 }}>
-                    <div style={{ ...ROTULO, marginBottom: 6 }}>Ver antes de preparar</div>
-                    {findings.map(f => {
-                      const meta = SEVERITY_META[f.severity]
-                      return (
-                        <div key={f.id} style={{
-                          padding: '8px 0 8px 11px', borderBottom: '1px solid var(--border)',
-                          borderLeft: `3px solid ${meta.color}`,
-                        }}>
-                          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap' }}>
-                            <span style={{
-                              ...MONO, fontSize: 'var(--t-micro)', letterSpacing: '.06em',
-                              fontWeight: 'var(--peso-forte)' as any, color: meta.color,
-                              textTransform: 'uppercase',
-                            }}>{meta.label}</span>
-                            <span style={{
-                              fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-corpo)' as any,
-                              color: 'var(--ink)',
-                            }}>{f.title}</span>
-                          </div>
-                          <div style={{
-                            fontSize: 'var(--t-meta)', color: 'var(--ink-3)', lineHeight: 1.5, marginTop: 2,
-                          }}>{f.detail}</div>
-                          {f.action && (
-                            <div style={{
-                              fontSize: 'var(--t-meta)', color: meta.color,
-                              fontWeight: 'var(--peso-corpo)' as any, marginTop: 3,
-                            }}>→ {f.action}</div>
-                          )}
-                        </div>
-                      )
-                    })}
-                  </div>
-                )}
-
                 <div style={{ ...ROTULO, margin: '14px 0 6px' }}>O que leva</div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
                   {ms.map(m => (

@@ -27,9 +27,7 @@ const SITUATIONS: Situation[] = [
     title: 'Tive (ou alguém teve) alta do hospital',
     intro: 'A alta vem com papéis, medicação nova e muita coisa para reter de uma vez. Vamos por partes — não tens de fazer tudo agora.',
     steps: [
-      { label: 'Foto da carta de alta', desc: 'O Phlox lê e percebe o que mudou na medicação.', href: '/reconciliacao' },
       { label: 'Organizar a medicação nova', desc: 'Cria a lista, com horários e lembretes.', href: '/mymeds' },
-      { label: 'Ver se tudo se dá bem', desc: 'Verifica interações entre o que já tomavas e o novo.', href: '/interactions' },
       { label: 'Ver o histórico', desc: 'Junta tudo para não te esqueceres na consulta de seguimento.', href: '/timeline' },
     ],
   },
@@ -40,7 +38,6 @@ const SITUATIONS: Situation[] = [
     intro: 'Um diagnóstico novo traz perguntas e termos que ninguém explicou bem. O Phlox ajuda-te a perceber e a acompanhar, ao teu ritmo.',
     steps: [
       { label: 'Perceber a medicação que começaste', desc: 'O que é, para que serve, em português simples.', href: '/scan' },
-      { label: 'Decifrar as análises', desc: 'O que cada valor quer dizer, sem o palavreado.', href: '/labs' },
       { label: 'Começar a tua história de saúde', desc: 'Tudo num sítio, pronto a mostrar ao médico.', href: '/timeline' },
       { label: 'Tirar dúvidas quando surgirem', desc: 'Pergunta o que quiseres, quando quiseres.', href: '/relatorio?tab=bolso' },
     ],

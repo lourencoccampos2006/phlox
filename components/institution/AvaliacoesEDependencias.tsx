@@ -37,9 +37,9 @@ import { reportError, isSetupError, MSG } from '@/lib/clientError'
 import { levelOf, SCALES, type ScaleType } from '@/lib/assessmentScales'
 import {
   perfilDeDependencia, ondePrecisaDeAjuda, perfilEmUmaLinha,
-  sugestoesDasAvaliacoes, estadoDasEscalas,
+  estadoDasEscalas,
   ROTULO_DO_NIVEL, COR_DO_NIVEL,
-  type Sugestao, type Dependencia,
+  type Dependencia,
 } from '@/lib/dependencias'
 
 const MONO: React.CSSProperties = {
@@ -97,68 +97,11 @@ export default function AvaliacoesEDependencias({ pid, nome, cor, planoId }: {
     () => perfilDeDependencia(ultimas.barthel?.answers),
     [ultimas])
 
-  const sugestoes = useMemo(() => sugestoesDasAvaliacoes({
-    barthel: ultimas.barthel ? { score: ultimas.barthel.score, answers: ultimas.barthel.answers, date: ultimas.barthel.date } : null,
-    braden: ultimas.braden ? { score: ultimas.braden.score, date: ultimas.braden.date } : null,
-    morse: ultimas.morse ? { score: ultimas.morse.score, date: ultimas.morse.date } : null,
-    mna: ultimas.mna ? { score: ultimas.mna.score, date: ultimas.mna.date } : null,
-  }), [ultimas])
-
   const escalas = useMemo(() => {
     const datas: Record<string, string | undefined> = {}
     for (const [k, v] of Object.entries(ultimas)) datas[k] = v.date
     return estadoDasEscalas(datas)
   }, [ultimas])
-
-  /** Aceitar uma sugestão: acrescenta o serviço, a etiqueta, ou o objetivo. */
-  async function aceitar(s: Sugestao, chave: string) {
-    if (!user) return
-    try {
-      if (s.servico) {
-        // O serviço tem de existir no catálogo da casa — é por isso que o
-        // sprint162 o traz preenchido. Se alguém o apagou, diz-se.
-        let q = supabase.from('catalogo_servicos').select('id').eq('nome', s.servico).limit(1)
-        q = scope.filter(q)
-        const { data: cat, error: e1 } = await q
-        if (e1 || !cat?.length) {
-          setErro(`Não encontrei o serviço «${s.servico}» no catálogo da casa. Acrescente-o nos cuidados de rotina.`)
-          return
-        }
-        const { error } = await supabase.from('servicos_do_utente').insert(scope.stamp({
-          user_id: user.id, patient_id: pid, servico_id: cat[0].id, cadencia: 'diaria', ativo: true,
-        }))
-        // Já lá estava: o resultado que se queria, não um erro.
-        if (error && !/duplicate key/i.test(error.message)) throw error
-      }
-
-      if (s.etiqueta) {
-        let q = supabase.from('etiquetas').select('id').eq('nome', s.etiqueta).limit(1)
-        q = scope.filter(q)
-        const { data: et } = await q
-        if (et?.length) {
-          const { error } = await supabase.from('etiquetas_do_utente').insert(scope.stamp({
-            user_id: user.id, patient_id: pid, etiqueta_id: et[0].id,
-            posta_por: (user as any).name || user.email || '',
-          }))
-          if (error && !/duplicate key/i.test(error.message)) throw error
-        }
-      }
-
-      if (s.objetivo && planoId) {
-        const { error } = await supabase.from('plano_objetivos').insert(scope.stamp({
-          user_id: user.id, plano_id: planoId,
-          area: s.objetivo.area, titulo: s.objetivo.titulo, porque: s.objetivo.porque,
-          ordem: 99,
-        }))
-        if (error) throw error
-      }
-
-      setErro('')
-      setAceites(p => new Set(p).add(chave))
-    } catch (e: any) {
-      setErro(reportError('sugestao-aceitar', e, isSetupError(e) ? MSG.unavailable : MSG.save))
-    }
-  }
 
   if (indisponivel) return null
   if (carregando) {
@@ -251,67 +194,6 @@ export default function AvaliacoesEDependencias({ pid, nome, cor, planoId }: {
               </div>
             </details>
           )}
-        </section>
-      )}
-
-      {/* ── O que isto implica ───────────────────────────────────────────── */}
-      {sugestoes.length > 0 && (
-        <section style={{ marginTop: 'var(--space-12)' }}>
-          <div style={{
-            display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
-            gap: 'var(--space-7)', paddingBottom: 'var(--space-5)', borderBottom: '1px solid var(--ink)',
-          }}>
-            <span style={MONO}>O que isto implica</span>
-            <span style={{ ...MONO, color: 'var(--ink-5)' }}>sugestões</span>
-          </div>
-
-          <p style={{ fontSize: 12.5, color: 'var(--ink-4)', margin: 'var(--space-5) 0 0', lineHeight: 1.55 }}>
-            Sai das avaliações. Nada se aplica sozinho — quem decide é quem trata.
-          </p>
-
-          <div style={{ marginTop: 'var(--space-7)', display: 'flex', flexDirection: 'column', gap: 9 }}>
-            {sugestoes.map((s, i) => {
-              const chave = `${s.origem}-${s.oQue}`
-              const feito = aceites.has(chave)
-              const g = GRAVIDADE[s.gravidade]
-              return (
-                <div key={i} style={{
-                  padding: 'var(--space-7)', borderRadius: 'var(--r-lg)',
-                  border: `1px solid ${g.borda}`, background: g.fundo,
-                  opacity: feito ? 0.6 : 1,
-                }}>
-                  <div style={{ ...MONO, fontSize: 9.5, color: g.texto, marginBottom: 5 }}>{s.origem}</div>
-                  <div style={{ fontSize: 13, color: g.texto, lineHeight: 1.55 }}>{s.porque}</div>
-                  <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--ink)', marginTop: 5, lineHeight: 1.45 }}>
-                    {s.oQue}
-                  </div>
-
-                  {podeEditar && !feito && (s.servico || s.etiqueta || (s.objetivo && planoId)) && (
-                    <button onClick={() => aceitar(s, chave)} style={{
-                      marginTop: 11, minHeight: 40, padding: '0 16px', borderRadius: 'var(--r-md)',
-                      border: 'none', background: cor, color: 'var(--bg)',
-                      fontFamily: 'inherit', fontSize: 13.5, fontWeight: 700, cursor: 'pointer',
-                    }}>
-                      {s.servico && s.objetivo ? 'Acrescentar o cuidado e o objetivo'
-                        : s.servico ? 'Acrescentar aos cuidados'
-                        : s.objetivo ? 'Acrescentar ao plano'
-                        : 'Pôr a etiqueta'}
-                    </button>
-                  )}
-                  {feito && (
-                    <div style={{ marginTop: 9, fontSize: 12.5, fontWeight: 700, color: 'var(--badge-green-fg)' }}>
-                      ✓ Feito
-                    </div>
-                  )}
-                  {s.objetivo && !planoId && (
-                    <div style={{ marginTop: 9, fontSize: 11.5, color: 'var(--ink-5)', lineHeight: 1.45 }}>
-                      Para acrescentar o objetivo é preciso haver um plano começado.
-                    </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
         </section>
       )}
 

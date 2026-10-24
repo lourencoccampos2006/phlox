@@ -172,21 +172,20 @@ export function CarePlansTool() {
     } catch { setRiskSignals([]) }
   }
 
-  // Mapeia um sinal do motor → sugestões aplicáveis ao plano de cuidados
-  function suggestionsFor(sig: Signal): { goals?: string[]; fall?: string[]; pu?: string[]; note?: { field: 'skin_care' | 'nutrition_plan' | 'medication_notes' | 'behavioral_notes'; text: string } } {
-    switch (sig.kind) {
-      case 'wound': return { pu: ['Mudança de posição cada 2h', 'Vigilância de zonas de pressão', 'Registo de posicionamentos'], goals: ['Promover a cicatrização da ferida e prevenir novas lesões'], note: { field: 'skin_care', text: 'Ferida ativa — seguir protocolo de penso e vigiar evolução.' } }
-      case 'weight': return { goals: ['Recuperar/estabilizar o peso corporal'], note: { field: 'nutrition_plan', text: 'Perda de peso detetada — reforço calórico/proteico e registo de ingestão.' } }
-      case 'fluid': return { goals: ['Garantir hidratação adequada (>1500 ml/dia salvo restrição)'], note: { field: 'nutrition_plan', text: 'Ingestão hídrica baixa — oferecer líquidos a intervalos regulares.' } }
-      case 'bowel': return { goals: ['Restabelecer trânsito intestinal regular'], note: { field: 'nutrition_plan', text: 'Vigiar eliminação — reforço de fibra e hidratação; atuar conforme protocolo de obstipação.' } }
-      case 'poly': return { goals: ['Rever a medicação (STOPP/START) com o médico'], note: { field: 'medication_notes', text: 'Polimedicação — proposta de revisão farmacoterapêutica.' } }
-      case 'stopp': case 'inter': return { fall: ['Avaliação Morse regular', 'Supervisão na mobilização'], note: { field: 'medication_notes', text: sig.title + ' — confirmar com o médico.' } }
-      case 'vital': return { note: { field: 'medication_notes', text: sig.title + ' — vigiar sinais vitais e reavaliar.' } }
-      case 'incident': return { fall: ['Avaliação Morse regular', 'Supervisão na mobilização', 'Alarme de cama'], goals: ['Prevenir recorrência da ocorrência registada'] }
-      case 'cond': return { goals: ['Vigilância clínica reforçada da condição de alto risco'] }
-      default: return {}
-    }
-  }
+  /* ── AS SUGESTÕES DE PLANO SAÍRAM DAQUI (2026-10-23) ───────────────────
+     Esta página lia os sinais de um residente e propunha-lhe intervenções
+     concretas: «mudança de posição cada 2h», «reforço calórico/proteico»,
+     «rever a medicação (STOPP/START) com o médico» — com um botão «Aplicar»
+     que as escrevia no plano de cuidados dele.
+
+     Propor a intervenção terapêutica para um doente identificado é a Regra 11
+     do Regulamento (UE) 2017/745 na sua forma mais direta, e o botão
+     «Aplicar» tornava-a num ato: a decisão passava a estar no plano sem
+     ninguém a ter tomado.
+
+     O plano de cuidados continua, e é obrigatório (Portaria n.º 67/2012,
+     art. 7.º). O que muda é quem o escreve: a equipa, que conhece a pessoa.
+     Os sinais continuam a ser mostrados — são o que foi registado. */
 
   const save = async () => {
     if (!user || !selected) return
@@ -287,22 +286,6 @@ export function CarePlansTool() {
     setForm(prev => ({ ...prev, goals: prev.goals.filter((_, idx) => idx !== i) }))
   }
 
-  // Aplica todas as sugestões de um sinal ao formulário (sem duplicar)
-  const applySuggestion = (sig: Signal) => {
-    const s = suggestionsFor(sig)
-    setForm(prev => {
-      const next = { ...prev }
-      if (s.goals) next.goals = Array.from(new Set([...prev.goals, ...s.goals]))
-      if (s.fall) next.fall_prevention = Array.from(new Set([...prev.fall_prevention, ...s.fall]))
-      if (s.pu) next.pressure_ulcer_prevention = Array.from(new Set([...prev.pressure_ulcer_prevention, ...s.pu]))
-      if (s.note) {
-        const cur = (prev[s.note.field] || '') as string
-        if (!cur.includes(s.note.text)) next[s.note.field] = (cur ? cur + '\n' : '') + s.note.text
-      }
-      return next
-    })
-  }
-
   const filteredPatients = patients.filter(p =>
     !search || p.name.toLowerCase().includes(search.toLowerCase()) || (p.room_number || '').includes(search)
   )
@@ -368,32 +351,18 @@ export function CarePlansTool() {
             )}
           </div>
 
-          {/* ── Sugestões do motor de ecossistema ── */}
+          {/* Os sinais, sem proposta de intervenção. Ver a nota em cima. */}
           {riskSignals && riskSignals.length > 0 && (
             <div style={{ background: 'white', border: `1.5px solid ${SEVERITY_STYLE[riskLevel].border}`, borderRadius: 'var(--r-lg)', padding: '16px 18px', marginBottom: 20 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                <span style={{ fontSize: 'var(--t-corpo)' }}>🧩</span>
-                <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Sugestões a partir do estado clínico</div>
-              </div>
-              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 12 }}>O Phlox detetou estes sinais. Toca em <strong>Aplicar</strong> para adicionar as medidas/objetivos ao plano.</div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-3)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 4 }}>O que foi registado</div>
+              <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginBottom: 12 }}>Isto é o que está nos registos desta pessoa. O que fazer com cada um é de quem escreve o plano.</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {riskSignals.map((sig, i) => {
                   const st = SEVERITY_STYLE[sig.severity]
-                  const s = suggestionsFor(sig)
-                  const items = [...(s.goals || []), ...(s.fall || []), ...(s.pu || []), ...(s.note ? [s.note.text] : [])]
-                  if (!items.length) return null
                   return (
                     <div key={i} style={{ border: `1px solid ${st.border}`, background: st.bg, borderRadius: 'var(--r-lg)', padding: '10px 12px' }}>
-                      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
-                        <div style={{ minWidth: 0 }}>
-                          <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: st.color }}>{sig.title}</div>
-                          <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.45 }}>{sig.detail}</div>
-                          <ul style={{ margin: '7px 0 0', paddingLeft: 16 }}>
-                            {items.slice(0, 4).map((it, k) => <li key={k} style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-2)', marginBottom: 1 }}>{it}</li>)}
-                          </ul>
-                        </div>
-                        <button onClick={() => applySuggestion(sig)} style={{ flexShrink: 0, padding: '6px 13px', background: st.color, color: 'white', border: 'none', borderRadius: 'var(--r-md)', fontSize: 'var(--t-meta)', fontWeight: 'var(--peso-forte)' as any, cursor: 'pointer', fontFamily: 'var(--font-sans)' }}>Aplicar</button>
-                      </div>
+                      <div style={{ fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: st.color }}>{sig.title}</div>
+                      <div style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 2, lineHeight: 1.45 }}>{sig.detail}</div>
                     </div>
                   )
                 })}

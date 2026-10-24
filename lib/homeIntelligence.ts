@@ -29,7 +29,6 @@ export function quickActions(mode: string): QuickAction[] {
   if (mode === 'caregiver') return [
     { href: '/familia', icon: 'family', label: 'A minha família', sub: 'Cada pessoa' },
     { href: '/scan', icon: 'camera', label: 'Foto à receita', sub: 'Organizar' },
-    { href: '/interactions', icon: 'shield', label: 'É seguro juntar?', sub: 'Verificar' },
     { href: '/ai', icon: 'spark', label: 'Tenho uma dúvida', sub: 'Perguntar' },
   ]
   return [

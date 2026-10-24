@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePhloxContext } from '@/lib/copilotContext'
 import { useHandoff } from '@/lib/toolBridge'
 import { useAuth } from '@/components/AuthContext'
-import DrugQuickLook from '@/components/DrugQuickLook'
 import Link from 'next/link'
 import { resolveDrugName, suggestDrugs } from '@/lib/drugNames'
 import { startClientReminderLoop, stopClientReminderLoop } from '@/lib/clientReminder'
@@ -954,9 +953,6 @@ export default function MyMedsPage() {
           {perfilFamiliar && familyProfileData!.allergies && (
             <Codigo texto={`ALERGIA: ${familyProfileData!.allergies.toUpperCase()}`} cor="var(--red)" />
           )}
-          {perfilFamiliar && familyProfileData!.age && familyProfileData!.age >= 75 && (
-            <Codigo texto="≥75 ANOS · CRITÉRIOS STOPP" cor="var(--amber)" />
-          )}
 
           {/* O ESTADO: quantas doses de hoje já foram dadas. */}
           {!loading && schedule.length > 0 && (
@@ -1187,7 +1183,7 @@ export default function MyMedsPage() {
                             </div>
                             <div style={{ flex:1, minWidth:0 }}>
                               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:2, flexWrap:'wrap' }}>
-                                <DrugQuickLook drug={med.name} trigger={<span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color:'var(--ink)', cursor:'pointer', textDecorationLine:'underline', textDecorationStyle:'dotted', textDecorationColor:'var(--border-2)' }}>{med.name}</span>} />
+                                <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{med.name}</span>
                                 {hasGrave && <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--red)', background:'var(--badge-red-bg)', border:'1px solid var(--badge-red-border)', padding:'1px 5px', borderRadius: 'var(--r-sm)', textTransform:'uppercase' }}>Alerta</span>}
                                 {hasReminder && <span style={{ fontSize: 'var(--t-micro)', fontFamily:'var(--font-mono)', fontWeight: 'var(--peso-forte)' as any, color:'var(--green-2)', background:'var(--green-light)', border:'1px solid var(--green-mid)', padding:'1px 5px', borderRadius: 'var(--r-sm)' }}>🔔 {(med.reminder_times || []).join(' · ')}</span>}
                                 {stockDays != null && (

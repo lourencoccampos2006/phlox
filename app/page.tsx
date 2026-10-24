@@ -216,7 +216,7 @@ export default function HomePage() {
               ))}
             </div>
             <p className="lp-badges">
-              {['INFARMED', 'DGS', 'EMA', 'ESC 2024', 'Beers 2023', 'STOPP/START v3'].map((s, i) => (
+              {['INFARMED', 'DGS', 'EMA'].map((s, i) => (
                 <span key={s}>{i > 0 && <span className="lp-badge-sep">·</span>}{s}</span>
               ))}
             </p>

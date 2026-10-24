@@ -23,6 +23,7 @@ import {
   MONO, ROTULO, useLargo,
 } from '@/components/ui/mesa'
 import PerfisDeAcesso from '@/components/team/PerfisDeAcesso'
+import RaciosDePessoal from '@/components/team/RaciosDePessoal'
 
 /* O acento era turquesa (var(--green-3)), a unica cor da aplicacao fora dos tokens.
    Desde 2026-10-07 e o verde da casa, como em todo o resto. */
@@ -529,6 +530,19 @@ export default function EquipaPage() {
                 oQueFazer="Vê a lista toda, com a função de cada um. Para mudar acessos, fale com a Direção Técnica ou com o dono." />
             </Painel>
           ) : null}
+
+          {/* ── O QUADRO DE PESSOAL, A SEGUIR À LISTA ──────────────────────
+              A pergunta que nasce de olhar para esta lista é «isto é gente
+              suficiente?». A checklist de conformidade levantava-a e pedia uma
+              caixa marcada; aqui a conta faz-se, com os dois números de que
+              depende (quantos trabalham, quantos utentes) à vista.
+
+              Atravessa as duas colunas porque é sobre a casa, não sobre uma
+              pessoa — e vem ANTES dos perfis de acesso: primeiro quantos são,
+              depois o que cada um abre. */}
+          <div style={{ gridColumn: '1 / -1' }}>
+            <RaciosDePessoal membros={team} />
+          </div>
 
           {/* ── OS PERFIS DE ACESSO, POR BAIXO DAS PESSOAS ─────────────────
               `gridColumn: '1 / -1'` para atravessar as duas colunas: isto não

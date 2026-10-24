@@ -22,7 +22,11 @@ import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
 import ClinicalGate from '@/components/ClinicalGate'
-import { riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
+/* O score de risco clínico saiu a 2026-10-23. Pontuava cada pessoa a partir
+   da idade, das condições, da função renal e do número de fármacos, e pintava
+   a linha de vermelho. Atribuir um nível de risco a um doente identificado é
+   apoio à decisão clínica — Regra 11 do Regulamento (UE) 2017/745.
+   A lista ordena-se agora por quem tem ocorrências abertas e, depois, por nome. */
 import { useLiveData } from '@/lib/useLiveData'
 import { useOrgScope } from '@/lib/orgScope'
 import { useToast } from '@/components/Toast'
@@ -404,8 +408,8 @@ export default function PatientsPage() {
       return etiquetasEscolhidas.every(e => suas.has(e))
     })
     .sort((a, b) => {
-      const ar = calcRiskScore({ ...a, alerts: alertCount[a.id], meds_count: medsCount[a.id] } as any)
-      const br = calcRiskScore({ ...b, alerts: alertCount[b.id], meds_count: medsCount[b.id] } as any)
+      const ar = alertCount[a.id] || 0
+      const br = alertCount[b.id] || 0
       if (br !== ar) return br - ar
       return (alertCount[b.id] || 0) - (alertCount[a.id] || 0)
     }), [patients, search, filter, alertCount, medsCount, loggedToday, etiquetasEscolhidas, etiquetasPorPessoa])
@@ -558,14 +562,8 @@ export default function PatientsPage() {
           )
         ) : visible.map(p => {
           const mc = medsCount[p.id] || 0, ac = alertCount[p.id] || 0
-          const rs = calcRiskScore({ ...p, alerts: ac, meds_count: mc } as any)
           const logged = loggedToday.has(p.id)
           const suas = etiquetasPorPessoa.get(p.id) || []
-          // `riskScore` devolve um numero; o nivel sai do `riskLevel`, que e a
-          // fonte unica dos cortes (70 / 45 / 20).
-          const nivel = riskLevel(rs)
-          const corRisco = nivel === 'critical' || nivel === 'high' ? 'var(--red)'
-            : nivel === 'moderate' ? 'var(--amber)' : 'var(--ink-4)'
           return (
             <LinhaTabela key={p.id} href={`/patients/${p.id}`}
               filete={ac > 0 ? 'var(--red)' : undefined}
@@ -607,7 +605,6 @@ export default function PatientsPage() {
                 { rotulo: 'Med', valor: mc || '—', largura: 52, direita: true, cor: mc >= 5 ? 'var(--amber)' : undefined },
                 { rotulo: 'Alerta', valor: ac || '—', largura: 58, direita: true, forte: !!ac, cor: ac ? 'var(--red)' : 'var(--ink-5)' },
                 { rotulo: 'Hoje', valor: logged ? '✓' : '—', largura: 52, direita: true, cor: logged ? 'var(--green)' : 'var(--ink-5)' },
-                { rotulo: 'Risco', valor: rs, largura: 62, direita: true, forte: true, cor: corRisco },
               ]} />
           )
         })}

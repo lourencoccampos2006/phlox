@@ -33,7 +33,21 @@
 //   suficientemente culpado sem uma aplicação a dizer-lhe que está atrasado.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import type { WatchSignal } from './caregiverWatch'
+/* O tipo era importado de `caregiverWatch`, que saiu em 2026-10-23: aquele
+   ficheiro lia a medicação atual contra 31 regras clínicas e devolvia um nível
+   de risco por pessoa — apoio à decisão terapêutica, e por isso dispositivo
+   médico na aceção da Regra 11. Este ficheiro não faz isso: conta doses
+   marcadas, dias sem registo e mudanças face ao hábito da própria pessoa.
+   Fica, e o tipo passa a ser dele. */
+export interface WatchSignal {
+  kind: string
+  severity: 'critical' | 'major' | 'moderate' | 'info'
+  title: string
+  detail?: string
+  action?: string
+  cta?: { label: string; href: string }
+  href?: string
+}
 
 export interface DoseRegistada { med_id: string; date: string; status: string }
 export interface MedDoCuidado { id: string; name: string; pills_per_day?: number | null; active?: boolean | null; created_at?: string | null }

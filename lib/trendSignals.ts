@@ -373,7 +373,7 @@ export function incontinenceSignal(rows: IncontinenceRow[]): ResidentTrend['flag
       kind: 'trend_incontinence_up',
       severity: pct >= 0.7 ? 'critical' : 'warning',
       title: 'Uso de material de incontinência acima do habitual',
-      detail: `Média de ${r.toFixed(1)}/dia nos últimos 7 dias (era ${b.toFixed(1)}/dia nas 2 semanas anteriores). Uma subida assim pode merecer avaliação — por exemplo despiste de infeção urinária ou alteração da mobilidade.`,
+      detail: `Média de ${r.toFixed(1)}/dia nos últimos 7 dias (era ${b.toFixed(1)}/dia nas 2 semanas anteriores).`,
     }
   }
   if (pct <= -0.4) {
@@ -381,7 +381,7 @@ export function incontinenceSignal(rows: IncontinenceRow[]): ResidentTrend['flag
       kind: 'trend_incontinence_down',
       severity: pct <= -0.7 ? 'critical' : 'warning',
       title: 'Uso de material de incontinência abaixo do habitual',
-      detail: `Média de ${r.toFixed(1)}/dia nos últimos 7 dias (era ${b.toFixed(1)}/dia nas 2 semanas anteriores). Uma descida assim pode merecer avaliação — por exemplo ingestão de líquidos, desidratação ou obstipação.`,
+      detail: `Média de ${r.toFixed(1)}/dia nos últimos 7 dias (era ${b.toFixed(1)}/dia nas 2 semanas anteriores).`,
     }
   }
   return null

@@ -54,7 +54,13 @@ const criada = t => new RegExp(`create table (?:if not exists )?(?:public\\.)?${
 const temColuna = t => {
   const cria = sql.match(new RegExp(`create table (?:if not exists )?(?:public\\.)?${esc(t)}\\s*\\(([\\s\\S]*?)\\n\\);`))
   if (cria && cria[1].includes('recorded_by_id')) return true
-  if (new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)} add column if not exists recorded_by_id`).test(sql)) return true
+  /* `\s+` e não um espaço: um `alter table public.sad_planos` seguido de quebra
+     de linha e `add column …` na linha a seguir é SQL normal e bem formatado,
+     e a guarda não o via. Deu um falso NEGATIVO em cima de uma migração
+     escrita de propósito para a satisfazer — a correção estava feita e a
+     guarda continuava vermelha, que é a maneira mais rápida de ela deixar de
+     ser lida. */
+  if (new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)}\\s+add column if not exists recorded_by_id`).test(sql)) return true
   // uma constraint sobre a coluna prova que ela existe
   if (new RegExp(`alter table ${esc(t)} add constraint ${esc(t)}_recorded_by_id_fkey`).test(sql)) return true
   // ── O CICLO EM MASSA DO sprint169 ────────────────────────────────────────
@@ -69,7 +75,24 @@ const temColuna = t => {
   //
   // O mesmo padrão já estava reconhecido em baixo, para o `org_id` do
   // sprint91. É a mesma ideia: a prova é a REGRA, e não o nome.
-  if (recordedEmMassa && temOrgId(t)) return true
+  // ── MAS UM CICLO EM MASSA É UMA FOTOGRAFIA, NÃO UMA REGRA (2026-10-20) ──
+  // O ciclo do sprint169 correu UMA VEZ. Não toca nas tabelas criadas depois
+  // dele — e o guarda passou a aceitá-lo como prova para qualquer tabela com
+  // `org_id`, incluindo as que ainda nem existiam.
+  //
+  // Custou o módulo inteiro do apoio domiciliário: o `sad_planos` nasceu no
+  // sprint183, catorze migrações depois do ciclo, sem `recorded_by_id`, e o
+  // guarda deu verde. O PostgREST recusava TODAS as escritas com
+  //
+  //     400 PGRST204  Could not find the 'recorded_by_id' column
+  //
+  // Foi a terceira vez que este bug passou, e a primeira em que passou por
+  // cima de um guarda escrito para o impedir.
+  //
+  // A regra passa a ser: o ciclo só prova as tabelas que JÁ EXISTIAM quando
+  // ele correu. Uma tabela criada numa migração mais recente declara a coluna
+  // ela própria.
+  if (recordedEmMassa && temOrgId(t) && !nascidaDepoisDoCiclo(t)) return true
   return false
 }
 
@@ -78,11 +101,40 @@ const recordedEmMassa = /add column if not exists recorded_by_id/.test(sql)
   && /execute format/.test(sql)
   && /column_name = 'org_id'/.test(sql)
 
+/** O número da migração onde o ciclo em massa vive. */
+const numeroDoCiclo = (() => {
+  for (const f of readdirSync('supabase').filter(x => x.endsWith('.sql')).sort()) {
+    const t = readFileSync(join('supabase', f), 'utf8')
+    if (/add column if not exists recorded_by_id/.test(t)
+        && /execute format/.test(t) && /column_name = 'org_id'/.test(t)) {
+      const n = f.match(/sprint(\d+)/)
+      if (n) return +n[1]
+    }
+  }
+  return null
+})()
+
+/** Em que migração é que esta tabela nasceu? */
+function nascidaEm(t) {
+  for (const f of readdirSync('supabase').filter(x => x.endsWith('.sql'))) {
+    const texto = readFileSync(join('supabase', f), 'utf8')
+    if (new RegExp(`create table (?:if not exists )?(?:public\\.)?${esc(t)}\\s*\\(`).test(texto)) {
+      const n = f.match(/sprint(\d+)/)
+      return n ? +n[1] : 0
+    }
+  }
+  return 0
+}
+
+const nascidaDepoisDoCiclo = t =>
+  numeroDoCiclo !== null && nascidaEm(t) > numeroDoCiclo
+
 /** Esta tabela tem `org_id` — por criação, por ALTER, ou pelo ciclo do sprint91. */
 function temOrgId(t) {
   const cria = sql.match(new RegExp(`create table (?:if not exists )?(?:public\\.)?${esc(t)}\\s*\\(([\\s\\S]*?)\\n\\);`))
   if (cria && cria[1].includes('org_id')) return true
-  if (new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)} add column if not exists org_id`).test(sql)) return true
+  // O mesmo `\s+` da coluna acima: a quebra de linha é formatação, não semântica.
+  if (new RegExp(`alter table (?:if exists )?(?:public\\.)?${esc(t)}\\s+add column if not exists org_id`).test(sql)) return true
   return new RegExp(`'${esc(t)}'`).test(sql)
     && /add column if not exists org_id/.test(sql)
     && /execute format/.test(sql)

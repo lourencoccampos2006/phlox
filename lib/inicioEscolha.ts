@@ -29,7 +29,6 @@ export const MINIMO = 2
 /** As de omissão, por modo. São as que o /inicio mostrava antes de haver
  *  escolha — quem nunca entrar nas definições não vê nada mudar. */
 export const OMISSAO: Record<string, string[]> = {
-  personal:  ['/mymeds', '/vault', '/labs', '/timeline'],
   caregiver: ['/familia', '/mymeds', '/vault', '/timeline'],
   student:   ['/arena', '/osce', '/study360'],
 }

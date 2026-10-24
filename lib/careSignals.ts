@@ -178,13 +178,13 @@ export function summariseResident(input: CareSignalsInput): CareResult {
       kind: 'recusa_repetida',
       severity: r.vezes >= 3 ? 'warning' : 'info',
       title: `${r.o_que.charAt(0).toUpperCase() + r.o_que.slice(1)}: ${r.vezes} vezes em duas semanas`,
-      detail: `Desde ${r.desde}. Repetir-se assim costuma querer dizer alguma coisa — dor, cansaço, ou simplesmente uma hora que já não serve a esta pessoa. Vale a pena perguntar.`,
+      detail: `Desde ${r.desde}. Ficou registado assim várias vezes seguidas.`,
     })
   }
 
   // Recusa alimentar hoje (organizacional — a equipa registou; destacar para seguir).
   if (refusedMealToday(input.careToday)) {
-    extra.push({ kind: 'meal_refused', severity: 'info', title: 'Recusa alimentar registada hoje', detail: 'A equipa registou recusa de refeição. Pode merecer atenção e seguimento.' })
+    extra.push({ kind: 'meal_refused', severity: 'info', title: 'Recusa alimentar registada hoje', detail: 'A equipa registou recusa de refeição.' })
   }
 
   // ── Faltas ───────────────────────────────────────────────────────────────
@@ -259,7 +259,7 @@ export function summariseResident(input: CareSignalsInput): CareResult {
     if (rubores >= 2) extra.push({
       kind: 'skin_watch', severity: 'warning',
       title: `Rubor na pele em ${rubores} dos últimos registos`,
-      detail: 'Rubor repetido no mesmo sítio costuma vir antes da escara. Vale a pena ver e aliviar a pressão.',
+      detail: 'Rubor registado várias vezes no mesmo sítio.',
     })
   }
 
@@ -269,7 +269,7 @@ export function summariseResident(input: CareSignalsInput): CareResult {
     extra.push({
       kind: 'bowel_watch', severity: 'warning',
       title: 'Obstipação nos três últimos registos',
-      detail: 'Três registos seguidos de obstipação. Rever hidratação, fibra e o que a medicação possa estar a provocar.',
+      detail: 'Três registos seguidos de obstipação.',
     })
   }
 
@@ -289,7 +289,7 @@ export function summariseResident(input: CareSignalsInput): CareResult {
     extra.push({
       kind: 'appetite_watch', severity: 'warning',
       title: `Apetite fraco em ${semApetite} dos últimos ${ultimos.length} registos`,
-      detail: 'O apetite vem em baixa há vários dias. Costuma aparecer antes da perda de peso.',
+      detail: 'O apetite ficou registado em baixa há vários dias.',
     })
   }
 

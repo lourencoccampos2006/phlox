@@ -224,7 +224,6 @@ const PRINCIPAL: Record<string, Destino> = {
 const DESTINOS_CONHECIDOS: Record<string, Destino> = {
   '/mymeds':   { href: '/mymeds',   titulo: 'A minha medicação',  nota: 'O que tomo e a que horas' },
   '/vault':    { href: '/vault',    titulo: 'Os meus documentos', nota: 'Exames, receitas e relatórios guardados' },
-  '/labs':     { href: '/labs',     titulo: 'Análises',           nota: 'Perceber os valores' },
   '/timeline': { href: '/timeline', titulo: 'A minha história',   nota: 'Tudo o que ficou registado' },
   '/familia':  { href: '/familia',  titulo: 'Quem eu cuido',      nota: 'Como têm estado' },
   '/arena':    { href: '/arena',    titulo: 'Arena',              nota: 'Competir e treinar' },
@@ -236,7 +235,6 @@ const DESTINOS: Record<string, Destino[]> = {
   personal: [
     { href: '/mymeds',   titulo: 'A minha medicação',       nota: 'O que tomo e a que horas' },
     { href: '/vault',    titulo: 'Os meus documentos',      nota: 'Exames, receitas e relatórios guardados' },
-    { href: '/labs',     titulo: 'Análises',                nota: 'Perceber os valores' },
     { href: '/timeline', titulo: 'A minha história',        nota: 'Tudo o que ficou registado' },
   ],
   caregiver: [

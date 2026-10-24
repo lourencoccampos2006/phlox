@@ -2,10 +2,15 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
-import FusionTabs from '@/components/FusionTabs'
-import { RastreiosTool } from '../rastreios/page'
-
-// /agenda é agora "Agenda e rastreios": marcações + plano de rastreios/vacinas.
+// ── OS RASTREIOS SAÍRAM DAQUI (2026-10-22) ─────────────────────────────────
+// A aba «Rastreios» propunha rastreios e vacinas a cada utente, com o que está
+// «em falta agora» e a ação a tomar. Isso é uma recomendação de atuação
+// preventiva sobre uma pessoa concreta — apoio à decisão clínica, e por isso
+// dispositivo médico na aceção da Regra 11 do Regulamento (UE) 2017/745.
+//
+// O que fica é a AGENDA: o que foi marcado, quando, com quem, e se já foi.
+// Marcar uma consulta é um facto administrativo. Dizer a alguém que consulta
+// devia marcar é outra coisa, e não é coisa que este produto faça.
 import {
   LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
   Botao, Seletor, Vazio, ACarregar, Campo, Folha, CAIXA, CAIXA_TEXTO,
@@ -13,13 +18,7 @@ import {
 } from '@/components/ui/mesa'
 
 export default function AgendaPage() {
-  return <FusionTabs
-    eyebrow="Agenda" title="Agenda e rastreios"
-    subtitle="As marcações do dia e o plano de rastreios e vacinas, num só sítio."
-    tabs={[
-      { id: 'agenda', label: 'Agenda', icon: 'calendar', render: () => <AgendaTool /> },
-      { id: 'rastreios', label: 'Rastreios', icon: 'flask', render: () => <RastreiosTool /> },
-    ]} />
+  return <AgendaTool />
 }
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'

@@ -11,7 +11,7 @@ import { aiComplete, aiJSON } from '@/lib/ai'
 import { getUserPlan, planGateResponse, isPlanSufficient, extractToken } from '@/lib/planGate'
 import { checkRateLimit, getIP, rateLimitResponse } from '@/lib/rateLimit'
 import { TOOLS, type ToolMode } from '@/lib/toolRegistry'
-import { checkInteractionsTool, patientDataTool, estadoDaCasaTool } from '@/lib/copilotTools'
+import { patientDataTool, estadoDaCasaTool } from '@/lib/copilotTools'
 import { ptDate } from '@/lib/ptTime'
 
 // Diretório CONCISO de todas as ferramentas do Phlox — usado SÓ para encaminhar
@@ -34,7 +34,6 @@ function routeContext(path: string): string {
     [/^\/tutor/, 'Está com o AI Tutor (método socrático). Reforça o raciocínio em vez de dar respostas diretas.'],
     [/^\/arena/, 'Está na Arena de ligas (quiz competitivo). Pode pedir para explicar uma questão que errou.'],
     [/^\/estagio/, 'Está a gerir o estágio clínico (casos vistos, competências, reflexões). Ajuda a estruturar registos e a refletir.'],
-    [/^\/interactions/, 'Está a verificar interações medicamentosas. Explica mecanismo e gravidade com rigor.'],
     [/^\/medicamento|^\/bula|^\/quickcheck/, 'Está a consultar/analisar medicação. Responde sobre ESSE fármaco/lista.'],
     [/^\/labs|^\/study\/lab/, 'Está a interpretar análises laboratoriais. Foca-te nos valores alterados e no que fazer.'],
     [/^\/sintomas|^\/saude-agora|^\/triagem/, 'Está a avaliar sintomas. Distingue o que pode esperar do que precisa de cuidados já; nunca minimizes sinais de alarme.'],
@@ -56,7 +55,7 @@ const MODE_CTX: Record<string, string> = {
 interface CopilotDecision {
   mode: 'answer' | 'tool'
   answer?: string | null
-  tool?: 'check_interactions' | 'patient_data' | 'estado_da_casa' | null
+  tool?: 'patient_data' | 'estado_da_casa' | null
   args?: { drugs?: string[] } & Record<string, any>
   remember?: string | null
   proposedAction?: {
@@ -119,7 +118,7 @@ export async function POST(req: NextRequest) {
 
   const contextBlock = buildContextBlock({ modeCtx, ctx, profileCtx, pageCtx, memoryBlock, sel })
 
-  const baseSystem = `És o Phlox Copilot, o assistente do Phlox, em PT-PT. A tua função é RESPONDER — não encaminhar. Sabes QUEM é o utilizador, ONDE está, SOBRE QUEM trabalha, o que já viste antes, e tens acesso a ferramentas internas reais para fundamentar a resposta (verificação de interações, registo atual do doente/familiar).
+  const baseSystem = `És o Phlox Copilot, o assistente do Phlox, em PT-PT. A tua função é RESPONDER — não encaminhar. Sabes QUEM é o utilizador, ONDE está, SOBRE QUEM trabalha, o que já viste antes, e tens acesso a ferramentas internas reais para fundamentar a resposta (o registo atual do doente ou familiar, e o estado da casa).
 
 ${contextBlock}
 
@@ -130,7 +129,7 @@ Regras (importantes, não as quebres):
 - RESPONDE SEMPRE à pergunta feita, de forma direta e concreta. NUNCA respondas apenas "vai a /X" ou "usa a ferramenta Y" — só menciona uma rota do Phlox se o utilizador perguntar explicitamente "onde faço X" ou "como acedo a Y". Fora isso, é proibido desviar — resolve tu mesmo.
 - Uma resposta vaga ou evasiva é PIOR do que uma resposta clara com a ressalva de segurança adequada. Não te escondas atrás de "consulta um profissional" sem antes dares a informação concreta que tens.
 - Curto e prático (até ~6 frases ou uma lista breve). Vai direto ao que ajuda.
-- Rigor: nunca inventes doses, valores ou interações. Se não sabes com certeza, di-lo — mas dá sempre o que SABES primeiro.
+- Rigor: nunca inventes doses nem valores. E nunca dês indicação clínica — não dizes se um medicamento se pode tomar, se uma dose está certa, nem o que fazer perante um sintoma. Dizes o que está registado e quem é que decide.
 - Adapta o tom a QUEM (estudante→raciocínio; profissional→técnico; pessoal/cuidador→simples).
 - Informas, organizas e ajudas a decidir o passo seguinte — não substituis um profissional de saúde, mas isso não é desculpa para evasão.`
 
@@ -138,7 +137,6 @@ Regras (importantes, não as quebres):
   const decisionSystem = `${baseSystem}
 
 FERRAMENTAS INTERNAS que podes pedir para fundamentar a resposta (o SERVIDOR executa-as a sério, não adivinhes o resultado):
-- check_interactions: verificação REAL (RxNorm + farmacologia clínica) de interações entre fármacos. SÓ uses isto se já souberes os NOMES EXATOS de pelo menos 2 fármacos (da pergunta, do CONTEXTO ATUAL, ou do histórico da conversa). args: {"drugs": ["nome1","nome2",...]}. Se NÃO souberes os nomes (ex.: "há interações na medicação dele?" sem saberes quais são), usa patient_data em vez disto — o servidor encadeia automaticamente a verificação de interações a seguir, com os nomes reais encontrados no registo.
 - estado_da_casa: o retrato de HOJE da casa toda — quantos estão presentes e quantos faltam marcar, tomas dadas contra previstas, quem ainda não tem registo do dia, ocorrências em aberto. Usa isto sempre que a pergunta for sobre o dia, sobre a casa, sobre prioridades ou sobre "o que falta" — em vez de responderes de cor.
 - patient_data: consulta o registo ATUAL e completo (medicação ativa, condições, alergias, vitais) da pessoa em foco — mais completo que o resumo em CONTEXTO ATUAL. Usa sempre que precises de dados que não estão no contexto, incluindo para saber que fármacos a pessoa toma antes de veres se há interações.${hasProfile ? '' : ' (Sem pessoa em foco agora — não uses nenhum destes dois tools.)'}
 
@@ -150,7 +148,7 @@ Responde APENAS com JSON válido, sem markdown:
 {
   "mode": "answer" | "tool",
   "answer": "resposta completa e direta, PT-PT, SE mode=answer; caso contrário null",
-  "tool": "check_interactions" | "patient_data" | "estado_da_casa" | null,
+  "tool": "patient_data" | "estado_da_casa" | null,
   "args": { "drugs": ["..."] } ou {},
   "remember": "facto curto e NOVO e durável a lembrar (ex: alergia confirmada, preferência) — ou null se nada digno de memória. Não repitas o que já está em O QUE JÁ SEI.",
   "proposedAction": { "type": "save_summary"|"log_resident_request"|"marcar_presenca"|"registar_ocorrencia"|"recado_familia"|"nota_no_mural", "label": "texto curto do botão de confirmação", "content": "o texto a guardar/enviar", "args": {} } ou null
@@ -187,9 +185,7 @@ Se a mensagem for só uma pergunta, "proposedAction" é null.`
     if (decision && decision.mode === 'tool' && decision.tool) {
       usedTool = decision.tool
       let toolResult = ''
-      if (decision.tool === 'check_interactions') {
-        toolResult = await checkInteractionsTool(Array.isArray(decision.args?.drugs) ? decision.args!.drugs : [])
-      } else if (decision.tool === 'estado_da_casa') {
+      if (decision.tool === 'estado_da_casa') {
         toolResult = authedSupabase
           ? await (async () => {
               // O âmbito é o mesmo que o useOrgScope do lado do cliente: a
@@ -204,14 +200,6 @@ Se a mensagem for só uma pergunta, "proposedAction" é null.`
         if (authedSupabase) {
           const pd = await patientDataTool(authedSupabase, hasProfile ? { id: body.profileId!, type: body.profileType! } : null)
           toolResult = pd.text
-          // Encadeia automaticamente check_interactions quando a pergunta é sobre
-          // interações e o registo revelou ≥2 fármacos — evita obrigar a um 2º turno
-          // só para descobrir que medicação a pessoa toma antes de verificar.
-          if (pd.meds.length >= 2 && /interaç|dão-se bem|dá-se bem|seguro tomar|combinam|misturar/i.test(body.message)) {
-            const interactionResult = await checkInteractionsTool(pd.meds)
-            toolResult += `\n\n${interactionResult}`
-            usedTool = 'patient_data_interactions'
-          }
         } else {
           toolResult = 'Sem sessão para consultar o registo.'
         }

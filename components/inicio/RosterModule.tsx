@@ -8,12 +8,15 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
-import { analyzeFamilyMember, WATCH_LEVEL_META } from '@/lib/caregiverWatch'
+/* Este módulo punha um nível de risco em cada familiar («critical», «warning»)
+   a partir da medicação, das tensões e dos sintomas. Classificar o estado de
+   uma pessoa a partir dos dados dela é apoio à decisão clínica — Regra 11 do
+   Regulamento (UE) 2017/745. Fica a lista de quem se acompanha. */
 import { setActiveProfile } from '@/lib/profileContext'
 import Icon from '@/components/Icon'
 import type { ModeTheme } from '@/lib/modeTheme'
 
-interface PersonStatus { id: string; name: string; relation?: string; level: 'critical' | 'warning' | 'info' | 'ok'; topSignal?: string }
+interface PersonStatus { id: string; name: string; relation?: string }
 
 function initials(name: string) { return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0]).join('').toUpperCase() }
 
@@ -30,23 +33,9 @@ export default function RosterModule({ theme: t }: { theme: ModeTheme }) {
       if (list.length === 0) { if (!cancel) setPeople([]); return }
       const ids = list.map(p => p.id)
       const since = new Date(Date.now() - 90 * 86400000).toISOString()
-      const [{ data: meds }, { data: vitals }, { data: syms }] = await Promise.all([
-        supabase.from('family_profile_meds').select('profile_id, name, pills_remaining, pills_per_day').in('profile_id', ids),
-        supabase.from('vitals').select('profile_id, recorded_at, bp_sys, bp_dia, hr, spo2, weight, glucose, temp').in('profile_id', ids).gte('recorded_at', since),
-        supabase.from('symptom_logs').select('profile_id, at, pain, temperature, symptoms').in('profile_id', ids).gte('at', since).then((r: any) => r, () => ({ data: [] })),
-      ])
-      const statuses: PersonStatus[] = list.map(p => {
-        const result = analyzeFamilyMember({
-          age: p.age, sex: p.sex, weight: p.weight, conditions: p.conditions, allergies: p.allergies,
-          meds: (meds || []).filter((m: any) => m.profile_id === p.id),
-          vitals: (vitals || []).filter((v: any) => v.profile_id === p.id),
-          symptoms: (syms || []).filter((s: any) => s.profile_id === p.id),
-        })
-        return { id: p.id, name: p.name, relation: p.relation, level: result.level, topSignal: result.signals[0]?.title }
-      })
-      // mais preocupante primeiro
-      const rank = { critical: 0, warning: 1, info: 2, ok: 3 }
-      statuses.sort((a, b) => rank[a.level] - rank[b.level])
+      const statuses: PersonStatus[] = list.map(p => ({
+        id: p.id, name: p.name, relation: p.relation,
+      }))
       if (!cancel) setPeople(statuses)
     })()
     return () => { cancel = true }
@@ -65,7 +54,6 @@ export default function RosterModule({ theme: t }: { theme: ModeTheme }) {
   return (
     <div>
       {people.map((p, i) => {
-        const meta = WATCH_LEVEL_META[p.level]
         return (
           <Link key={p.id} href="/familia" onClick={() => setActiveProfile({ id: p.id, name: p.name, type: 'family' })} style={{
             display: 'flex', alignItems: 'center', gap: 12, padding: '11px 0', textDecoration: 'none',
@@ -74,9 +62,7 @@ export default function RosterModule({ theme: t }: { theme: ModeTheme }) {
             <span style={{ width: 34, height: 34, borderRadius: '50%', background: t.surfaceMuted, color: t.inkSoft, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 800, flexShrink: 0 }}>{initials(p.name)}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: t.ink }}>{p.name}{p.relation ? <span style={{ fontWeight: 500, color: t.inkFaint }}> · {p.relation}</span> : null}</div>
-              {p.topSignal && p.level !== 'ok' && <div style={{ fontSize: 12, color: meta.color, marginTop: 1 }}>{p.topSignal}</div>}
             </div>
-            <span title={meta.label} style={{ width: 9, height: 9, borderRadius: '50%', background: meta.color, flexShrink: 0 }} />
           </Link>
         )
       })}

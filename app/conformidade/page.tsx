@@ -41,7 +41,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs, INST_META } from '@/lib/useClinicPrefs'
-import { checklistFor } from '@/lib/complianceChecklists'
+import { checklistFor, SAD } from '@/lib/complianceChecklists'
 import { printDoc } from '@/lib/print'
 import { reportError, isSetupError } from '@/lib/clientError'
 import {
@@ -49,6 +49,7 @@ import {
   Botao, Seletor, Vazio, ACarregar, Aviso, CAIXA_TEXTO,
   MONO, ROTULO, useLargo,
 } from '@/components/ui/mesa'
+import RegistoDeTratamentos from '@/components/institution/RegistoDeTratamentos'
 
 type Status = 'done' | 'pending' | 'na'
 interface Stored { key: string; status: Status; note?: string | null; updated_at?: string }
@@ -66,23 +67,57 @@ export default function ConformidadePage() {
   const scope = useOrgScope()
   const { institution } = useClinicPrefs()
   const largo = useLargo()
-  const groups = checklistFor(institution)
-  const allItems = useMemo(() => groups.flatMap(g => g.items), [groups])
-
   const [state, setState] = useState<Record<string, Stored>>({})
   const [loading, setLoading] = useState(true)
   const [missing, setMissing] = useState(false)
   const [erro, setErro] = useState('')
   const [editingNote, setEditingNote] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<Filtro>('todos')
+  /* ── DUAS COISAS NA MESMA PÁGINA, E DE PROPÓSITO ───────────────────────
+     A checklist diz O QUE FALTA; o registo de atividades É um dos itens dela
+     — o primeiro, e o que a CNPD pede primeiro. Pô-lo noutra página fazia a
+     checklist mandar a pessoa para fora para resolver o item que ela própria
+     levanta. Aqui o item e a resposta ao item estão a um toque um do outro. */
+  const [vista, setVista] = useState<'checklist' | 'registo'>('checklist')
+
+  /* ── A CASA FAZ APOIO DOMICILIÁRIO? ─────────────────────────────────────
+     Não se pergunta: conta-se. Uma casa que tem planos de apoio domiciliário
+     presta apoio domiciliário, e uma que não tem nenhum não presta — e
+     perguntar-lhe num ecrã de conformidade era pedir-lhe que declarasse o que
+     os seus próprios dados já dizem.
+
+     Importa porque a Portaria n.º 38/2013 é outra lei: pôr os itens do SAD a
+     uma casa que não o presta enche a checklist de pendências impossíveis, e
+     uma checklist com pendências que não se podem resolver deixa de se ler. */
+  const [temSAD, setTemSAD] = useState(false)
+
+  /* Os itens do apoio domiciliário entram só quando a casa o presta — a
+     Portaria n.º 38/2013 é outra lei, e não se exige a uma casa o que a lei
+     não lhe exige. */
+  const groups = useMemo(
+    () => [...checklistFor(institution), ...(temSAD ? [SAD] : [])],
+    [institution, temSAD])
+
+  const allItems = useMemo(() => groups.flatMap(g => g.items), [groups])
 
   const load = useCallback(async () => {
     if (!user) return
     setLoading(true)
     // A CHECKLIST É DA CASA, não de quem a abre. Era `.eq('user_id', user.id)`
     // — e por isso dois gestores da mesma casa viam estados diferentes.
-    const { data, error } = await scope.filter(
-      supabase.from('compliance_items').select('key,status,note,updated_at'))
+    const [{ data, error }, sad] = await Promise.all([
+      scope.filter(supabase.from('compliance_items').select('key,status,note,updated_at')),
+      /* `head: true` com `count`: só se quer saber SE há, não quais são.
+         Trazer as linhas para contar um booleano é pedir dados de pessoas
+         para não olhar para eles. */
+      scope.filter(supabase.from('sad_planos').select('id', { count: 'exact', head: true }))
+        .then((r: any) => r, () => ({ count: 0 })),
+    ])
+    /* Um erro aqui NÃO liga os itens do SAD. «Não sei» não é «não presta», mas
+       entre acusar uma casa de ter cinco pendências que não lhe dizem respeito
+       e não lhe mostrar cinco itens que lhe dizem, o segundo erro desfaz-se
+       com um olhar à página e o primeiro mina a confiança na lista toda. */
+    setTemSAD(((sad as any)?.count || 0) > 0)
     if (error) {
       if (isSetupError(error)) setMissing(true)
       else setErro(reportError('conformidade-ler', error, 'Não foi possível ler a checklist.'))
@@ -127,6 +162,7 @@ export default function ConformidadePage() {
   /** O que se mostra. Um filtro por «pendente» é o que torna 40 itens úteis. */
   const gruposVisiveis = useMemo(() => groups.map(g => ({
     group: g.group,
+    nota: g.nota,
     items: g.items.filter(it => {
       const s = (state[it.key]?.status || 'pending') as Status
       if (filtro === 'pendente') return s === 'pending'
@@ -175,13 +211,22 @@ export default function ConformidadePage() {
             {INST_META[institution].label}
           </span>
 
-          <Seletor
+          <Seletor<'checklist' | 'registo'>
             opcoes={[
-              { id: 'todos', rotulo: `Tudo ${allItems.length}` },
-              { id: 'pendente', rotulo: `Pendentes ${pending.length}` },
-              { id: 'conforme', rotulo: `Conformes ${done}` },
+              { id: 'checklist', rotulo: 'O que falta' },
+              { id: 'registo', rotulo: 'Registo de tratamentos' },
             ]}
-            ativa={filtro} aoMudar={f => setFiltro(f as Filtro)} />
+            ativa={vista} aoMudar={setVista} />
+
+          {vista === 'checklist' && (
+            <Seletor
+              opcoes={[
+                { id: 'todos', rotulo: `Tudo ${allItems.length}` },
+                { id: 'pendente', rotulo: `Pendentes ${pending.length}` },
+                { id: 'conforme', rotulo: `Conformes ${done}` },
+              ]}
+              ativa={filtro} aoMudar={f => setFiltro(f as Filtro)} />
+          )}
 
           {/* A prontidão. Era um anel SVG de 76px com o número lá dentro —
               um donut diz o mesmo que o número e ocupa 76px. Fica o número,
@@ -228,7 +273,12 @@ export default function ConformidadePage() {
     >
       {erro && <Aviso tom="mau">{erro}</Aviso>}
 
-      {missing ? (
+      {/* O registo de atividades não depende da tabela da checklist: é gerado
+          do que o Phlox sabe de si próprio, e por isso funciona mesmo numa
+          casa que ainda não marcou um único item. */}
+      {vista === 'registo' ? (
+        <RegistoDeTratamentos temSAD={temSAD} />
+      ) : missing ? (
         <Painel>
           <Vazio titulo="A conformidade ainda não está disponível nesta conta."
             oQueFazer="Falta um passo de configuração desta casa. Assim que estiver feito, esta página traz a checklist já adaptada ao tipo de instituição." />
@@ -268,6 +318,14 @@ export default function ConformidadePage() {
                 position: 'sticky', top: 0, zIndex: 1,
               }}>
                 <span style={ROTULO}>{g.group}</span>
+                {/* A nota diz o que este grupo responde — para quem está a
+                    preparar uma visita e precisa de saber por onde começar. */}
+                {g.nota && (
+                  <span style={{
+                    display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)',
+                    marginTop: 2, lineHeight: 1.45,
+                  }}>{g.nota}</span>
+                )}
               </div>
 
               {g.items.map(it => {
@@ -296,6 +354,21 @@ export default function ConformidadePage() {
                         <div style={{
                           fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2, lineHeight: 1.5,
                         }}>{it.detail}</div>
+                        {/* ── ONDE É QUE ISTO SE RESOLVE ────────────────────
+                            Uma checklist que diz «tenha um registo de
+                            atividades de tratamento» é uma lista de trabalhos
+                            de casa. Uma que diz onde se faz é uma ferramenta —
+                            e metade destes itens resolvem-se dentro do Phlox,
+                            em sítios que ninguém sabe que existem. */}
+                        {it.onde && (
+                          <div style={{
+                            fontSize: 'var(--t-meta)', color: 'var(--green)', marginTop: 3,
+                            lineHeight: 1.5, display: 'flex', gap: 5,
+                          }}>
+                            <span style={{ ...MONO, color: 'var(--green)', flexShrink: 0 }}>No Phlox</span>
+                            <span>{it.onde}</span>
+                          </div>
+                        )}
                         {note && (
                           <div style={{
                             fontSize: 'var(--t-meta)', color: 'var(--ink-3)', marginTop: 5,

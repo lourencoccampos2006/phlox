@@ -27,7 +27,7 @@ import { getUserPlan } from '@/lib/planGate'
 export const runtime = 'nodejs'
 export const maxDuration = 300
 
-const PROMPT = `És um médico português a ler um documento de saúde COM TEMPO, para a pessoa a quem ele pertence. Não é um resumo à pressa: é uma leitura completa, do princípio ao fim, em português europeu simples.
+const PROMPT = `És um tradutor de linguagem médica a ler um documento de saúde COM TEMPO, para a pessoa a quem ele pertence. Não é um resumo à pressa: é uma leitura completa, do princípio ao fim, em português europeu simples.
 
 Lê TUDO. Se são dez páginas, são dez páginas. Não saltes secções por parecerem acessórias — os antecedentes, a medicação à entrada e as notas de rodapé são muitas vezes onde está o que a pessoa não sabia.
 
@@ -46,7 +46,7 @@ Responde APENAS JSON válido:
       "texto": "o que ela diz, reescrito em simples, SEM encurtar o que importa",
       "porqueImporta": "porque é que esta secção interessa a esta pessoa — uma frase" }
   ],
-  "values": [{ "name": "...", "value": "...", "unit": "...", "reference": "...", "status": "normal|baixo|alto", "note": "o que significa" }],
+  "values": [{ "name": "...", "value": "...", "unit": "...", "reference": "o intervalo TAL COMO VEM IMPRESSO, ou vazio", "oQueMede": "o que esta análise mede em geral — nunca o que o resultado desta pessoa significa" }],
   "meds": [{ "name": "...", "dose": "...", "frequency": "...", "paraQue": "..." }],
   "termos": [{ "termo": "a palavra difícil tal como aparece", "simples": "o que quer dizer, numa frase" }],
   "cronologia": [{ "quando": "a data tal como aparece", "o_que": "o que aconteceu" }],

@@ -38,8 +38,6 @@ const PROFILES: { id: Profile; label: string; desc: string; accent: string; bg: 
 const FIRST_ACTIONS: Record<string, { icon: string; label: string; sub: string; href: string }[]> = {
   personal: [
     { icon: '📸', label: 'Adicionar a minha medicação', sub: 'Tira foto à caixa ou à receita', href: '/scan' },
-    { icon: 'search', label: 'Verificar interações', sub: 'Vê se os teus medicamentos se dão bem', href: '/interactions' },
-    { icon: 'flask', label: 'Perceber análises', sub: 'Cada valor em linguagem simples', href: '/labs' },
   ],
   caregiver: [
     { icon: 'family', label: 'Criar o perfil do familiar', sub: 'Um espaço só para a saúde de quem cuidas', href: '/familia' },

@@ -27,7 +27,7 @@ const PUBLIC_PREFIXES = [
   '/about', '/pricing', '/login', '/signup', '/terms', '/privacy', '/trust',
   '/centro-de-dia', '/institucional', '/blog', '/guias', '/onboarding',
   '/seguranca', '/dispositivo-medico', '/subprocessadores', '/cookies',
-  '/checkout', '/api-docs', '/changelog',
+  '/checkout', '/changelog',
 ]
 const isPublicPath = (pathname: string) =>
   pathname === '/' || PUBLIC_PREFIXES.some(p => pathname === p || pathname.startsWith(p + '/'))

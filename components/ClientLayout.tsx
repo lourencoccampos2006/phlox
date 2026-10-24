@@ -31,12 +31,8 @@ const CLINICAL_PREFIXES = [
   '/cockpit', '/patients', '/mar', '/team', '/turno', '/hoje', '/painel', '/ronda-guiada',
   '/connect', '/quality',
   '/assessments', '/care-log', '/residentes', '/handover', '/incidents', '/care-plans',
-  '/census', '/activities', '/family', '/feridas', '/gestao', '/protocolos', '/nutricao', '/agenda', '/hidratacao', '/faturacao', '/documentos', '/radar', '/guardiao', '/carga', '/autonomia', '/vigia', '/comecar-instituicao', '/vitals',
-  '/indicacao', '/soap', '/rastreios',
   // ferramentas do blueprint que faltavam (abriam sem sidebar institucional)
-  '/reconciliacao', '/interactions', '/calculos',
   '/tarefas-equipa', '/conformidade', '/consentimentos', '/stock', '/faturacao-config', '/webhooks', '/auditoria', '/api-keys', '/sso-config',
-  '/reach', '/calc', '/codes', '/relatorio',
   '/guardados', '/calendario', '/historico',
   '/equipa', '/painel-dono', '/activities',
   '/study', '/estagio',
@@ -47,6 +43,12 @@ const CLINICAL_PREFIXES = [
   '/casa',
   '/inscricoes', '/calendario-do-ano', '/estatisticas',
   '/inqueritos',
+  /* Repostas a 2026-10-23: a limpeza das ferramentas clínicas tirou as linhas
+     onde estes prefixos viviam ao lado de rotas apagadas. Sem eles, nove
+     páginas do blueprint abriam sem a moldura institucional — sem caminho de
+     volta. Apanhado pelo check-nav. */
+  '/agenda', '/autonomia', '/carga', '/documentos', '/family',
+  '/faturacao', '/feridas', '/guardiao', '/radar',
   /* Encontrados pelo check-nav em 2026-10-13, ao ensiná-lo a verificar a
      MOLDURA e não só a alcançabilidade: estavam os dois na sidebar e abriam
      sem ela. O /migrar é a importação de outro sistema — perder a navegação a
@@ -139,7 +141,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
   // (Cookies/Subprocessadores/Dispositivo médico/Segurança) ficava esquecida.
   const SHOW_FOOTER_ON = [
     '/', '/about', '/pricing', '/trust', '/seguranca', '/status', '/changelog',
-    '/terms', '/privacy', '/api-docs', '/institucional', '/organizacao',
+    '/terms', '/privacy', '/institucional', '/organizacao',
     '/blog', '/contato',
   ]
   const showFooter = SHOW_FOOTER_ON.some(p => pathname === p || pathname.startsWith(p + '/'))

@@ -230,7 +230,10 @@ export default function ApoioDomiciliarioPage() {
         <p style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-5)', marginTop: 14 }}>A montar a volta…</p>
       ) : vista === 'volta' ? (
         <AVolta volta={volta} dia={dia} hoje={hoje}
-          podeRegistar={podeRegistar} onRegistar={setARegistar} />
+          podeRegistar={podeRegistar} onRegistar={setARegistar}
+          onComecar={podeEditarPlano
+            ? () => { setVista('quem'); setAEditarPlano({ plano: null, pid: '' }) }
+            : undefined} />
       ) : (
         <QuemRecebe planos={planos} porId={porId} servicosDe={servicosDe}
           podeEditar={podeEditarPlano}
@@ -264,16 +267,25 @@ export default function ApoioDomiciliarioPage() {
 // ═══════════════════════════════════════════════════════════════════════════
 // A VOLTA DE UM DIA
 // ═══════════════════════════════════════════════════════════════════════════
-function AVolta({ volta, dia, hoje, podeRegistar, onRegistar }: {
+function AVolta({ volta, dia, hoje, podeRegistar, onRegistar, onComecar }: {
   volta: ParadaDaVolta[]; dia: string; hoje: string
   podeRegistar: boolean
   onRegistar: (p: ParadaDaVolta) => void
+  /** Abrir o plano de alguém a partir daqui. Sem permissão, não há botão. */
+  onComecar?: () => void
 }) {
   if (!volta.length) {
     return (
       <div style={{ marginTop: 14 }}>
+        {/* O texto dizia «em Quem recebe marca-se…» e deixava a pessoa a
+            procurar o separador. Um estado vazio que explica o que fazer e não
+            deixa fazê-lo manda-a a outro sítio de mãos a abanar — e numa casa
+            que abre isto pela primeira vez é o único ecrã que ela vê. */}
         <Vazio titulo={dia === hoje ? 'Nenhuma casa marcada para hoje' : 'Nenhuma casa marcada para este dia'}
-          oQueFazer="Os dias de cada pessoa vêm do plano dela. Em «Quem recebe» marca-se quem recebe apoio e em que dias." />
+          oQueFazer="Os dias de cada pessoa vêm do plano dela: quem recebe apoio, em que dias, e que serviços."
+          acao={onComecar
+            ? <Botao feitio="principal" onClick={onComecar}>MARCAR QUEM RECEBE APOIO</Botao>
+            : undefined} />
       </div>
     )
   }

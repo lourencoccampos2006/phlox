@@ -129,142 +129,15 @@ export function perfilEmUmaLinha(perfil: Dependencia[]): string {
 // O QUE AS AVALIAÇÕES IMPLICAM
 // ─────────────────────────────────────────────────────────────────────────────
 
-export interface Sugestao {
-  /** De onde veio: `barthel`, `braden`, `morse`, `mna`. */
-  origem: string
-  /** O que está a acontecer. */
-  porque: string
-  /** O que se propõe fazer. */
-  oQue: string
-  /** O nome EXACTO de um serviço do catálogo, quando há um que sirva.
-   *  É o que permite acrescentá-lo com um toque. */
-  servico?: string
-  /** Uma etiqueta que faz sentido pôr. */
-  etiqueta?: string
-  /** Um objetivo para o plano. */
-  objetivo?: { area: string; titulo: string; porque: string }
-  gravidade: 'informa' | 'atencao' | 'urgente'
-}
+/* ── AS SUGESTÕES SAÍRAM (2026-10-23) ─────────────────────────────────────
+   Aqui vivia `sugestoesDasAvaliacoes`: pegava no resultado de uma escala e
+   propunha a intervenção — Braden baixo → «posicionamento de 2 em 2 horas»,
+   MNA baixo → «desnutrição» e «reforço alimentar», Morse alto → «acompanhar
+   nas deslocações», com gravidade «urgente» e um botão para aplicar.
 
-/** O que o Barthel pede, item a item. */
-const SERVICO_DO_ITEM: Record<string, { servico: string; quando: string }> = {
-  bathing:  { servico: 'Banho', quando: 'precisa de ajuda no banho' },
-  grooming: { servico: 'Higiene pessoal', quando: 'precisa de ajuda na higiene' },
-  dressing: { servico: 'Vestir e despir', quando: 'precisa de ajuda a vestir-se' },
-  feeding:  { servico: 'Apoio à refeição', quando: 'precisa de ajuda a comer' },
-  toilet:   { servico: 'Higiene íntima', quando: 'precisa de ajuda na casa de banho' },
-  transfer: { servico: 'Transferência', quando: 'precisa de ajuda para se levantar' },
-  mobility: { servico: 'Marcha acompanhada', quando: 'precisa de ajuda para andar' },
-}
-
-export interface Avaliacoes {
-  barthel?: { score: number; answers: Record<string, number> | null; date: string } | null
-  braden?: { score: number; date: string } | null
-  morse?: { score: number; date: string } | null
-  mna?: { score: number; date: string } | null
-}
-
-/**
- * O que estas avaliações implicam, em coisas que se podem fazer hoje.
- *
- * Cada sugestão diz de onde veio. Isso não é detalhe: quem recebe uma
- * sugestão tem de poder discordar com conhecimento de causa, e «porque o
- * programa disse» não é motivo nenhum.
- */
-export function sugestoesDasAvaliacoes(av: Avaliacoes): Sugestao[] {
-  const fora: Sugestao[] = []
-
-  // ── Barthel: cada dependência pede um cuidado ──────────────────────────
-  if (av.barthel?.answers) {
-    for (const d of ondePrecisaDeAjuda(perfilDeDependencia(av.barthel.answers))) {
-      const s = SERVICO_DO_ITEM[d.id]
-      if (!s) continue
-      fora.push({
-        origem: 'Barthel',
-        porque: `Na avaliação, ${s.quando}.`,
-        oQue: `Acrescentar «${s.servico}» aos cuidados de rotina.`,
-        servico: s.servico,
-        gravidade: d.nivel === 'dependente' ? 'atencao' : 'informa',
-      })
-    }
-
-    if (av.barthel.score <= 20) {
-      fora.push({
-        origem: 'Barthel',
-        porque: `Pontuação ${av.barthel.score} em 100 — dependência total.`,
-        oQue: 'Rever se o plano cobre todas as necessidades básicas.',
-        etiqueta: 'Acamado',
-        gravidade: 'atencao',
-      })
-    }
-  }
-
-  // ── Braden: risco de úlcera ────────────────────────────────────────────
-  if (av.braden && av.braden.score <= 14) {
-    const alto = av.braden.score <= 12
-    fora.push({
-      origem: 'Braden',
-      porque: `Pontuação ${av.braden.score} em 23 — risco ${alto ? 'alto' : 'moderado'} de úlcera de pressão.`,
-      oQue: alto
-        ? 'Posicionamento de 2 em 2 horas e vigilância diária da pele.'
-        : 'Posicionamento regular e vigilância da pele.',
-      servico: 'Posicionamento',
-      objetivo: {
-        area: 'feridas',
-        titulo: 'Evitar úlceras de pressão',
-        porque: `A escala de Braden deu ${av.braden.score}, que é risco ${alto ? 'alto' : 'moderado'}.`,
-      },
-      gravidade: alto ? 'urgente' : 'atencao',
-    })
-  }
-
-  // ── Morse: risco de queda ──────────────────────────────────────────────
-  if (av.morse && av.morse.score >= 25) {
-    const alto = av.morse.score > 50
-    fora.push({
-      origem: 'Morse',
-      porque: `Pontuação ${av.morse.score} — risco ${alto ? 'elevado' : 'moderado'} de queda.`,
-      oQue: alto
-        ? 'Acompanhar nas deslocações e rever calçado, iluminação e obstáculos.'
-        : 'Rever calçado e obstáculos; atenção nas deslocações.',
-      servico: 'Marcha acompanhada',
-      etiqueta: 'Risco de queda',
-      objetivo: {
-        area: 'registos',
-        titulo: 'Reduzir o risco de queda',
-        porque: `A escala de Morse deu ${av.morse.score}.`,
-      },
-      gravidade: alto ? 'urgente' : 'atencao',
-    })
-  }
-
-  // ── MNA: nutrição ──────────────────────────────────────────────────────
-  if (av.mna && av.mna.score < 12) {
-    const desnutrida = av.mna.score < 8
-    fora.push({
-      origem: 'MNA',
-      porque: `Pontuação ${av.mna.score} em 14 — ${desnutrida ? 'desnutrição' : 'risco de desnutrição'}.`,
-      oQue: desnutrida
-        ? 'Reforço alimentar, pesagem semanal e falar com quem acompanha.'
-        : 'Vigiar a ingestão e pesar com regularidade.',
-      servico: 'Pesagem',
-      etiqueta: desnutrida ? 'Apoio à alimentação' : undefined,
-      objetivo: {
-        area: 'registos',
-        titulo: desnutrida ? 'Recuperar o estado nutricional' : 'Evitar a perda de peso',
-        porque: `O MNA deu ${av.mna.score} em 14.`,
-      },
-      gravidade: desnutrida ? 'urgente' : 'atencao',
-    })
-  }
-
-  const peso = { urgente: 0, atencao: 1, informa: 2 }
-  return fora.sort((a, b) => peso[a.gravidade] - peso[b.gravidade])
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// A FRESCURA DAS AVALIAÇÕES
-// ─────────────────────────────────────────────────────────────────────────────
+   Propor a intervenção a partir da avaliação de um doente identificado é a
+   Regra 11 do Regulamento (UE) 2017/745. O perfil de dependência em cima
+   fica: são as respostas que a equipa deu, item a item. */
 
 export interface EstadoDaEscala {
   escala: string

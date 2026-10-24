@@ -17,10 +17,6 @@ const SECTIONS: { title: string; intro: string; color: string; guides: { title: 
     intro: 'A maior parte dos problemas com medicamentos em casa não vem de um medicamento isolado, mas da combinação de vários — sobretudo em quem toma medicação crónica. Estes guias explicam as combinações que mais importam, porquê, e o que fazer.',
     color: 'var(--red)',
     guides: [
-      { title: 'As 10 interações mais comuns em Portugal', href: '/blog/interacoes-comuns-a-evitar', desc: 'As combinações que causam mais internamentos. Mecanismo, risco e alternativas.' },
-      { title: 'Posso tomar ibuprofeno com varfarina?', href: '/blog/ibuprofeno-varfarina', desc: 'A combinação mais perigosa dos domicílios portugueses.' },
-      { title: 'Hipericão — as interações que ninguém conta', href: '/blog/hipericao-medicamentos', desc: '"Natural" não quer dizer inofensivo. O caso da erva de São João.' },
-      { title: 'Metformina e álcool — o que acontece', href: '/blog/metformina-alcool', desc: 'Risco de acidose láctica e o que dizer a quem é diabético.' },
     ],
   },
   {
@@ -30,7 +26,6 @@ const SECTIONS: { title: string; intro: string; color: string; guides: { title: 
     guides: [
       { title: 'Como organizar a medicação de um idoso em casa', href: '/blog/organizar-medicacao-idoso', desc: 'Um sistema simples para nunca falhar uma toma. Caixa semanal, gatilhos e lembretes.' },
       { title: 'Sinais de desidratação em idosos', href: '/blog/sinais-desidratacao-idosos', desc: 'O que vigiar, quanto deve beber e quando é urgente.' },
-      { title: 'Medicamentos a evitar em idosos (Critérios Beers)', href: '/blog/medicamentos-idosos-lista-beers', desc: 'A lista dos medicamentos potencialmente inapropriados depois dos 65, com alternativas.' },
     ],
   },
   {
@@ -38,9 +33,6 @@ const SECTIONS: { title: string; intro: string; color: string; guides: { title: 
     intro: 'A dose certa depende da pessoa: o peso de uma criança, a função do rim, a gravidez. Estes guias mostram como pensar a dose com segurança e quando não há margem para tentativa e erro.',
     color: 'var(--green)',
     guides: [
-      { title: 'Dose de paracetamol para crianças (por peso)', href: '/blog/dose-paracetamol-crianca', desc: 'Tabela por peso e idade, e quando ir ao médico com urgência.' },
-      { title: 'Antibióticos na gravidez — guia por categoria', href: '/blog/antibioticos-em-gravidez', desc: 'Quais são seguros, quais são proibidos, e quando o benefício supera o risco.' },
-      { title: 'Ajustar a dose na insuficiência renal', href: '/blog/ajuste-dose-insuficiencia-renal', desc: 'Fórmulas, os fármacos que mais requerem ajuste, e como calcular.' },
     ],
   },
 ]

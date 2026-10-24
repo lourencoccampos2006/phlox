@@ -134,9 +134,6 @@ const T = {
   // medida uma vez por ano, analisada, e que daí saiam ações de melhoria. As
   // respostas são anónimas por construção — ver o cabeçalho do sprint178.
   inqueritos: { href: '/inqueritos', label: 'Inquéritos de satisfação', hint: 'A utentes, famílias e equipa — em papel ou no ecrã, sempre anónimos', icon: 'inbox' },
-  meds_check: { href: '/interactions', label: 'Interações', hint: 'Verifica se a medicação se dá bem', icon: 'search' },
-  calc:    { href: '/calculos', label: 'Calculadoras', hint: 'Doses, escalas e fórmulas clínicas', icon: 'calculator' },
-  reconcile: { href: '/reconciliacao', label: 'Conferir medicação', hint: 'Compara a medicação de casa com a do centro', icon: 'refresh' },
   stock:   { href: '/stock', label: 'Stock e validades', hint: 'Existências, lotes e prazos', icon: 'package' },
   // Ficaram de fora do blueprint até 2026-09-16 — existiam, eram mantidas, e
   // não apareciam em lado nenhum do lado institucional. Ver scripts/check-escondidas.mjs.
@@ -153,10 +150,8 @@ const T = {
   // administrativo responde «como está hoje»; isto responde «o que mudou».
   estatisticas: { href: '/estatisticas', label: 'Estatísticas', hint: 'Doze meses da casa em números — para a reunião, o relatório e a inspeção', icon: 'chart' },
   appts:   { href: '/agenda', label: 'Agenda', hint: 'Marcações e consultas', icon: 'calendar' },
-  screenings: { href: '/rastreios', label: 'Rastreios', hint: 'Plano de rastreios e vacinas', icon: 'flask' },
   wounds:  { href: '/feridas', label: 'Feridas', hint: 'Acompanhamento de feridas e pensos', icon: 'bandage' },
   billing: { href: '/faturacao', label: 'Faturação', hint: 'Mensalidades, comparticipações e recibos', icon: 'euro' },
-  vigia:   { href: '/vigia', label: 'Vigia clínico', hint: 'Varre todos os utentes e prioriza por risco farmacológico', icon: 'shield' },
   mural:   { href: '/equipa?tab=mural', label: 'Mural da equipa', hint: 'Recados, avisos e comunicados entre a equipa', icon: 'megaphone' },
   ronda:   { href: '/ronda-guiada', label: 'Ronda coordenada', hint: 'Ronda a vários, sem repetir utentes, tudo registado', icon: 'route' },
   trends:  { href: '/tendencias', label: 'Tendências', hint: 'Humor, alimentação e adesão ao longo de 2-3 semanas, por pessoa', icon: 'chart' },
@@ -214,7 +209,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     // "Gestão & qualidade" (T.staff) já leva a /painel-dono, cuja aba "Qualidade"
     // era antes um item de menu à parte (T.quality) para o mesmo destino — fundidos
     // num só, para não duplicar entradas que vão ter ao mesmo sítio.
-    extraTools: [ T.carga, T.autonomia, T.refeicoes, T.ronda, T.passagem, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.domicilio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.meds_check, T.calc, T.migrar ],
+    extraTools: [ T.carga, T.autonomia, T.refeicoes, T.ronda, T.passagem, T.activities, T.assessments, T.trends, T.wounds, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.domicilio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.migrar ],
     // As mesmas ferramentas, arrumadas por assunto. Um centro de dia serve
     // pessoas que dormem em casa: o peso está no dia — refeições, atividades,
     // companhia — e não na enfermagem. A ordem das pastas segue isso.
@@ -224,7 +219,7 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
       { id: 'pessoas', label: 'Pessoas e famílias', hint: 'Acompanhamento de quem cá anda e de quem os espera em casa',
         tools: [T.psicossocial, T.autonomia, T.trends, T.assessments] },
       { id: 'clinico', label: 'Apoio clínico', hint: 'Para quando é preciso ir ao detalhe da medicação',
-        tools: [T.meds_check, T.wounds, T.calc] },
+        tools: [T.wounds] },
       { id: 'equipa', label: 'Equipa', hint: 'Quem está, quando, e com que carga',
         tools: [T.team, T.carga] },
       { id: 'casa', label: 'A casa', hint: 'Gestão, stock e o que a inspeção pede',
@@ -262,12 +257,12 @@ export const BLUEPRINTS: Record<InstitutionType, InstitutionBlueprint> = {
     ],
     // Guardião só no lar: um centro de dia não tem turno da noite nem serviço
     // ao fim de semana, por isso a ferramenta não se aplica lá.
-    extraTools: [ T.guardiao, T.carga, T.autonomia, T.refeicoes, T.ronda, T.activities, T.trends, T.vigia, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.domicilio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.meds_check, T.calc, T.migrar ],
+    extraTools: [ T.guardiao, T.carga, T.autonomia, T.refeicoes, T.ronda, T.activities, T.trends, T.stock, T.casa, T.inqueritos, T.ruturas, T.staff, T.team, T.apoio, T.domicilio, T.prep, T.psicossocial, T.documents, T.historico, T.inscricoes, T.anoTodo, T.estatisticas, T.migrar ],
     // Num lar o peso desloca-se: há enfermagem, há noite, e há um corpo
     // clínico que num centro de dia não existe. A pasta clínica vem à frente.
     toolFolders: [
       { id: 'clinico', label: 'Clínico', hint: 'Medicação, risco e o que precisa de olho de profissional',
-        tools: [T.vigia, T.meds_check, T.trends, T.autonomia, T.calc] },
+        tools: [T.trends, T.autonomia] },
       { id: 'dia', label: 'O dia e a noite', hint: 'Da manhã ao turno da noite',
         tools: [T.refeicoes, T.ronda, T.guardiao, T.activities, T.anoTodo, T.prep, T.apoio, T.domicilio] },
       { id: 'pessoas', label: 'Pessoas e famílias', hint: 'Acompanhamento de quem cá vive',

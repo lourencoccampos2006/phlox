@@ -28,32 +28,25 @@ export function barthelLevel(score: number) {
   return                   { label: 'Independente',        color: 'var(--green)', bg: 'var(--green-light)' }
 }
 
-export function bradenLevel(score: number) {
-  if (score <= 9)  return { label: 'Risco Muito Alto',color: 'var(--badge-red-fg)', bg: 'var(--red-light)' }
-  if (score <= 12) return { label: 'Risco Alto',      color: 'var(--red)', bg: 'var(--red-light)' }
-  if (score <= 14) return { label: 'Risco Moderado',  color: 'var(--amber)', bg: 'var(--amber-light)' }
-  if (score <= 18) return { label: 'Risco Ligeiro',   color: 'var(--amber)', bg: 'var(--amber-light)' }
-  return                   { label: 'Sem Risco',       color: 'var(--green)', bg: 'var(--green-light)' }
-}
+/* ── SEM RÓTULO CLÍNICO (2026-10-23) ─────────────────────────────────────
+   Braden, Morse, MMSE e MNA davam rótulos sobre a pessoa: «risco alto de
+   úlcera», «risco elevado de queda», «défice grave», «desnutrição
+   confirmada». Isso é software a classificar o estado de um doente
+   identificado — Regra 11 do Regulamento (UE) 2017/745. Agora mostram a
+   pontuação e o máximo do instrumento. Quem avalia sabe ler a escala.
 
-export function morseLevel(score: number) {
-  if (score <= 24) return { label: 'Baixo Risco',  color: 'var(--green)', bg: 'var(--green-light)' }
-  if (score <= 50) return { label: 'Risco Moderado',color: 'var(--amber)', bg: 'var(--amber-light)' }
-  return                   { label: 'Risco Elevado', color: 'var(--red)', bg: 'var(--red-light)' }
-}
+   O Barthel fica com o grau de dependência: é a classificação ADMINISTRATIVA
+   que a Segurança Social pede (Carta Social, comparticipação), não um juízo
+   clínico. */
+const NEUTRO = { color: 'var(--ink-3)', bg: 'var(--bg-2)' }
 
-export function mmseLevel(score: number) {
-  if (score >= 27) return { label: 'Normal',           color: 'var(--green)', bg: 'var(--green-light)' }
-  if (score >= 22) return { label: 'Défice Ligeiro',   color: 'var(--amber)', bg: 'var(--amber-light)' }
-  if (score >= 10) return { label: 'Défice Moderado',  color: 'var(--amber)', bg: 'var(--amber-light)' }
-  return                   { label: 'Défice Grave',     color: 'var(--red)', bg: 'var(--red-light)' }
-}
+export function bradenLevel(score: number) { return { label: `${score} de ${SCALES.braden.max}`, ...NEUTRO } }
 
-export function mnaLevel(score: number) {
-  if (score >= 12) return { label: 'Normal', color: 'var(--green)', bg: 'var(--green-light)', sub: 'Estado nutricional normal' }
-  if (score >= 8)  return { label: 'Em Risco', color: 'var(--amber)', bg: 'var(--amber-light)', sub: 'Risco de desnutrição' }
-  return                   { label: 'Desnutrição', color: 'var(--red)', bg: 'var(--red-light)', sub: 'Desnutrição confirmada' }
-}
+export function morseLevel(score: number) { return { label: `${score} de ${SCALES.morse.max}`, ...NEUTRO } }
+
+export function mmseLevel(score: number) { return { label: `${score} de ${SCALES.mmse.max}`, ...NEUTRO } }
+
+export function mnaLevel(score: number): { label: string; color: string; bg: string; sub?: string } { return { label: `${score} de ${SCALES.mna.max}`, ...NEUTRO } }
 
 export function levelOf(scale: ScaleType, score: number): { label: string; color: string; bg: string; sub?: string } {
   if (scale === 'barthel') return barthelLevel(score)
@@ -63,16 +56,15 @@ export function levelOf(scale: ScaleType, score: number): { label: string; color
   return mnaLevel(score)
 }
 
-// Tendência entre pontuação atual e a anterior, interpretada clinicamente.
 export function trendInfo(scale: ScaleType, current: number, prev: number | null) {
+  // Subiu ou desceu, e quanto. Se isso é melhor ou pior, quem avalia sabe.
   if (prev == null) return null
   const delta = current - prev
-  if (delta === 0) return { arrow: '→', label: 'sem alteração', color: 'var(--blue)', delta }
-  const improved = BETTER_WHEN_HIGHER[scale] ? delta > 0 : delta < 0
+  if (delta === 0) return { arrow: '→', label: 'sem alteração', color: 'var(--ink-3)', delta }
   return {
     arrow: delta > 0 ? '▲' : '▼',
-    label: `${improved ? 'melhorou' : 'agravou'} ${Math.abs(delta)} pts`,
-    color: improved ? 'var(--green)' : 'var(--red)',
+    label: `${delta > 0 ? 'subiu' : 'desceu'} ${Math.abs(delta)} pts`,
+    color: 'var(--ink-3)',
     delta,
   }
 }

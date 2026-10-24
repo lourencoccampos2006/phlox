@@ -209,7 +209,7 @@ export async function POST(req: NextRequest) {
       const infomedHint = infomedCode
         ? `\n\nO utilizador também forneceu o número INFARMED/CNPEM: ${infomedCode}. Trata este código como a IDENTIFICAÇÃO OFICIAL — usa-o para confirmar/corrigir o nome ou substância ativa que leres na caixa.`
         : ''
-      const prompt = `És um farmacêutico português. Esta é a foto de uma embalagem de medicamento.
+      const prompt = `És um tradutor de linguagem médica para português simples. Esta é a foto de uma embalagem de medicamento, e o teu trabalho é dizer o que a embalagem e a bula dizem. NÃO és médico e não avalias ninguém: explicas o que está escrito e o que as palavras significam. Nunca dás um diagnóstico, um nível de risco, uma avaliação do estado de alguém, nem dizes o que a pessoa deve fazer, tomar ou parar.
 Lê com atenção TODO o texto visível: nome comercial, dosagem (em mg/g/UI/mcg), e sobretudo a SUBSTÂNCIA ATIVA / princípio ativo (geralmente em letras pequenas). A substância ativa é o que determina para que serve.
 Se a caixa estiver ilegível ou não for um medicamento, devolve confidence="baixa" e deixa "what_it_treats" vazio.${infomedHint}
 
@@ -231,7 +231,7 @@ ${SCHEMA}`
         ? `Medicamento ou princípio ativo: "${name}".${hintBase}${infomedHint}`
         : `Nº INFARMED/CNPEM fornecido: ${infomedCode}.${infomedHint}\n\nIdentifica o medicamento associado e explica-o.`
       result = await aiJSON<any>([
-        { role: 'system', content: `És um farmacêutico português que explica medicamentos a pessoas sem formação clínica, com rigor factual.\n\n${RULES}\n\nEsquema:\n${SCHEMA}` },
+        { role: 'system', content: `És um tradutor de linguagem médica que explica o que a bula diz, a pessoas sem formação clínica, com rigor factual.\n\n${RULES}\n\nEsquema:\n${SCHEMA}` },
         { role: 'user', content: `${userInput}\n\nIdentifica o princípio ativo e explica a partir dele. Se a dose está indicada no nome, usa-a para decidir a prescrição.` },
       ], { maxTokens: 1300, temperature: 0 })
     }

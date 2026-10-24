@@ -29,7 +29,7 @@ interface BulaResult {
   confidence?: 'alta' | 'media' | 'baixa'
 }
 
-const SYSTEM_PROMPT = `És um farmacêutico clínico português. Explicas bulas de medicamentos em linguagem simples para doentes, não médicos.
+const SYSTEM_PROMPT = `És um tradutor de linguagem médica para português simples. Explicas o que a bula DIZ, em linguagem simples para doentes, não médicos.
 Responde SEMPRE em português europeu (PT-PT). Sê claro, directo e empático.
 
 Devolve APENAS JSON válido com esta estrutura exacta:

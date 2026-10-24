@@ -8,6 +8,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import FichaUtente from './FichaUtente'
+import { usePedirIndicacao } from '@/components/institution/PedirIndicacao'
+import { colunasDaIndicacao, ultimaIndicacao, depoisDeMudarMedicacao } from '@/lib/mapaTerapeutico'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
@@ -46,6 +48,8 @@ const SHIFTS = [{ v: 'manha', l: 'Manhã' }, { v: 'tarde', l: 'Tarde' }, { v: 'n
 const LOC = [{ v: 'centro', l: '☀️ No centro' }, { v: 'casa', l: '🏠 Em casa' }, { v: 'ambos', l: 'Casa + centro' }]
 
 export default function PatientDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  // Por indicação de quem — ver components/institution/PedirIndicacao.
+  const indicacao = usePedirIndicacao()
   const { user, supabase } = useAuth() as any
   const router = useRouter()
   const toast = useToast()
@@ -240,8 +244,12 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setAddingMed(true)
     const resolved = resolveDrugName(newMed.name)
     const name = resolved ? resolved.dci : newMed.name.trim()
+    // Cancelar a pergunta deixa o formulário aberto e preenchido.
+    const ind = await indicacao.pedir(`Novo medicamento: ${name}`, ultimaIndicacao(meds as any[]))
+    if (!ind) { setAddingMed(false); return }
     const { data, error } = await supabase.from('patient_meds').insert(scope.stamp({
       patient_id: pid, user_id: user.id, active: true, name,
+      ...colunasDaIndicacao(ind),
       dose: newMed.dose || null, frequency: newMed.frequency || null, indication: newMed.indication || null,
       // Um SOS nao tem turnos: da-se quando e preciso. Gravar turnos num SOS
       // fa-lo-ia aparecer como dose por dar em cada turno de cada dia.
@@ -270,12 +278,27 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
     setMeds(p => [data, ...p])
     setNewMed({ name: '', dose: '', frequency: '', indication: '', shifts: [], horas: {}, take_location: 'centro', sos: false, sos_para: '', sos_max_dia: '', sos_intervalo_horas: '' }); setSug([])
     setShowAddMed(false); setAddingMed(false)
+    if (pid) depoisDeMudarMedicacao(supabase, pid)
   }
 
+  /* «Remover» sempre foi suspender (`active: false`): a linha fica. Agora fica
+     também no histórico, com por indicação de quem — e o erro, que antes se
+     ignorava, diz-se: um medicamento que se julga suspenso e não está é uma
+     dose a mais. */
   async function removeMed(id: string) {
-    if (!confirm('Remover este medicamento da ficha?')) return
-    await supabase.from('patient_meds').update({ active: false }).eq('id', id)
+    const med: any = (meds as any[]).find(m => m.id === id)
+    const ind = await indicacao.pedir(`Suspender ${med?.name || 'este medicamento'}`,
+      med?.indicacao_de ? { de: med.indicacao_de, tipo: med.indicacao_tipo || 'medico_familia' } : ultimaIndicacao(meds as any[]))
+    if (!ind) return
+    const { error } = await supabase.from('patient_meds')
+      .update({ active: false, ...colunasDaIndicacao(ind) }).eq('id', id)
+    if (error) {
+      toast.error('O medicamento NÃO foi suspenso',
+        reportError('patient-med-suspend', error, isSetupError(error) ? MSG.unavailable : 'Verifique a ligação e tente de novo.'))
+      return
+    }
     setMeds(p => p.filter(m => m.id !== id))
+    if (pid) depoisDeMudarMedicacao(supabase, pid)
   }
 
   async function addContact() {
@@ -891,6 +914,7 @@ export default function PatientDetailPage({ params }: { params: Promise<{ id: st
           </div>
         </div>
       )}
+      {indicacao.elemento}
     </FichaUtente>
   )
 }

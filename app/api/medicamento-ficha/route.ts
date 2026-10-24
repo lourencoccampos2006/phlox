@@ -90,7 +90,7 @@ export async function GET(req: NextRequest) {
      Falhando, a ficha mostra o texto do fabricante como mostrava antes. É o
      que já lá estava, e é melhor do que um erro. */
   const { explicacao } = f?.encontrado
-    ? await explicarMedicamento(supabase, nome).catch(() => ({ explicacao: null }))
+    ? await explicarMedicamento(supabase, nome, f).catch(() => ({ explicacao: null }))
     : { explicacao: null }
 
   /* Sem rótulo e sem cache, devolve-se um registo HONESTO em vez de um 404.

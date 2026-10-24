@@ -124,7 +124,7 @@ export function adlTrend(reviews: AdlReview[]): AdlTrend {
       kind: 'trend_adl',
       severity: delta <= -2 ? 'critical' : 'warning',
       title: 'A precisar de mais ajuda do que precisava',
-      detail: `Autonomia média de ${recentAvg!.toFixed(1)}/${ADL_MAX} no último mês (era ${baselineAvg!.toFixed(1)}/${ADL_MAX} nos 3 meses anteriores). Pode merecer reavaliação da autonomia e do plano de cuidados.`,
+      detail: `Autonomia média de ${recentAvg!.toFixed(1)}/${ADL_MAX} no último mês (era ${baselineAvg!.toFixed(1)}/${ADL_MAX} nos 3 meses anteriores).`,
     }
   }
 

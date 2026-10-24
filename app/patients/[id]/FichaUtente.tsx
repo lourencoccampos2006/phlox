@@ -34,6 +34,11 @@ import DocumentosDaPessoa from '@/components/institution/DocumentosDaPessoa'
 import ProcessoIndividual from '@/components/institution/ProcessoIndividual'
 import Essencial from '@/components/institution/Essencial'
 import BensDoUtente from '@/components/institution/BensDoUtente'
+import DadosDaPessoa from '@/components/institution/DadosDaPessoa'
+import HistoricoMedicacao from '@/components/institution/HistoricoMedicacao'
+import PartilhaFarmacia from '@/components/institution/PartilhaFarmacia'
+import { usePedirIndicacao } from '@/components/institution/PedirIndicacao'
+import { colunasDaIndicacao, depoisDeMudarMedicacao, type Indicacao } from '@/lib/mapaTerapeutico'
 import VacinasDoUtente from '@/components/institution/VacinasDoUtente'
 import AusenciasDoUtente from '@/components/institution/AusenciasDoUtente'
 import { nomeDoPlano } from '@/lib/plano'
@@ -141,6 +146,10 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
      obrigava a abrir o formulário completo, com quinze campos. */
   const [medAMudar, setMedAMudar] = useState<string | null>(null)
   const { user, supabase } = useAuth() as any
+  /* Cada alteração à medicação pergunta por indicação de quem — ver
+     components/institution/PedirIndicacao. No topo do componente porque é um
+     hook e tem de correr sempre, antes de qualquer saída antecipada. */
+  const indicacao = usePedirIndicacao()
   const scope = useOrgScope()
   // O que se pode fazer NESTA área. Era `scope.canEdit`, um binário:
   // ou se editava tudo na casa, ou nada. Ver lib/permissoes.
@@ -406,7 +415,15 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
     med: { id: string; name: string }, patch: Record<string, any>, emPalavras: string,
   ): Promise<string | null> {
     if (!podeEditar) return 'Não tem permissão para alterar a medicação.'
-    const { error } = await supabase.from('patient_meds').update(patch).eq('id', med.id)
+    // Vem preenchida com a última indicação deste medicamento: quase sempre é
+    // o mesmo médico, e assim a pergunta é um toque.
+    const m: any = med
+    const sugestao: Indicacao | null = m.indicacao_de
+      ? { de: m.indicacao_de, tipo: m.indicacao_tipo || 'medico_familia' } : null
+    const ind = await indicacao.pedir(`Alterar ${med.name}`, sugestao)
+    if (!ind) return 'Alteração não gravada.'
+    const { error } = await supabase.from('patient_meds')
+      .update({ ...patch, ...colunasDaIndicacao(ind) }).eq('id', med.id)
     if (error) {
       console.error('[phlox:ficha-medicacao]', error)
       return 'Não foi possível gravar. Pode não ter permissão para alterar a medicação.'
@@ -416,6 +433,7 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
       subjectId: utente?.id || null, subjectName: utente?.name || null, entityId: med.id,
     })
     await carregar()
+    depoisDeMudarMedicacao(supabase, pid)
     return null
   }
 
@@ -522,6 +540,16 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
               arquivo — consulta-se quando alguem pergunta, nao durante um
               turno. */}
           <BensDoUtente pid={pid} nome={utente.name} cor={cor} />
+          {/* ── O DIREITO DE ACESSO FICA AQUI, E NAO NA /conformidade ──────
+              Porque o pedido chega sobre UMA PESSOA — «quero tudo o que tem
+              sobre a minha mae» — e quem o recebe abre a ficha dela. Posto
+              numa pagina de conformidade, obrigava a sair da pessoa, procurar
+              o ecra certo e voltar a escolher a pessoa.
+
+              E fica no separador dos documentos porque e isso que e: uma coisa
+              que se prepara, se le e se entrega, como o processo individual e
+              os bens — nao e trabalho de turno. */}
+          <DadosDaPessoa pid={pid} nome={utente.name} cor={cor} />
         </>
       )}
 
@@ -763,6 +791,13 @@ export default function FichaUtente({ pid, acoes, acoesMedicacao, acoesContactos
           duas perguntas diferentes. A lista de cima e «o que e que esta pessoa
           toma»; esta e «posso dar alguma coisa agora». */}
       {scope.veDetalhe('medicacao.sos') && <MedicacaoSOS pid={pid} nome={utente.name} cor={cor} />}
+
+      {/* ── O MAPA COM MEMÓRIA, E A FARMÁCIA ──────────────────────────────
+          Logo a seguir à medicação, porque é a mesma pergunta vista de trás
+          para a frente: o que toma hoje, e como chegou aqui. */}
+      {scope.ve('medicacao') && <HistoricoMedicacao pid={pid} nome={utente.name} />}
+      <PartilhaFarmacia pid={pid} nome={utente.name} />
+      {indicacao.elemento}
 
       {/* Os cuidados de rotina. E daqui que sai o dia de trabalho — e a razao
           de «O Dia» so mostrar medicacao era nao existir isto. */}

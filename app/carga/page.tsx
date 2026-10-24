@@ -38,7 +38,21 @@ import { useAuth } from '@/components/AuthContext'
 import { useOrgScope } from '@/lib/orgScope'
 import { useClinicPrefs } from '@/lib/useClinicPrefs'
 import { institutionConfig } from '@/lib/institutionConfig'
-import { riskScore as calcRiskScore, riskLevel } from '@/lib/riskScore'
+/* ── A CARGA DEIXOU DE SER UM SCORE CLÍNICO (2026-10-23) ──────────────────
+   Esta página pontuava cada residente de 0 a 100 a partir da idade, das
+   condições, da função renal e do número de fármacos, e chamava-lhe «cuidado
+   exigente». Isso é um nível de risco atribuído a um doente identificado —
+   apoio à decisão clínica, Regra 11 do Regulamento (UE) 2017/745.
+
+   A pergunta que esta página existe para responder não precisa disso. Era
+   «quanta gente é precisa neste turno», e isso conta-se: quantos medicamentos
+   há para dar, quantas ocorrências estão abertas. São factos registados, não
+   um juízo sobre ninguém — e para dimensionar um turno servem melhor, porque
+   é mesmo isso que dá trabalho. */
+const CORTES = { muito: 12, algum: 6 }
+function nivelDeCarga(n: number): 'muito' | 'algum' | 'pouco' {
+  return n >= CORTES.muito ? 'muito' : n >= CORTES.algum ? 'algum' : 'pouco'
+}
 import { ptDate } from '@/lib/ptTime'
 import {
   LinhaTabela, Mesa, BarraDeTrabalho, BarraDeEstado, Painel, Cabecalho, Codigo,
@@ -123,7 +137,7 @@ export default function CargaPage() {
 
   // Complexidade clínica agregada — soma dos scores determinísticos.
   const scored = useMemo(() =>
-    patients.map(p => ({ p, score: calcRiskScore({ ...p, meds_count: medsCount[p.id] || 0 } as any) }))
+    patients.map(p => ({ p, score: medsCount[p.id] || 0 }))
       .sort((a, b) => b.score - a.score)
   , [patients, medsCount])
   const totalLoad = useMemo(() => scored.reduce((s, x) => s + x.score, 0), [scored])
@@ -191,7 +205,7 @@ export default function CargaPage() {
   // útil (e honesto) do que fingir uma análise.
   const hasSchedulingHistory = turnosAvaliados.length > 0
 
-  const heavy = scored.filter(x => riskLevel(x.score) === 'critical' || riskLevel(x.score) === 'high')
+  const heavy = scored.filter(x => nivelDeCarga(x.score) === 'muito')
 
   /* A COR DE UMA CÉLULA DA GRELHA
      Três estados, e o cinzento de «não se avalia»:
@@ -391,16 +405,15 @@ export default function CargaPage() {
             }
           >
             {heavy.length === 0 ? (
-              <Vazio titulo="Ninguém no patamar de cuidado exigente."
-                oQueFazer="O score sai da idade, das condições registadas, da função renal e do número de fármacos. Se faltam dados nas fichas, o score sai mais baixo do que a realidade." />
+              <Vazio titulo="Ninguém com muita medicação para dar."
+                oQueFazer="A conta é o número de medicamentos ativos de cada pessoa — o que dá trabalho num turno. Não é uma avaliação de ninguém: quem precisa de mais cuidado sabe-se olhando, não somando." />
             ) : scored.slice(0, 40).map(({ p, score }) => {
-              const nivel = riskLevel(score)
-              const cor = nivel === 'critical' ? 'var(--red)'
-                : nivel === 'high' ? 'var(--amber)'
-                : nivel === 'moderate' ? 'var(--ink-3)' : 'var(--ink-5)'
+              const nivel = nivelDeCarga(score)
+              const cor = nivel === 'muito' ? 'var(--amber)'
+                : nivel === 'algum' ? 'var(--ink-3)' : 'var(--ink-5)'
               return (
                 <LinhaTabela key={p.id} href={`/patients/${p.id}`}
-                  filete={nivel === 'critical' ? 'var(--red)' : undefined}
+                  filete={undefined}
                   antes={{
                     largura: 36,
                     conteudo: (

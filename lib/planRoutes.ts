@@ -36,11 +36,7 @@ export const PLAN_ROUTES: PlanRoute[] = [
   // Semanal" gate-a a si próprio com <PlanGate> dentro da página.
 
   // ── Pro: ferramentas clínicas individuais ──
-  { prefix: '/vigia', min: 'pro', tool: 'Vigia Clínico do Lar', note: 'Vigilância farmacológica automática de todos os residentes — interações, STOPP/Beers, polimedicação, priorizado por risco.' },
-  { prefix: '/reconciliacao', min: 'pro', tool: 'Reconciliação Terapêutica', note: 'Reconciliação de medicação na transição de cuidados.' },
-  { prefix: '/med-review', min: 'pro', tool: 'Revisão da Medicação', note: 'Revisão farmacoterapêutica avançada.' },
   { prefix: '/tpn', min: 'pro', tool: 'Nutrição Parentérica (TPN)', note: 'Cálculo e validação de TPN.' },
-  { prefix: '/stopp-start', min: 'pro', tool: 'STOPP/START', note: 'Critérios de prescrição potencialmente inapropriada.' },
 
   // ── Estudo (Plus) ──
   // NOTA: /labs NÃO está aqui de propósito — é grátis com limite diário (3/dia,
@@ -51,7 +47,6 @@ export const PLAN_ROUTES: PlanRoute[] = [
   // Três sítios a dizer coisas diferentes sobre a mesma ferramenta — o
   // catálogo, este ficheiro e o ecrã. Agora dizem os três o mesmo.
   { prefix: '/vault', min: 'pro', tool: 'Cofre de documentos', note: 'Guarda exames, análises e receitas, lidos a fundo pela IA.' },
-  { prefix: '/simulador', min: 'student', tool: 'Simulador Clínico & OSCE', note: 'Casos clínicos e OSCE com avaliação por IA.' },
   { prefix: '/osce', min: 'student', tool: 'OSCE' },
   { prefix: '/arena', min: 'student', tool: 'Arena de Estudo' },
   { prefix: '/tutor', min: 'student', tool: 'AI Tutor' },

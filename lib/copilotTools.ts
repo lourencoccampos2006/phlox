@@ -5,31 +5,22 @@
 // (app/api/copilot-chat/route.ts), nunca pela IA diretamente.
 
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { checkInteractions } from '@/lib/interactionsEngine'
 
-export const COPILOT_TOOLS = ['check_interactions', 'patient_data'] as const
+/* ── A VERIFICAÇÃO DE INTERAÇÕES SAIU DAQUI (2026-10-23) ──────────────────
+   Havia uma ferramenta `check_interactions` que devolvia gravidade, mecanismo,
+   consequências, recomendação, o que monitorizar e alternativas — para dois
+   fármacos de uma pessoa concreta.
+
+   Isso é informação destinada a sustentar uma decisão terapêutica sobre um
+   doente identificado: a definição da Regra 11 do Regulamento (UE) 2017/745,
+   que começa na classe IIa e, para software de segurança da medicação, é
+   apontada para classe III.
+
+   O que fica são ferramentas de REGISTO: ler o que está gravado sobre a
+   pessoa, e ler o estado da casa. */
+
+export const COPILOT_TOOLS = ['patient_data'] as const
 export type CopilotToolName = typeof COPILOT_TOOLS[number]
-
-/** Verifica interações reais (RxNorm + IA verificada) entre 2-10 fármacos. Devolve texto compacto para o prompt. */
-export async function checkInteractionsTool(drugs: string[]): Promise<string> {
-  try {
-    const r = await checkInteractions(drugs)
-    const lines = [
-      `Verificação real de interações entre ${r.drugs.join(', ')} (fonte: ${r.source === 'ai_enhanced' ? 'RxNorm/NIH + farmacologia clínica' : r.source === 'rxnorm' ? 'RxNorm/NIH' : 'nenhuma interação documentada'}):`,
-      `Gravidade: ${r.severity}`,
-      r.summary && `Resumo: ${r.summary}`,
-      r.mechanism && `Mecanismo: ${r.mechanism}`,
-      r.consequences && `Consequências: ${r.consequences}`,
-      r.recommendation && `Recomendação: ${r.recommendation}`,
-      r.monitor?.length ? `Monitorizar: ${r.monitor.join(', ')}` : '',
-      r.alternatives?.length ? `Alternativas: ${r.alternatives.join(', ')}` : '',
-    ].filter(Boolean)
-    return lines.join('\n')
-  } catch (e: any) {
-    if (e?.code === 'invalid_count') return 'Não foi possível verificar: são precisos pelo menos 2 fármacos (máx. 10).'
-    return 'A verificação de interações falhou tecnicamente — responde com cautela e sugere confirmar em /interactions.'
-  }
-}
 
 interface ActiveProfileArg { id: string; type: 'self' | 'family' | 'patient' }
 export interface PatientDataResult { text: string; meds: string[] }

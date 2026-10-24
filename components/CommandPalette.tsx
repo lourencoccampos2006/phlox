@@ -15,9 +15,6 @@ interface Tool {
 
 const TOOLS: Tool[] = [
   // Segurança
-  { href: '/interactions', label: 'Verificar Interações', desc: 'Analisa qualquer combinação de medicamentos', icon: 'search', category: 'Segurança', badge: 'Grátis' },
-  { href: '/food-drug', label: 'Fármaco-Alimento', desc: 'Toranja, álcool, laticínios, vitamina K', icon: 'meal', category: 'Segurança', badge: 'Grátis' },
-  { href: '/dose-crianca', label: 'Dose Pediátrica', desc: 'Calcula a dose correta por peso e medicamento', icon: 'family', category: 'Segurança', badge: 'Grátis' },
   { href: '/adr-report', label: 'Notificar RAM', desc: 'WHO-UMC · MedDRA · INFARMED', icon: 'alert', category: 'Segurança' },
   // A Minha Saúde
   { href: '/mymeds', label: 'Medicamentos', desc: 'Lista completa com lembretes e verificação automática', icon: 'pill', category: 'Saúde' },
@@ -28,22 +25,17 @@ const TOOLS: Tool[] = [
   { href: '/ai', label: 'Phlox AI', desc: 'Co-piloto farmacológico com contexto clínico', icon: 'spark', category: 'IA & Análise' },
   { href: '/oracle', label: 'Oracle — Farmacêutico AI', desc: 'Consulta estruturada com plano de intervenção', icon: 'spark', category: 'IA & Análise' },
   { href: '/scan', label: 'Tradutor de Bula', desc: 'Texto técnico em linguagem simples', icon: 'book', category: 'IA & Análise', badge: 'Grátis' },
-  { href: '/labs', label: 'Perceber as Análises', desc: 'O que está fora do normal e o que fazer', icon: 'flask', category: 'IA & Análise' },
   // Documentos
   { href: '/passport', label: 'Passaporte de Saúde', desc: 'Cartão de emergência com QR code e PDF', icon: 'user', category: 'Documentos' },
   { href: '/link', label: 'Phlox Link', desc: 'Partilha dados com médico ou farmacêutico', icon: 'layers', category: 'Documentos' },
-  { href: '/prescription', label: 'Perceber a Receita', desc: 'Foto ou texto → explicação clara', icon: 'note', category: 'Documentos' },
   { href: '/integracoes', label: 'Importar Dados', desc: 'Apple Saúde · Garmin · Fitbit · MySNS', icon: 'inbox', category: 'Documentos' },
   // Clínico
   { href: '/turno', label: 'Turno', desc: 'Todos os doentes, doses e alertas num ecrã', icon: 'building', category: 'Clínico' },
   { href: '/mar', label: 'Administração (MAR)', desc: 'Registo de tomas por turno · alertas', icon: 'clipboard', category: 'Clínico' },
   { href: '/patients', label: 'Doentes & Utentes', desc: 'Fichas, medicação, alertas e notas clínicas', icon: 'layers', category: 'Clínico' },
-  { href: '/calculos', label: 'Calculadoras Clínicas', desc: 'SCORE2 · CKD-EPI · Vancomicina · 15+', icon: 'calculator', category: 'Clínico' },
   { href: '/protocolos', label: 'Protocolos', desc: 'ESC · ADA · NICE · DGS', icon: 'book', category: 'Clínico' },
-  { href: '/med-review', label: 'Revisão de Medicação', desc: 'Análise clínica completa do esquema', icon: 'flask', category: 'Clínico' },
   // Estudantes
   { href: '/arena', label: 'Arena', desc: 'Ligas competitivas com casos clínicos IA', icon: 'trophy', category: 'Estudantes' },
-  { href: '/simulador', label: 'Simulador Clínico', desc: 'Caso · Turno · Evolutivo', icon: 'cards', category: 'Estudantes' },
   { href: '/study', label: 'Flashcards & Quizzes', desc: '200+ tópicos · repetição espaçada', icon: 'book', category: 'Estudantes' },
   { href: '/osce', label: 'Simulação OSCE', desc: 'AI como doente · feedback OSCE real', icon: 'cards', category: 'Estudantes' },
   { href: '/tutor', label: 'AI Tutor', desc: 'Tutoria socrática · passo a passo', icon: 'user', category: 'Estudantes' },

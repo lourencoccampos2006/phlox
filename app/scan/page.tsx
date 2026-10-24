@@ -81,7 +81,12 @@ function downscaleImage(file: File, maxDim = 1600, q = 0.85): Promise<{ b64: str
 }
 
 interface Med { name: string; dose?: string; frequency?: string; paraQue?: string; _import?: boolean }
-interface Valor { name: string; value?: string; unit?: string; reference?: string; status?: string; note?: string }
+/* O `status` («alto», «baixo») e a `note` («o que significa ESTE valor nesta
+   pessoa») saíram a 2026-10-23: classificar e interpretar o resultado de uma
+   análise de alguém é apoio à decisão clínica — Regra 11 do Regulamento (UE)
+   2017/745. Fica o valor como está no papel, o intervalo de referência como
+   vem impresso, e o que a análise mede em geral. Comparar os dois é de quem lê. */
+interface Valor { name: string; value?: string; unit?: string; reference?: string; oQueMede?: string }
 interface Termo { termo: string; simples: string }
 interface Seccao { titulo: string; texto: string }
 
@@ -103,8 +108,6 @@ interface Explicado {
   meds?: Med[]
   values?: Valor[]
   perguntasParaOMedico?: string[]
-  aSeguir?: string[]
-  warning?: string
   legibilidade?: string
   confidence?: string
 }
@@ -354,7 +357,7 @@ export default function ExplicarPage() {
       res.emDuasLinhas,
       res.oQueImporta?.length ? '\nO que importa:\n' + res.oQueImporta.map(x => `• ${x}`).join('\n') : '',
       res.secoes?.length ? '\n' + res.secoes.map(s => `${s.titulo}\n${s.texto}`).join('\n\n') : '',
-      res.values?.length ? '\nValores:\n' + res.values.map(v => `${v.name}: ${v.value || ''} ${v.unit || ''} (${v.status || ''})`).join('\n') : '',
+      res.values?.length ? '\nValores:\n' + res.values.map(v => `${v.name}: ${v.value || ''} ${v.unit || ''}${v.reference ? ` (ref. ${v.reference})` : ''}`).join('\n') : '',
       res.termos?.length ? '\nTermos:\n' + res.termos.map(t => `${t.termo} — ${t.simples}`).join('\n') : '',
     ].filter(Boolean).join('\n')
 
@@ -706,19 +709,6 @@ export default function ExplicarPage() {
               )}
             </div>
 
-            {res.warning && (
-              <div style={{
-                background: 'var(--badge-red-bg)', border: '1px solid var(--badge-red-border)', borderRadius: 'var(--r-xl)',
-                padding: '14px 16px',
-              }}>
-                <div style={{
-                  fontFamily: 'var(--font-mono)', fontSize: 'var(--t-micro)', letterSpacing: '0.14em',
-                  textTransform: 'uppercase', color: 'var(--red)', marginBottom: 5,
-                }}>A ter em conta</div>
-                <div style={{ fontSize: 'var(--t-corpo)', color: 'var(--red)', lineHeight: 1.6 }}>{res.warning}</div>
-              </div>
-            )}
-
             {/* ── O que isto muda no que já se sabia ──────────────────────
                 A parte que só existe por haver memória. Sem ela, o décimo
                 relatório de uma pessoa era lido com a ignorância do primeiro. */}
@@ -759,30 +749,21 @@ export default function ExplicarPage() {
             {/* valores das análises */}
             <Bloco titulo="Valor a valor" quando={!!res.values?.length}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 1, background: 'var(--border)', borderRadius: 'var(--r-lg)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-                {(res.values || []).map((v, i) => {
-                  const cor = COR_ESTADO[String(v.status || '').toLowerCase()] || 'var(--ink-4)'
-                  return (
-                    <div key={i} style={{ background: 'white', padding: '11px 13px' }}>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{v.name}</span>
-                        <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: cor }}>
-                          {v.value}{v.unit ? ` ${v.unit}` : ''}
-                        </span>
-                        {v.status && (
-                          <span style={{
-                            fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: cor, background: `${cor}14`,
-                            padding: '2px 7px', borderRadius: 'var(--r)', textTransform: 'uppercase',
-                            letterSpacing: '0.04em',
-                          }}>{v.status}</span>
-                        )}
-                        {v.reference && (
-                          <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>ref. {v.reference}</span>
-                        )}
-                      </div>
-                      {v.note && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.5 }}>{v.note}</div>}
+                {(res.values || []).map((v, i) => (
+                  <div key={i} style={{ background: 'white', padding: '11px 13px' }}>
+                    <div style={{ display: 'flex', alignItems: 'baseline', gap: 9, flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-corpo)' as any, color: 'var(--ink)' }}>{v.name}</span>
+                      {/* Sem cor. A cor era o julgamento: vermelho = mau. */}
+                      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--t-dado)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>
+                        {v.value}{v.unit ? ` ${v.unit}` : ''}
+                      </span>
+                      {v.reference && (
+                        <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>ref. {v.reference}</span>
+                      )}
                     </div>
-                  )
-                })}
+                    {v.oQueMede && <div style={{ fontSize: 'var(--t-dado)', color: 'var(--ink-3)', marginTop: 4, lineHeight: 1.5 }}>{v.oQueMede}</div>}
+                  </div>
+                ))}
               </div>
             </Bloco>
 
@@ -945,17 +926,6 @@ export default function ExplicarPage() {
                 </div>
               </div>
             )}
-
-            <Bloco titulo="A seguir" quando={!!res.aSeguir?.length}>
-              <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 9 }}>
-                {(res.aSeguir || []).map((x, i) => (
-                  <li key={i} style={{ display: 'flex', gap: 11, fontSize: 'var(--t-corpo)', color: 'var(--ink-2)', lineHeight: 1.55 }}>
-                    <span aria-hidden style={{ color: ACCENT, flexShrink: 0 }}>→</span>
-                    <span style={{ textWrap: 'pretty' as any }}>{x}</span>
-                  </li>
-                ))}
-              </ul>
-            </Bloco>
 
             {/* ── Continuar a perguntar ──────────────────────────────────── */}
             <div style={{

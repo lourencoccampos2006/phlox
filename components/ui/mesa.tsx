@@ -388,17 +388,45 @@ export function LinhaTabela({
       <span style={{ flex: 1, minWidth: 0 }}>
         {/* Num cartão, o nome é o título do cartão — e um título a 14,5px
             lido de pé, com o telemóvel a meio metro, é pequeno. */}
+        {/* ── NUM CARTÃO, O TÍTULO NÃO SE CORTA ────────────────────────────
+            A vista larga trunca com `nowrap` + reticências, e lá está certo:
+            uma coluna de tabela tem largura fixa e o resto da linha precisa
+            do espaço.
+
+            No telemóvel isso estava a cortar nomes — e a fazer a página rolar
+            de lado. «Animador sociocultural ou educador social» a 19px mede
+            378px num cartão de 374: com `nowrap`, essa frase passa a ser a
+            largura MÍNIMA do cartão, o cartão empurra a grelha, e a /equipa
+            inteira ganhava 28px de rolamento horizontal. Medido a 390px.
+
+            Um cartão tem altura à vontade e largura nenhuma a dar. Por isso
+            o título passa a quebrar em vez de ser cortado, e o `anywhere`
+            parte também o que não tem espaços — um email de 38 caracteres,
+            que é o caso que se vê nesta mesma página. */}
         <span style={{
           display: 'block',
           fontSize: largo ? 'var(--t-corpo)' : 'var(--t-destaque)',
           lineHeight: largo ? undefined : 1.25,
           fontWeight: 'var(--peso-corpo)' as any,
-          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          overflow: 'hidden',
+          ...(largo
+            ? { textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+            : { overflowWrap: 'anywhere' as const }),
         }}>{principal}</span>
         {secundaria && (
           <span style={{
             display: 'block', fontSize: 'var(--t-meta)', color: 'var(--ink-4)', marginTop: 2,
-            overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            ...(largo
+              ? { textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+              /* A secundária quebra, mas para em duas linhas: é contexto, e
+                 um parágrafo inteiro por baixo de cada nome afogava a lista.
+                 Duas linhas com reticências dizem que há mais; uma linha
+                 cortada a meio da primeira palavra não dizia nada. */
+              : {
+                overflowWrap: 'anywhere' as const,
+                display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as const,
+              }),
           }}>{secundaria}</span>
         )}
       </span>

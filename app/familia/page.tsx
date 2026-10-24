@@ -16,7 +16,12 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useAuth } from '@/components/AuthContext'
-import { analyzeFamilyMember, WATCH_LEVEL_META } from '@/lib/caregiverWatch'
+/* O `analyzeFamilyMember` lia a medicação, as tensões e os sintomas de cada
+   pessoa contra 31 regras clínicas e devolvia um nível («critical»,
+   «warning»). Isso é informação para sustentar uma decisão terapêutica sobre
+   alguém concreto — Regra 11 do Regulamento (UE) 2017/745. Saiu a 2026-10-23.
+   Ficam os sinais longitudinais do `caregiverSentinel`, que contam o que foi
+   registado (doses marcadas, dias em silêncio) e não classificam ninguém. */
 import { carregarEntradaCuidador, sinaisLongitudinais, adesaoEm, type EntradaCuidador } from '@/lib/caregiverSentinel'
 import LinhaDoTempo, { type EventoLinha } from '@/components/cuidador/LinhaDoTempo'
 import { ptDate } from '@/lib/ptTime'
@@ -190,12 +195,7 @@ export default function FamiliaPage() {
   const watched = profiles.map(p => {
     const linked = !!links[p.id]
     if (linked) return { p, level: 'linked' as const, signals: [] as any[] }
-    const result = analyzeFamilyMember({
-      age: p.age, sex: p.sex, weight: p.weight, conditions: p.conditions, allergies: p.allergies,
-      meds: meds.filter(m => m.profile_id === p.id),
-      vitals: vitals.filter(v => v.profile_id === p.id),
-      symptoms: syms.filter(s => s.profile_id === p.id),
-    })
+    const result = { level: 'ok' as const, signals: [] as any[] }
     // Os dois motores respondem a perguntas diferentes sobre a mesma pessoa;
     // quem lê não tem de saber de onde veio cada sinal.
     const extra = longit[p.id]?.sinais || []
@@ -268,23 +268,20 @@ export default function FamiliaPage() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {watched.map(({ p, level }) => {
                 const linked = level === 'linked'
-                const meta = !linked ? WATCH_LEVEL_META[level as Exclude<typeof level, 'linked'>] : null
                 return (
                   <div key={p.id}>
                   <Link href={`/perfil/${p.id}`} style={{
                     display: 'flex', alignItems: 'center', gap: 13, padding: '14px 16px', textDecoration: 'none',
-                    background: 'white', border: `1px solid ${!linked && level === 'critical' ? 'var(--badge-red-border)' : 'var(--border)'}`, borderRadius: 'var(--r-xl)',
+                    background: 'white', border: '1px solid var(--border)', borderRadius: 'var(--r-xl)',
                   }}>
                     <div style={{ width: 42, height: 42, borderRadius: '50%', background: linked ? 'var(--bg-2)' : 'var(--badge-amber-bg)', color: linked ? 'var(--ink-2)' : ACCENT, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--t-corpo)', fontWeight: 'var(--peso-forte)' as any, flexShrink: 0 }}>{initials(p.name)}</div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ fontSize: 'var(--t-destaque)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink)' }}>{p.name}</div>
                       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginTop: 2 }}>
                         {p.relation && <span style={{ fontSize: 'var(--t-meta)', color: 'var(--ink-5)' }}>{p.relation}</span>}
-                        {linked ? (
+                        {linked && (
                           <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: 'var(--ink-2)', background: 'var(--bg-2)', border: '1px solid var(--border)', borderRadius: 'var(--r)', padding: '2px 8px' }}>No lar/centro</span>
-                        ) : meta ? (
-                          <span style={{ fontSize: 'var(--t-micro)', fontWeight: 'var(--peso-forte)' as any, color: meta.color, background: meta.bg, border: `1px solid ${meta.border}`, borderRadius: 'var(--r)', padding: '2px 8px' }}>{meta.label}</span>
-                        ) : null}
+                        )}
                       </div>
                     </div>
                     <span style={{ fontSize: 'var(--t-destaque)', color: 'var(--border-2)', flexShrink: 0 }}>›</span>

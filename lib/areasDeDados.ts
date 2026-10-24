@@ -63,6 +63,9 @@ export const AREA_DA_TABELA: Record<string, string> = {
 
   // ── Medicação ────────────────────────────────────────────────────────────
   patient_meds: 'medicacao',
+  // O histórico da medicação e a partilha com a farmácia (sprint189).
+  medicacao_alteracoes: 'medicacao',
+  partilhas_farmacia: 'medicacao',
   mar_records: 'medicacao',
   medication_prep_logs: 'medicacao',
   // As tomas «quando for preciso» (sprint159). Mesma area da medicacao: quem
@@ -268,9 +271,6 @@ export const AREA_DA_ROTA: Record<string, string> = {
   '/residentes': 'utentes',
   '/mar': 'medicacao',
   '/preparacao-medicacao': 'medicacao',
-  '/interactions': 'medicacao',
-  '/reconciliacao': 'medicacao',
-  '/vigia': 'medicacao',
   '/vigia-ruturas': 'stock',
   '/care-log': 'registos',
   '/o-dia': 'registos',
@@ -315,7 +315,6 @@ export const AREA_DA_ROTA: Record<string, string> = {
   '/inscricoes': 'familias',
   '/estatisticas': 'qualidade',
   '/migrar': 'definicoes',
-  '/rastreios': 'avaliacoes',
   /* A /calculos fica de fora de propósito: são calculadoras de dose e de
      função renal, sem dados de ninguém lá dentro. Esconder uma calculadora
      não protege nada e tira uma ferramenta a quem dela precisa. */

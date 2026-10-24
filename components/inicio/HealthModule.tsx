@@ -7,15 +7,17 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/components/AuthContext'
-import { computeHealthAlerts, type HealthAlert } from '@/lib/healthAlerts'
-import { getAlertPrefs } from '@/lib/alertPrefs'
+/* Os «alertas de saúde» saíram em 2026-10-23: liam tensões, sintomas e
+   medicação e devolviam avisos classificados por nível sobre uma pessoa — a
+   Regra 11 do Regulamento (UE) 2017/745 chama a isso apoio à decisão e põe-no
+   em dispositivo médico. O que fica são as variações medidas, ditas como
+   factos: quanto mudou o peso, quantas tomas foram marcadas. */
 import type { ModeTheme } from '@/lib/modeTheme'
 
-const LVL_COLOR: Record<string, string> = { high: 'var(--red)', medium: 'var(--amber)', low: 'var(--ink-2)' }
 
 export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
   const { user, supabase } = useAuth() as any
-  const [alerts, setAlerts] = useState<HealthAlert[] | null>(null)
+  const [pronto, setPronto] = useState(false)
   const [trend, setTrend] = useState<{ label: string; tone: 'good' | 'warn' | 'neutral' }[]>([])
 
   useEffect(() => {
@@ -34,13 +36,8 @@ export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
       const vitalRows = (vitals || []) as any[]
       const totalSlots = ((meds || []) as any[]).length
       const adherencePct = totalSlots > 0 ? Math.round(((logs || []).length / Math.max(1, totalSlots)) * 100) : null
-      const out = computeHealthAlerts({
-        meds: (meds || []).map((m: any) => ({ name: m.name, pills_remaining: m.pills_remaining, pills_per_day: m.pills_per_day })),
-        age: null, sex: null, conditions: null, vitalSeries: vitalRows, symptoms: (syms || []) as any[], adherencePct,
-      })
       if (cancel) return
-      const allowed = new Set(getAlertPrefs())
-      setAlerts(out.filter(a => allowed.has(a.category)).slice(0, 3))
+      setPronto(true)
 
       const chips: { label: string; tone: 'good' | 'warn' | 'neutral' }[] = []
       const weights = vitalRows.filter(v => v.weight != null)
@@ -60,9 +57,9 @@ export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
     return () => { cancel = true }
   }, [user, supabase])
 
-  if (alerts === null) return <div className="skeleton" style={{ height: 90, borderRadius: 'var(--r-lg)' }} />
-  if (alerts.length === 0 && trend.length === 0) {
-    return <div style={{ fontSize: 13, color: t.inkFaint, padding: '6px 0' }}>Está tudo calmo — sem sinais a assinalar.</div>
+  if (!pronto) return <div className="skeleton" style={{ height: 90, borderRadius: 'var(--r-lg)' }} />
+  if (trend.length === 0) {
+    return <div style={{ fontSize: 13, color: t.inkFaint, padding: '6px 0' }}>Ainda sem registos que cheguem para comparar.</div>
   }
 
   const TONE: Record<string, { c: string; bg: string }> = {
@@ -71,18 +68,8 @@ export default function HealthModule({ theme: t }: { theme: ModeTheme }) {
 
   return (
     <div>
-      {alerts.map((a, i) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '9px 0', borderTop: i === 0 ? 'none' : `1px solid ${t.border}` }}>
-          <span style={{ width: 7, height: 7, borderRadius: '50%', marginTop: 5, flexShrink: 0, background: LVL_COLOR[a.level] }} />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontSize: 13.5, fontWeight: 700, color: t.ink }}>{a.title}</div>
-            {a.detail && <div style={{ fontSize: 12.5, color: t.inkFaint, marginTop: 1 }}>{a.detail}</div>}
-          </div>
-          {a.href && <Link href={a.href} style={{ fontSize: 11.5, fontWeight: 700, color: t.accent, textDecoration: 'none', flexShrink: 0, alignSelf: 'center' }}>{a.cta || 'Ver'} →</Link>}
-        </div>
-      ))}
       {trend.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: alerts.length > 0 ? 10 : 0 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 0 }}>
           {trend.map((c, i) => {
             const s = TONE[c.tone]
             return <span key={i} style={{ fontSize: 12, fontWeight: 700, color: s.c, background: s.bg, borderRadius: 'var(--r)', padding: '4px 9px' }}>{c.label}</span>

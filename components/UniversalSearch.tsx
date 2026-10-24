@@ -13,7 +13,6 @@ const ACCENT = 'var(--green)'
 
 // Atalhos diretos (navegação instantânea, sem IA)
 const QUICK = [
-  { label: 'Verificar interações', route: '/interactions', icon: '⚗' },
   { label: 'O que é este medicamento', route: '/medicamento', icon: 'pill' },
   { label: 'Biblioteca médica (Q&A)', route: '/study/biblioteca', icon: 'book' },
   { label: 'Interpretar análises', route: '/study/lab', icon: 'flask' },

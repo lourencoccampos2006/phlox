@@ -59,7 +59,11 @@ async function buildDailySummaries(patientId: string, days = 30): Promise<DaySum
 // Tudo lido com o cliente admin (service role), sempre filtrado por
 // patient_id — o mesmo padrão de segurança que buildDailySummaries já usa.
 
-const IMPLEMENTED_SCALES: ScaleType[] = ['barthel', 'braden', 'morse', 'mmse', 'mna']
+/* Só o Barthel, desde 2026-10-23. As outras chegavam à família como «risco de
+   queda elevado» ou «desnutrição» — um juízo clínico do software, escrito para
+   leigos. O grau de dependência é a classificação administrativa que a casa
+   já usa com a Segurança Social. */
+const IMPLEMENTED_SCALES: ScaleType[] = ['barthel']
 
 async function buildAssessments(patientId: string) {
   const sb = admin()

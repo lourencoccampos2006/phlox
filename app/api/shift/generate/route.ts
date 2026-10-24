@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
     const result = await aiJSON<any>([
       {
         role: 'system',
-        content: `És um médico especialista e professor universitário a criar casos clínicos para formação farmacológica. Responde em português europeu (PT-PT).
+        content: `És um autor de material didático a escrever casos fictícios para formação farmacológica. Responde em português europeu (PT-PT).
 
 Cria 3 doentes para um turno de simulação de ${SPECIALTY_CONTEXT[specialty]}.
 Nível de dificuldade: ${DIFFICULTY_CONTEXT[difficulty]}

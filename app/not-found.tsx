@@ -1,9 +1,7 @@
 import Link from 'next/link'
 
 const SUGGESTIONS = [
-  { href: '/interactions', label: 'Verificar Interações', icon: 'bolt' },
   { href: '/ai',           label: 'Phlox AI',             icon: 'spark' },
-  { href: '/calculos',     label: 'Calculadoras',          icon: 'calculator' },
   { href: '/scan',         label: 'Tradutor de Bula',      icon: 'clipboard' },
 ]
 

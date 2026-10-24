@@ -10,11 +10,9 @@ const MAX = 6
 export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group: string }[] = [
   // Pessoal
   { path: '/mymeds',            label: 'A minha medicação',     icon: 'pill', group: 'Pessoal' },
-  { path: '/interactions',      label: 'Verificar interações',  icon: '⚗',  group: 'Pessoal' },
   { path: '/scan',              label: 'Perceber bula',          icon: 'note', group: 'Pessoal' },
   { path: '/sintomas',          label: 'Sintomas',               icon: 'droplet', group: 'Pessoal' },
   { path: '/passport',          label: 'Cartão emergência',      icon: 'alert', group: 'Pessoal' },
-  { path: '/quickcheck',        label: 'Análise rápida meds',    icon: 'bolt', group: 'Pessoal' },
   { path: '/vitals',            label: 'Sinais vitais',          icon: '💓', group: 'Pessoal' },
   { path: '/health-import',     label: 'Importar Apple Health',  icon: 'inbox', group: 'Pessoal' },
   { path: '/guardados',         label: 'Guardados',              icon: '★',  group: 'Pessoal' },
@@ -26,9 +24,7 @@ export const PINNABLE_TOOLS: { path: string; label: string; icon: string; group:
   { path: '/arena',             label: 'Arena',                  icon: 'trophy', group: 'Estudante' },
   { path: '/osce',              label: 'OSCE',                   icon: 'stethoscope', group: 'Estudante' },
   { path: '/tutor',             label: 'AI Tutor',               icon: '🧑‍🏫', group: 'Estudante' },
-  { path: '/simulador',         label: 'Casos clínicos',         icon: 'book', group: 'Estudante' },
   { path: '/anatomia-3d',       label: 'Atlas 3D',               icon: 'heart', group: 'Estudante' },
-  { path: '/calculos',          label: 'Calculadoras',           icon: '∑',  group: 'Estudante' },
   { path: '/mnemonicas',        label: 'Mnemónicas visuais',     icon: 'spark', group: 'Estudante' },
   { path: '/modo-exame',        label: 'Modo Exame',             icon: 'clock', group: 'Estudante' },
   // Comum

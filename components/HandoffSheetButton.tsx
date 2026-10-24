@@ -9,7 +9,6 @@
 import { useState } from 'react'
 import { useAuth } from '@/components/AuthContext'
 import { printDoc } from '@/lib/print'
-import { RISK_LEVEL_META } from '@/lib/riskIndex'
 
 interface Props { profileId: string; name: string; age?: number | null; allergies?: string | null; conditions?: string | null; meds: { name: string; dose?: string; frequency?: string }[] }
 
@@ -23,20 +22,17 @@ export default function HandoffSheetButton({ profileId, name, age, allergies, co
     try {
       const { data: sd } = await supabase.auth.getSession()
       const token = sd?.session?.access_token || ''
-      const [riskRes, playbookRes] = await Promise.all([
-        fetch(`/api/risk-index?profile_id=${profileId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch('/api/crisis-playbook', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ profile_id: profileId, force: false }) }),
-      ])
-      const risk = riskRes.ok ? await riskRes.json() : null
-      const playbook = playbookRes.ok ? await playbookRes.json() : null
-      const riskMeta = risk ? RISK_LEVEL_META[risk.today.level as keyof typeof RISK_LEVEL_META] : null
+      /* Saíram o índice de risco e o «playbook de crise»: um punha um nível de
+         risco numa pessoa, o outro dizia o que fazer numa crise. Ambos são
+         apoio à decisão clínica (Regra 11). A ficha continua a levar o que
+         importa a quem recebe a pessoa: quem é, o que toma, o que tem. */
+      const playbook: any = null
 
       printDoc({
         docTitle: `Ficha para o Hospital — ${name}`,
         docSubtitle: `Gerado em ${new Date().toLocaleDateString('pt-PT')} — informação de apoio, não substitui o processo clínico`,
         meta: [
           ...(age ? [{ label: 'idade', value: `${age} anos` }] : []),
-          ...(riskMeta ? [{ label: 'risco', value: riskMeta.label }] : []),
         ],
         sections: [
           {

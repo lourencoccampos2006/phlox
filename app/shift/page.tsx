@@ -76,7 +76,7 @@ const SPECIALTIES = [
   { id: 'pediatrics',      label: 'Pediatria',        desc: 'Especificidades pediátricas' },
   { id: 'obstetrics',      label: 'Obstetrícia',      desc: 'Gravidez, complicações, parto' },
   { id: 'psychiatry',      label: 'Psiquiatria',      desc: 'Depressão, bipolar, ansiedade' },
-  { id: 'geriatrics',      label: 'Geriatria',        desc: 'Polimedicação, critérios Beers' },
+  { id: 'geriatrics',      label: 'Geriatria',        desc: 'Polimedicação' },
   { id: 'nursing',         label: 'Enfermagem',       desc: 'Avaliação, técnicas, escalas' },
   { id: 'pharmacy',        label: 'Farmácia Clínica', desc: 'Revisão, reconciliação, PCNE' },
   { id: 'mixed',           label: 'Misto',            desc: 'Várias especialidades — mais difícil' },

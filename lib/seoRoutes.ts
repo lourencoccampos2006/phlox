@@ -36,6 +36,9 @@ export const PRIVADAS = [
      qualquer pessoa podia responder ao inquérito de uma casa que não conhece,
      o que estraga a média de quem o lançou. */
   '/i/',
+  /* Os mapas terapêuticos partilhados com farmácias: a medicação de uma pessoa
+     concreta. Nunca num motor de busca. */
+  '/farmacia/',
 ]
 
 /**
@@ -49,15 +52,10 @@ export const APP = [
   '/login', '/onboarding', '/settings', '/checkout', '/inicio', '/tudo',
   // ferramentas pessoais
   '/mymeds', '/vitals', '/perfil', '/timeline', '/sintomas', '/guardados',
-  '/scan', '/labs', '/health-import', '/passport', '/comecar',
   // estudo
-  '/study', '/study360', '/arena', '/osce', '/exam', '/modo-exame', '/decisao',
     // institucional / clínico
   '/painel', '/painel-dono', '/cockpit', '/cockpit-legacy', '/patients',
   '/residentes', '/census', '/turno', '/mar', '/care-log',
-  '/care-plans', '/prescription', '/receita',
-  '/reconciliacao', '/handover', '/soap', '/triagem',
-  '/quality', '/incidents', '/radar', '/vigia', '/guardiao', '/carga',
   '/autonomia', '/tendencias', '/auditoria',
   '/agenda', '/calendario', '/schedule', '/equipa', '/team', '/teams',
   '/faturacao', '/faturacao-config', '/crm', '/stock', '/gestao',
@@ -65,7 +63,7 @@ export const APP = [
   // família
   '/familia', '/familia360', '/family', '/saude360', '/clinico360',
   // integrações e dados
-  '/sso', '/sso-config', '/api-keys', '/api-docs', '/webhooks', '/integracoes',
+  '/sso', '/sso-config', '/api-keys', '/webhooks', '/integracoes',
   '/automacoes', '/exportar-dados', '/importar', '/migrar', '/connect', '/vault',
   // redirects e stubs de partilha
   '/partilhar/', '/r/', '/v/', '/c/', '/link', '/share', '/shared',
@@ -104,18 +102,9 @@ export const CONTEUDO: Array<{
  * confiança para o Google quando todas as páginas mudam todos os dias.
  */
 export const ARTIGOS = [
-  { slug: 'interacoes-comuns-a-evitar',        data: '2026-01-15' },
-  { slug: 'dose-paracetamol-crianca',          data: '2025-12-10' },
-  { slug: 'ibuprofeno-varfarina',              data: '2025-11-22' },
-  { slug: 'metformina-alcool',                 data: '2026-02-01' },
-  { slug: 'antibioticos-em-gravidez',          data: '2026-02-15' },
-  { slug: 'hipericao-medicamentos',            data: '2026-01-28' },
-  { slug: 'medicamentos-idosos-lista-beers',   data: '2026-03-01' },
-  { slug: 'ajuste-dose-insuficiencia-renal',   data: '2026-02-20' },
   { slug: 'organizar-medicacao-idoso',         data: '2026-06-15' },
   { slug: 'sinais-desidratacao-idosos',        data: '2026-06-15' },
   { slug: 'como-ler-receita-medica',           data: '2026-06-20' },
-  { slug: 'medicamentos-sem-receita-cuidados', data: '2026-06-18' },
   { slug: 'como-guardar-medicamentos-casa',    data: '2026-06-16' },
 ]
 

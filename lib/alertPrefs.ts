@@ -3,15 +3,16 @@
 // aparecem em "A minha saúde" no /inicio. Mesmo padrão de lib/inicioModules.ts
 // (localStorage, tudo ligado por defeito).
 
-import type { AlertCategory } from '@/lib/healthAlerts'
+export type AlertCategory = 'stock' | 'adherence'
 
 export interface AlertCategoryMeta { id: AlertCategory; label: string; hint: string }
 
 export const ALERT_CATEGORIES: AlertCategoryMeta[] = [
-  { id: 'vitals', label: 'Sinais vitais', hint: 'Tensão, oxigenação, glicemia, frequência cardíaca, peso' },
-  { id: 'interactions', label: 'Interações e regras clínicas', hint: 'Combinações a evitar, ajustes por idade ou função renal' },
+  /* Saíram as categorias que julgavam: «sinais vitais» (uma tensão lida e
+     classificada), «interações e regras clínicas» e «sintomas». Classificar a
+     leitura de um doente é apoio à decisão — ver a Regra 11. Ficam as duas que
+     contam coisas: comprimidos e tomas marcadas. */
   { id: 'stock', label: 'Stock de medicação', hint: 'Comprimidos a acabar' },
-  { id: 'symptoms', label: 'Sintomas', hint: 'Febre ou dor repetidas' },
   { id: 'adherence', label: 'Adesão à medicação', hint: 'Quando as tomas começam a falhar' },
 ]
 

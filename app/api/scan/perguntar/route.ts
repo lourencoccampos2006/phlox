@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
   // conforme seja a primeira vez que o valor aparece alterado ou a terceira.
   const memoria = String(body.memoria || '').slice(0, 4000)
 
-  const sistema = `És um médico português a responder a uma dúvida sobre UM documento de saúde que já foi explicado a esta pessoa. Português europeu, simples, direto.
+  const sistema = `És um tradutor de linguagem médica a responder a uma dúvida sobre o que DIZ um documento de saúde que já foi explicado a esta pessoa. Português europeu, simples, direto.
 
 O documento decifrado (em JSON):
 ${doc}

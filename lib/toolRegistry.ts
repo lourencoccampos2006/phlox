@@ -56,7 +56,6 @@ export const TOOLS: Tool[] = [
   // ── 7 ESSENCIAIS (default pessoal/cuidador). O resto fica acessível em /tudo. ──
   { id: '/mymeds',       label: 'Os meus comprimidos',           desc: 'A lista, os horários e os lembretes', category: 'meds',    modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
   { id: '/scan',         label: 'Explicar um exame ou receita',  desc: 'Tire uma foto. Dizemos-lhe o que lá está, em português simples — exames, análises, receitas, relatórios e caixas', category: 'meds', modes: ['personal', 'caregiver'], default: ['personal', 'caregiver'], plan: 'free' },
-  { id: '/interactions', label: 'Os meus medicamentos dão-se bem?', desc: 'Ver se é seguro tomá-los juntos', category: 'meds',     modes: ['personal', 'caregiver', 'student'], default: ['personal', 'caregiver'], plan: 'free_limited' },
   { id: '/medicamento',  label: 'O que é este medicamento?',     desc: 'Escreva o nome e veja para que serve, se precisa de receita e cuidados', category: 'meds', modes: ['personal', 'caregiver', 'student'], plan: 'free' },
 
   // ── A minha saúde ──
@@ -73,7 +72,6 @@ export const TOOLS: Tool[] = [
 
   // ── Perceber ──
   { id: '/ai',           label: 'Tirar uma dúvida de saúde',     desc: 'Pergunte em português simples',    category: 'understand', modes: ['personal', 'caregiver', 'student'], default: ['personal'], plan: 'free_limited' },
-  { id: '/labs',         label: 'Perceber as minhas análises',   desc: 'O que cada valor quer dizer',      category: 'understand', modes: ['personal', 'caregiver'], plan: 'free_limited' },
 
   // ── Família (cuidador) ──
   { id: '/familia',      label: 'A minha família',               desc: 'A saúde de cada pessoa num só sítio', category: 'family',  modes: ['caregiver'], default: ['caregiver'], plan: 'free' },
@@ -82,7 +80,6 @@ export const TOOLS: Tool[] = [
   { id: '/arena',        label: 'Competir na Arena',             desc: 'Ligas Bronze → Diamante',          category: 'study',      modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/study',        label: 'Estudar com flashcards',        desc: '200+ tópicos, repetição espaçada', category: 'study',      modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/tutor',        label: 'AI Tutor',                      desc: 'Explica conceitos · mnemónicas · passo a passo', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
-  { id: '/simulador',    label: 'Simulador clínico',             desc: 'Casos clínicos com IA',            category: 'study',      modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/osce',         label: 'Treinar OSCE',                  desc: 'IA como doente, feedback real',    category: 'study',      modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/anatomia-3d',  label: 'Explorar em 3D',                desc: 'Atlas 3D real · pesquisa + AR',     category: 'study',      modes: ['student'], default: ['student'], plan: 'student' },
   { id: '/estagio',      label: 'Estágio (completo)',            desc: 'Doentes, diário, casos, IA, relatórios', category: 'study', modes: ['student'], default: ['student'], plan: 'student' },
@@ -96,7 +93,6 @@ export const TOOLS: Tool[] = [
   { id: '/carga',        label: 'Pessoal e carga',               desc: 'Onde a escala pode apertar: turnos sem gente ou abaixo do habitual desta casa', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/tendencias',   label: 'Tendências',                    desc: 'Humor, alimentação, adesão e ocorrências ao longo de 2-3 semanas, por pessoa', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/mar',          label: 'Administração (MAR)',           desc: 'Registo por turno · alertas',      category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
-  { id: '/vigia',        label: 'Vigia Clínico do Lar',          desc: 'Vigilância farmacológica IA · todos os residentes', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home'], plan: 'pro' },
 
   { id: '/equipa?tab=mural', label: 'Mural da equipa',           desc: 'Mensagens e avisos entre a equipa (com push)', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
   { id: '/ronda-guiada', label: 'Ronda coordenada',              desc: 'Ronda a vários, sem repetir, com transferência automática', category: 'clinical_daily', modes: ['clinical'], default_inst: ['nursing_home', 'day_care'], plan: 'pro' },
@@ -111,7 +107,6 @@ export const TOOLS: Tool[] = [
   // Decisão clínica
 
   // Ferramentas pro — calculadoras consolidadas num único hub (/calculos)
-  { id: '/calculos',     label: 'Calculadoras clínicas',         desc: 'Escalas, eGFR/CrCl, IV, PK, eletrólitos, doses urgência e pediátricas', category: 'clinical_tools', modes: ['clinical'], default_inst: ALL_INST, plan: 'pro' },
   // (calculators, pk-dosing, iv-calc, iv-compatibility, electrolytes, emergency-doses,
   //  dose-crianca, escalas → agora dentro do hub /calculos. Páginas mantidas, fora do menu.)
 

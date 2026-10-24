@@ -28,7 +28,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/scan',         icon: 'camera', label: 'Explicar um exame ou receita', desc: 'Tire uma foto. Dizemos-lhe o que lá está, em português simples' },
       { href: '/medicamento',  icon: 'spark', label: 'O que é este medicamento?', desc: 'Escreva o nome → para que serve e cuidados' },
       { href: '/mymeds',       icon: 'pill', label: 'Os meus comprimidos', desc: 'Lista, horários e lembretes' },
-      { href: '/interactions', icon: 'search', label: 'Dão-se bem juntos?',  desc: 'Ver se é seguro tomá-los ao mesmo tempo' },
     ],
   },
   {
@@ -39,7 +38,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/vitals',    icon: 'heart', label: 'Tensão, peso e açúcar', desc: 'Registar e ver como evolui' },
       { href: '/timeline',  icon: 'calendar', label: 'A minha história de saúde', desc: 'Medicação, análises, documentos e sintomas, ao longo do tempo' },
       { href: '/passport',  icon: 'alert', label: 'Passaporte de saúde',  desc: 'Cartão de emergência e partilha por QR com o médico' },
-      { href: '/labs',      icon: 'flask', label: 'Perceber as minhas análises', desc: 'O que cada valor quer dizer' },
       { href: '/ai',        icon: 'spark', label: 'Tirar uma dúvida',      desc: 'Pergunte em português simples' },
       { href: '/partilhado-comigo', icon: 'layers', label: 'Partilhado comigo', desc: 'Perfis de família que outra pessoa te deu acesso a ver' },
       // CURADORIA 2026-07-21: eram 6 entradas Pro soltas aqui (rastreio visual,
@@ -57,7 +55,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     id: 'caregiver', label: 'Cuidador', color: 'var(--amber)',
     tools: [
       { href: '/familia',    icon: 'home',   label: 'A minha família',    desc: 'A saúde de cada pessoa num só sítio, perfis para adicionar e editar' },
-      { href: '/dose-crianca', icon: 'family', label: 'Dose para crianças', desc: 'Por peso e por medicamento' },
     ],
   },
   {
@@ -71,10 +68,8 @@ export const NAV_CATEGORIES: NavCategory[] = [
       { href: '/radar',              icon: 'clipboard', label: 'O que merece atenção', desc: 'O que a equipa registou que saiu do padrão' },
       { href: '/mar',                icon: 'note', label: 'MAR',                 desc: 'Registo de administração' },
       { href: '/patients',           icon: 'users', label: 'Doentes',             desc: 'Fichas e medicação' },
-      { href: '/calculos',           icon: 'calculator', label: 'Calculadoras',        desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
       { href: '/pk-dosing',          icon: 'flask', label: 'Console PK',          desc: 'Vancomicina AUC · Aminoglicosídeos', badge: 'Pro' },
       { href: '/antibiotics',        icon: 'pill', label: 'Antibioterapia',      desc: 'Empírica · MRSA/ESBL', badge: 'Pro' },
-      { href: '/stopp-start',        icon: 'alert', label: 'STOPP/START',         desc: 'v3 2023 + Beers', badge: 'Pro' },
       { href: '/tpn',                icon: 'flask', label: 'Nutrição Parentérica',desc: 'ASPEN 2022 · Rótulo PDF', badge: 'Pro' },
       { href: '/adr-report',         icon: 'alert', label: 'Notificação RAM',     desc: 'WHO-UMC e INFARMED' },
       { href: '/equipa',                 icon: 'users', label: 'Equipa',              desc: 'Turnos · Competências' },
@@ -85,7 +80,6 @@ export const NAV_CATEGORIES: NavCategory[] = [
     tools: [
       { href: '/biblioteca', icon: 'book', label: 'As minhas sebentas', desc: 'Carregar PDFs e slides → resumo e perguntas', badge: 'Premium' },
       { href: '/arena',     icon: 'trophy', label: 'Arena',            desc: 'Ligas Bronze → Diamante' },
-      { href: '/simulador', icon: 'cards', label: 'Casos clínicos',   desc: 'Pratique decisões num caso real' },
       { href: '/osce',      icon: 'target', label: 'Treinar OSCE',     desc: 'Exame prático com doente simulado' },
       { href: '/estagio',   icon: 'stethoscope', label: 'Estágio',          desc: 'Doentes, diário, casos e relatórios do estágio' },
       { href: '/study',     icon: 'cards', label: 'Flashcards',       desc: '200+ tópicos com repetição espaçada' },
@@ -148,7 +142,6 @@ export function getAllToolsForMode(mode: Mode): (NavTool & { categoryLabel: stri
 export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   personal: [
     { href: '/mymeds',       icon: 'pill', label: 'Comprimidos', desc: 'A lista e os lembretes de hoje' },
-    { href: '/interactions', icon: 'search', label: 'Verificar',   desc: 'Dão-se bem juntos?' },
     { href: '/vitals',       icon: 'heart', label: 'Saúde',       desc: 'Tensão, peso e açúcar' },
     { href: '/ai',           icon: 'spark', label: 'Perguntar',   desc: 'Tirar uma dúvida' },
     { href: '/passport',     icon: 'alert', label: 'Emergência',  desc: 'Cartão QR' },
@@ -157,22 +150,18 @@ export const MODE_QUICK_ACTIONS: Record<string, NavTool[]> = {
   caregiver: [
     { href: '/familia',      icon: 'family', label: 'Família',  desc: 'Resumo e perfis de todos os familiares', badge: 'Novo' },
     { href: '/mymeds',       icon: 'pill',   label: 'Medicação',  desc: 'Lista e lembretes' },
-    { href: '/interactions', icon: 'search',   label: 'Verificar',  desc: 'São seguros juntos?' },
     { href: '/ai',           icon: 'spark',   label: 'Perguntar',  desc: 'Dúvida de saúde' },
   ],
   clinical: [
     { href: '/painel',             icon: 'sliders', label: 'Painel',        desc: 'O painel da instituição, ao vivo' },
     { href: '/mar',                icon: 'note', label: 'MAR',           desc: 'Registo de administração' },
     { href: '/equipa',                 icon: 'users', label: 'Equipa',        desc: 'Turnos · Vagas · Competências' },
-    { href: '/calculos',           icon: 'calculator', label: 'Calculadoras',  desc: 'CrCl, IBW, eGFR, PK, Child-Pugh' },
     { href: '/pk-dosing',          icon: 'flask', label: 'Console PK',    desc: 'Vancomicina AUC · Aminoglicosídeos' },
     { href: '/tpn',                icon: 'flask', label: 'NP',            desc: 'Nutrição parentérica ASPEN 2022' },
     { href: '/antibiotics',        icon: 'pill', label: 'Antibióticos',  desc: 'Empírica · MRSA/ESBL · stewardship' },
-    { href: '/emergency-doses',    icon: 'alert', label: 'Urgência',      desc: 'Doses de emergência por peso' },
   ],
   student: [
     { href: '/arena',     icon: 'trophy', label: 'Arena',     desc: 'Ligas Bronze → Diamante' },
-    { href: '/simulador', icon: 'cards', label: 'Simular',   desc: 'Casos clínicos' },
     { href: '/study',     icon: 'cards', label: 'Estudar',   desc: 'Flashcards e quizzes' },
     { href: '/tutor',     icon: 'spark', label: 'Tutor AI',  desc: 'Explicações passo a passo' },
     { href: '/osce',      icon: 'target', label: 'OSCE',      desc: 'Simulação de exame' },

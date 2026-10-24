@@ -104,61 +104,13 @@ export const SHARE_CARDS: Record<string, ShareCard> = {
     accent: '#fbbf24', accentSoft: '#78350f', accentText: '#fcd34d',
   },
 
-  'interacoes-comuns-a-evitar': {
-    kicker: 'Interações',
-    title: 'Interações perigosas a evitar',
-    items: ['Varfarina + ibuprofeno', 'Estatinas + alguns antibióticos', 'Metformina + contraste', 'IECA + anti-inflamatórios', 'Hipericão + a pílula'],
-    accent: '#f87171', accentSoft: '#7f1d1d', accentText: '#fca5a5',
-  },
 
-  'ibuprofeno-varfarina': {
-    kicker: 'Interações',
-    title: 'Ibuprofeno + Varfarina: porquê o perigo',
-    items: ['Aumenta o risco de hemorragia', 'Os dois "afinam" o sangue', 'Pode causar úlcera a sangrar', 'Há analgésicos mais seguros', 'Fala sempre com o farmacêutico'],
-    accent: '#f87171', accentSoft: '#7f1d1d', accentText: '#fca5a5',
-  },
 
-  'dose-paracetamol-crianca': {
-    kicker: 'Pediatria',
-    title: 'Paracetamol em crianças: o essencial',
-    items: ['A dose é pelo PESO, não pela idade', '15 mg por kg, cada 6-8h', 'Nunca passar 4 tomas por dia', 'Usa a seringa que vem na caixa', 'Febre > 3 dias → ao médico'],
-    accent: '#fbbf24', accentSoft: '#78350f', accentText: '#fcd34d',
-  },
 
-  'metformina-alcool': {
-    kicker: 'Diabetes',
-    title: 'Metformina e álcool: o que saber',
-    items: ['Beber muito aumenta o risco raro de acidose', 'Pode baixar o açúcar demais', 'Um copo ocasional com comida é menos arriscado', 'Nunca em jejum', 'Fala com o teu médico'],
-    accent: '#34d399', accentSoft: '#064e3b', accentText: '#6ee7b7',
-  },
 
-  'antibioticos-em-gravidez': {
-    kicker: 'Gravidez',
-    title: 'Antibióticos na gravidez',
-    items: ['Penicilinas: geralmente seguras', 'Tetraciclinas: a evitar', 'Nunca te automedicar', 'O risco da infeção também conta', 'Decide sempre com o médico'],
-    accent: '#a78bfa', accentSoft: '#4c1d95', accentText: '#c4b5fd',
-  },
 
-  'hipericao-medicamentos': {
-    kicker: 'Suplementos',
-    title: 'Hipericão: "natural" não é inofensivo',
-    items: ['Reduz o efeito da pílula', 'Mexe com antidepressivos', 'Reduz anticoagulantes', 'Interfere com remédios do coração', 'Avisa sempre o farmacêutico'],
-    accent: '#fbbf24', accentSoft: '#78350f', accentText: '#fcd34d',
-  },
 
-  'medicamentos-idosos-lista-beers': {
-    kicker: 'Geriatria',
-    title: 'Medicamentos a vigiar em idosos',
-    items: ['Calmantes para dormir (benzodiazepinas)', 'Anti-inflamatórios de uso prolongado', 'Alguns anti-alérgicos antigos', 'Doses altas sem revisão', 'Rever a lista todos os anos'],
-    accent: '#60a5fa', accentSoft: '#1e3a8a', accentText: '#93c5fd',
-  },
 
-  'ajuste-dose-insuficiencia-renal': {
-    kicker: 'Renal',
-    title: 'Dose e rins: quando ajustar',
-    items: ['Rins fracos = fármaco acumula', 'A dose normal pode ser demais', 'Muitos antibióticos precisam de ajuste', 'Hidratação conta muito', 'O médico calcula pela função renal'],
-    accent: '#22d3ee', accentSoft: '#155e63', accentText: '#67e8f9',
-  },
 
   'como-ler-receita-medica': {
     kicker: 'Guia prático',
@@ -167,12 +119,6 @@ export const SHARE_CARDS: Record<string, ShareCard> = {
     accent: '#60a5fa', accentSoft: '#1e3a8a', accentText: '#93c5fd',
   },
 
-  'medicamentos-sem-receita-cuidados': {
-    kicker: 'Segurança',
-    title: 'Medicamentos sem receita: o que não misturar',
-    items: ['Paracetamol + ibuprofeno: pode, com espaço', 'Antiácido pode cortar o efeito doutros', 'Xarope da tosse tem álcool escondido', 'Sintomas > 3 dias → farmacêutico', 'Lê sempre o folheto'],
-    accent: '#34d399', accentSoft: '#064e3b', accentText: '#6ee7b7',
-  },
 
   'como-guardar-medicamentos-casa': {
     kicker: 'Em casa',

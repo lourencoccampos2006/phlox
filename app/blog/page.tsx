@@ -9,62 +9,6 @@ export const metadata: Metadata = {
 
 const ARTICLES = [
   {
-    slug: 'interacoes-comuns-a-evitar',
-    title: 'As 10 Interações Medicamentosas Mais Comuns em Portugal (e como as evitar)',
-    desc: 'Varfarina + AINEs, estatinas + antibióticos, metformina + contraste — as combinações que todo o profissional precisa de saber.',
-    tag: 'Interações', date: '2026-01-15', readTime: '8 min',
-    color: 'var(--red)',
-  },
-  {
-    slug: 'dose-paracetamol-crianca',
-    title: 'Dose de Paracetamol para Crianças — Tabela por Peso 2026',
-    desc: 'Tabela completa por peso e idade, calculadora gratuita, e quando ir ao médico urgentemente.',
-    tag: 'Pediatria', date: '2025-12-10', readTime: '5 min',
-    color: 'var(--amber)',
-  },
-  {
-    slug: 'ibuprofeno-varfarina',
-    title: 'Posso Tomar Ibuprofeno com Varfarina?',
-    desc: 'A combinação mais perigosa dos domicílios portugueses. Mecanismo, risco real e alternativas seguras.',
-    tag: 'Interações', date: '2025-11-22', readTime: '6 min',
-    color: 'var(--red)',
-  },
-  {
-    slug: 'metformina-alcool',
-    title: 'Metformina e Álcool — O Que Realmente Acontece',
-    desc: 'Risco de acidose láctica, quanto é demasiado, e o que dizer ao doente diabético que quer beber socialmente.',
-    tag: 'Diabetes', date: '2026-02-01', readTime: '7 min',
-    color: 'var(--green)',
-  },
-  {
-    slug: 'antibioticos-em-gravidez',
-    title: 'Antibióticos na Gravidez — Guia Completo por Categoria',
-    desc: 'Quais são seguros, quais são proibidos, e quando o benefício supera o risco. Com tabela por classe e trimestre.',
-    tag: 'Gravidez', date: '2026-02-15', readTime: '10 min',
-    color: 'var(--roxo)',
-  },
-  {
-    slug: 'hipericao-medicamentos',
-    title: 'Hipericão (Erva de São João) — As Interações que Ninguém Conta',
-    desc: 'O suplemento natural mais perigoso em Portugal. Anticonceptivos, antidepressivos, anticoagulantes — tudo interagiria.',
-    tag: 'Suplementos', date: '2026-01-28', readTime: '6 min',
-    color: 'var(--amber)',
-  },
-  {
-    slug: 'medicamentos-idosos-lista-beers',
-    title: 'Medicamentos a Evitar em Idosos — Critérios Beers 2024',
-    desc: 'A lista actualizada dos medicamentos potencialmente inapropriados em pessoas com mais de 65 anos. Com alternativas.',
-    tag: 'Geriatria', date: '2026-03-01', readTime: '9 min',
-    color: 'var(--ink-2)',
-  },
-  {
-    slug: 'ajuste-dose-insuficiencia-renal',
-    title: 'Como Ajustar a Dose na Insuficiência Renal — Guia Prático',
-    desc: 'Fórmulas de Cockcroft-Gault e CKD-EPI, os fármacos que mais requerem ajuste, e como calcular rapidamente.',
-    tag: 'Renal', date: '2026-02-20', readTime: '8 min',
-    color: 'var(--green)',
-  },
-  {
     slug: 'organizar-medicacao-idoso',
     title: 'Como Organizar a Medicação de um Idoso em Casa',
     desc: 'Guia prático para cuidadores: um sistema simples para nunca trocar, falhar ou repetir tomas. Caixa semanal, gatilhos e lembretes.',
@@ -84,13 +28,6 @@ const ARTICLES = [
     desc: 'DCI, posologia "1+0+1", a receita eletrónica do SNS, o código de dispensa e a comparticipação — tudo explicado em linguagem simples.',
     tag: 'Guia prático', date: '2026-06-20', readTime: '7 min',
     color: 'var(--ink-2)',
-  },
-  {
-    slug: 'medicamentos-sem-receita-cuidados',
-    title: 'Medicamentos Sem Receita: O Que Pode (e Não Deve) Misturar',
-    desc: 'Paracetamol com ibuprofeno, antiácidos, xaropes para a tosse, álcool — o que é seguro em casa e quando a automedicação se torna perigosa.',
-    tag: 'Segurança', date: '2026-06-18', readTime: '8 min',
-    color: 'var(--green)',
   },
   {
     slug: 'como-guardar-medicamentos-casa',

@@ -151,41 +151,22 @@ export async function PUT(req: NextRequest) {
     return parts.join(' · ')
   }).join('\n')
 
-  const prompt = `És um médico clínico geral a analisar os sinais vitais de um doente.
+  /* ── A ANÁLISE SAIU DAQUI (2026-10-23) ─────────────────────────────────
+     Havia aqui um prompt que lia as tensões, o oxigénio, a glicemia e a
+     medicação de uma pessoa e devolvia alertas com gravidade («critical»,
+     «warning»), tendências com «nota clínica» e correlações entre fármacos e
+     sinais vitais — com limiares escritos à mão («TA sistólica >180 →
+     critical»).
 
-SINAIS VITAIS (mais recente primeiro):
-${vitalsText}
+     Classificar as medições de um doente identificado e ligá-las à medicação
+     dele é informação destinada a sustentar uma decisão terapêutica: Regra 11
+     do Regulamento (UE) 2017/745. Com limiares próprios, era-o duas vezes.
 
-MEDICAÇÃO ATUAL: ${medications.join(', ') || 'não especificada'}
-
-Analisa e devolve JSON:
-{
-  "alerts": [
-    { "field": "campo_afetado", "message": "mensagem clara para o doente", "severity": "critical"|"warning"|"info" }
-  ],
-  "trends": [
-    { "field": "campo", "direction": "rising"|"falling"|"stable", "note": "nota clínica em PT-PT" }
-  ],
-  "medication_correlations": [
-    { "drug": "medicamento", "field": "campo_vital", "observation": "observação" }
-  ],
-  "summary": "resumo geral em 2-3 frases, linguagem simples PT-PT"
-}
-
-Regras de alertas:
-- TA sistólica >180 → critical "Tensão muito elevada"
-- TA sistólica >140 → warning
-- SpO2 <95% → warning; <90% → critical
-- FC >100 ou <50 → warning
-- Glicemia >250 ou <70 → critical
-- Temp >38.5°C → warning
-- Correlações: ibuprofen/naproxen + TA a subir → alert
-- Responde APENAS JSON`
-
-  try {
-    const result = await aiJSON<TrendAnalysis>([{ role: 'user', content: prompt }], { maxTokens: 800 })
-    return NextResponse.json(result || { alerts: [], trends: [], medication_correlations: [], summary: '' })
-  } catch (e: any) {
-    return NextResponse.json({ error: e.message }, { status: 500 })
-  }
+     O GET e o POST ficam: registar uma tensão e voltar a lê-la é registo
+     clínico, e é disso que uma casa precisa. Quem lê os números é quem os
+     sabe ler. */
+  return NextResponse.json(
+    { error: 'A análise de sinais vitais foi retirada do Phlox.' },
+    { status: 410 },
+  )
 }
